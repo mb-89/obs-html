@@ -36,9 +36,10 @@ def test_fixture_documents_are_contract_valid(name, document_validator) -> None:
     document_validator.validate(_document(name))
 
 
-def test_the_complete_document_uses_references_and_a_callout_extension() -> None:
+def test_the_complete_document_uses_references_and_a_callout_without_an_extension() -> None:
     capabilities = _document("complete")["capabilities"]
-    assert {"references", "extensions", "callouts"} <= set(capabilities)
+    assert {"references", "callouts"} <= set(capabilities)
+    assert "extensions" not in capabilities
 
 
 @pytest.mark.dom

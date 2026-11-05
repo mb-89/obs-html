@@ -425,24 +425,14 @@ def _definition_html(frontmatter: dict[str, object], slug: str, context: Context
     return _field_html(slug, "definition", frontmatter["definition"], context)
 
 
-SYNTAX_EXTENSIONS = {"callout": "callouts"}
-
-
 def _extension(node: dict[str, object], context: Context) -> str:
-    """An Obsidian syntax extension the source used (obs extensions.md). It marks the syntax; the
-    capability that owns the syntax renders its content, so the marker itself shows nothing.
-    Trusted runtime extensions are another thing: artifact.js's ``obsArtifact.trustedExtension``."""
-    syntax = node["attrs"].get("syntax")
-    owner = SYNTAX_EXTENSIONS.get(syntax)
-    if owner is None:
-        raise RenderError(f"Chapter {context.chapter or HOME}: syntax extension {syntax!r} is not one obs-html "
-                          f"renders; it renders {', '.join(sorted(SYNTAX_EXTENSIONS))}. Remedy: write the "
-                          "content without that syntax, or extend obs-html's SYNTAX_EXTENSIONS.")
-    if owner not in context.document["capabilities"]:
-        raise RenderError(f"Chapter {context.chapter or HOME}: syntax extension {syntax!r} is used, but the "
-                          f"Document does not use {owner!r}, which renders it; regenerate the Document with "
-                          "the obs core.")
-    return ""
+    """An Obsidian syntax extension the source used (obs extensions.md). None has an input-model
+    contract yet, so the core emits none and obs-html renders none; a callout is a ``callouts``
+    node. Trusted runtime extensions are another thing: artifact.js's ``obsArtifact.trustedExtension``."""
+    raise RenderError(f"Chapter {context.chapter or HOME}: syntax extension {node['attrs'].get('syntax')!r} is "
+                      "not one obs-html (src/obs_html/render.py) renders: no syntax extension has an input-model "
+                      "contract yet (obs spec/capabilities/extensions.md), and a callout is a callouts node. "
+                      "Remedy: regenerate the Document with the obs core.")
 
 
 PROPERTY_EDITOR_SCHEMA = json.loads(files("obs_html").joinpath("property-editor.schema.json")

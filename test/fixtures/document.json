@@ -593,13 +593,6 @@
           "children": []
         },
         {
-          "type": "extensions",
-          "attrs": {
-            "syntax": "callout"
-          },
-          "children": []
-        },
-        {
           "type": "callouts",
           "attrs": {
             "kind": "warning",

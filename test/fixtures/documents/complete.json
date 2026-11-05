@@ -42,13 +42,6 @@
         "children": []
       },
       {
-        "type": "extensions",
-        "attrs": {
-          "syntax": "callout"
-        },
-        "children": []
-      },
-      {
         "type": "callouts",
         "attrs": {
           "kind": "important",
@@ -1384,7 +1377,6 @@
     "bases",
     "callouts",
     "chapter-inclusion",
-    "extensions",
     "manifest",
     "markdown",
     "markdown-frontmatter",
