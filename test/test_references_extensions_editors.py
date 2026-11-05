@@ -1,6 +1,6 @@
 """References, syntax extensions and property editors render as the interim adapter in obs did.
 
-Documents are built as the pinned core emits them (its vault.py): a glossary or reference note
+Documents are built as the core emits them (its vault.py): a glossary or reference note
 carries a ``references`` node with its frontmatter, a callout a ``extensions`` marker with
 ``syntax: callout`` before its ``callouts`` node, and a ``property-editor`` fence, which has no
 core capability, a code node in that language. The property-editor cases are the interim's

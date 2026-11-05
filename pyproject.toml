@@ -6,6 +6,7 @@ requires-python = ">=3.11"
 license = "MIT"
 license-files = ["LICENSE"]
 dependencies = [
+    "obs",
     "jsonschema>=4.26.0",
     "markdown-it-py>=3.0",
     "pillow>=13.0.0",
@@ -18,6 +19,9 @@ dependencies = [
 [project.scripts]
 obs-html = "obs_html.cli:main"
 obs-html-inspect = "obs_html.pdf_inspect:main"
+
+[tool.uv.sources]
+obs = { workspace = true }
 
 [dependency-groups]
 dev = [

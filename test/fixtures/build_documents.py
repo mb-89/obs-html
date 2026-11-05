@@ -6,7 +6,7 @@ The tests read only the committed Documents (``documents/<name>.json``), never t
 vaults are the interim adapter's test vaults in obs (test_browser.py, test_artifact_changes.py,
 test_record_projections.py, test_table_help_browser.py), changed where a docstring says so.
 Regenerate after changing a vault, with an obs checkout whose core accepts ``obsHtml`` keys in
-Bases (the pinned core in se.toml still refuses them; the Documents validate against its schema,
+Bases (the core this adapter was built against refused them; the Documents validate against the core's schema,
 which test_moved_dom_contracts.py checks)::
 
     uv run python test/fixtures/build_documents.py <obs checkout>

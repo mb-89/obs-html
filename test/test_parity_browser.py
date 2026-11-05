@@ -1,8 +1,8 @@
 """Parity gate: this adapter's artifact against the interim reference, in Claude-preview-like frames.
 
 Until obs removes its interim adapter, obs's spec is built both ways: the Document from the
-pinned core (`obs` in se.toml) rendered by this adapter, and the same spec sources rendered by
-the interim adapter of that same pinned obs. One interaction script then runs against both
+core of this repository rendered by this adapter, and the same spec sources rendered by the
+interim adapter in the same tree (`obs-html-interim`). One interaction script then runs against both
 artifacts in both preview-like frames (test/preview.py): Home, previous/next by pointer and
 keyboard, the contents menu, the filter, and icon counts per region in every chapter. Any
 difference fails and names the step and both observations.
@@ -18,8 +18,8 @@ A second check sweeps both artifacts in the same frames for covered controls
 closed. It holds this adapter to the design notes alone: a covered control fails, and the failure
 says where the reference has the same fault, which is not a parity difference.
 
-Run it alone with `uv run pytest test/test_parity_browser.py`; it needs both modules synchronized
-(README, "Core module") and builds the artifacts once per session.
+Run it alone with `uv run pytest test/test_parity_browser.py`; it builds the artifacts once per
+session.
 """
 import json
 import os
@@ -30,7 +30,7 @@ from pathlib import Path
 
 import pytest
 
-from conftest import CORE_ROOT, require_core
+from conftest import CORE_ROOT
 from obs_html.cli import main as obs_html
 from preview import SANDBOXES, http_origin, open_preview
 
@@ -94,11 +94,11 @@ def run(command: list[str], cwd: Path, what: str) -> None:
 
 
 def require_reference(core: Path) -> Path:
-    """The pinned obs still carries the interim adapter; once obs removes it, this gate goes too."""
+    """obs still carries the interim adapter; once obs removes it, this gate goes too."""
     if not (core / "src" / "obs_html_interim" / "cli.py").is_file():
         pytest.fail(
             f"test/test_parity_browser.py: interim reference not found, no "
-            f"{core / 'src' / 'obs_html_interim' / 'cli.py'}. The pinned obs no longer carries the interim "
+            f"{core / 'src' / 'obs_html_interim' / 'cli.py'}. obs no longer carries the interim "
             "adapter; remedy: remove this parity gate and its line in AGENTS.md.",
             pytrace=False,
         )
@@ -108,7 +108,7 @@ def require_reference(core: Path) -> Path:
 @pytest.fixture(scope="session")
 def parity_artifacts(tmp_path_factory) -> dict[str, str]:
     """obs's spec built by this adapter and by the interim reference."""
-    core = require_core(CORE_ROOT)
+    core = CORE_ROOT
     reference = require_reference(core)
     uv = shutil.which("uv")
     if not uv:
@@ -118,10 +118,10 @@ def parity_artifacts(tmp_path_factory) -> dict[str, str]:
     capabilities, document = folder / "capabilities.json", folder / "spec.json"
     run([uv, "run", "--project", str(core), "python", "-m", "obs.capabilities",
          "--notes", str(core / "spec" / "capabilities"), "--output", str(capabilities)],
-        core, "building the capability reference with the pinned core")
+        core, "building the capability reference with the core")
     run([uv, "run", "--project", str(core), "obs-document", "--document", str(document),
          "--source", str(core / "spec" / "manifest.md"), "--capability-reference", str(capabilities)],
-        core, "building obs's spec Document with the pinned core")
+        core, "building obs's spec Document with the core")
     adapter = folder / "adapter.html"
     assert obs_html([str(document), str(adapter), "--execute-commands",
                      "--command-root", str(core / "spec")]) == 0, \

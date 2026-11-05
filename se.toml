@@ -1,7 +1,0 @@
-[project]
-authored_content = ["README.md", "AGENTS.md"]
-identity = "mb <mb>"
-
-[modules.obs]
-url = "https://github.com/mb-89/obs.git"
-ref = "3e39a9d076fef821c2d1f8cb905f1093ff3158f1"

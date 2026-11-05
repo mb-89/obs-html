@@ -6,7 +6,7 @@ from pathlib import Path
 
 from jsonschema import Draft202012Validator
 
-from conftest import FIXTURE, ROOT
+from conftest import CORE_ROOT, FIXTURE, ROOT
 from obs_html.render import CAPABILITIES
 
 
@@ -31,8 +31,8 @@ def test_declared_capabilities_exist_in_the_core_reference(core_root: Path) -> N
 
 
 def test_adapters_configuration_names_the_cli_as_the_executable() -> None:
-    adapters = json.loads((ROOT / "adapters.json").read_text(encoding="utf-8"))
-    assert adapters == {"adapters": {"html": "adapter.json"}}
+    adapters = json.loads((CORE_ROOT / "adapters.json").read_text(encoding="utf-8"))
+    assert adapters == {"adapters": {"html": "adapters/html/adapter.json"}}
     scripts = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"]["scripts"]
     assert _manifest()["command"] == ["uv", "run", "obs-html"]
     assert scripts["obs-html"] == "obs_html.cli:main"  # Other scripts, such as obs-html-inspect, are tools.
