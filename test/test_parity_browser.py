@@ -95,10 +95,10 @@ def run(command: list[str], cwd: Path, what: str) -> None:
 
 def require_reference(core: Path) -> Path:
     """The pinned obs still carries the interim adapter; once obs removes it, this gate goes too."""
-    if not (core / "src" / "obs_html" / "cli.py").is_file():
+    if not (core / "src" / "obs_html_interim" / "cli.py").is_file():
         pytest.fail(
             f"test/test_parity_browser.py: interim reference not found, no "
-            f"{core / 'src' / 'obs_html' / 'cli.py'}. The pinned obs no longer carries the interim "
+            f"{core / 'src' / 'obs_html_interim' / 'cli.py'}. The pinned obs no longer carries the interim "
             "adapter; remedy: remove this parity gate and its line in AGENTS.md.",
             pytrace=False,
         )
@@ -127,7 +127,7 @@ def parity_artifacts(tmp_path_factory) -> dict[str, str]:
                      "--command-root", str(core / "spec")]) == 0, \
         "test/test_parity_browser.py: obs-html could not render obs's spec Document"
     interim = folder / "reference.html"
-    run([uv, "run", "--project", str(reference), "obs-html", "--source", str(core / "spec"),
+    run([uv, "run", "--project", str(reference), "obs-html-interim", "--source", str(core / "spec"),
          "--output", str(interim), "--execute-commands"],
         reference, "rendering obs's spec with the interim reference")
     return {"adapter": adapter.read_text(encoding="utf-8"),
