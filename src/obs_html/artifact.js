@@ -2763,7 +2763,7 @@
                     );
                 });
             } else {
-                const message = "No table in this document includes this tag.";
+                const message = "No table here includes this tag.";
                 if (globalThis.obsCapabilities?.limit("dialogs")) globalThis.obsCapabilities.note(link, message);
                 else globalThis.alert(message);
             }

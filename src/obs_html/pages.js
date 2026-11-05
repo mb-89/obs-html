@@ -858,7 +858,7 @@
                 if (!measuredStarts.size && !printing && epoch !== measurementEpoch) scheduleMeasurements();
             }
         };
-        globalThis.obsStartup.defer("Document page numbering", measure);
+        globalThis.obsStartup.defer("Page numbering", measure);
     };
     let screenSlug = null;
     // Page counts and wide-table slots each live chapter was laid out with.

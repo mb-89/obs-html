@@ -897,7 +897,7 @@ def _unknown(node: dict[str, object], context: Context) -> str:
     if kind not in context.unknown:
         listed = "lists it as structural" if kind in STRUCTURAL else "does not list it"
         limit = context.unknown[kind] = {
-            "key": f"node-{kind}", "feature": f'Document node type "{kind}"',
+            "key": f"node-{kind}", "feature": f'Node type "{kind}"',
             "reason": f"obs-html (src/obs_html/render.py) does not render node type {kind!r}; its text is "
                       f"shown plain, without its formatting. The core's document.schema.json {listed}.",
             "observation": f"first in chapter {context.chapter or HOME!r}",
