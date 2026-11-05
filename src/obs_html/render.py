@@ -62,7 +62,6 @@ class RenderError(ValueError):
 @dataclass
 class Context:
     document: dict[str, object]
-    command_runner: Callable[[str], str] | None
     assets: SemanticAssets
     chapter: str = ""
     links: dict[str, dict[str, str]] = field(default_factory=dict)
@@ -348,12 +347,14 @@ def _mark(node: dict[str, object], _context: Context) -> str:
 
 
 def _command(node: dict[str, object], context: Context) -> str:
+    """The output the core captured; the adapter never runs a command (capabilities/command-fences)."""
     if node["attrs"].get("silent"):
         return ""
-    if context.command_runner is None:
-        raise RenderError("A command fence requires explicit command execution authorization "
-                          "(--execute-commands).")
-    output = context.command_runner(node["attrs"]["source"].strip())
+    output = node["attrs"].get("output")
+    if not isinstance(output, str):
+        raise RenderError(f"Chapter {context.chapter!r}: a command-fences node has no attrs.output, "
+                          "the output the core captures; build the Document with "
+                          "obs-document --execute-commands.")
     return f'<pre class="command-output">{escape(output)}</pre>\n'
 
 
@@ -596,7 +597,6 @@ CAPABILITIES: dict[str, Renderer] = {
 
 @stage("render")
 def render(document: dict[str, object], config: Config,
-           command_runner: Callable[[str], str] | None = None,
            style_folder: Path | None = None,
            trusted_runtime: tuple[str, str] | None = None) -> str:
     if document.get("schemaVersion") != 1:
@@ -608,7 +608,7 @@ def render(document: dict[str, object], config: Config,
     style = load_style(style_folder)
     assets = SemanticAssets(style.asset_index)
     context = Context(
-        document, command_runner, assets,
+        document, assets,
         links={item["id"]: item for item in document["links"]},
         files={item["id"]: item for item in document["assets"]},
         paths={record["path"].removesuffix(".md"): record["id"]

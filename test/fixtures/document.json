@@ -354,7 +354,8 @@
         {
           "type": "command-fences",
           "attrs": {
-            "source": "echo derived\n"
+            "source": "echo derived\n",
+            "output": "derived\n"
           },
           "children": []
         },

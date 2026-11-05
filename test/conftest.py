@@ -61,8 +61,7 @@ def fixture_artifact(tmp_path_factory) -> Path:
     from obs_html import cli
 
     def build(folder: Path) -> None:
-        assert cli.main([str(FIXTURE), str(folder / "artifact.html"), "--execute-commands",
-                         "--command-root", str(folder)]) == 0, \
+        assert cli.main([str(FIXTURE), str(folder / "artifact.html")]) == 0, \
             "test/conftest.py: obs-html could not render the fixture Document test/fixtures/document.json"
 
     return built_once(tmp_path_factory, "fixture-artifact", build) / "artifact.html"

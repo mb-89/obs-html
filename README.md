@@ -56,26 +56,17 @@ file exists and stays inside the vault is the core's input check, not the adapte
 
 ## Command fences
 
-Reader: whoever builds an artifact with `--execute-commands` or reads captured command output in one.
+Reader: whoever renders a Document with command fences or reads captured command output in one.
 
-A generated artifact never contains the build machine's absolute paths. Before captured command
-output (stdout and stderr) is embedded, obs-html replaces:
-
-- paths inside `--command-root` with paths relative to it (the root itself becomes `.`);
-- the home folder with `~`;
-- every other absolute path, such as temporary and virtual-environment folders, with the
-  placeholder `<local-path>`.
-
-Commands run with a minimal environment, so an environment dump carries nothing machine-specific
-beyond the paths replaced above. They inherit only `PATH`, `PATHEXT`, `SYSTEMROOT`, `WINDIR`,
-`COMSPEC` (to find and start programs), `HOME`, `USERPROFILE`, `APPDATA`, `LOCALAPPDATA` (per-user
-tool settings and caches), `TMPDIR`, `TEMP`, `TMP` (temporary folders) and `LANG`, `LC_ALL` (text
-encoding), where they are set; a command that needs more sets it itself.
+obs-html never runs a command. The core runs command fences while it builds the Document
+(`obs-document --execute-commands`), replaces the build machine's paths in their captured output
+and puts it into the node; obs-html renders that output as preformatted text. The core's
+capability note `spec/capabilities/command-fences.md` owns the rules.
 
 Every build then checks the finished artifact, the HTML and the decoded artifact data, for the home
-folder, the user name as a path component and the command root, and fails naming where it found
-one and the remedy, before anything is written. A hit in captured output is an obs-html defect;
-a hit in authored content is fixed in the source.
+folder and the user name as a path component, and fails naming where it found one and the remedy,
+before anything is written. A hit in captured output is an obs defect; a hit in authored content
+is fixed in the source.
 
 ## Registers
 

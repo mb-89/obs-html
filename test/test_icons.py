@@ -45,7 +45,7 @@ def with_icon_column(document: dict, name: str) -> dict:
 
 
 def test_packaged_icons_resolve_in_the_shell_and_the_island(document) -> None:
-    html = render(document, CONFIG, lambda command: "")
+    html = render(document, CONFIG)
     assert 'data-icon="menu" aria-hidden="true">☰</span>' in html
     assert '<style id="semantic-asset-styles">:root{' in html and "--color-canvas:var(" in html
     data = decode_artifact_data(html)
@@ -58,7 +58,7 @@ def test_style_catalog_overrides_framework_icons_and_reaches_base_columns(docume
         "icon.menu": {"glyph": "CAT"},
         "icon.mark-risk": {"glyph": "RSK"},
     })
-    html = render(with_icon_column(document, "project.evidence"), CONFIG, lambda command: "",
+    html = render(with_icon_column(document, "project.evidence"), CONFIG,
                   style_folder=style)
     data = decode_artifact_data(html)
     assert data["assets"]["project.evidence"]["value"] == {"glyph": "\U0001f9ea"}
@@ -71,7 +71,7 @@ def test_style_catalog_overrides_framework_icons_and_reaches_base_columns(docume
 
 def test_unknown_base_icons_fail(document) -> None:
     with pytest.raises(RenderError, match="unknown reference"):
-        render(with_icon_column(document, "project.evidence"), CONFIG, lambda command: "")
+        render(with_icon_column(document, "project.evidence"), CONFIG)
 
 
 @pytest.mark.parametrize("case,expected", [
@@ -107,8 +107,7 @@ def test_invalid_style_catalogs_fail_the_cli(document, tmp_path, capsys, case, e
     source.write_text(json.dumps(document), encoding="utf-8")
     output = tmp_path / "artifact.html"
     with pytest.raises(SystemExit) as failure:
-        main([str(source), str(output), "--style", str(style),
-              "--execute-commands", "--command-root", str(tmp_path)])
+        main([str(source), str(output), "--style", str(style)])
     assert failure.value.code == 2
     assert expected in capsys.readouterr().err
     assert not output.exists()

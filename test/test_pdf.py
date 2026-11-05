@@ -16,7 +16,7 @@ def test_pdf_destination_prints_the_rendered_document(tmp_path, capsys) -> None:
     destination = tmp_path / "artifact.pdf"
     (tmp_path / "images").mkdir()
     (tmp_path / "images" / "logo.png").write_bytes(base64.b64decode(PIXEL))
-    cli.main([str(FIXTURE), str(destination), "--execute-commands", "--command-root", str(tmp_path)])
+    cli.main([str(FIXTURE), str(destination)])
     reader = PdfReader(BytesIO(destination.read_bytes()))
     box = reader.pages[0].mediabox
     assert (round(float(box.width) / 72 * 25.4, 1), round(float(box.height) / 72 * 25.4, 1)) == (215.9, 279.4)

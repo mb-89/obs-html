@@ -20,7 +20,6 @@ class ConfigError(ValueError):
 
 @dataclass(frozen=True)
 class Config:
-    command_timeout_seconds: int
     rendered_check_timeout_seconds: int
     print_default: dict[str, str]
     paper_sizes: dict[str, dict[str, float]]
@@ -47,7 +46,6 @@ def load_config(override_path: Path | None = None) -> Config:
         raise ConfigError(f"Invalid {location}: {error.message}")
     artifact = config["artifact"]
     return Config(
-        command_timeout_seconds=config["execution"]["commandTimeoutSeconds"],
         rendered_check_timeout_seconds=config["execution"]["renderedCheckTimeoutSeconds"],
         print_default=artifact["print"]["default"],
         paper_sizes=artifact["print"]["paperSizes"],

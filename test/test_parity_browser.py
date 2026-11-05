@@ -147,10 +147,9 @@ def parity_artifacts(tmp_path_factory) -> dict[str, str]:
             core, "building the capability reference with the core")
         run([uv, "run", "--offline", "--project", str(core), "python", str(OFFLINE_DOCUMENT),
              "--document", str(document), "--source", str(core / "spec" / "manifest.md"),
-             "--capability-reference", str(capabilities)],
+             "--capability-reference", str(capabilities), "--execute-commands"],
             core, "building obs's spec Document with the core, without the network")
-        assert obs_html([str(document), str(folder / "adapter.html"), "--execute-commands",
-                         "--command-root", str(core / "spec")]) == 0, \
+        assert obs_html([str(document), str(folder / "adapter.html")]) == 0, \
             "test/test_parity_browser.py: obs-html could not render obs's spec Document"
 
     folder = built_once(tmp_path_factory, "parity", build)

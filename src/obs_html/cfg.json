@@ -2,7 +2,6 @@
   "$schema": "./cfg.schema.json",
   "schemaVersion": 1,
   "execution": {
-    "commandTimeoutSeconds": 15,
     "renderedCheckTimeoutSeconds": 120
   },
   "artifact": {
