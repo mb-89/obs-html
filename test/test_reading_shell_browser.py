@@ -49,3 +49,41 @@ def test_the_title_page_shows_the_document_type_once(tmp_path: Path, reader_brow
     assert frame.locator(".paper-sheet .paper-header").count()
     assert frame.evaluate(REPEATED_HEADINGS) == []
     assert errors == []
+
+
+def test_the_contents_and_previous_next_walk_the_same_chapters(tmp_path: Path, reader_browser) -> None:
+    """The Document as the core emits a manifest with a hidden line: the hidden line is no chapter,
+    and a note the manifest does not list is a `toc: false` chapter, reachable only by its link."""
+    from playwright.sync_api import expect
+
+    unlisted = {**chapter("secret", "Secret", paragraph("Reached by link only.")), "toc": False}
+    artifact = render(document(
+        "Walk",
+        chapter("one", "One", paragraph("One."), children=(
+            chapter("one-a", "One A", paragraph("One A.")),
+            unlisted,
+            chapter("one-b", "One B", paragraph("One B.")),
+        )),
+        chapter("two", "Two", paragraph("Two.")),
+    ), load_config())
+    errors: list[str] = []
+    _page, frame = open_viewer(tmp_path, reader_browser, errors, artifact, "light")
+    contents = frame.evaluate("""() => [...document.querySelectorAll("[data-toc-tree] [data-toc-link]")]
+        .map((link) => link.getAttribute("href").slice(1))""")
+    walk = []
+    following = frame.locator('[data-step="1"]')
+    while following.is_enabled():
+        following.click()
+        frame.evaluate("globalThis.obsArtifact.whenChapterReady()")
+        walk.append(frame.locator("[data-active-chapter]").get_attribute("data-chapter"))
+    assert contents == ["one", "one-a", "one-b", "two"]
+    assert walk == contents
+    backwards = []
+    previous = frame.locator('[data-step="-1"]')
+    while previous.is_enabled():
+        previous.click()
+        frame.evaluate("globalThis.obsArtifact.whenChapterReady()")
+        backwards.append(frame.locator("[data-active-chapter]").get_attribute("data-chapter"))
+    assert backwards == [*reversed(contents[:-1]), "home"]
+    expect(frame.locator("[data-active-chapter]")).to_have_attribute("data-chapter", "home")
+    assert errors == []
