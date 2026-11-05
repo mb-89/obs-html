@@ -23,6 +23,8 @@ from urllib.parse import unquote
 
 import yaml
 from jsonschema import Draft202012Validator
+from latex2mathml import exceptions as math_exceptions
+from latex2mathml.converter import convert as mathml
 from markdown_it import MarkdownIt
 
 from obs_html.bars import BarDefinition, discover_bars
@@ -77,6 +79,7 @@ class Context:
     records: dict[str, dict[str, object]] = field(default_factory=dict)
     editable: dict[str, dict[str, object]] = field(default_factory=dict)
     unknown: set[str] = field(default_factory=set)
+    fields: dict[str, dict[str, str]] = field(default_factory=dict)
 
 
 Renderer = Callable[[dict[str, object], Context], str]
@@ -88,9 +91,12 @@ def _nothing(_node: dict[str, object], _context: Context) -> str:
 
 
 def _frontmatter(node: dict[str, object], context: Context) -> str:
-    """A chapter's frontmatter feeds its frontmatter panel, filters and Base rows, not its body."""
+    """A chapter's frontmatter feeds its frontmatter panel, filters and Base rows, not its body; its
+    field nodes are the panel's display HTML, by dotted path."""
     if context.chapter:
         context.frontmatter.update(node["attrs"]["metadata"])
+        context.fields[context.chapter] = {child["attrs"]["name"]: _nodes(child["children"], context)
+                                           for child in node["children"] if child["type"] == "field"}
     return ""
 
 
@@ -414,11 +420,11 @@ def _references(node: dict[str, object], context: Context) -> str:
     return ""
 
 
-def _definition_html(frontmatter: dict[str, object], context: Context) -> str:
+def _definition_html(frontmatter: dict[str, object], slug: str, context: Context) -> str:
     """A glossary note's definition as inline HTML, for its hover card and register rows."""
     if frontmatter.get("kind") != "glossary" or "definition" not in frontmatter:
         return ""
-    return _inline(frontmatter["definition"], context)
+    return _field_html(slug, "definition", frontmatter["definition"], context)
 
 
 SYNTAX_EXTENSIONS = {"callout": "callouts"}
@@ -678,8 +684,8 @@ def _note(depth: int, title: str, slug: str, generated: str, frontmatter: dict[s
         "depth": depth, "title": title, "slug": slug, "sourcePath": f"{slug}.md",
         "generated": generated, "cssClasses": _css_classes(frontmatter, slug),
         "frontmatter": frontmatter, "editableProperties": context.editable,
-        "frontmatterHtml": _frontmatter_html(frontmatter, context),
-        "definitionHtml": _definition_html(frontmatter, context), "marks": context.marks, "tables": context.tables, "html": html,
+        "frontmatterHtml": _frontmatter_html(frontmatter, slug, context),
+        "definitionHtml": _definition_html(frontmatter, slug, context), "marks": context.marks, "tables": context.tables, "html": html,
     }
 
 
@@ -697,8 +703,8 @@ def _attach_records(records: list[dict[str, object]], notes: list[dict[str, obje
             note["ignored"] = True  # Runtime selections skip it (artifact.js, selectable).
         if note is not None and not note["generated"]:
             note["frontmatter"] = {**fields, **note["frontmatter"]}
-            note["frontmatterHtml"] = _frontmatter_html(note["frontmatter"], context)
-            note["definitionHtml"] = _definition_html(note["frontmatter"], context)
+            note["frontmatterHtml"] = _frontmatter_html(note["frontmatter"], note["slug"], context)
+            note["definitionHtml"] = _definition_html(note["frontmatter"], note["slug"], context)
             note["sourcePath"] = source_path
             continue
         if note is not None:
@@ -708,8 +714,8 @@ def _attach_records(records: list[dict[str, object]], notes: list[dict[str, obje
             "depth": 0, "title": str(fields.get("title") or record["id"]), "slug": record["id"],
             "sourcePath": source_path, "generated": "", "cssClasses": [],
             "frontmatter": fields, "editableProperties": {},
-            "frontmatterHtml": _frontmatter_html(fields, context),
-            "definitionHtml": _definition_html(fields, context), "marks": [], "tables": [], "html": "", "record": True,
+            "frontmatterHtml": _frontmatter_html(fields, record["id"], context),
+            "definitionHtml": _definition_html(fields, record["id"], context), "marks": [], "tables": [], "html": "", "record": True,
             **({"ignored": True} if record.get("ignored") else {}),
         })
 
@@ -782,6 +788,46 @@ def _section(node: dict[str, object], context: Context) -> str:
 def _wrap(opening: str, closing: str) -> Renderer:
     """A node shown as its children inside one element."""
     return lambda node, context: f"{opening}{_nodes(node['children'], context)}{closing}"
+
+
+def _table(node: dict[str, object], context: Context) -> str:
+    """A pipe table: its header rows (every cell a header) in the head, the other rows in the body."""
+    def header(row: dict[str, object]) -> bool:
+        return bool(row["children"]) and all(cell["attrs"].get("header") for cell in row["children"])
+
+    head = [row for row in node["children"] if header(row)]
+    body = [row for row in node["children"] if not header(row)]
+    return ("<table>\n" + (f"<thead>\n{_nodes(head, context)}</thead>\n" if head else "")
+            + (f"<tbody>\n{_nodes(body, context)}</tbody>\n" if body else "") + "</table>\n")
+
+
+def _table_cell(node: dict[str, object], context: Context) -> str:
+    tag = "th" if node["attrs"].get("header") else "td"
+    align = node["attrs"].get("align")
+    style = f' style="text-align:{escape(str(align), quote=True)}"' if align else ""
+    return f"<{tag}{style}>{_nodes(node['children'], context)}</{tag}>"
+
+
+MATH_ERRORS = tuple(error for error in vars(math_exceptions).values()
+                    if isinstance(error, type) and issubclass(error, Exception))
+
+
+def _math(node: dict[str, object], context: Context) -> str:
+    """TeX math as MathML: display math is a block, inline math a span."""
+    display = bool(node["attrs"].get("display"))
+    formula = node.get("text", "")
+    try:
+        markup = mathml(formula, display="block" if display else "inline")
+    except MATH_ERRORS as error:
+        raise RenderError(f"Chapter {context.chapter or HOME}: math formula {formula!r} is not valid TeX "
+                          f"({type(error).__name__}). Remedy: correct the formula in its note.") from error
+    return f'<div class="math block">{markup}</div>\n' if display else f'<span class="math inline">{markup}</span>'
+
+
+def _field(node: dict[str, object], context: Context) -> str:
+    """A frontmatter field outside its frontmatter node (which renders it in the panel): its text."""
+    return (f'<span class="frontmatter-field" data-field="{escape(node["attrs"]["name"], quote=True)}">'
+            f"{_nodes(node['children'], context)}</span>")
 
 
 def _unknown(node: dict[str, object], context: Context) -> str:
@@ -906,6 +952,16 @@ STRUCTURAL_NODES: dict[str, Renderer] = {
     "list": _list,
     "list-item": _wrap("<li>", "</li>\n"),
     "code": _code_node,
+    "quote": _wrap("<blockquote>\n", "</blockquote>\n"),
+    "table": _table,
+    "table-row": _wrap("<tr>", "</tr>\n"),
+    "table-cell": _table_cell,
+    "emphasis": _wrap("<em>", "</em>"),
+    "strong": _wrap("<strong>", "</strong>"),
+    "strikethrough": _wrap("<s>", "</s>"),
+    "math": _math,
+    "field": _field,
+    "rule": lambda _node, _context: "<hr>\n",
 }
 """One renderer per structural type (STRUCTURAL); a type without one renders as an unknown node."""
 
@@ -1215,7 +1271,7 @@ def _frontmatter_link(match: re.Match[str], context: Context) -> str:
     return _internal_link(chapter, heading, label, context)
 
 
-def _frontmatter_html(metadata: dict[str, object], context: Context) -> dict[str, str]:
+def _frontmatter_html(metadata: dict[str, object], slug: str, context: Context) -> dict[str, str]:
     """Each flattened frontmatter field's display HTML, as the frontmatter panel shows it."""
     rendered: dict[str, str] = {}
 
@@ -1230,16 +1286,23 @@ def _frontmatter_html(metadata: dict[str, object], context: Context) -> dict[str
             if not value:
                 rendered[name] = "[]"
             elif all(not isinstance(item, (dict, list)) for item in value):
-                rendered[name] = ", ".join(_inline("null" if item is None else item, context)
-                                           for item in value)
+                rendered[name] = ", ".join(_field_html(slug, f"{name}.{index}", item, context)
+                                           for index, item in enumerate(value))
             else:
                 for index, item in enumerate(value):
                     add(f"{name}.{index}", item)
         elif name:
-            rendered[name] = _inline("null" if value is None else value, context)
+            rendered[name] = _field_html(slug, name, value, context)
 
     add("", metadata)
     return rendered
+
+
+def _field_html(slug: str, name: str, value: object, context: Context) -> str:
+    """A field's display HTML: its field node where the chapter's frontmatter carries one (a nonempty
+    string), else its value as text; a record's fields, which carry no nodes, are inline Markdown."""
+    fields = context.fields.get(slug, {})
+    return fields[name] if name in fields else _inline("null" if value is None else value, context)
 
 
 def _flatten(value: object, prefix: str = ""):

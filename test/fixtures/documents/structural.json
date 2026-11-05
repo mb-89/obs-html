@@ -1,0 +1,524 @@
+{
+  "schemaVersion": 1,
+  "manifest": {
+    "title": "Manifest",
+    "metadata": {},
+    "abstract": [
+      {
+        "type": "manifest",
+        "attrs": {},
+        "children": []
+      }
+    ]
+  },
+  "chapters": [
+    {
+      "id": "formatting",
+      "title": "Formatting",
+      "content": [
+        {
+          "type": "markdown-frontmatter",
+          "attrs": {
+            "metadata": {
+              "owner": {
+                "name": "*Ada* **Lovelace**"
+              },
+              "tags": [
+                "~~old~~",
+                "plain"
+              ],
+              "count": 3
+            }
+          },
+          "children": [
+            {
+              "type": "field",
+              "attrs": {
+                "name": "owner.name"
+              },
+              "children": [
+                {
+                  "type": "emphasis",
+                  "attrs": {},
+                  "children": [
+                    {
+                      "type": "text",
+                      "attrs": {},
+                      "children": [],
+                      "text": "Ada"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": " "
+                },
+                {
+                  "type": "strong",
+                  "attrs": {},
+                  "children": [
+                    {
+                      "type": "text",
+                      "attrs": {},
+                      "children": [],
+                      "text": "Lovelace"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "tags.0"
+              },
+              "children": [
+                {
+                  "type": "strikethrough",
+                  "attrs": {},
+                  "children": [
+                    {
+                      "type": "text",
+                      "attrs": {},
+                      "children": [],
+                      "text": "old"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "tags.1"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "plain"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "formatting"
+          },
+          "children": []
+        },
+        {
+          "type": "markdown",
+          "attrs": {},
+          "children": []
+        },
+        {
+          "type": "section",
+          "attrs": {
+            "level": 1
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Formatting"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "attrs": {},
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Plain, "
+            },
+            {
+              "type": "strong",
+              "attrs": {},
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "strong "
+                },
+                {
+                  "type": "emphasis",
+                  "attrs": {},
+                  "children": [
+                    {
+                      "type": "text",
+                      "attrs": {},
+                      "children": [],
+                      "text": "emphasis inside"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": " and "
+                },
+                {
+                  "type": "strikethrough",
+                  "attrs": {},
+                  "children": [
+                    {
+                      "type": "text",
+                      "attrs": {},
+                      "children": [],
+                      "text": "struck"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": ", "
+            },
+            {
+              "type": "emphasis",
+              "attrs": {},
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "emphasis "
+                },
+                {
+                  "type": "strong",
+                  "attrs": {},
+                  "children": [
+                    {
+                      "type": "text",
+                      "attrs": {},
+                      "children": [],
+                      "text": "strong inside"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": ", "
+            },
+            {
+              "type": "strikethrough",
+              "attrs": {},
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "struck "
+                },
+                {
+                  "type": "strong",
+                  "attrs": {},
+                  "children": [
+                    {
+                      "type": "text",
+                      "attrs": {},
+                      "children": [],
+                      "text": "strong "
+                    },
+                    {
+                      "type": "emphasis",
+                      "attrs": {},
+                      "children": [
+                        {
+                          "type": "text",
+                          "attrs": {},
+                          "children": [],
+                          "text": "all three"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": " and inline "
+            },
+            {
+              "type": "math",
+              "attrs": {
+                "display": false
+              },
+              "children": [],
+              "text": "x^2"
+            },
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": " math."
+            }
+          ]
+        },
+        {
+          "type": "math",
+          "attrs": {
+            "display": true
+          },
+          "children": [],
+          "text": "E = mc^2"
+        },
+        {
+          "type": "quote",
+          "attrs": {},
+          "children": [
+            {
+              "type": "paragraph",
+              "attrs": {},
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "A quoted "
+                },
+                {
+                  "type": "strong",
+                  "attrs": {},
+                  "children": [
+                    {
+                      "type": "text",
+                      "attrs": {},
+                      "children": [],
+                      "text": "line"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "table",
+          "attrs": {},
+          "children": [
+            {
+              "type": "table-row",
+              "attrs": {},
+              "children": [
+                {
+                  "type": "table-cell",
+                  "attrs": {
+                    "header": true,
+                    "align": "left"
+                  },
+                  "children": [
+                    {
+                      "type": "text",
+                      "attrs": {},
+                      "children": [],
+                      "text": "Left"
+                    }
+                  ]
+                },
+                {
+                  "type": "table-cell",
+                  "attrs": {
+                    "header": true,
+                    "align": "center"
+                  },
+                  "children": [
+                    {
+                      "type": "text",
+                      "attrs": {},
+                      "children": [],
+                      "text": "Center"
+                    }
+                  ]
+                },
+                {
+                  "type": "table-cell",
+                  "attrs": {
+                    "header": true,
+                    "align": "right"
+                  },
+                  "children": [
+                    {
+                      "type": "text",
+                      "attrs": {},
+                      "children": [],
+                      "text": "Right"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "table-row",
+              "attrs": {},
+              "children": [
+                {
+                  "type": "table-cell",
+                  "attrs": {
+                    "header": false,
+                    "align": "left"
+                  },
+                  "children": [
+                    {
+                      "type": "text",
+                      "attrs": {},
+                      "children": [],
+                      "text": "a"
+                    }
+                  ]
+                },
+                {
+                  "type": "table-cell",
+                  "attrs": {
+                    "header": false,
+                    "align": "center"
+                  },
+                  "children": [
+                    {
+                      "type": "emphasis",
+                      "attrs": {},
+                      "children": [
+                        {
+                          "type": "text",
+                          "attrs": {},
+                          "children": [],
+                          "text": "b"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "table-cell",
+                  "attrs": {
+                    "header": false,
+                    "align": "right"
+                  },
+                  "children": [
+                    {
+                      "type": "text",
+                      "attrs": {},
+                      "children": [],
+                      "text": "3"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "rule",
+          "attrs": {},
+          "children": []
+        },
+        {
+          "type": "callouts",
+          "attrs": {
+            "kind": "note",
+            "title": "Note"
+          },
+          "children": [
+            {
+              "type": "paragraph",
+              "attrs": {},
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "Untitled note body."
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "children": [],
+      "metadata": {
+        "owner": {
+          "name": "*Ada* **Lovelace**"
+        },
+        "tags": [
+          "~~old~~",
+          "plain"
+        ],
+        "count": 3
+      }
+    }
+  ],
+  "links": [],
+  "assets": [],
+  "records": [
+    {
+      "id": "formatting",
+      "type": "note",
+      "path": "formatting.md",
+      "fields": {
+        "owner": {
+          "name": "*Ada* **Lovelace**"
+        },
+        "tags": [
+          "~~old~~",
+          "plain"
+        ],
+        "count": 3
+      }
+    },
+    {
+      "id": "manifest",
+      "type": "note",
+      "path": "manifest.md",
+      "fields": {}
+    },
+    {
+      "id": "chapter-formatting",
+      "type": "chapter",
+      "note": "formatting",
+      "fields": {
+        "chapter": "Formatting",
+        "title": "Formatting",
+        "depth": "0",
+        "slug": "formatting",
+        "sourcePath": "formatting.md"
+      }
+    }
+  ],
+  "semanticResources": [],
+  "diagnostics": [],
+  "capabilities": [
+    "callouts",
+    "chapter-inclusion",
+    "manifest",
+    "markdown",
+    "markdown-frontmatter"
+  ]
+}
