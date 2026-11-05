@@ -751,8 +751,9 @@ def _node(node: dict[str, object], context: Context) -> str:
 
 def _list(node: dict[str, object], context: Context) -> str:
     tag = "ol" if node["attrs"].get("ordered") else "ul"
-    if _tight(node):
-        items = "".join(f"<li>{_tight_item(item, context)}</li>\n" for item in node["children"])
+    if node["attrs"]["tight"]:
+        items = "".join(f"<li>{_tight_item(item, context)}</li>\n" if item["type"] == "list-item"
+                        else _node(item, context) for item in node["children"])
         return f"<{tag}>\n{items}</{tag}>\n"
     return f"<{tag}>\n{_nodes(node['children'], context)}</{tag}>\n"
 
@@ -846,16 +847,6 @@ def _code(node: dict[str, object]) -> str:
         position = separator.end()
     pieces.append(escape(text[position:]))
     return f"<code>{'<wbr>'.join(pieces)}</code>"
-
-
-def _tight(node: dict[str, object]) -> bool:
-    """A list whose items each hold one paragraph (plus nested lists) renders tight, as
-    Markdown's usual tight lists do; the Document does not say whether a list was loose."""
-    return all(
-        sum(child["type"] == "paragraph" for child in item["children"]) == 1
-        and all(child["type"] in {"paragraph", "list"} for child in item["children"])
-        for item in node["children"]
-    )
 
 
 def _tight_item(item: dict[str, object], context: Context) -> str:

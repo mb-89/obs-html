@@ -263,7 +263,8 @@
         {
           "type": "list",
           "attrs": {
-            "ordered": true
+            "ordered": true,
+            "tight": true
           },
           "children": [
             {
