@@ -514,6 +514,7 @@ def _projection_matches(existing: object, projected: object) -> bool:
 
 
 CAPABILITIES: dict[str, Renderer] = {
+    "artifact-presentation": _nothing,
     "attachments": _attachment,
     "bases": _base,
     "callouts": _callout,
@@ -521,7 +522,6 @@ CAPABILITIES: dict[str, Renderer] = {
     "chapter-inclusion": _nothing,
     "command-fences": _command,
     "count-query": _count_query,
-    "document-presentation": _nothing,
     "embeds": _embed,
     "extensions": _extension,
     "figure-descriptor": _figure,
