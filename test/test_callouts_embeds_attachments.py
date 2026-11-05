@@ -10,6 +10,7 @@ from obs_html.config import load_config
 from obs_html.render import RenderError, render
 from obs_html.artifact_data import decode_artifact_data
 
+from conftest import PIXEL
 from documents import chapter, document as build, node, paragraph, text
 
 
@@ -85,13 +86,15 @@ def test_an_unknown_callout_kind_names_the_chapter_the_kind_and_the_remedy() -> 
         _html(_callout("shout", "", "Body."))
 
 
-IMAGE = {"id": "logo", "href": "images/logo.png", "mediaType": "image/png"}
-DATA = {"id": "data", "href": "input/data.bin", "mediaType": "application/octet-stream"}
+IMAGE = {"id": "logo", "href": "images/logo.png", "mediaType": "image/png", "path": "images/logo.png",
+         "data": PIXEL}
+DATA = {"id": "data", "href": "input/data.bin", "mediaType": "application/octet-stream", "path": "input/data.bin",
+        "data": "AA=="}
 
 
 def test_an_image_attachment_is_document_content() -> None:
     html = _html(paragraph(node("attachments", asset="logo", label="The logo")), assets=[IMAGE])
-    assert html == '<p><img src="images/logo.png" alt="The logo"></p>\n'
+    assert html == f'<p><img src="data:image/png;base64,{PIXEL}" alt="The logo"></p>\n'
 
 
 def test_a_file_attachment_renders_as_provenance_text() -> None:
@@ -124,9 +127,11 @@ def test_a_note_embed_links_to_its_chapter_or_renders_unresolved() -> None:
 
 
 def test_a_file_embed_renders_like_an_attachment() -> None:
-    html = _html(paragraph(node("embeds", target="icon.svg", chapter=None), " ",
-                           node("embeds", target="input/data.bin", chapter=None)))
-    assert html == ('<p><img src="icon.svg" alt=""> '
+    icon = {"id": "icon", "href": "icon.svg", "mediaType": "image/svg+xml", "path": "icon.svg", "data": "PHN2Zy8+"}
+    html = _html(paragraph(node("embeds", target="icon.svg", chapter=None, asset="icon"), " ",
+                           node("embeds", target="input/data.bin", chapter=None, asset="data")),
+                 assets=[icon, DATA])
+    assert html == ('<p><img src="data:image/svg+xml;base64,PHN2Zy8+" alt=""> '
                     '<span class="source-reference" data-source-path="input/data.bin">data.bin</span>'
                     ' (<code>input/<wbr>data.<wbr>bin</code>)</p>\n')
 

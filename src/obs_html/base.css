@@ -837,6 +837,14 @@ math {
     width: auto;
 }
 
+/* An image whose asset has no bytes: its alt text, framed where the image would be. */
+.image-unavailable {
+    border: 1px dashed currentColor;
+    border-radius: 0.25rem;
+    display: inline-block;
+    padding: 0 0.4em;
+}
+
 .document-subtitle a:has(img) {
     flex: 1 1 0;
     min-width: 0;

@@ -27,7 +27,8 @@ HERE = Path(__file__).parent
 
 def complete(root: Path) -> None:
     """test_complete_document_dom_interactions. Changed: the glossary links its BLUF note, which
-    the core includes only when linked (the interim included every glossary note)."""
+    the core includes only when linked (the interim included every glossary note); the subtitle
+    badges are vault files, so the Document carries their bytes without a network fetch."""
     notes = {
         "parent": "# Parent\n\n[[node#Extra]]\n\n[1](reference.md)\n",
         "child": "---\nbottom line: Child result.\n---\n# Child\n\nQuestion. #mark/question/child_question\n\nResolve this. #mark/open_point/child_open\n",
@@ -98,13 +99,16 @@ def complete(root: Path) -> None:
     (root / "shared.png").write_bytes(shared_image)
     notes["parent"] += "\n![Shared image](shared.png)\n"
     notes["child"] += "\n![Shared image](shared.png)\n"
+    for badge in ("obsidian", "html"):
+        (root / f"{badge}.svg").write_text(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="60" height="20"><rect width="60" height="20"/></svg>',
+            encoding="utf-8")
     for name, source in notes.items():
         (root / f"{name}.md").write_text(source, encoding="utf-8")
     manifest = root / "manifest.md"
     manifest.write_text(
         "---\ntitle: Test document\n"
-        "subtitle: 'Bridge **subtitle** ![Obsidian](https://example.invalid/obsidian.svg) "
-        "![HTML](https://example.invalid/html.svg)'\n"
+        "subtitle: 'Bridge **subtitle** ![Obsidian](obsidian.svg) ![HTML](html.svg)'\n"
         "status: active\nowners: {team: [Ada, Lin]}\n"
         "---\n"
         "- [[parent|Parent]]\n  - [[child|Child]]\n    - [[node|Node]]\n"
