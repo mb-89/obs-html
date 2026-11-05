@@ -2,7 +2,9 @@
 
 Reader: whoever changes a vault below or regenerates ``test/fixtures/documents``.
 
-The tests read only the committed Documents (``documents/<name>.json``), never the core. The
+The tests read the committed Documents (``documents/<name>.json``); test_fixture_documents.py
+builds every vault with the current core each run and fails on a refused vault or a stale
+Document, so a core change cannot hide behind them. The
 vaults are the interim adapter's test vaults in obs (test_browser.py, test_artifact_changes.py,
 test_record_projections.py, test_table_help_browser.py), changed where a docstring says so.
 Regenerate after changing a vault, with an obs checkout whose core accepts ``obsHtml`` keys in
@@ -22,6 +24,7 @@ import json
 import subprocess
 import sys
 import tempfile
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import yaml
@@ -326,25 +329,50 @@ sys.exit(document.main(sys.argv[1:]))
 """
 
 
-def main(core: Path, names: list[str]) -> None:
+def build(core: Path, names: list[str], output: Path, offline: bool = False) -> dict[str, str]:
+    """Build the named vaults' Documents (all without names) into ``output`` with the core, side by
+    side; the core's message for each vault it refuses. ``offline`` keeps uv off the network."""
+    uv = ["uv", "run", *(["--offline"] if offline else []), "--project", str(core)]
+    refused: dict[str, str] = {}
     with tempfile.TemporaryDirectory() as temporary:
         work = Path(temporary)
         capabilities = work / "capabilities.json"
-        subprocess.run(["uv", "run", "python", "-m", "obs.capabilities", "--notes", "spec/capabilities",
-                        "--output", str(capabilities)], cwd=core, check=True)
-        for name in names or VAULTS:
+        result = subprocess.run([*uv, "python", "-m", "obs.capabilities", "--notes", "spec/capabilities",
+                                 "--output", str(capabilities)], cwd=core, capture_output=True, text=True)
+        if result.returncode:
+            raise RuntimeError(f"test/fixtures/build_documents.py: the core could not build its capability "
+                               f"reference in {core}: {(result.stderr or result.stdout).strip()}")
+
+        def one(name: str) -> None:
             root = work / name
             root.mkdir()
             VAULTS[name](root)
-            output = HERE / "documents" / f"{name}.json"
-            subprocess.run(["uv", "run", "python", "-c", DRIVER, "--document", str(output),
-                            "--source", str(root / "manifest.md"), "--capability-reference", str(capabilities)],
-                           cwd=core, check=True)
-            diagnostics = json.loads(output.read_text(encoding="utf-8"))["diagnostics"]
+            document = output / f"{name}.json"
+            result = subprocess.run([*uv, "python", "-c", DRIVER, "--document", str(document),
+                                     "--source", str(root / "manifest.md"),
+                                     "--capability-reference", str(capabilities)],
+                                    cwd=core, capture_output=True, text=True)
+            if result.returncode:
+                # uv's own notices start with "warning:"; the core's lines name the core.
+                refused[name] = "\n".join(line for line in (result.stderr or result.stdout).splitlines()
+                                          if line.strip() and not line.startswith("warning:"))
+                return
+            diagnostics = json.loads(document.read_text(encoding="utf-8"))["diagnostics"]
             if diagnostics:
-                raise SystemExit(f"test/fixtures/build_documents.py: the {name} Document has diagnostics "
-                                 f"{diagnostics}, which a committed fixture must not carry. Remedy: change the "
-                                 f"{name} vault so the core builds it without them.")
+                refused[name] = (f"the {name} Document has diagnostics {diagnostics}, which a committed "
+                                 f"fixture must not carry. Remedy: change the {name} vault so the core "
+                                 "builds it without them.")
+
+        with ThreadPoolExecutor() as pool:
+            list(pool.map(one, names or VAULTS))
+    return refused
+
+
+def main(core: Path, names: list[str]) -> None:
+    refused = build(core, names, HERE / "documents")
+    if refused:
+        raise SystemExit("\n".join(f"test/fixtures/build_documents.py: the core refuses the {name} vault: "
+                                   f"{message}" for name, message in refused.items()))
 
 
 if __name__ == "__main__":
