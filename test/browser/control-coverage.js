@@ -33,19 +33,50 @@ async (_, {views, layouts, firstChapterLayouts}) => {
     const box = (element) => [...element.getClientRects()].find((rect) => rect.width >= 2 && rect.height >= 2);
     const shown = (element) => element.checkVisibility({visibilityProperty: true}) && Boolean(box(element));
 
+    // One check runs synchronously: no script, style or layout change happens during it, only
+    // the scrolling it does itself. So what does not depend on scrolling is computed once per
+    // check, and forgotten when the next check starts: each element's style, each control's
+    // clipping ancestors and the overlaying bars.
+    const memos = [];
+    const memo = (compute) => {
+        const known = new Map();
+        memos.push(known);
+        return (element) => {
+            if (!known.has(element)) known.set(element, compute(element));
+            return known.get(element);
+        };
+    };
+    const style = memo((element) => getComputedStyle(element));
+    // The ancestors that clip a control's overflow, up to its first fixed ancestor.
+    const clippers = memo((element) => {
+        const found = [];
+        for (let parent = element.parentElement; parent; parent = parent.parentElement) {
+            const {overflowX, overflowY, position} = style(parent);
+            if (overflowX !== "visible" || overflowY !== "visible") found.push(parent);
+            if (position === "fixed") break;
+        }
+        return found;
+    });
+    // The ancestors a control's scrollIntoView may scroll.
+    const scrollers = memo((element) => {
+        const found = [];
+        for (let parent = element.parentElement; parent; parent = parent.parentElement) found.push(parent);
+        return found;
+    });
+    const offsets = (elements) => elements.map((element) => `${element.scrollLeft},${element.scrollTop}`).join(";");
+
     // The visible parts of a control, largest first: each of its boxes (a wrapped link has one
     // per line) cut by the viewport and by every ancestor that clips its overflow. Their centres
-    // are where a reader points.
+    // are where a reader points. A box outside the viewport has no visible part.
     const seen = (element) => {
-        const clips = [{left: 0, top: 0, right: innerWidth, bottom: innerHeight}];
-        for (let parent = element.parentElement; parent; parent = parent.parentElement) {
-            const style = getComputedStyle(parent);
-            if (style.overflowX !== "visible" || style.overflowY !== "visible") clips.push(parent.getBoundingClientRect());
-            if (style.position === "fixed") break;
-        }
+        const rects = [...element.getClientRects()].filter((rect) => rect.width >= 2 && rect.height >= 2 &&
+            Math.min(rect.right, innerWidth) - Math.max(rect.left, 0) >= 1 &&
+            Math.min(rect.bottom, innerHeight) - Math.max(rect.top, 0) >= 1);
+        if (!rects.length) return [];
+        const clips = [{left: 0, top: 0, right: innerWidth, bottom: innerHeight},
+            ...clippers(element).map((parent) => parent.getBoundingClientRect())];
         const parts = [];
-        for (const rect of element.getClientRects()) {
-            if (rect.width < 2 || rect.height < 2) continue;
+        for (const rect of rects) {
             const left = Math.max(rect.left, ...clips.map((clip) => clip.left));
             const top = Math.max(rect.top, ...clips.map((clip) => clip.top));
             const right = Math.min(rect.right, ...clips.map((clip) => clip.right));
@@ -60,12 +91,16 @@ async (_, {views, layouts, firstChapterLayouts}) => {
     };
 
     // Whether an open bar overlays (part of) the control, as narrow screens do on purpose.
-    const overlaid = (control) => [...document.querySelectorAll("[data-dock-region]")]
-        .filter((region) => getComputedStyle(region).position === "fixed" && region.checkVisibility())
-        .some((region) => {
-            const bar = region.getBoundingClientRect(), own = control.getBoundingClientRect();
+    let bars = null;
+    const overlaid = (control) => {
+        bars ??= [...document.querySelectorAll("[data-dock-region]")]
+            .filter((region) => style(region).position === "fixed" && region.checkVisibility());
+        const own = control.getBoundingClientRect();
+        return bars.some((region) => {
+            const bar = region.getBoundingClientRect();
             return own.left < bar.right && own.right > bar.left && own.top < bar.bottom && own.bottom > bar.top;
         });
+    };
 
     // What lies over the control at that point; "" when the control (or its label) is on top.
     const covering = (control, spot) => {
@@ -76,8 +111,12 @@ async (_, {views, layouts, firstChapterLayouts}) => {
         return name(hit.closest(OWNERS) || hit);
     };
 
-    // A control is reachable when the reader can point at one of its visible parts.
+    // A control is reachable when the reader can point at one of its visible parts. A control
+    // not reachable where it stands is scrolled to the middle of its scroller; once anything
+    // scrolled, every control still pending is looked at again where it now stands.
     const check = () => {
+        memos.forEach((known) => known.clear());
+        bars = null;
         const controls = [...document.querySelectorAll(CONTROLS)].filter(shown);
         const pending = new Set(controls);
         const sweep = () => {
@@ -89,12 +128,13 @@ async (_, {views, layouts, firstChapterLayouts}) => {
         sweep();
         for (const control of controls) {
             if (!pending.has(control)) continue;
+            const before = offsets(scrollers(control));
             control.scrollIntoView({block: "center", inline: "nearest", behavior: "instant"});
             const parts = seen(control);
             const over = parts.length ? parts.map((part) => covering(control, part)) : ["nothing: it cannot be scrolled into view"];
             pending.delete(control);
             if (over.every(Boolean)) faults.push({control: name(control), covering: over[0]});
-            sweep();
+            if (offsets(scrollers(control)) !== before) sweep();
         }
         return {controls: controls.length, faults};
     };

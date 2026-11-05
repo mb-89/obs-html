@@ -13,14 +13,15 @@ Where the reference itself is wrong by obs's design notes, the step is checked a
 for this adapter alone: Home by pointer (the reference's arrow area covers Home) and the filter
 (the reference marks the HTML changed).
 
-A second check sweeps both artifacts in the same frames for covered controls
+A second check sweeps this adapter's artifact in the same frames for covered controls
 (test/browser/control-coverage.js) at four widths, in both views and with the bars open and
 closed. It holds this adapter to the design notes alone: a covered control fails, and the failure
-says where the reference has the same fault, which is not a parity difference.
+says where the reference, swept then in the same frame, has the same fault, which is not a parity
+difference.
 
 Run it alone with `uv run pytest test/test_parity_browser.py`; it builds the artifacts once per
 run. Each test runs on its own worker in the complete suite: one per frame for the interaction
-script and one per frame for the sweep.
+script and one per frame and pair of widths for the sweep.
 """
 import json
 import os
@@ -71,6 +72,14 @@ ICONS = """() => {
         if (painted(icon)) counts.painted += 1;
     }
     return Object.fromEntries(Object.entries(regions).sort());
+}"""
+
+# After an input the artifact has settled once the chapter's deferred content is in, every
+# image is decoded and two frames have been drawn; no wall-clock wait.
+SETTLE = """async () => {
+    await globalThis.obsArtifact.whenChapterReady();
+    await Promise.all([...document.images].map((image) => image.decode().catch(() => {})));
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 }"""
 
 POINTER = """(element) => {
@@ -143,13 +152,13 @@ def interact(page, frame) -> tuple[list[tuple[str, object]], list[str]]:
     violations: list[str] = []
     root = frame.locator("html")
     chapter = lambda: frame.locator("[data-active-chapter]").get_attribute("data-chapter")
-    settle = lambda: page.wait_for_timeout(250)
+    settle = lambda: root.evaluate(SETTLE)
 
     def pointer(selector: str) -> str:
         """Click where the element is shown; report what covers it, if anything."""
         element = frame.locator(selector).first
         spot = element.evaluate(POINTER)
-        box = page.locator("#artifact").bounding_box()
+        box = page.evaluate("document.getElementById('artifact').getBoundingClientRect().toJSON()")
         page.mouse.click(box["x"] + spot["x"], box["y"] + spot["y"])
         settle()
         return f"covered by {spot['covered']}, then {chapter()}" if spot["covered"] else chapter()
@@ -272,7 +281,8 @@ def test_the_artifact_behaves_as_the_interim_reference_in_preview_frames(
 
 
 COVERAGE = Path(__file__).parent / "browser" / "control-coverage.js"
-WIDTHS = (360, 700, 1100, 1600)
+# Swept in pairs, each pair in one opened artifact: opening the spec artifact takes seconds.
+WIDTHS = ((360, 700), (1100, 1600))
 VIEWS = ("pages", "continuous")
 
 
@@ -294,9 +304,9 @@ def layout_name(layout: list[str] | None) -> str:
     return f"the {layout[0]} bar docked {layout[1]}" if layout else "no bar open"
 
 
-def covered_controls(tmp_path: Path, browser, artifact: str, frame_kind: str,
-                     name: str) -> dict[tuple[str, str], dict[str, list[str]]]:
-    """Every covered control at every width, view and bar layout, in one preview frame.
+def covered_controls(tmp_path: Path, browser, artifact: str, frame_kind: str, name: str,
+                     widths: tuple[int, ...]) -> dict[tuple[str, str], dict[str, list[str]]]:
+    """Every covered control at the widths, in every view and bar layout, in one preview frame.
 
     Maps each fault, (control, "at <width>px in the <view> view with <layout>"), to what covers
     it and the chapters where it does; a page error is a fault too.
@@ -309,7 +319,8 @@ def covered_controls(tmp_path: Path, browser, artifact: str, frame_kind: str,
         page, frame = open_preview(folder, browser, errors, artifact, frame_kind,
                                    origin if frame_kind == "same-origin" else None)
         try:
-            page.set_viewport_size({"width": max(WIDTHS) + 100, "height": 800})
+            page.set_viewport_size({"width": max(width for pair in WIDTHS for width in pair) + 100,
+                                    "height": 800})
             root = frame.locator("html")
             bars = root.evaluate("""() => [...new Set([...document.querySelectorAll("[data-dock-bar]")]
                 .map((button) => button.dataset.dockBar))]""")
@@ -320,7 +331,7 @@ def covered_controls(tmp_path: Path, browser, artifact: str, frame_kind: str,
             layouts = [None, *([docked, side] for side in ("right", "left", "top", "bottom")),
                        *([bar, "right"] for bar in bars if bar == "comments")]
             first = [[bar, "right"] for bar in bars if [bar, "right"] not in layouts]
-            for width in WIDTHS:
+            for width in widths:
                 page.evaluate("width => document.getElementById('artifact').style.width = width", f"{width}px")
                 results = root.evaluate(COVERAGE.read_text(encoding="utf-8"),
                                         {"views": list(VIEWS), "layouts": layouts, "firstChapterLayouts": first})
@@ -337,17 +348,21 @@ def covered_controls(tmp_path: Path, browser, artifact: str, frame_kind: str,
 
 
 @pytest.mark.browser
-@pytest.mark.parametrize("frame_kind", [
-    pytest.param(frame_kind, marks=pytest.mark.xdist_group(f"coverage-{frame_kind}")) for frame_kind in SANDBOXES])
+@pytest.mark.parametrize(("frame_kind", "widths"), [
+    pytest.param(frame_kind, widths, id=f"{frame_kind}-{'-'.join(map(str, widths))}",
+                 marks=pytest.mark.xdist_group(f"coverage-{frame_kind}-{widths[0]}"))
+    for frame_kind in SANDBOXES for widths in WIDTHS])
 def test_no_control_is_covered_in_preview_frames(
-        tmp_path: Path, coverage_browser, parity_artifacts: dict[str, str], frame_kind: str) -> None:
+        tmp_path: Path, coverage_browser, parity_artifacts: dict[str, str], frame_kind: str,
+        widths: tuple[int, ...]) -> None:
     """No visible control lies under another element's pointer area (test/browser/control-coverage.js).
 
-    The interim reference is swept in the same frames. Its faults are not parity differences:
-    where this adapter shares one, the failure says so.
+    Where this adapter has a fault, the interim reference is swept in the same frame too: its
+    faults are not parity differences, and the failure says which ones this adapter shares.
     """
-    ours = covered_controls(tmp_path, coverage_browser, parity_artifacts["adapter"], frame_kind, "adapter")
-    theirs = covered_controls(tmp_path, coverage_browser, parity_artifacts["reference"], frame_kind, "reference")
+    ours = covered_controls(tmp_path, coverage_browser, parity_artifacts["adapter"], frame_kind, "adapter", widths)
+    theirs = covered_controls(tmp_path, coverage_browser, parity_artifacts["reference"], frame_kind,
+                              "reference", widths) if ours else {}
     problems = [
         (f"page error: {where}" if control == "page error" else f"{control} is covered {where} by "
          + "; ".join(f"{covering} (in {', '.join(chapters)})" for covering, chapters in coverings.items()))
@@ -358,3 +373,33 @@ def test_no_control_is_covered_in_preview_frames(
         f"test/test_parity_browser.py: controls covered by another element's pointer area, {frame_kind} "
         "frame. Remedy: give the control clearance from what covers it (obs artifact-ui.md, chapter "
         "controls):\n" + "\n".join(problems))
+
+
+@pytest.mark.browser
+def test_the_sweep_names_a_covered_control_and_what_covers_it(tmp_path: Path, coverage_browser) -> None:
+    """The sweep is not vacuous: a control under another element is a fault naming both."""
+    from documents import chapter, document, heading, paragraph
+    from obs_html.config import load_config
+    from obs_html.render import render
+
+    artifact = render(document("Sweep", chapter("one", "One", heading(1, "One"), paragraph("Text."))),
+                      load_config())
+    errors: list[str] = []
+    page, frame = open_preview(tmp_path, coverage_browser, errors, artifact, "null-origin")
+    try:
+        frame.evaluate("""() => {
+            const box = document.querySelector(".chapter-home-link").getBoundingClientRect();
+            const cover = document.createElement("div");
+            cover.className = "cover";
+            cover.setAttribute("aria-label", "Cover");
+            Object.assign(cover.style, {position: "fixed", left: `${box.left}px`, top: `${box.top}px`,
+                width: `${box.width}px`, height: `${box.height}px`, zIndex: "2147483647"});
+            document.body.append(cover);
+        }""")
+        results = frame.locator("html").evaluate(COVERAGE.read_text(encoding="utf-8"),
+                                                 {"views": ["pages"], "layouts": [None], "firstChapterLayouts": []})
+    finally:
+        page.close()
+    faults = {(fault["control"], fault["covering"]) for result in results for fault in result["faults"]}
+    assert ('a.chapter-home-link "Home"', 'div.cover "Cover"') in faults, faults
+    assert errors == []

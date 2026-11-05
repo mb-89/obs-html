@@ -54,7 +54,9 @@ def open_preview(tmp_path: Path, reader_browser, errors: list[str], artifact: st
     page.on("pageerror", lambda error: errors.append(str(error)))
     page.on("console", lambda message: errors.append(message.text) if message.type == "error" else None)
     page.goto(f"{origin}/{wrapper.name}" if origin else wrapper.as_uri())
-    frame = page.frame_locator("#artifact")
+    # The iframe's own Frame, not a FrameLocator: its locators resolve in about 3 ms, where a
+    # FrameLocator re-resolves the iframe on every call (about 50 ms).
+    frame = page.locator("#artifact").element_handle().content_frame()
     expect(frame.locator("html")).to_have_attribute("data-artifact-status", "ready")
     return page, frame
 
