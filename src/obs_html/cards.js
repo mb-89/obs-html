@@ -95,7 +95,7 @@
         }));
       }
       metrics.forEach((metric, index) => {
-        const projection = metric.obsHtml?.projection || "";
+        const projection = metric.obs?.projection || "";
         const numerator = evaluate({where: metric.where,
           ...(metric.from ? {from: metric.from} : {}),
           ...(metric.distinct ? {distinct: metric.distinct} : {})}, projection);

@@ -161,9 +161,8 @@
         if (!match) throw unsupportedFilter(filter);
         const [, simple, spaced, operator, literal] = match;
         if (simple === "recordType") {
-            const kinds = schema.properties.obsHtml.properties.records.enum.join(" | ");
             throw new TypeError(`Unsupported Bases filter: ${filter} (recordType filters were removed; ` +
-                `select projected rows with obsHtml: {records: ${kinds}})`);
+                "select projected rows with obs.records; see obs capabilities/registers)");
         }
         try {
             supportedProperty(simple || `note["${spaced}"]`);

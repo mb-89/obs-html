@@ -201,7 +201,7 @@ def _cards(node: dict[str, object], context: Context) -> str:
     rendered = []
     for card in cards:
         what = f"{place}: card {card['title']!r}"
-        series = (card.get("obsHtml") or {}).get("metricsFrom")
+        series = (card.get("obs") or {}).get("metricsFrom")
         if series:
             _check_series(series, what, context)
         metrics = [dict(metric) for metric in card.get("metrics", [])]
@@ -362,9 +362,9 @@ def _base(node: dict[str, object], context: Context) -> str:
     Members need the core's rows, which only a register carries."""
     definition = node["attrs"]["spec"]
     for index, view in enumerate(definition.get("views", [])):
-        if "members" in (view.get("obsHtml") or {}):
+        if "members" in (view.get("obs") or {}):
             raise RenderError(
-                f"Base in chapter {context.chapter or HOME}: views.{index}.obsHtml.members: obs-html shows "
+                f"Base in chapter {context.chapter or HOME}: views.{index}.obs.members: obs-html shows "
                 "members only in a register, whose rows the obs core selects. Remedy: move the Base into a "
                 ".base file and embed it with ![[<file>.base]].")
     return _data_table(definition, None, context)
@@ -644,8 +644,16 @@ def _resolve_icons(value: object, assets: SemanticAssets) -> object:
 
 
 def _profile(manifest: dict[str, object]) -> dict[str, object]:
-    declared = next((node["attrs"]["profile"] for node in manifest.get("abstract", [])
-                     if node["type"] == "profiles"), {})
+    """The manifest frontmatter's obsHtml mapping, the adapter's own namespace, which the obs core
+    passes on without reading (obs input-model#Core and adapter namespaces); this adapter checks it."""
+    declared = manifest["metadata"].get("obsHtml", {})
+    schema = json.loads(files("obs_html").joinpath("profile.schema.json").read_text(encoding="utf-8"))
+    error = next(Draft202012Validator(schema).iter_errors(declared), None)
+    if error is not None:
+        location = "".join(f"[{part}]" if isinstance(part, int) else f".{part}" for part in error.absolute_path)
+        raise RenderError(f"Manifest frontmatter obsHtml{location}: {error.message}. Remedy: write a value "
+                          "obs-html's presentation profile allows (src/obs_html/profile.schema.json, obs "
+                          "capabilities/artifact-presentation).")
     resolved = {key: declared.get(key, value) for key, value in PROFILE_DEFAULTS.items()}
     resolved["figures"] = PROFILE_DEFAULTS["figures"] | resolved["figures"]
     resolved["print"] = declared.get("print") or {}
@@ -658,7 +666,7 @@ def _model(document: dict[str, object], config: Config, context: Context) -> dic
     profile = _profile(manifest)
     settings = config.artifact
     title = manifest["title"]
-    metadata = {key: value for key, value in manifest["metadata"].items() if key != "obsHtml"}
+    metadata = {key: value for key, value in manifest["metadata"].items() if key not in {"obs", "obsHtml"}}
     home_html = _cover(title, metadata, profile["heading"] == "compact", context) + _note_body(
         manifest.get("abstract", []), "", context)
     notes = [_note(0, title, HOME, HOME, {}, home_html, context)]
@@ -758,7 +766,7 @@ def _attach_records(records: list[dict[str, object]], notes: list[dict[str, obje
             continue
         if note is not None:
             raise RenderError(f"Record id {record['id']!r} is reserved for the artifact's home page.")
-        fields["obsHtml"] = {**(fields.get("obsHtml") or {}), "document": False}
+        fields["obs"] = {**(fields.get("obs") or {}), "document": False}
         notes.append({
             "depth": 0, "title": str(fields.get("title") or record["id"]), "slug": record["id"],
             "sourcePath": source_path, "generated": "", "cssClasses": [],

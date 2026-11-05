@@ -120,7 +120,7 @@
     };
     const records = notes.map(makeRecord);
     const recordsBySlug = new Map(records.map((record) => [record.slug, record]));
-    const isDocument = (record) => record?.frontmatter?.obsHtml?.document !== false;
+    const isDocument = (record) => record?.frontmatter?.obs?.document !== false;
     // An ignored note (obs markdown-frontmatter, Ignored notes) is never selected or counted
     // automatically; explicit links still reach it.
     const selectable = (record) => record?.ignored !== true;
@@ -752,7 +752,7 @@
 
     // `ownFields` are the row's own filter fields (generic-tables, Bases filter grammar);
     // `values` are the displayed cells and may add flattened frontmatter text. `recordType`
-    // only partitions rows for obsHtml.records and is never a filter field.
+    // only partitions rows for obs.records and is never a filter field.
     const tableRecord = (key, values, options = {}) => {
         const text = Object.values(values).join(" ");
         return {
@@ -1292,8 +1292,8 @@
             .filter((item) => item !== undefined && item !== null);
         const filters = parts.length ? {and: parts} : undefined;
         const query = baseFilterExpression(filters);
-        // Without obsHtml.records a view selects canonical notes, as in Obsidian (generic-tables).
-        const recordType = view.obsHtml?.records ?? definition.obsHtml?.records;
+        // Without obs.records a view selects canonical notes, as in Obsidian (generic-tables).
+        const recordType = view.obs?.records ?? definition.obs?.records;
         const nativeNotes = !recordType;
         // Projected rows resolve their own fields first, then the owner note (generic-tables).
         const compiled = globalThis.obsBases.compileFilter(filters, (row, field) => {
@@ -1329,7 +1329,7 @@
         });
         // A view's members order the core's rows and label them (generic-tables); the core selected
         // them, so a member names a row here or nothing.
-        const members = view.obsHtml?.members;
+        const members = view.obs?.members;
         if (coreKeys && members) {
             const notePath = (row) => recordsBySlug.get(row.noteId)?.sourcePath ?? row.values.sourcePath;
             const position = new Map(members.map((member, index) => [member.path, index]));

@@ -133,7 +133,7 @@ def test_a_compound_metric_value_is_the_primary_and_secondary_quantity_links() -
 def test_a_metric_series_names_its_source_list_and_checks_its_labels() -> None:
     series = {"sourceNote": "one", "property": "groups.list", "labelProperty": "name",
               "distinctProperty": "key", "where": []}
-    source = _document(_cards({"title": "Series", "body": "", "obsHtml": {"metricsFrom": series}}))
+    source = _document(_cards({"title": "Series", "body": "", "obs": {"metricsFrom": series}}))
     source["records"][0]["fields"] = {"groups": {"list": [{"name": "A", "key": "a"}, {"name": "B", "key": "b"}]}}
     html = _notes(source)["one"]["html"]
     assert f'data-record-series="{escape(json.dumps(series), quote=True)}"' in html

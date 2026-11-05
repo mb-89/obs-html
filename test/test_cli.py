@@ -91,7 +91,7 @@ def test_invalid_settings_fail(tmp_path, override, message, capsys) -> None:
     settings = tmp_path / "settings.json"
     settings.write_text(json.dumps(override), encoding="utf-8")
     document = json.loads(FIXTURE.read_text(encoding="utf-8"))
-    del document["manifest"]["abstract"][1]  # The fixture's profile would choose its own paper.
+    del document["manifest"]["metadata"]["obsHtml"]  # The fixture's profile would choose its own paper.
     source = tmp_path / "document.json"
     source.write_text(json.dumps(document), encoding="utf-8")
     with pytest.raises(SystemExit):
