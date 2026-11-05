@@ -131,10 +131,10 @@ def parity_artifacts(tmp_path_factory) -> dict[str, str]:
              "--notes", str(core / "spec" / "capabilities"), "--output", str(capabilities)],
             core, "building the capability reference with the core")
         run([uv, "run", "--project", str(core), "obs-document", "--document", str(document),
-             "--source", str(core / "spec" / "manifest.md"), "--capability-reference", str(capabilities)],
+             "--source", str(core / "spec" / "manifest.md"), "--capability-reference", str(capabilities),
+             "--execute-commands"],
             core, "building obs's spec Document with the core")
-        assert obs_html([str(document), str(folder / "adapter.html"), "--execute-commands",
-                         "--command-root", str(core / "spec")]) == 0, \
+        assert obs_html([str(document), str(folder / "adapter.html")]) == 0, \
             "test/test_parity_browser.py: obs-html could not render obs's spec Document"
         run([uv, "run", "--project", str(reference), "obs-html-interim", "--source", str(core / "spec"),
              "--output", str(folder / "reference.html"), "--execute-commands"],

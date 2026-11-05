@@ -1,19 +1,19 @@
 import json
 import re
-import sys
 from pathlib import Path
 
 import pytest
 
-from conftest import FIXTURE, ROOT
+from conftest import FIXTURE
 from obs_html import cli, exposure
-from obs_html.commands import MINIMAL_ENVIRONMENT
 from obs_html.artifact_data import decode_artifact_data, encode_artifact_data
 
 
-def _with_command(tmp_path: Path, command: str) -> Path:
+def _with_command(tmp_path: Path, attrs: dict[str, object]) -> Path:
+    """The fixture Document with its rendering command node's attributes replaced."""
     document = json.loads(FIXTURE.read_text(encoding="utf-8"))
-    text = json.dumps(document).replace('"echo derived\\n"', json.dumps(command))
+    text = json.dumps(document).replace(
+        json.dumps({"source": "echo derived\n", "output": "derived\n"}), json.dumps(attrs))
     source = tmp_path / "document.json"
     source.write_text(text, encoding="utf-8")
     return source
@@ -24,51 +24,29 @@ def _command_output(destination: Path) -> str:
     return "".join(note["html"] for note in notes if "command-output" in note["html"])
 
 
-def test_command_output_carries_no_absolute_path_of_the_build_machine(tmp_path, monkeypatch) -> None:
-    home, root, temporary = tmp_path / "home" / "builder", tmp_path / "vault", tmp_path / "scratch" / ".venv"
-    for folder in (home, root / "notes", temporary):
-        folder.mkdir(parents=True)
-    monkeypatch.setenv("HOME", str(home))
-    monkeypatch.setenv("USERPROFILE", str(home))
-    monkeypatch.setenv("VIRTUAL_ENV", str(temporary))
-    script = ("import os, sys; "
-              "print('home', os.environ.get('HOME') or os.environ.get('USERPROFILE')); "
-              "print('venv', os.environ.get('VIRTUAL_ENV', 'unset')); "
-              "print('pwd', os.getcwd()); "
-              f"print('note', os.path.join(os.getcwd(), 'notes', 'a.md')); "
-              f"print('cache', os.path.join(os.path.expanduser('~'), '.cache')); "
-              f"print('temp', {str(temporary)!r}); "
-              "print('prefix', sys.prefix)")
+def test_a_command_node_renders_the_output_the_core_captured_without_running_it(tmp_path) -> None:
     destination = tmp_path / "artifact.html"
-    cli.main([str(_with_command(tmp_path, f'"{sys.executable}" -c "{script}"')), str(destination),
-              "--execute-commands", "--command-root", str(root)])
+    source = _with_command(tmp_path, {"source": "exit 7\n", "output": "<b>captured</b>\n"})
+
+    assert cli.main([str(source), str(destination)]) == 0
+
     output = _command_output(destination)
-    assert "home ~\n" in output
-    assert "venv unset\n" in output
-    assert "pwd .\n" in output
-    assert f"note {Path('notes', 'a.md')}\n" in output
-    assert f"cache {Path('~', '.cache')}\n" in output
-    assert "temp &lt;local-path&gt;\n" in output
-    assert "prefix &lt;local-path&gt;\n" in output
-    artifact = destination.read_text(encoding="utf-8") + json.dumps(decode_artifact_data(
-        destination.read_text(encoding="utf-8")))
-    for path in (home, root, temporary, Path(sys.prefix)):
-        for spelling in {str(path), path.as_posix(), json.dumps(str(path))[1:-1]}:
-            assert spelling not in artifact
+    assert '<pre class="command-output">&lt;b&gt;captured&lt;/b&gt;\n</pre>' in output
+    assert output.count('class="command-output"') == 1  # The fixture's silent producer renders nothing.
 
 
-def test_commands_run_with_the_documented_minimal_environment(tmp_path, monkeypatch) -> None:
-    monkeypatch.setenv("OBS_HTML_BUILDER_SECRET", "machine-specific")
-    script = "import os; print('names', *sorted(os.environ))"
+def test_a_command_node_without_output_fails_naming_the_node_and_the_remedy(tmp_path, capsys) -> None:
     destination = tmp_path / "artifact.html"
-    cli.main([str(_with_command(tmp_path, f'"{sys.executable}" -c "{script}"')), str(destination),
-              "--execute-commands", "--command-root", str(tmp_path)])
-    line = next(line for line in _command_output(destination).splitlines() if "names " in line)
-    names = set(line.split("names ", 1)[1].split())
-    assert names <= set(MINIMAL_ENVIRONMENT) | {"PWD", "SHLVL", "_", "LC_CTYPE", "OLDPWD"}
-    assert "OBS_HTML_BUILDER_SECRET" not in names
-    readme = (ROOT / "README.md").read_text(encoding="utf-8")
-    assert all(f"`{name}`" in readme for name in MINIMAL_ENVIRONMENT)
+    source = _with_command(tmp_path, {"source": "echo derived\n"})
+
+    with pytest.raises(SystemExit) as exit_info:
+        cli.main([str(source), str(destination)])
+
+    assert exit_info.value.code == 2
+    error = capsys.readouterr().err
+    assert "command-fences node" in error and "attrs.output" in error
+    assert "obs-document --execute-commands" in error
+    assert not destination.exists()
 
 
 def test_a_artifact_exposing_the_build_machine_fails_naming_where_and_the_remedy(
@@ -84,7 +62,7 @@ def test_a_artifact_exposing_the_build_machine_fails_naming_where_and_the_remedy
     source.write_text(text.replace("Intro", leaked, 1), encoding="utf-8")
     destination = tmp_path / "artifact.html"
     with pytest.raises(SystemExit) as exit_info:
-        cli.main([str(source), str(destination), "--execute-commands", "--command-root", str(tmp_path / "vault")])
+        cli.main([str(source), str(destination)])
     assert exit_info.value.code == 2
     error = capsys.readouterr().err
     assert f"the build machine's home folder '{home}'" in error
@@ -92,12 +70,11 @@ def test_a_artifact_exposing_the_build_machine_fails_naming_where_and_the_remedy
     assert not destination.exists()
 
 
-def test_the_exposure_check_finds_the_command_root_and_the_user_name(tmp_path, monkeypatch) -> None:
+def test_the_exposure_check_finds_the_user_name(monkeypatch) -> None:
     monkeypatch.setattr(exposure, "_user_name", lambda: "builder")
-    root = tmp_path / "vault"
-    artifact = encode_artifact_data({"notes": [{"html": f"<p>{root / 'a.md'}</p>"}]})
-    with pytest.raises(exposure.ExposureError, match=r"command root .* artifact-data notes\[0\]\.html"):
-        exposure.check_artifact(artifact, root)
+    artifact = encode_artifact_data({"notes": [{"html": "<p>/mnt/builder/a.md</p>"}]})
+    with pytest.raises(exposure.ExposureError, match=r"user name 'builder' .* artifact-data notes\[0\]\.html"):
+        exposure.check_artifact(artifact)
     with pytest.raises(exposure.ExposureError, match=r"user name 'builder' .* HTML line 1"):
-        exposure.check_artifact("<p>/mnt/builder/x</p>", None)
-    exposure.check_artifact("<p>builder https://example.com/builder/x</p>", None)
+        exposure.check_artifact("<p>/mnt/builder/x</p>")
+    exposure.check_artifact("<p>builder https://example.com/builder/x</p>")

@@ -15,7 +15,7 @@ CONFIG = load_config()
 
 
 def _appendix(document) -> str:
-    data = decode_artifact_data(render(document, CONFIG, lambda command: ""))
+    data = decode_artifact_data(render(document, CONFIG))
     return next(note for note in data["notes"] if note["slug"] == "appendix")["html"]
 
 
@@ -43,13 +43,13 @@ def test_trace_descriptors_become_plotly_figures_on_their_panel_axes(document) -
 
 
 def test_plot_figures_embed_plotly_with_its_licence_only_when_needed(document) -> None:
-    artifact = render(document, CONFIG, lambda command: "")
+    artifact = render(document, CONFIG)
     assert 'id="plotly-script"' in artifact and "Plotly" in artifact
     assert 'id="figure-script"' in artifact and 'id="figure-styles"' in artifact
     without = copy.deepcopy(document)
     appendix = next(chapter for chapter in without["chapters"] if chapter["id"] == "appendix")
     appendix["content"] = [node for node in appendix["content"] if node["type"] != "figure-descriptor"]
-    plain = render(without, CONFIG, lambda command: "")
+    plain = render(without, CONFIG)
     assert 'id="plotly-script"' not in plain and 'id="figure-script"' not in plain
 
 
@@ -84,16 +84,16 @@ def test_sankey_descriptors_render_a_static_svg_and_the_runtime_spec(document) -
 def test_invalid_plot_data_fails(document, change, message) -> None:
     change(_descriptors(document)["response"]["data"])
     with pytest.raises(RenderError, match=message):
-        render(document, CONFIG, lambda command: "")
+        render(document, CONFIG)
 
 
 def test_invalid_sankey_graphs_fail(document) -> None:
     _descriptors(document)["flow"]["data"]["sankey"]["links"][0]["target"] = "missing"
     with pytest.raises(RenderError, match="every link endpoint"):
-        render(document, CONFIG, lambda command: "")
+        render(document, CONFIG)
 
 
 def test_log_axes_need_positive_limits(document) -> None:
     _descriptors(document)["response"]["panels"][0]["axes"][1]["limits"]["minimum"] = 0
     with pytest.raises(RenderError, match="positive limits"):
-        render(document, CONFIG, lambda command: "")
+        render(document, CONFIG)

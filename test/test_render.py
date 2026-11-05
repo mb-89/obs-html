@@ -13,16 +13,16 @@ from documents import chapter, document as build, heading, node, paragraph, text
 CONFIG = load_config()
 
 
-def _render(document, runner=lambda command: f"ran {command}") -> str:
-    return render(document, CONFIG, runner)
+def _render(document) -> str:
+    return render(document, CONFIG)
 
 
-def _model(document, runner=lambda command: f"ran {command}") -> dict:
-    return decode_artifact_data(_render(document, runner))
+def _model(document) -> dict:
+    return decode_artifact_data(_render(document))
 
 
-def _notes(document, runner=lambda command: f"ran {command}") -> dict:
-    return {note["slug"]: note for note in _model(document, runner)["notes"]}
+def _notes(document) -> dict:
+    return {note["slug"]: note for note in _model(document)["notes"]}
 
 
 def test_the_artifact_shell_carries_the_runtime_and_the_island(document) -> None:
@@ -209,18 +209,6 @@ def test_an_ignored_record_marks_its_note_and_an_ignored_chapter_stays_in_the_re
     assert '<a class="internal-link" href="#kept">Kept</a>' in notes["index"]["html"]
 
 
-def test_command_fences_render_escaped_output_and_skip_silent_producers(document) -> None:
-    commands = []
-    notes = _notes(document, lambda command: commands.append(command) or "<b>derived</b>\n")
-    assert commands == ["echo derived"]
-    assert '<pre class="command-output">&lt;b&gt;derived&lt;/b&gt;\n</pre>' in notes["intro"]["html"]
-
-
-def test_command_fences_require_authorization(document) -> None:
-    with pytest.raises(RenderError, match="authorization"):
-        render(document, CONFIG)
-
-
 def test_unsupported_capabilities_are_refused(document) -> None:
     document["capabilities"].append("figures")
     with pytest.raises(RenderError, match="does not render: figures"):
@@ -265,7 +253,7 @@ def test_island_compression_follows_the_settings(document, tmp_path) -> None:
     import json
     settings = tmp_path / "settings.json"
     settings.write_text(json.dumps({"artifact": {"dataCompression": "none"}}), encoding="utf-8")
-    html = render(document, load_config(settings), lambda command: "")
+    html = render(document, load_config(settings))
     assert re.search(r'<script id="artifact-data" type="application/json"[^>]*data-compression="none"', html)
 
 

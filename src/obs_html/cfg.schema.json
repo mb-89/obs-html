@@ -21,16 +21,9 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "commandTimeoutSeconds",
         "renderedCheckTimeoutSeconds"
       ],
       "properties": {
-        "commandTimeoutSeconds": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 300,
-          "description": "Maximum runtime for one authorized command fence."
-        },
         "renderedCheckTimeoutSeconds": {
           "type": "integer",
           "minimum": 1,
