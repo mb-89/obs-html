@@ -659,6 +659,48 @@
             }
           },
           "children": []
+        },
+        {
+          "type": "registers",
+          "attrs": {
+            "target": "items.base",
+            "heading": "",
+            "base": {
+              "filters": "kind == \"item\"",
+              "views": [
+                {
+                  "type": "table",
+                  "name": "Items",
+                  "order": [
+                    "file.name",
+                    "rank"
+                  ]
+                },
+                {
+                  "type": "table",
+                  "name": "Ranked",
+                  "filters": "rank != null",
+                  "order": [
+                    "file.name",
+                    "rank"
+                  ]
+                }
+              ]
+            },
+            "view": null,
+            "rows": [
+              [
+                "alpha",
+                "beta",
+                "gamma"
+              ],
+              [
+                "alpha",
+                "beta"
+              ]
+            ]
+          },
+          "children": []
         }
       ],
       "children": []
@@ -952,6 +994,7 @@
     "quantities",
     "queries",
     "references",
+    "registers",
     "wikilinks"
   ]
 }

@@ -126,10 +126,30 @@ if (process.argv[7] === "--inspect-json") {
         await context.obsArtifact.whenChapterReady();
         runTimers();
         const ids = [...document.querySelectorAll("[id]")].map(element => element.id);
+        const rowKeys = shell => [...shell.querySelectorAll("tbody tr[data-row-key]")].map(row => row.dataset.rowKey);
+        const buttons = index => [...tables()[index].querySelectorAll("[data-table-views] button")];
         chapters[slug] = {
-            tables: tables().map(shell => [...shell.querySelectorAll("tbody tr[data-row-key]")]
-                .map(row => row.dataset.rowKey)),
+            tables: tables().map(rowKeys),
             duplicateIds: [...new Set(ids.filter((id, index) => ids.indexOf(id) !== index))],
+            // Per table, each view's name, labels (the obsHtml.label cells) and row keys, chosen in turn.
+            views: tables().map((_, index) => {
+                const views = (buttons(index).length ? buttons(index) : [null]).map((_, view) => {
+                    if (buttons(index).length) click(buttons(index)[view]);
+                    runTimers();
+                    const shell = tables()[index];
+                    const label = [...shell.querySelectorAll("thead th")]
+                        .findIndex(cell => cell.dataset.columnKey === "obsHtml.label");
+                    return {
+                        name: buttons(index)[view]?.textContent ?? "",
+                        rows: rowKeys(shell),
+                        labels: label < 0 ? [] : [...shell.querySelectorAll("tbody tr[data-row-key]")]
+                            .map(row => row.children[label].textContent),
+                    };
+                });
+                if (buttons(index).length) click(buttons(index)[0]);
+                runTimers();
+                return views;
+            }),
         };
     }
     const records = context.obsArtifact.records.map(record => ({

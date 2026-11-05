@@ -16,6 +16,7 @@ Name vaults to rebuild only those (the keys of ``VAULTS``); without one it rebui
 from __future__ import annotations
 
 import base64
+import json
 import subprocess
 import sys
 import tempfile
@@ -241,6 +242,47 @@ def structural(root: Path) -> None:
     )
 
 
+def registers(root: Path) -> None:
+    """test_registers.py's vault: register embeds whose rows the core selects. ``points.base`` has
+    two views with different view-level members, embedded whole and by one view heading;
+    ``types.base`` has one view per record type."""
+    (root / "manifest.md").write_text(
+        "---\ntitle: Registers\nstatus: draft\nhistory:\n  - {version: '1', date: '2026-01-01', change: First}\n"
+        "  - {version: '2', change: Second}\n---\n- [[points]]\n- [[second]]\n- [[types]]\n",
+        encoding="utf-8",
+    )
+    (root / "points.base").write_text(
+        "filters: 'kind == \"point\"'\n"
+        "views:\n"
+        "  - type: table\n    name: Labelled\n    order: [file.name, obsHtml.label]\n"
+        "    obsHtml:\n      members:\n        - path: c-point.md\n          label: C\n"
+        "        - path: a-point.md\n          label: A\n"
+        "  - type: table\n    name: Second\n    order: [file.name]\n"
+        "    obsHtml:\n      members:\n        - path: b-point.md\n",
+        encoding="utf-8",
+    )
+    (root / "types.base").write_text(
+        "views:\n"
+        "  - {type: table, name: Notes, filters: 'kind == \"point\"', order: [file.name], obsHtml: {records: note}}\n"
+        "  - {type: table, name: Chapters, order: [chapter], obsHtml: {records: chapter}}\n"
+        "  - {type: table, name: Tags, filters: 'type == \"risk\"', order: [label, text], obsHtml: {records: tag}}\n"
+        "  - {type: table, name: Glossary, order: [term, definition], obsHtml: {records: glossary}}\n"
+        "  - {type: table, name: Metadata, filters: 'key != \"title\"', order: [key, value],"
+        " obsHtml: {records: documentMetadata}}\n"
+        "  - {type: table, name: History, order: [version, date, change], obsHtml: {records: documentHistory}}\n",
+        encoding="utf-8",
+    )
+    (root / "points.md").write_text("# Points\n\nAll views.\n\n![[points.base]]\n", encoding="utf-8")
+    (root / "second.md").write_text(
+        "# Second\n\nOne view. #mark/risk/second_risk\n\n![[points.base#Second]]\n", encoding="utf-8")
+    (root / "types.md").write_text(
+        "# Types\n\nSee [[datum]]. #mark/open_point/types_open\n\n![[types.base]]\n", encoding="utf-8")
+    for name in ("a", "b", "c", "d"):
+        (root / f"{name}-point.md").write_text(f"---\nkind: point\n---\n# Point {name.upper()}\n", encoding="utf-8")
+    (root / "datum.md").write_text(
+        "---\nkind: glossary\nterm: Datum\ndefinition: A reference.\n---\n# Datum\n", encoding="utf-8")
+
+
 def callouts(root: Path) -> None:
     """test_callouts_embeds_attachments.py's vault: a titled callout whose body holds a list with a
     wikilink and a nested callout with a link."""
@@ -259,10 +301,32 @@ def callouts(root: Path) -> None:
 
 
 VAULTS = {"complete": complete, "artifact-change": artifact_change, "projections": projections,
-          "table-help": table_help, "structural": structural, "callouts": callouts}
+          "table-help": table_help, "structural": structural, "callouts": callouts,
+          "registers": registers}
+
+
+ICON = (b'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">'
+        b'<rect width="16" height="16" fill="#135"/></svg>')
+REMOTE = {"https://example.invalid/obsidian.svg": ICON, "https://example.invalid/html.svg": ICON}
+"""The fake network: the bytes of every remote image a vault embeds. A build never fetches."""
+
+# Runs obs-document in the core's environment with the core's one network read replaced by REMOTE.
+DRIVER = """
+import base64, json, sys
+from obs import document, vault
+served = {url: base64.b64decode(data) for url, data in json.loads(sys.argv[1]).items()}
+def fetch(url):
+    if url not in served:
+        raise SystemExit(f"test/fixtures/build_documents.py: no fake response for the remote image {url}. "
+                         "Remedy: add its bytes to REMOTE in build_documents.py.")
+    return served[url], None
+vault.fetch_remote = fetch
+sys.exit(document.main(sys.argv[2:]))
+"""
 
 
 def main(core: Path, names: list[str]) -> None:
+    served = json.dumps({url: base64.b64encode(data).decode("ascii") for url, data in REMOTE.items()})
     with tempfile.TemporaryDirectory() as temporary:
         work = Path(temporary)
         capabilities = work / "capabilities.json"
@@ -272,9 +336,15 @@ def main(core: Path, names: list[str]) -> None:
             root = work / name
             root.mkdir()
             VAULTS[name](root)
-            subprocess.run(["uv", "run", "obs-document", "--document", str(HERE / "documents" / f"{name}.json"),
+            output = HERE / "documents" / f"{name}.json"
+            subprocess.run(["uv", "run", "python", "-c", DRIVER, served, "--document", str(output),
                             "--source", str(root / "manifest.md"), "--capability-reference", str(capabilities)],
                            cwd=core, check=True)
+            diagnostics = json.loads(output.read_text(encoding="utf-8"))["diagnostics"]
+            if diagnostics:
+                raise SystemExit(f"test/fixtures/build_documents.py: the {name} Document has diagnostics "
+                                 f"{diagnostics}, which a committed fixture must not carry. Remedy: change the "
+                                 f"{name} vault so the core builds it without them.")
 
 
 if __name__ == "__main__":

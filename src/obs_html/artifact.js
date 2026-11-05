@@ -1266,6 +1266,9 @@
         return editor;
     };
 
+    // Each register's definition as rendered: a different one is the reader's edited query.
+    const authoredDefinitions = new Map(records.flatMap(record => (record.tables || [])
+        .filter(table => table.rows).map(table => [table.key, JSON.stringify(table.definition)])));
     const tableDefinition = (table, staticView = false) => {
         const definition = globalThis.obsBases.project(table.definition, records);
         const viewIndex = Math.min(table.view || 0, definition.views.length - 1);
@@ -1299,7 +1302,20 @@
             return owner ? globalThis.obsBases.recordValue(owner, field) : undefined;
         });
         const members = definition.obsHtml?.members;
-        let rows = allRows.filter(row => row.values.recordType === (recordType || "note"));
+        // A register's rows are the core's selection (obs capabilities/registers): this view's, or,
+        // under a reader-edited query, all of the register's, which that query narrows. A fence's
+        // rows are selected here. Generation provenance is the adapter's own documentMetadata.
+        const edited = table.rows && JSON.stringify(table.definition) !== authoredDefinitions.get(table.key);
+        const coreKeys = !table.rows ? undefined : edited ? [...new Set(table.rows.flat())] : table.rows[viewIndex];
+        const rowsByKey = coreKeys && new Map(allRows.map(row => [row.key, row]));
+        let rows = coreKeys ? coreKeys.map(key => {
+            if (!rowsByKey.has(key)) throw new Error(`Register ${table.key}: the core's row ${key} is not in this artifact. Regenerate the Document with the obs core and render it again.`);
+            return rowsByKey.get(key);
+        }).filter(row => row.values.recordType === (recordType || "note")) : allRows.filter(row => row.values.recordType === (recordType || "note"));
+        if (coreKeys && recordType === "documentMetadata") {
+            rows.push(...allRows.filter(row => row.key.startsWith("generation:") && compiled.match(row)));
+        }
+        const selection = coreKeys && !edited ? {empty: true, match: () => true} : compiled;
         if (nativeNotes) rows = rows.map(row => {
             const owner = recordsBySlug.get(row.noteId);
             const values = Object.fromEntries(Object.keys(row.values).flatMap(field => {
@@ -1342,7 +1358,7 @@
                 });
             });
         }
-        const matched = rows.filter((row) => compiled.match(row));
+        const matched = rows.filter((row) => selection.match(row));
         const fields = [...new Set([
             ...view.order,
             ...matched.flatMap((row) => Object.keys(row.values)),
@@ -1434,7 +1450,7 @@
             properties,
             rows,
             query,
-            baseQuery: compiled,
+            baseQuery: selection,
             maxRows: definition.obsHtml?.maxRows,
             wide: view.obsHtml?.wide === true,
             compact: view.obsHtml?.compact === true,

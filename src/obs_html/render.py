@@ -79,6 +79,7 @@ class Context:
     editable: dict[str, dict[str, object]] = field(default_factory=dict)
     unknown: dict[str, dict[str, str]] = field(default_factory=dict)
     fields: dict[str, dict[str, str]] = field(default_factory=dict)
+    row_keys: dict[str, str] = field(default_factory=dict)
 
 
 Renderer = Callable[[dict[str, object], Context], str]
@@ -344,8 +345,46 @@ def _command(node: dict[str, object], context: Context) -> str:
 
 
 def _base(node: dict[str, object], context: Context) -> str:
-    """A Base view is a table placeholder; the runtime evaluates it over the island's notes."""
-    definition = node["attrs"]["spec"]
+    """A Base fence is a table placeholder; the runtime evaluates its views over the island's rows."""
+    return _data_table(node["attrs"]["spec"], None, context)
+
+
+def _register(node: dict[str, object], context: Context) -> str:
+    """A register is a table placeholder whose rows are the core's: per view, the row keys of the
+    records it selects (obs capabilities/registers, Document node). The adapter selects nothing; a
+    heading embeds its one view, no heading every view with the selector."""
+    attrs = node["attrs"]
+    place = f"Register {attrs['target']}{'#' + attrs['heading'] if attrs['heading'] else ''} in chapter {context.chapter or HOME}"
+    rows = []
+    for index, identifiers in enumerate(attrs["rows"]):
+        missing = next((identifier for identifier in identifiers if identifier not in context.row_keys), None)
+        if missing is not None:
+            raise RenderError(f"{place}: rows.{index} names record {missing!r}, which the Document's records do "
+                              "not contain. Remedy: regenerate the Document with the obs core.")
+        rows.append([context.row_keys[identifier] for identifier in identifiers])
+    definition, view = attrs["base"], attrs["view"]
+    if view is not None:
+        definition, rows = {**definition, "views": [definition["views"][view]]}, [rows[view]]
+    return _data_table(definition, rows, context)
+
+
+def _row_keys(records: list[dict[str, object]]) -> dict[str, str]:
+    """Each record's key among the runtime's table rows, by record id: the keys artifact.js gives
+    the rows it builds per record type (noteTableRows, chapterTableRows, tagTableRows,
+    glossaryTableRows, documentMetadataRows, documentHistoryRows)."""
+    history = [record["id"] for record in records if record["type"] == "documentHistory"]
+    keys = {
+        "note": lambda record: f"note:{record['id']}",
+        "chapter": lambda record: record["fields"]["slug"],
+        "tag": lambda record: f"{record['note']}:{record['fields']['type']}:{record['fields']['label']}",
+        "glossary": lambda record: f"glossary:{record['note']}",
+        "documentMetadata": lambda record: f"metadata:{record['fields']['key']}",
+        "documentHistory": lambda record: f"history:{history.index(record['id'])}",
+    }
+    return {record["id"]: keys[record["type"]](record) for record in records}
+
+
+def _data_table(definition: dict[str, object], rows: list[list[str]] | None, context: Context) -> str:
     try:
         context.assets.normalize_definition(definition)
     except ValueError as error:
@@ -361,7 +400,7 @@ def _base(node: dict[str, object], context: Context) -> str:
                 "where PROPERTY is a frontmatter property (dotted, or note[\"name with spaces\"]) or one of "
                 f"{', '.join(FILE_PROPERTIES)}, and LITERAL is quoted text, a number, true, false or null; "
                 "combined with and, or and not. Remedy: rewrite the filter in this subset.")
-    context.tables.append({"key": key, "definition": definition})
+    context.tables.append({"key": key, "definition": definition, **({"rows": rows} if rows is not None else {})})
     return f'<div class="data-table-placeholder" data-base-table="{escape(key, quote=True)}"></div>\n'
 
 
@@ -529,6 +568,7 @@ CAPABILITIES: dict[str, Renderer] = {
     "quantities": _quantity,
     "queries": _nothing,
     "references": _references,
+    "registers": _register,
     "wikilinks": _wikilink,
 }
 
@@ -553,6 +593,7 @@ def render(document: dict[str, object], config: Config,
         paths={record["path"].removesuffix(".md"): record["id"]
                for record in document["records"] if record.get("type") == "note"},
         records={record["id"]: record for record in document["records"] if record.get("type") == "note"},
+        row_keys=_row_keys(document["records"]),
     )
     for record in context.records.values():
         aliases = record["fields"].get("aliases")
@@ -676,11 +717,13 @@ def _note(depth: int, title: str, slug: str, generated: str, frontmatter: dict[s
 
 def _attach_records(records: list[dict[str, object]], notes: list[dict[str, object]],
                     context: Context) -> None:
-    """Records join the queryable population: a chapter's own record adds to its frontmatter,
-    any other record becomes a record-only note outside the reading order. A note record's
+    """Note records join the queryable population: a chapter's own record adds to its frontmatter,
+    any other note record becomes a record-only note outside the reading order. A note record's
     path is its note's source path, which Bases read file.* properties from (obs bases.md)."""
     by_slug = {note["slug"]: note for note in notes}
     for record in records:
+        if record["type"] != "note":
+            continue  # A projected row reaches a register through its rows (_register), not as a note.
         fields = dict(record["fields"])
         note = by_slug.get(record["id"])
         source_path = record.get("path") or f"{record['id']}.md"
