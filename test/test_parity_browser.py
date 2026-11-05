@@ -19,7 +19,8 @@ closed. It holds this adapter to the design notes alone: a covered control fails
 says where the reference has the same fault, which is not a parity difference.
 
 Run it alone with `uv run pytest test/test_parity_browser.py`; it builds the artifacts once per
-session.
+session. Each test runs on its own worker in the complete suite: one per frame for the interaction
+script and one per frame for the sweep.
 """
 import json
 import os
@@ -30,7 +31,7 @@ from pathlib import Path
 
 import pytest
 
-from conftest import CORE_ROOT
+from conftest import CORE_ROOT, FAST_FRAMES
 from obs_html.cli import main as obs_html
 from preview import SANDBOXES, http_origin, open_preview
 
@@ -244,7 +245,8 @@ def observe(tmp_path: Path, reader_browser, artifact: str, frame_kind: str, name
 
 
 @pytest.mark.browser
-@pytest.mark.parametrize("frame_kind", SANDBOXES)
+@pytest.mark.parametrize("frame_kind", [
+    pytest.param(frame_kind, marks=pytest.mark.xdist_group(f"parity-{frame_kind}")) for frame_kind in SANDBOXES])
 def test_the_artifact_behaves_as_the_interim_reference_in_preview_frames(
         tmp_path: Path, reader_browser, parity_artifacts: dict[str, str], frame_kind: str) -> None:
     adapter, violations, errors = observe(tmp_path, reader_browser, parity_artifacts["adapter"],
@@ -274,20 +276,18 @@ WIDTHS = (360, 700, 1100, 1600)
 VIEWS = ("pages", "continuous")
 
 
-@pytest.fixture(scope="module")
-def coverage_browser():
+@pytest.fixture(scope="session")
+def coverage_browser(worker_playwright):
     """Chromium with overlay scrollbars, as on touch devices and macOS: scrollbars take no room,
     so the reader's clearance for the chapter arrows is at its narrowest."""
     from obs_html.pdf import _executable
-    from playwright.sync_api import sync_playwright
 
-    with sync_playwright() as playwright:
-        browser = playwright.chromium.launch(executable_path=_executable(),
-                                             args=["--enable-features=OverlayScrollbar"])
-        try:
-            yield browser
-        finally:
-            browser.close()
+    browser = worker_playwright.chromium.launch(executable_path=_executable(),
+                                                args=["--enable-features=OverlayScrollbar", *FAST_FRAMES])
+    try:
+        yield browser
+    finally:
+        browser.close()
 
 
 def layout_name(layout: list[str] | None) -> str:
@@ -337,7 +337,8 @@ def covered_controls(tmp_path: Path, browser, artifact: str, frame_kind: str,
 
 
 @pytest.mark.browser
-@pytest.mark.parametrize("frame_kind", SANDBOXES)
+@pytest.mark.parametrize("frame_kind", [
+    pytest.param(frame_kind, marks=pytest.mark.xdist_group(f"coverage-{frame_kind}")) for frame_kind in SANDBOXES])
 def test_no_control_is_covered_in_preview_frames(
         tmp_path: Path, coverage_browser, parity_artifacts: dict[str, str], frame_kind: str) -> None:
     """No visible control lies under another element's pointer area (test/browser/control-coverage.js).

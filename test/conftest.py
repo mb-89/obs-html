@@ -1,3 +1,4 @@
+import contextlib
 import json
 from pathlib import Path
 
@@ -31,15 +32,75 @@ def document() -> dict[str, object]:
     return json.loads(FIXTURE.read_text(encoding="utf-8"))
 
 
-@pytest.fixture
-def reader_browser():
-    """One Chromium for the native-browser tier, found as the PDF path finds it."""
-    from obs_html.pdf import _executable
+def pytest_collection_modifyitems(config, items):
+    """Keep a module's tests on one xdist worker (`--dist loadgroup`), so its module fixtures are
+    built once per run. A test with its own ``xdist_group`` mark is a long one that runs on a
+    worker of its own; those run first, so no worker is left with one at the end."""
+    own = [item for item in items if item.get_closest_marker("xdist_group")]
+    rest = [item for item in items if not item.get_closest_marker("xdist_group")]
+    for item in rest:
+        item.add_marker(pytest.mark.xdist_group(item.nodeid.split("::")[0]))
+    items[:] = own + rest
+
+
+# Headless Chromium otherwise caps animation frames at 60 Hz; the artifact waits for frames as it
+# opens and switches chapters, so an uncapped frame rate saves seconds per test.
+FAST_FRAMES = ["--disable-frame-rate-limit", "--disable-gpu-vsync"]
+
+
+@pytest.fixture(scope="session")
+def worker_playwright():
+    """One Playwright driver per test process.
+
+    A process runs one sync driver at a time, so while this one runs, the PDF path's own
+    ``sync_playwright()`` uses it too; the PDF path still launches and closes its own browser.
+    """
+    from obs_html import pdf
     from playwright.sync_api import sync_playwright
 
-    with sync_playwright() as playwright:
-        browser = playwright.chromium.launch(executable_path=_executable())
-        try:
-            yield browser
-        finally:
-            browser.close()
+    with sync_playwright() as playwright, pytest.MonkeyPatch.context() as patch:
+        patch.setattr(pdf, "sync_playwright", lambda: contextlib.nullcontext(playwright))
+        yield playwright
+
+
+@pytest.fixture(scope="session")
+def worker_browser(worker_playwright):
+    """One Chromium per test process, found as the PDF path finds it; tests lease it."""
+    from obs_html.pdf import _executable
+
+    browser = worker_playwright.chromium.launch(executable_path=_executable(), args=FAST_FRAMES)
+    try:
+        yield browser
+    finally:
+        browser.close()
+
+
+class BrowserLease:
+    """A test's view of the worker's browser: its pages and contexts close when the test ends."""
+
+    def __init__(self, browser):
+        self._browser = browser
+        self._contexts = []
+
+    def new_context(self, **options):
+        context = self._browser.new_context(**options)
+        self._contexts.append(context)
+        return context
+
+    def new_page(self, **options):
+        return self.new_context(**options).new_page()
+
+    def close(self) -> None:
+        contexts, self._contexts = self._contexts, []
+        for context in contexts:
+            context.close()
+
+
+@pytest.fixture
+def reader_browser(worker_browser):
+    """The native-browser tier's browser for one test: a fresh context per page, one Chromium."""
+    lease = BrowserLease(worker_browser)
+    try:
+        yield lease
+    finally:
+        lease.close()
