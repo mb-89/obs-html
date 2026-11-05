@@ -1,8 +1,8 @@
 """Cards and metrics, count queries and quantities render as the interim adapter in obs rendered them.
 
 Each test builds a contract-valid Document as the core emits it (see the core's vault.py): a
-``cards-metrics`` node carries the parsed fence as ``spec``, whose card bodies stay Markdown; a
-quantity note's chapter starts with ``quantities`` (its metadata) and, with a ``query``, a
+``cards-metrics`` node carries the parsed fence as ``spec`` and each card's body as one
+``document`` child node; a quantity note's chapter starts with ``quantities`` (its metadata) and, with a ``query``, a
 ``count-query`` node; every note is a record whose ``fields`` are its frontmatter.
 """
 import json
@@ -14,7 +14,8 @@ from obs_html.config import load_config
 from obs_html.render import RenderError, render
 from obs_html.artifact_data import decode_artifact_data
 
-from documents import chapter, document as build, node, paragraph
+from conftest import ROOT
+from documents import chapter, document as build, node, paragraph, text
 
 
 CONFIG = load_config()
@@ -56,9 +57,22 @@ def _html(*content: dict) -> str:
     return _notes(_document(*content))["one"]["html"]
 
 
-def _cards(*cards: dict) -> dict:
+def _cards(*cards: dict, bodies: tuple[list[dict], ...] = ()) -> dict:
+    """The node of a cards fence; ``bodies`` holds each card's body nodes, empty by default."""
     spec = {"version": 1, "cards": list(cards)}
-    return node("cards-metrics", source=json.dumps(spec), spec=spec)
+    result = node("cards-metrics", source=json.dumps(spec), spec=spec)
+    result["children"] = [{"type": "document", "attrs": {}, "children": list(body)}
+                          for body in (bodies or tuple([] for _ in cards))]
+    return result
+
+
+def _strong(value: str) -> dict:
+    return {"type": "strong", "attrs": {}, "children": [text(value)]}
+
+
+def _fixture() -> dict:
+    """The ``cards`` vault of fixtures/build_documents.py, built by the core."""
+    return json.loads((ROOT / "test" / "fixtures" / "documents" / "cards.json").read_text(encoding="utf-8"))
 
 
 def _link(target: str, chapter_id: str, label: str = "") -> dict:
@@ -79,7 +93,8 @@ def test_cards_render_titled_sections_with_metric_slots_and_markdown_bodies() ->
                 "denominator": [{"field": "kind", "equals": "service"}]},
                {"label": "Regions", "where": [{"field": "kind", "equals": "service"}], "distinct": "region"}]
     html = _html(_cards({"title": "Service <health>", "body": "Ordinary **operations**.", "metrics": metrics},
-                        {"title": "Evidence", "body": "Unfiltered [instructions](https://example.org)."}))
+                        {"title": "Evidence", "body": "Unfiltered."},
+                        bodies=([paragraph("Ordinary ", _strong("operations"), ".")], [paragraph("Unfiltered.")])))
     assert html.startswith('<div class="record-cards" data-record-cards>'
                            '<section class="content-card record-card" data-record-card="')
     assert '<header class="content-card-title">Service &lt;health&gt;</header>' in html
@@ -89,7 +104,7 @@ def test_cards_render_titled_sections_with_metric_slots_and_markdown_bodies() ->
     assert _card_payload(html) == metrics
     assert ('<section class="content-card record-card" data-record-card="[]">'
             '<header class="content-card-title">Evidence</header>'
-            '<p>Unfiltered <a href="https://example.org">instructions</a>.</p>\n</section></div>\n') in html
+            '<p>Unfiltered.</p>\n</section></div>\n') in html
 
 
 def test_a_metric_style_classes_the_metric_row_without_changing_metric_links() -> None:
@@ -106,15 +121,39 @@ def test_the_cards_runtime_ships_only_with_cards_or_query_quantities() -> None:
     assert 'id="cards-script"' not in render(plain, CONFIG)
 
 
-def test_card_bodies_resolve_wikilinks_by_path_name_and_alias() -> None:
-    html = _html(_cards({"title": "Ops", "body": "Items [[serviceCount]] ([[counts/subset]] active), "
-                                                 "limit [[limit]], [[one|back]], [[gone]], `[[code]]`."}))
+def test_card_bodies_render_their_nodes_with_quantity_links() -> None:
+    html = _html(_cards({"title": "Ops", "body": "Items [[serviceCount]], limit [[limit]], [[one|back]]."},
+                        bodies=([paragraph("Items ", _link("serviceCount", "counts-total"), ", limit ",
+                                           _link("staticLimit", "limit"), ", ", _link("one", "one", "back"), ".")],)))
     assert ('<p>Items <a class="internal-link" href="#counts-total" data-quantity-reference="counts/total.md" '
-            'aria-busy="true" role="status">Calculating…</a> (<a class="internal-link" href="#counts-subset" '
-            'data-quantity-reference="counts/subset.md" aria-busy="true" role="status">Calculating…</a> active), '
-            'limit <a class="internal-link" href="#limit">20 mm</a>, '
-            '<a class="internal-link" href="#one">back</a>, '
-            '<span class="unresolved" title="gone">gone</span>, <code>[[code]]</code>.</p>') in html
+            'aria-busy="true" role="status">Calculating…</a>, limit <a class="internal-link" href="#limit">20 mm</a>, '
+            '<a class="internal-link" href="#one">back</a>.</p>\n</section>') in html
+
+
+def test_a_core_built_card_body_renders_its_base_table_and_its_nested_card() -> None:
+    """A capability fence in a card body is a node like any other: the Base is a table
+    placeholder of the chapter, the nested cards fence a card inside the outer card."""
+    document = _fixture()
+    assert {"bases", "cards-metrics", "wikilinks"} <= set(document["capabilities"])
+    overview = next(note for note in decode_artifact_data(render(document, CONFIG))["notes"]
+                    if note["slug"] == "overview")
+    html = overview["html"]
+    assert ('<header class="content-card-title">Outer</header><p>Points as a table:</p>\n'
+            '<div class="data-table-placeholder" data-base-table="overview-base-1"></div>\n'
+            '<div class="record-cards" data-record-cards><section class="content-card record-card" '
+            'data-record-card="[]"><header class="content-card-title">Inner</header>'
+            '<p>Nested <strong>body</strong> with <a class="internal-link" href="#target">Target</a>.</p>\n'
+            '</section></div>\n</section>') in html
+    assert [table["key"] for table in overview["tables"]] == ["overview-base-1"]
+    assert overview["tables"][0]["definition"]["views"][0]["order"] == ["file.name", "status"]
+
+
+def test_card_bodies_not_matching_the_cards_name_the_chapter_and_the_remedy() -> None:
+    fence = _cards({"title": "One", "body": ""}, {"title": "Two", "body": ""})
+    fence["children"].pop()
+    with pytest.raises(RenderError, match=r"Chapter one: cards fence has 1 card body for 2 cards.*"
+                                          r"Remedy: regenerate the Document with the obs core"):
+        _html(fence)
 
 
 def test_a_compound_metric_value_is_the_primary_and_secondary_quantity_links() -> None:
@@ -141,11 +180,6 @@ def test_a_metric_series_names_its_source_list_and_checks_its_labels() -> None:
     source["records"][0]["fields"] = {"groups": {"list": [{"name": "A", "key": "a"}, {"name": "A", "key": "b"}]}}
     with pytest.raises(RenderError, match=r"Chapter one: card 'Series' metric series one/groups.list .*unique"):
         _notes(source)
-
-
-def test_a_capability_fence_in_a_card_body_names_the_card_and_the_remedy() -> None:
-    with pytest.raises(RenderError, match=r"Chapter one: card 'Bounded' body holds a base fence.*Remedy"):
-        _html(_cards({"title": "Bounded", "body": "```base\nviews: []\n```"}))
 
 
 def test_a_malformed_cards_spec_names_the_chapter_and_the_remedy() -> None:

@@ -11,7 +11,7 @@ import pytest
 from obs_html.config import load_config
 from obs_html.render import render
 
-from documents import chapter, document as build, heading, node, paragraph
+from documents import chapter, document as build, heading, node, paragraph, text
 
 
 pytestmark = pytest.mark.browser
@@ -30,9 +30,13 @@ def _services(*extra: tuple[str, str, str, str, str]) -> list[dict]:
             for name, identity, active, healthy, region in [*SERVICES, *extra]]
 
 
-def _cards(*cards: dict) -> dict:
+def _cards(*cards: dict, bodies: tuple[list[dict], ...] = ()) -> dict:
+    """The node of a cards fence; ``bodies`` holds each card's body nodes, empty by default."""
     spec = {"version": 1, "cards": list(cards)}
-    return node("cards-metrics", source=json.dumps(spec), spec=spec)
+    result = node("cards-metrics", source=json.dumps(spec), spec=spec)
+    result["children"] = [{"type": "document", "attrs": {}, "children": list(body)}
+                          for body in (bodies or tuple([] for _ in cards))]
+    return result
 
 
 def _quantity(identifier: str, title: str, metadata: dict) -> dict:
@@ -65,7 +69,9 @@ GLOBAL_CARDS = _cards(
          "denominator": [{"field": "kind", "equals": "service"}]},
         {"label": "Regions", "where": [{"field": "kind", "equals": "service"}], "distinct": "region"},
     ]},
-    {"title": "Evidence", "body": "Static [instructions](https://example.org)."},
+    {"title": "Evidence", "body": "Static instructions."},
+    bodies=([paragraph("Ordinary ", {"type": "strong", "attrs": {}, "children": [text("operations")]}, ".")],
+            [paragraph("Static instructions.")]),
 )
 
 
@@ -126,7 +132,9 @@ def test_quantities_count_through_their_selection_chain_and_refresh(tmp_path, re
                     "metrics": [
                         {"label": "Same selection", "from": "counts/total", "where": [], "distinct": "identity"},
                         {"label": "Active share", "from": "counts/total", "where": [
-                            {"field": "active", "equals": "yes"}], "distinct": "identity", "denominator": []}]})
+                            {"field": "active", "equals": "yes"}], "distinct": "identity", "denominator": []}]},
+                   bodies=([paragraph("Items ", _link("serviceCount", "counts-total"), " (",
+                                      _link("activeCount", "counts-subset"), " active).")],))
     source = build(
         "Quantities",
         chapter("chapter", "Chapter", heading(1, "Operations"), cards,
@@ -208,3 +216,4 @@ def test_ignored_notes_are_never_counted(tmp_path, reader_browser) -> None:
     page.evaluate("obsArtifact.activateChapter('chapter')")
     expect(page.locator("[data-active-chapter] [data-quantity-reference]")).to_have_text("2")
     assert errors == []
+

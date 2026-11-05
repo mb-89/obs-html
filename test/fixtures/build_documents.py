@@ -309,9 +309,53 @@ def callouts(root: Path) -> None:
     (root / "target.md").write_text("# Target\n\nTarget text.\n", encoding="utf-8")
 
 
+def cards(root: Path) -> None:
+    """test_cards_counts_quantities.py's vault: a card whose body holds a Base fence and a nested
+    cards fence; a card with every metric field (two quantity notes for ``from`` and
+    ``secondary``, a trusted projection); and a card whose metrics are a series from a note's list."""
+    point = [{"field": "kind", "equals": "point"}]
+    inner = {"version": 1, "cards": [{"title": "Inner", "body": "Nested **body** with [[target]]."}]}
+    outer = {"version": 1, "cards": [
+        {"title": "Outer", "body": (
+            "Points as a table:\n\n```base\nfilters: 'kind == \"point\"'\n"
+            "views:\n  - type: table\n    order: [file.name, status]\n```\n\n"
+            "```cards\n" + json.dumps(inner) + "\n```\n")},
+        {"title": "Metrics", "body": "", "metricStyle": "lines", "metrics": [
+            {"key": "open-share", "label": "Open share", "where": [{"field": "status", "equals": "open"}],
+             "denominator": point, "link": "#target", "tone": "neutral",
+             "toneRules": [{"value": "remaining", "when": "positive", "tone": "warning"}]},
+            {"label": "Points (open)", "from": "counts/points", "where": [], "secondary": "counts/open",
+             "link": "#overview", "secondaryLink": "#target", "tone": "negative",
+             "toneRules": [{"value": "secondary", "when": "zero", "tone": "positive"}]},
+            {"label": "Reviewed open", "where": [{"field": "status", "equals": "open"}], "tone": "positive",
+             "obsHtml": {"projection": "review"}}]},
+        {"title": "Series", "body": "", "metricStyle": "pills", "obsHtml": {"metricsFrom": {
+            "sourceNote": "groups", "property": "groups.list", "labelProperty": "name",
+            "distinctProperty": "field", "where": point, "tone": "positive",
+            "toneRules": [{"value": "primary", "when": "zero", "tone": "negative"}],
+            "link": {"note": "overview", "groupProperty": "status"}}}},
+    ]}
+    (root / "manifest.md").write_text("- [[overview]]\n- [[target]]\n", encoding="utf-8")
+    (root / "overview.md").write_text("# Overview\n\n```cards\n" + json.dumps(outer) + "\n```\n",
+                                      encoding="utf-8")
+    (root / "target.md").write_text("# Target\n\nTarget text.\n", encoding="utf-8")
+    (root / "groups.md").write_text(
+        "---\ngroups:\n  list:\n    - {name: open, field: owner}\n    - {name: closed, field: reviewer}\n---\n",
+        encoding="utf-8")
+    (root / "counts").mkdir()
+    (root / "counts" / "points.md").write_text(
+        "---\nkind: quantity\naliases: [pointCount]\nsource: '[[target]]'\n"
+        "query: {where: [{field: kind, equals: point}]}\n---\n", encoding="utf-8")
+    (root / "counts" / "open.md").write_text(
+        "---\nkind: quantity\naliases: [openCount]\nsource: '[[target]]'\n"
+        "query: {from: counts/points, where: [{field: status, equals: open}]}\n---\n", encoding="utf-8")
+    for name, status, owner in (("a", "open", "ada"), ("b", "closed", "lin"), ("c", "open", "lin")):
+        (root / f"{name}-point.md").write_text(
+            f"---\nkind: point\nstatus: {status}\nowner: {owner}\n---\n# Point {name}\n", encoding="utf-8")
+
 VAULTS = {"complete": complete, "artifact-change": artifact_change, "projections": projections,
           "table-help": table_help, "structural": structural, "callouts": callouts,
-          "registers": registers}
+          "registers": registers, "cards": cards}
 
 
 # Runs obs-document in the core's environment with the core's one network read refused.
