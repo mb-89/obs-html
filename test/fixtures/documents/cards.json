@@ -1,0 +1,1231 @@
+{
+  "schemaVersion": 1,
+  "manifest": {
+    "title": "Manifest",
+    "metadata": {},
+    "abstract": [
+      {
+        "type": "manifest",
+        "attrs": {},
+        "children": []
+      }
+    ]
+  },
+  "chapters": [
+    {
+      "id": "overview",
+      "title": "Overview",
+      "content": [
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "overview"
+          },
+          "children": []
+        },
+        {
+          "type": "markdown",
+          "attrs": {},
+          "children": []
+        },
+        {
+          "type": "section",
+          "attrs": {
+            "level": 1
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Overview"
+            }
+          ]
+        },
+        {
+          "type": "cards-metrics",
+          "attrs": {
+            "source": "{\"version\": 1, \"cards\": [{\"title\": \"Outer\", \"body\": \"Points as a table:\\n\\n```base\\nfilters: 'kind == \\\"point\\\"'\\nviews:\\n  - type: table\\n    order: [file.name, status]\\n```\\n\\n```cards\\n{\\\"version\\\": 1, \\\"cards\\\": [{\\\"title\\\": \\\"Inner\\\", \\\"body\\\": \\\"Nested **body** with [[target]].\\\"}]}\\n```\\n\"}, {\"title\": \"Metrics\", \"body\": \"\", \"metricStyle\": \"lines\", \"metrics\": [{\"key\": \"open-share\", \"label\": \"Open share\", \"where\": [{\"field\": \"status\", \"equals\": \"open\"}], \"denominator\": [{\"field\": \"kind\", \"equals\": \"point\"}], \"link\": \"#target\", \"tone\": \"neutral\", \"toneRules\": [{\"value\": \"remaining\", \"when\": \"positive\", \"tone\": \"warning\"}]}, {\"label\": \"Points (open)\", \"from\": \"counts/points\", \"where\": [], \"secondary\": \"counts/open\", \"link\": \"#overview\", \"secondaryLink\": \"#target\", \"tone\": \"negative\", \"toneRules\": [{\"value\": \"secondary\", \"when\": \"zero\", \"tone\": \"positive\"}]}, {\"label\": \"Reviewed open\", \"where\": [{\"field\": \"status\", \"equals\": \"open\"}], \"tone\": \"positive\", \"obsHtml\": {\"projection\": \"review\"}}]}, {\"title\": \"Series\", \"body\": \"\", \"metricStyle\": \"pills\", \"obsHtml\": {\"metricsFrom\": {\"sourceNote\": \"groups\", \"property\": \"groups.list\", \"labelProperty\": \"name\", \"distinctProperty\": \"field\", \"where\": [{\"field\": \"kind\", \"equals\": \"point\"}], \"tone\": \"positive\", \"toneRules\": [{\"value\": \"primary\", \"when\": \"zero\", \"tone\": \"negative\"}], \"link\": {\"note\": \"overview\", \"groupProperty\": \"status\"}}}}]}\n",
+            "spec": {
+              "version": 1,
+              "cards": [
+                {
+                  "title": "Outer",
+                  "body": "Points as a table:\n\n```base\nfilters: 'kind == \"point\"'\nviews:\n  - type: table\n    order: [file.name, status]\n```\n\n```cards\n{\"version\": 1, \"cards\": [{\"title\": \"Inner\", \"body\": \"Nested **body** with [[target]].\"}]}\n```\n"
+                },
+                {
+                  "title": "Metrics",
+                  "body": "",
+                  "metricStyle": "lines",
+                  "metrics": [
+                    {
+                      "key": "open-share",
+                      "label": "Open share",
+                      "where": [
+                        {
+                          "field": "status",
+                          "equals": "open"
+                        }
+                      ],
+                      "denominator": [
+                        {
+                          "field": "kind",
+                          "equals": "point"
+                        }
+                      ],
+                      "link": "#target",
+                      "tone": "neutral",
+                      "toneRules": [
+                        {
+                          "value": "remaining",
+                          "when": "positive",
+                          "tone": "warning"
+                        }
+                      ]
+                    },
+                    {
+                      "label": "Points (open)",
+                      "from": "counts/points",
+                      "where": [],
+                      "secondary": "counts/open",
+                      "link": "#overview",
+                      "secondaryLink": "#target",
+                      "tone": "negative",
+                      "toneRules": [
+                        {
+                          "value": "secondary",
+                          "when": "zero",
+                          "tone": "positive"
+                        }
+                      ]
+                    },
+                    {
+                      "label": "Reviewed open",
+                      "where": [
+                        {
+                          "field": "status",
+                          "equals": "open"
+                        }
+                      ],
+                      "tone": "positive",
+                      "obsHtml": {
+                        "projection": "review"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "title": "Series",
+                  "body": "",
+                  "metricStyle": "pills",
+                  "obsHtml": {
+                    "metricsFrom": {
+                      "sourceNote": "groups",
+                      "property": "groups.list",
+                      "labelProperty": "name",
+                      "distinctProperty": "field",
+                      "where": [
+                        {
+                          "field": "kind",
+                          "equals": "point"
+                        }
+                      ],
+                      "tone": "positive",
+                      "toneRules": [
+                        {
+                          "value": "primary",
+                          "when": "zero",
+                          "tone": "negative"
+                        }
+                      ],
+                      "link": {
+                        "note": "overview",
+                        "groupProperty": "status"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "children": [
+            {
+              "type": "document",
+              "attrs": {},
+              "children": [
+                {
+                  "type": "paragraph",
+                  "attrs": {},
+                  "children": [
+                    {
+                      "type": "text",
+                      "attrs": {},
+                      "children": [],
+                      "text": "Points as a table:"
+                    }
+                  ]
+                },
+                {
+                  "type": "bases",
+                  "attrs": {
+                    "source": "filters: 'kind == \"point\"'\nviews:\n  - type: table\n    order: [file.name, status]\n",
+                    "spec": {
+                      "filters": "kind == \"point\"",
+                      "views": [
+                        {
+                          "type": "table",
+                          "order": [
+                            "file.name",
+                            "status"
+                          ]
+                        }
+                      ]
+                    }
+                  },
+                  "children": []
+                },
+                {
+                  "type": "cards-metrics",
+                  "attrs": {
+                    "source": "{\"version\": 1, \"cards\": [{\"title\": \"Inner\", \"body\": \"Nested **body** with [[target]].\"}]}\n",
+                    "spec": {
+                      "version": 1,
+                      "cards": [
+                        {
+                          "title": "Inner",
+                          "body": "Nested **body** with [[target]]."
+                        }
+                      ]
+                    }
+                  },
+                  "children": [
+                    {
+                      "type": "document",
+                      "attrs": {},
+                      "children": [
+                        {
+                          "type": "paragraph",
+                          "attrs": {},
+                          "children": [
+                            {
+                              "type": "text",
+                              "attrs": {},
+                              "children": [],
+                              "text": "Nested "
+                            },
+                            {
+                              "type": "strong",
+                              "attrs": {},
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "attrs": {},
+                                  "children": [],
+                                  "text": "body"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "text",
+                              "attrs": {},
+                              "children": [],
+                              "text": " with "
+                            },
+                            {
+                              "type": "wikilinks",
+                              "attrs": {
+                                "target": "target",
+                                "chapter": "target",
+                                "heading": "",
+                                "label": "target"
+                              },
+                              "children": []
+                            },
+                            {
+                              "type": "text",
+                              "attrs": {},
+                              "children": [],
+                              "text": "."
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "document",
+              "attrs": {},
+              "children": []
+            },
+            {
+              "type": "document",
+              "attrs": {},
+              "children": []
+            }
+          ]
+        }
+      ],
+      "children": [],
+      "metadata": {}
+    },
+    {
+      "id": "target",
+      "title": "Target",
+      "content": [
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "target"
+          },
+          "children": []
+        },
+        {
+          "type": "markdown",
+          "attrs": {},
+          "children": []
+        },
+        {
+          "type": "section",
+          "attrs": {
+            "level": 1
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Target"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "attrs": {},
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Target text."
+            }
+          ]
+        }
+      ],
+      "children": [],
+      "metadata": {}
+    },
+    {
+      "id": "a-point",
+      "title": "Point a",
+      "toc": false,
+      "content": [
+        {
+          "type": "markdown-frontmatter",
+          "attrs": {
+            "metadata": {
+              "kind": "point",
+              "status": "open",
+              "owner": "ada"
+            }
+          },
+          "children": [
+            {
+              "type": "field",
+              "attrs": {
+                "name": "kind"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "point"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "status"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "open"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "owner"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "ada"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "a-point"
+          },
+          "children": []
+        },
+        {
+          "type": "markdown",
+          "attrs": {},
+          "children": []
+        },
+        {
+          "type": "section",
+          "attrs": {
+            "level": 1
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Point a"
+            }
+          ]
+        }
+      ],
+      "children": [],
+      "metadata": {
+        "kind": "point",
+        "status": "open",
+        "owner": "ada"
+      }
+    },
+    {
+      "id": "b-point",
+      "title": "Point b",
+      "toc": false,
+      "content": [
+        {
+          "type": "markdown-frontmatter",
+          "attrs": {
+            "metadata": {
+              "kind": "point",
+              "status": "closed",
+              "owner": "lin"
+            }
+          },
+          "children": [
+            {
+              "type": "field",
+              "attrs": {
+                "name": "kind"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "point"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "status"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "closed"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "owner"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "lin"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "b-point"
+          },
+          "children": []
+        },
+        {
+          "type": "markdown",
+          "attrs": {},
+          "children": []
+        },
+        {
+          "type": "section",
+          "attrs": {
+            "level": 1
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Point b"
+            }
+          ]
+        }
+      ],
+      "children": [],
+      "metadata": {
+        "kind": "point",
+        "status": "closed",
+        "owner": "lin"
+      }
+    },
+    {
+      "id": "c-point",
+      "title": "Point c",
+      "toc": false,
+      "content": [
+        {
+          "type": "markdown-frontmatter",
+          "attrs": {
+            "metadata": {
+              "kind": "point",
+              "status": "open",
+              "owner": "lin"
+            }
+          },
+          "children": [
+            {
+              "type": "field",
+              "attrs": {
+                "name": "kind"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "point"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "status"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "open"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "owner"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "lin"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "c-point"
+          },
+          "children": []
+        },
+        {
+          "type": "markdown",
+          "attrs": {},
+          "children": []
+        },
+        {
+          "type": "section",
+          "attrs": {
+            "level": 1
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Point c"
+            }
+          ]
+        }
+      ],
+      "children": [],
+      "metadata": {
+        "kind": "point",
+        "status": "open",
+        "owner": "lin"
+      }
+    },
+    {
+      "id": "counts-open",
+      "title": "Open",
+      "toc": false,
+      "content": [
+        {
+          "type": "markdown-frontmatter",
+          "attrs": {
+            "metadata": {
+              "kind": "quantity",
+              "aliases": [
+                "openCount"
+              ],
+              "source": "[[target]]",
+              "query": {
+                "from": "counts/points",
+                "where": [
+                  {
+                    "field": "status",
+                    "equals": "open"
+                  }
+                ]
+              }
+            }
+          },
+          "children": [
+            {
+              "type": "field",
+              "attrs": {
+                "name": "kind"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "quantity"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "aliases.0"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "openCount"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "source"
+              },
+              "children": [
+                {
+                  "type": "wikilinks",
+                  "attrs": {
+                    "target": "target",
+                    "chapter": "target",
+                    "heading": "",
+                    "label": "target"
+                  },
+                  "children": []
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "query.from"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "counts/points"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "query.where.0.field"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "status"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "query.where.0.equals"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "open"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "quantities",
+          "attrs": {
+            "metadata": {
+              "kind": "quantity",
+              "aliases": [
+                "openCount"
+              ],
+              "source": "[[target]]",
+              "query": {
+                "from": "counts/points",
+                "where": [
+                  {
+                    "field": "status",
+                    "equals": "open"
+                  }
+                ]
+              }
+            }
+          },
+          "children": []
+        },
+        {
+          "type": "queries",
+          "attrs": {
+            "query": {
+              "from": "counts/points",
+              "where": [
+                {
+                  "field": "status",
+                  "equals": "open"
+                }
+              ]
+            }
+          },
+          "children": []
+        },
+        {
+          "type": "count-query",
+          "attrs": {
+            "query": {
+              "from": "counts/points",
+              "where": [
+                {
+                  "field": "status",
+                  "equals": "open"
+                }
+              ]
+            }
+          },
+          "children": []
+        },
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "counts-open"
+          },
+          "children": []
+        }
+      ],
+      "children": [],
+      "metadata": {
+        "kind": "quantity",
+        "aliases": [
+          "openCount"
+        ],
+        "source": "[[target]]",
+        "query": {
+          "from": "counts/points",
+          "where": [
+            {
+              "field": "status",
+              "equals": "open"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "counts-points",
+      "title": "Points",
+      "toc": false,
+      "content": [
+        {
+          "type": "markdown-frontmatter",
+          "attrs": {
+            "metadata": {
+              "kind": "quantity",
+              "aliases": [
+                "pointCount"
+              ],
+              "source": "[[target]]",
+              "query": {
+                "where": [
+                  {
+                    "field": "kind",
+                    "equals": "point"
+                  }
+                ]
+              }
+            }
+          },
+          "children": [
+            {
+              "type": "field",
+              "attrs": {
+                "name": "kind"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "quantity"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "aliases.0"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "pointCount"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "source"
+              },
+              "children": [
+                {
+                  "type": "wikilinks",
+                  "attrs": {
+                    "target": "target",
+                    "chapter": "target",
+                    "heading": "",
+                    "label": "target"
+                  },
+                  "children": []
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "query.where.0.field"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "kind"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "query.where.0.equals"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "point"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "quantities",
+          "attrs": {
+            "metadata": {
+              "kind": "quantity",
+              "aliases": [
+                "pointCount"
+              ],
+              "source": "[[target]]",
+              "query": {
+                "where": [
+                  {
+                    "field": "kind",
+                    "equals": "point"
+                  }
+                ]
+              }
+            }
+          },
+          "children": []
+        },
+        {
+          "type": "queries",
+          "attrs": {
+            "query": {
+              "where": [
+                {
+                  "field": "kind",
+                  "equals": "point"
+                }
+              ]
+            }
+          },
+          "children": []
+        },
+        {
+          "type": "count-query",
+          "attrs": {
+            "query": {
+              "where": [
+                {
+                  "field": "kind",
+                  "equals": "point"
+                }
+              ]
+            }
+          },
+          "children": []
+        },
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "counts-points"
+          },
+          "children": []
+        }
+      ],
+      "children": [],
+      "metadata": {
+        "kind": "quantity",
+        "aliases": [
+          "pointCount"
+        ],
+        "source": "[[target]]",
+        "query": {
+          "where": [
+            {
+              "field": "kind",
+              "equals": "point"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "groups",
+      "title": "Groups",
+      "toc": false,
+      "content": [
+        {
+          "type": "markdown-frontmatter",
+          "attrs": {
+            "metadata": {
+              "groups": {
+                "list": [
+                  {
+                    "name": "open",
+                    "field": "owner"
+                  },
+                  {
+                    "name": "closed",
+                    "field": "reviewer"
+                  }
+                ]
+              }
+            }
+          },
+          "children": [
+            {
+              "type": "field",
+              "attrs": {
+                "name": "groups.list.0.name"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "open"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "groups.list.0.field"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "owner"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "groups.list.1.name"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "closed"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "groups.list.1.field"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "reviewer"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "groups"
+          },
+          "children": []
+        }
+      ],
+      "children": [],
+      "metadata": {
+        "groups": {
+          "list": [
+            {
+              "name": "open",
+              "field": "owner"
+            },
+            {
+              "name": "closed",
+              "field": "reviewer"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "links": [
+    {
+      "id": "target",
+      "href": "target",
+      "label": "target"
+    }
+  ],
+  "assets": [],
+  "records": [
+    {
+      "id": "a-point",
+      "type": "note",
+      "path": "a-point.md",
+      "fields": {
+        "kind": "point",
+        "status": "open",
+        "owner": "ada"
+      }
+    },
+    {
+      "id": "b-point",
+      "type": "note",
+      "path": "b-point.md",
+      "fields": {
+        "kind": "point",
+        "status": "closed",
+        "owner": "lin"
+      }
+    },
+    {
+      "id": "c-point",
+      "type": "note",
+      "path": "c-point.md",
+      "fields": {
+        "kind": "point",
+        "status": "open",
+        "owner": "lin"
+      }
+    },
+    {
+      "id": "counts-open",
+      "type": "note",
+      "path": "counts/open.md",
+      "fields": {
+        "kind": "quantity",
+        "aliases": [
+          "openCount"
+        ],
+        "source": "[[target]]",
+        "query": {
+          "from": "counts/points",
+          "where": [
+            {
+              "field": "status",
+              "equals": "open"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "counts-points",
+      "type": "note",
+      "path": "counts/points.md",
+      "fields": {
+        "kind": "quantity",
+        "aliases": [
+          "pointCount"
+        ],
+        "source": "[[target]]",
+        "query": {
+          "where": [
+            {
+              "field": "kind",
+              "equals": "point"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "groups",
+      "type": "note",
+      "path": "groups.md",
+      "fields": {
+        "groups": {
+          "list": [
+            {
+              "name": "open",
+              "field": "owner"
+            },
+            {
+              "name": "closed",
+              "field": "reviewer"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "manifest",
+      "type": "note",
+      "path": "manifest.md",
+      "fields": {}
+    },
+    {
+      "id": "overview",
+      "type": "note",
+      "path": "overview.md",
+      "fields": {}
+    },
+    {
+      "id": "target",
+      "type": "note",
+      "path": "target.md",
+      "fields": {}
+    },
+    {
+      "id": "chapter-overview",
+      "type": "chapter",
+      "note": "overview",
+      "fields": {
+        "chapter": "Overview",
+        "title": "Overview",
+        "depth": "0",
+        "slug": "overview",
+        "sourcePath": "overview.md"
+      }
+    },
+    {
+      "id": "chapter-target",
+      "type": "chapter",
+      "note": "target",
+      "fields": {
+        "chapter": "Target",
+        "title": "Target",
+        "depth": "0",
+        "slug": "target",
+        "sourcePath": "target.md"
+      }
+    }
+  ],
+  "semanticResources": [],
+  "diagnostics": [],
+  "capabilities": [
+    "bases",
+    "cards-metrics",
+    "chapter-inclusion",
+    "count-query",
+    "manifest",
+    "markdown",
+    "markdown-frontmatter",
+    "quantities",
+    "queries",
+    "wikilinks"
+  ]
+}

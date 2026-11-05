@@ -188,21 +188,22 @@ def _count_query(node: dict[str, object], context: Context) -> str:
     return ""
 
 
-CAPABILITY_FENCES = {"base", "cards", "cmd", "figure", "property-editor"}
-
-
 def _cards(node: dict[str, object], context: Context) -> str:
     """Data-only cards: titled sections whose metric slots the runtime (cards.js) counts from the
-    globally filtered records; only the metric declarations enter the browser."""
+    globally filtered records; only the metric declarations enter the browser. Each card's body is
+    its ``document`` child node, rendered like chapter content (nested cards included)."""
     place = f"Chapter {context.chapter or HOME}"
-    cards = node["attrs"]["spec"].get("cards")
+    cards, bodies = node["attrs"]["spec"].get("cards"), node["children"]
     if not isinstance(cards, list) or not all(
-            isinstance(card, dict) and isinstance(card.get("title"), str) and isinstance(card.get("body"), str)
+            isinstance(card, dict) and isinstance(card.get("title"), str)
             and isinstance(card.get("metrics", []), list) for card in cards):
-        raise RenderError(f"{place}: cards fence is not a list of cards with a title, a body and metrics; "
+        raise RenderError(f"{place}: cards fence is not a list of cards with a title and metrics; "
                           "regenerate the Document with the obs core.")
+    if len(bodies) != len(cards) or any(body["type"] != "document" for body in bodies):
+        raise RenderError(f"{place}: cards fence has {len(bodies)} card body for {len(cards)} cards; each card's "
+                          "body is one document node. Remedy: regenerate the Document with the obs core.")
     rendered = []
-    for card in cards:
+    for card, body in zip(cards, bodies):
         what = f"{place}: card {card['title']!r}"
         series = (card.get("obsHtml") or {}).get("metricsFrom")
         if series:
@@ -210,8 +211,7 @@ def _cards(node: dict[str, object], context: Context) -> str:
         metrics = [dict(metric) for metric in card.get("metrics", [])]
         for metric in metrics:
             if "secondary" in metric:
-                metric["valueHtml"] = _markdown(f'[[{metric["from"]}]] ([[{metric["secondary"]}]])', what, context)\
-                    .strip().removeprefix("<p>").removesuffix("</p>")
+                metric["valueHtml"] = _inline(f'[[{metric["from"]}]] ([[{metric["secondary"]}]])', context)
         payload = escape(json.dumps(metrics, ensure_ascii=False), quote=True)
         slots = "".join(f'<div data-record-metric="{index}" role="status" aria-busy="true">Calculating…</div>'
                         for index in range(len(metrics)))
@@ -221,7 +221,7 @@ def _cards(node: dict[str, object], context: Context) -> str:
             f'<section class="content-card record-card" data-record-card="{payload}"{series_data}>'
             f'<header class="content-card-title">{escape(card["title"])}</header>'
             + (f'<div class="record-metrics {style}">{slots}</div>' if metrics or series else "")
-            + _markdown(card["body"], what, context) + "</section>")
+            + _nodes(body["children"], context) + "</section>")
     return '<div class="record-cards" data-record-cards>' + "".join(rendered) + "</div>\n"
 
 
@@ -242,23 +242,6 @@ def _check_series(series: dict[str, object], what: str, context: Context) -> Non
             raise RenderError(f"{name} needs unique labels and non-empty distinct names. Remedy: give every "
                               "list item its own label and a distinct property value.")
         labels.add(fields[0])
-
-
-BLOCK = MarkdownIt("commonmark", {"html": False})
-CODE = re.compile(r"(<pre\b.*?</pre>|<code>.*?</code>)", re.DOTALL)
-
-
-def _markdown(source: str, what: str, context: Context) -> str:
-    """A card body: Markdown with wikilinks, raw HTML as text. The Document carries it as authored
-    Markdown, not as nodes, so a capability fence in it cannot render here."""
-    for token in BLOCK.parse(source):
-        language = token.info.strip().split()[0] if token.type == "fence" and token.info.strip() else ""
-        if language in CAPABILITY_FENCES:
-            raise RenderError(f"{what} body holds a {language} fence, which obs-html cannot render inside a "
-                              f"card. Remedy: move the {language} fence out of the card body.")
-    parts = CODE.split(BLOCK.render(source))
-    return "".join(part if index % 2 else WIKILINK.sub(lambda match: _frontmatter_link(match, context), part)
-                   for index, part in enumerate(parts))
 
 
 def _embed(node: dict[str, object], context: Context) -> str:

@@ -660,7 +660,42 @@
               ]
             }
           },
-          "children": []
+          "children": [
+            {
+              "type": "document",
+              "attrs": {},
+              "children": [
+                {
+                  "type": "paragraph",
+                  "attrs": {},
+                  "children": [
+                    {
+                      "type": "text",
+                      "attrs": {},
+                      "children": [],
+                      "text": "Ranked: "
+                    },
+                    {
+                      "type": "wikilinks",
+                      "attrs": {
+                        "target": "rankedItems",
+                        "chapter": "ranked",
+                        "heading": "",
+                        "label": "rankedItems"
+                      },
+                      "children": []
+                    },
+                    {
+                      "type": "text",
+                      "attrs": {},
+                      "children": [],
+                      "text": "."
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
         },
         {
           "type": "registers",
