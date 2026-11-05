@@ -21,7 +21,6 @@ from pathlib import Path, PurePosixPath
 from typing import Callable
 from urllib.parse import unquote
 
-import yaml
 from jsonschema import Draft202012Validator
 from latex2mathml import exceptions as math_exceptions
 from latex2mathml.converter import convert as mathml
@@ -454,15 +453,11 @@ PROTECTED_FIELDS = frozenset(PROPERTY_EDITOR_SCHEMA["$defs"]["editableField"]["n
 
 
 def _property_editor(node: dict[str, object], context: Context) -> str:
-    """A ``property-editor`` fence: a text editor for one existing string field of an authored
+    """A ``property-editors`` node: a text editor for one existing string field of an authored
     note; properties.js commits edits through artifact.js (``obsArtifact.commitProperty``), which
-    checks the same declaration. The core has no capability for the fence (obs input-model,
-    Reviewed copy), so the Document carries it as a code node in that language."""
+    checks the same declaration. ``attrs.spec`` is the fence's mapping (obs property-editors)."""
     place = f"Chapter {context.chapter or HOME}: property editor"
-    try:
-        spec = yaml.safe_load(node.get("text", ""))
-    except yaml.YAMLError as error:
-        raise RenderError(f"{place} is not valid YAML: {error}. Remedy: fix the property-editor fence.") from error
+    spec = node["attrs"]["spec"]
     field = spec.get("field") if isinstance(spec, dict) else None
     if isinstance(field, str) and field.lower() in PROTECTED_FIELDS:
         raise RenderError(f"{place} cannot change the protected field {field!r}. Remedy: edit another field.")
@@ -541,6 +536,7 @@ CAPABILITIES: dict[str, Renderer] = {
     "marks": _mark,
     "named-icons": _nothing,
     "profiles": _nothing,
+    "property-editors": _property_editor,
     "quantities": _quantity,
     "queries": _nothing,
     "references": _references,
@@ -764,12 +760,6 @@ def _node(node: dict[str, object], context: Context) -> str:
     return (CAPABILITIES.get(kind) or STRUCTURAL_NODES.get(kind) or _unknown)(node, context)
 
 
-def _code_node(node: dict[str, object], context: Context) -> str:
-    if node["attrs"].get("language") == "property-editor":
-        return _property_editor(node, context)
-    return _code(node)
-
-
 def _list(node: dict[str, object], context: Context) -> str:
     tag = "ol" if node["attrs"].get("ordered") else "ul"
     if _tight(node):
@@ -956,7 +946,7 @@ STRUCTURAL_NODES: dict[str, Renderer] = {
     "text": _text_node,
     "list": _list,
     "list-item": _wrap("<li>", "</li>\n"),
-    "code": _code_node,
+    "code": lambda node, _context: _code(node),
     "quote": _wrap("<blockquote>\n", "</blockquote>\n"),
     "table": _table,
     "table-row": _wrap("<tr>", "</tr>\n"),

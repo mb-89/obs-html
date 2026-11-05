@@ -2,8 +2,8 @@
 
 Documents are built as the core emits them (its vault.py): a glossary or reference note
 carries a ``references`` node with its frontmatter, a callout a ``extensions`` marker with
-``syntax: callout`` before its ``callouts`` node, and a ``property-editor`` fence, which has no
-core capability, a code node in that language. The property-editor cases are the interim's
+``syntax: callout`` before its ``callouts`` node, and a ``property-editor`` fence a
+``property-editors`` node with its mapping in ``attrs.spec``. The property-editor cases are the interim's
 test_property_editors.py on Documents.
 """
 import json
@@ -26,9 +26,8 @@ def _notes(source: dict) -> dict[str, dict]:
 
 
 def _editor(fence: dict, metadata: dict) -> dict:
-    return build("Doc", chapter("one", "One", heading(1, "One"), {
-        "type": "code", "attrs": {"language": "property-editor"}, "children": [],
-        "text": json.dumps(fence)}, metadata=metadata))
+    return build("Doc", chapter("one", "One", heading(1, "One"), node("property-editors", source=json.dumps(fence),
+                                                                      spec=fence), metadata=metadata))
 
 
 def test_a_glossary_note_carries_its_definition_for_hover_cards_and_registers() -> None:
@@ -162,8 +161,8 @@ def test_invalid_or_oversized_editors_fail_with_a_remedy(fence, message) -> None
 
 
 def test_a_field_has_one_editor_and_home_has_none() -> None:
-    fence = {"type": "code", "attrs": {"language": "property-editor"}, "children": [],
-             "text": "version: 1\nfield: explanation\nlabel: Review\n"}
+    fence = node("property-editors", source="version: 1\nfield: explanation\nlabel: Review\n",
+                 spec={"version": 1, "field": "explanation", "label": "Review"})
     with pytest.raises(RenderError, match="declares 'explanation' more than once"):
         render(build("Doc", chapter("one", "One", fence, fence, metadata={"explanation": "x"})), CONFIG)
     with pytest.raises(RenderError, match="Chapter home: property editor needs an existing text field"):

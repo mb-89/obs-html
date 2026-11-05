@@ -2,7 +2,7 @@
 
 Moved from the interim's test_property_editors_browser.py
 (test_native_property_edits_survive_actual_reviewed_download_and_reopen), rebuilt on a Document
-as the core emits it: the property-editor fence is a code node in that language.
+as the core emits it: the property-editor fence is a ``property-editors`` node.
 """
 from pathlib import Path
 
@@ -16,8 +16,8 @@ from documents import chapter, document as build, heading, node, paragraph
 
 pytestmark = pytest.mark.browser
 CONFIG = load_config()
-EDITOR = {"type": "code", "attrs": {"language": "property-editor"}, "children": [],
-          "text": "version: 1\nfield: explanation\nlabel: Explanation\n"}
+EDITOR = node("property-editors", source="version: 1\nfield: explanation\nlabel: Explanation\n",
+              spec={"version": 1, "field": "explanation", "label": "Explanation"})
 TABLE = {"obsHtml": {"records": "note"}, "views": [{"type": "table", "order": ["identifier", "explanation"]}]}
 
 
