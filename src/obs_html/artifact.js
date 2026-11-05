@@ -2067,7 +2067,7 @@
         if (deferred.length) {
             pendingNavigation = slug;
             navigationReady = (async () => {
-                await globalThis.obsStartup.yield();
+                await globalThis.obsStartup.paint();
                 if (generation !== navigationGeneration) return false;
                 document.dispatchEvent(new CustomEvent("obs-chapter-content-changing"));
                 deferred.forEach(({node, placeholder}) => placeholder.replaceWith(node));

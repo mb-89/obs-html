@@ -13,7 +13,22 @@
             "title": "Design notes"
           }
         },
-        "children": []
+        "children": [
+          {
+            "type": "field",
+            "attrs": {
+              "name": "title"
+            },
+            "children": [
+              {
+                "type": "text",
+                "attrs": {},
+                "children": [],
+                "text": "Design notes"
+              }
+            ]
+          }
+        ]
       },
       {
         "type": "manifest",
@@ -35,7 +50,36 @@
               "status": "draft"
             }
           },
-          "children": []
+          "children": [
+            {
+              "type": "field",
+              "attrs": {
+                "name": "explanation"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "Original"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "status"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "draft"
+                }
+              ]
+            }
+          ]
         },
         {
           "type": "chapter-inclusion",
@@ -90,12 +134,16 @@
           ]
         },
         {
-          "type": "code",
+          "type": "property-editors",
           "attrs": {
-            "language": "property-editor"
+            "source": "version: 1\nfield: explanation\nlabel: Explanation\n",
+            "spec": {
+              "version": 1,
+              "field": "explanation",
+              "label": "Explanation"
+            }
           },
-          "children": [],
-          "text": "version: 1\nfield: explanation\nlabel: Explanation\n"
+          "children": []
         },
         {
           "type": "bases",
@@ -138,7 +186,36 @@
               "status": "draft"
             }
           },
-          "children": []
+          "children": [
+            {
+              "type": "field",
+              "attrs": {
+                "name": "explanation"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "Original"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "status"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "draft"
+                }
+              ]
+            }
+          ]
         },
         {
           "type": "chapter-inclusion",
@@ -193,12 +270,16 @@
           ]
         },
         {
-          "type": "code",
+          "type": "property-editors",
           "attrs": {
-            "language": "property-editor"
+            "source": "version: 1\nfield: explanation\nlabel: Explanation\n",
+            "spec": {
+              "version": 1,
+              "field": "explanation",
+              "label": "Explanation"
+            }
           },
-          "children": [],
-          "text": "version: 1\nfield: explanation\nlabel: Explanation\n"
+          "children": []
         },
         {
           "type": "bases",
@@ -235,7 +316,9 @@
     {
       "id": "sample",
       "href": "sample.svg",
-      "mediaType": "image/svg+xml"
+      "mediaType": "image/svg+xml",
+      "path": "sample.svg",
+      "data": "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMjQwIDEwMCI+PHJlY3Qgd2lkdGg9IjI0MCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiNkZGQiLz48cGF0aCBkPSJNMjAgODBMODAgNTBMMTQwIDY1TDIyMCAyMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMTM1IiBzdHJva2Utd2lkdGg9IjQiLz48L3N2Zz4="
     }
   ],
   "records": [
@@ -264,6 +347,38 @@
         "explanation": "Original",
         "status": "draft"
       }
+    },
+    {
+      "id": "chapter-one",
+      "type": "chapter",
+      "note": "one",
+      "fields": {
+        "chapter": "One",
+        "title": "One",
+        "depth": "0",
+        "slug": "one",
+        "sourcePath": "one.md"
+      }
+    },
+    {
+      "id": "chapter-two",
+      "type": "chapter",
+      "note": "two",
+      "fields": {
+        "chapter": "Two",
+        "title": "Two",
+        "depth": "0",
+        "slug": "two",
+        "sourcePath": "two.md"
+      }
+    },
+    {
+      "id": "document-metadata-title",
+      "type": "documentMetadata",
+      "fields": {
+        "key": "title",
+        "value": "Design notes"
+      }
     }
   ],
   "semanticResources": [],
@@ -274,6 +389,7 @@
     "chapter-inclusion",
     "manifest",
     "markdown",
-    "markdown-frontmatter"
+    "markdown-frontmatter",
+    "property-editors"
   ]
 }

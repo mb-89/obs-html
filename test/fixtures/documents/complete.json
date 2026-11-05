@@ -4,7 +4,7 @@
     "title": "Test document",
     "metadata": {
       "title": "Test document",
-      "subtitle": "Bridge **subtitle** ![Obsidian](https://example.invalid/obsidian.svg) ![HTML](https://example.invalid/html.svg)",
+      "subtitle": "Bridge **subtitle** ![Obsidian](obsidian.svg) ![HTML](html.svg)",
       "status": "active",
       "owners": {
         "team": [
@@ -19,7 +19,7 @@
         "attrs": {
           "metadata": {
             "title": "Test document",
-            "subtitle": "Bridge **subtitle** ![Obsidian](https://example.invalid/obsidian.svg) ![HTML](https://example.invalid/html.svg)",
+            "subtitle": "Bridge **subtitle** ![Obsidian](obsidian.svg) ![HTML](html.svg)",
             "status": "active",
             "owners": {
               "team": [
@@ -39,13 +39,6 @@
       {
         "type": "markdown",
         "attrs": {},
-        "children": []
-      },
-      {
-        "type": "extensions",
-        "attrs": {
-          "syntax": "callout"
-        },
         "children": []
       },
       {
@@ -1223,7 +1216,23 @@
     {
       "id": "shared-image",
       "href": "shared.png",
-      "mediaType": "image/png"
+      "mediaType": "image/png",
+      "path": "shared.png",
+      "data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a8xoAAAAASUVORK5CYII="
+    },
+    {
+      "id": "obsidian",
+      "href": "obsidian.svg",
+      "mediaType": "image/svg+xml",
+      "path": "obsidian.svg",
+      "data": "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSIyMCI+PHJlY3Qgd2lkdGg9IjYwIiBoZWlnaHQ9IjIwIi8+PC9zdmc+"
+    },
+    {
+      "id": "html",
+      "href": "html.svg",
+      "mediaType": "image/svg+xml",
+      "path": "html.svg",
+      "data": "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSIyMCI+PHJlY3Qgd2lkdGg9IjYwIiBoZWlnaHQ9IjIwIi8+PC9zdmc+"
     }
   ],
   "records": [
@@ -1296,7 +1305,7 @@
       "path": "manifest.md",
       "fields": {
         "title": "Test document",
-        "subtitle": "Bridge **subtitle** ![Obsidian](https://example.invalid/obsidian.svg) ![HTML](https://example.invalid/html.svg)",
+        "subtitle": "Bridge **subtitle** ![Obsidian](obsidian.svg) ![HTML](html.svg)",
         "status": "active",
         "owners": {
           "team": [
@@ -1384,7 +1393,6 @@
     "bases",
     "callouts",
     "chapter-inclusion",
-    "extensions",
     "manifest",
     "markdown",
     "markdown-frontmatter",

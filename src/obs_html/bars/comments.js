@@ -1479,7 +1479,8 @@
         }
         syncReviewFields();
         updateReviewSummary();
-        globalThis.obsFilter?.refresh();
+        // Review fields change only what a filter matches; an empty filter matches all.
+        if (globalThis.obsArtifact.filterSummary().expression) globalThis.obsFilter?.refresh();
     };
     if (globalThis.obsStartup) {
         reviewSummary.setAttribute("aria-busy", "true");

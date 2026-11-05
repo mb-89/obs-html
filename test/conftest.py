@@ -1,4 +1,3 @@
-import base64
 import contextlib
 import json
 import os
@@ -62,8 +61,6 @@ def fixture_artifact(tmp_path_factory) -> Path:
     from obs_html import cli
 
     def build(folder: Path) -> None:
-        (folder / "images").mkdir()
-        (folder / "images" / "logo.png").write_bytes(base64.b64decode(PIXEL))
         assert cli.main([str(FIXTURE), str(folder / "artifact.html"), "--execute-commands",
                          "--command-root", str(folder)]) == 0, \
             "test/conftest.py: obs-html could not render the fixture Document test/fixtures/document.json"

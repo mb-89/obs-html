@@ -6,6 +6,7 @@ from obs_html.config import load_config
 from obs_html.render import RenderError, render
 from obs_html.artifact_data import decode_artifact_data
 
+from conftest import PIXEL
 from documents import chapter, document as build, heading, node, paragraph, text
 
 
@@ -80,7 +81,7 @@ def test_structural_nodes_render_escaped(document) -> None:
     assert "<code>x &lt; y</code>" in html
     assert "<ol>\n<li>one</li>\n<li>two</li>\n</ol>" in html
     assert '<a href="https://example.org/?a=1&amp;b=2">the site</a>' in html
-    assert '<img src="images/logo.png" alt="a logo">' in html
+    assert f'<img src="data:image/png;base64,{PIXEL}" alt="a logo">' in html
 
 
 def test_wikilinks_resolve_to_chapter_routes(document) -> None:
@@ -272,13 +273,16 @@ def test_metadata_markdown_renders_inline_on_the_cover_and_in_the_frontmatter_pa
     metadata = document["manifest"]["metadata"]
     metadata["subtitle"] = ("Bridge **subtitle** ![Obsidian](https://example.invalid/obsidian.svg) → "
                             "![HTML](https://example.invalid/html.svg) <b>raw</b>")
+    document["assets"] += [  # The core fetched the first badge and could not fetch the second.
+        {"id": "obsidian", "href": "https://example.invalid/obsidian.svg", "mediaType": "image/png", "data": PIXEL},
+        {"id": "html", "href": "https://example.invalid/html.svg", "mediaType": "image/svg+xml"}]
     document["chapters"][0]["metadata"]["source"] = "https://example.org/a?b=1&c=2"
     document["chapters"][0]["content"][0]["attrs"]["metadata"]["source"] = "https://example.org/a?b=1&c=2"
     notes = _notes(document)
     home = notes["home"]["html"]
     assert ('<div class="document-subtitle">Bridge <strong>subtitle</strong> '
-            '<img src="https://example.invalid/obsidian.svg" alt="Obsidian" /> → '
-            '<img src="https://example.invalid/html.svg" alt="HTML" /> &lt;b&gt;raw&lt;/b&gt;</div>') in home
+            f'<img src="data:image/png;base64,{PIXEL}" alt="Obsidian"> → '
+            '<span class="image-unavailable" role="img" aria-label="HTML">HTML</span> &lt;b&gt;raw&lt;/b&gt;</div>') in home
     panel = notes["intro"]["frontmatterHtml"]
     assert panel["source"] == '<a href="https://example.org/a?b=1&amp;c=2">https://example.org/a?b=1&amp;c=2</a>'
     assert panel["tags"] == "a, b"
@@ -300,6 +304,14 @@ def test_fenced_code_renders_as_a_block_and_inline_code_breaks_between_words(doc
 def test_lists_of_single_paragraph_items_render_tight(document) -> None:
     html = _notes(document)["intro"]["html"]
     assert "<ol>\n<li>one</li>\n<li>two</li>\n</ol>" in html
+
+
+def test_a_loose_list_renders_its_paragraphs_even_with_one_paragraph_per_item(document) -> None:
+    intro = next(chapter for chapter in document["chapters"] if chapter["id"] == "intro")
+    listing = next(node for node in intro["content"] if node["type"] == "list")
+    listing["attrs"]["tight"] = False
+    html = _notes(document)["intro"]["html"]
+    assert "<ol>\n<li><p>one</p>\n</li>\n<li><p>two</p>\n</li>\n</ol>" in html
 
 
 def test_unaliased_wikilinks_show_the_chapter_title(document) -> None:

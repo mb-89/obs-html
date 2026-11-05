@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import json
 import math
-import mimetypes
 import re
 import sys
 from dataclasses import dataclass, field
@@ -21,8 +20,9 @@ from pathlib import Path, PurePosixPath
 from typing import Callable
 from urllib.parse import unquote
 
-import yaml
 from jsonschema import Draft202012Validator
+from latex2mathml import exceptions as math_exceptions
+from latex2mathml.converter import convert as mathml
 from markdown_it import MarkdownIt
 
 from obs_html.bars import BarDefinition, discover_bars
@@ -34,7 +34,9 @@ from obs_html.styles import load_style
 from obs_html.timings import stage
 
 
-STRUCTURAL = {"document", "section", "paragraph", "text", "list", "list-item", "code"}
+STRUCTURAL = frozenset(json.loads(files("obs").joinpath("document.schema.json").read_text(encoding="utf-8"))
+                       ["$defs"]["structuralType"]["enum"])
+"""The node types every adapter renders, as the core's Document schema lists them (structuralType)."""
 PROFILE_DEFAULTS = {
     "layout": "paged",
     "heading": "cover",
@@ -74,7 +76,8 @@ class Context:
     aliases: dict[str, str | None] = field(default_factory=dict)
     records: dict[str, dict[str, object]] = field(default_factory=dict)
     editable: dict[str, dict[str, object]] = field(default_factory=dict)
-    unknown: set[str] = field(default_factory=set)
+    unknown: dict[str, dict[str, str]] = field(default_factory=dict)
+    fields: dict[str, dict[str, str]] = field(default_factory=dict)
 
 
 Renderer = Callable[[dict[str, object], Context], str]
@@ -86,9 +89,12 @@ def _nothing(_node: dict[str, object], _context: Context) -> str:
 
 
 def _frontmatter(node: dict[str, object], context: Context) -> str:
-    """A chapter's frontmatter feeds its frontmatter panel, filters and Base rows, not its body."""
+    """A chapter's frontmatter feeds its frontmatter panel, filters and Base rows, not its body; its
+    field nodes are the panel's display HTML, by dotted path."""
     if context.chapter:
         context.frontmatter.update(node["attrs"]["metadata"])
+        context.fields[context.chapter] = {child["attrs"]["name"]: _nodes(child["children"], context)
+                                           for child in node["children"] if child["type"] == "field"}
     return ""
 
 
@@ -253,11 +259,11 @@ def _markdown(source: str, what: str, context: Context) -> str:
 
 def _embed(node: dict[str, object], context: Context) -> str:
     """An embedded note links to its chapter, titled like an unaliased wikilink; an embedded
-    file (a target with a non-note suffix, which no chapter resolves) renders like an attachment."""
+    file (one that names a Document asset) renders like an attachment."""
     target, chapter = node["attrs"]["target"], node["attrs"]["chapter"]
-    if chapter is None and PurePosixPath(target).suffix.lower() not in {"", ".md"}:
-        media_type = mimetypes.guess_type(target)[0] or "application/octet-stream"
-        return _file(target, "", media_type, f"embed {target!r}", context)
+    if "asset" in node["attrs"]:
+        identifier = node["attrs"]["asset"]
+        return _file(_document_asset(identifier, f"embed {target!r} names asset {identifier!r}, which", context), "")
     if chapter is None:
         return f'<span class="unresolved embed" title="{escape(target, quote=True)}">{escape(target)}</span>'
     return f'<a class="internal-link embed" href="#{chapter}">{escape(_chapter_title(chapter, context))}</a>'
@@ -266,26 +272,40 @@ def _embed(node: dict[str, object], context: Context) -> str:
 def _attachment(node: dict[str, object], context: Context) -> str:
     """An attachment names a Document asset: an image is document content, any other file is
     provenance text (its label and path), as the interim adapter rendered it without
-    --embed-attachments; the adapter has only the Document, not the file's bytes."""
+    --embed-attachments."""
     identifier, label = node["attrs"]["asset"], node["attrs"]["label"]
+    return _file(_document_asset(identifier, f"attachment names asset {identifier!r}, which", context), label)
+
+
+def _document_asset(identifier: str, what: str, context: Context) -> dict[str, str]:
     asset = context.files.get(identifier)
     if asset is None:
-        raise RenderError(f"Chapter {context.chapter or HOME}: attachment names asset {identifier!r}, which "
-                          "the Document's assets do not contain; regenerate the Document with the obs core.")
-    return _file(asset["href"], label, asset["mediaType"], f"attachment {identifier!r}", context)
+        raise RenderError(f"Chapter {context.chapter or HOME}: {what} the Document's assets do not contain; "
+                          "regenerate the Document with the obs core.")
+    return asset
 
 
-def _file(href: str, label: str, media_type: str, what: str, context: Context) -> str:
-    if re.match(r"(?:file:|/|\\\\|[A-Za-z]:[\\/])", href):
-        raise RenderError(f"Chapter {context.chapter or HOME}: {what} has the absolute path {href!r}, which "
-                          "would expose the build machine; link the file by its vault-relative path.")
-    if media_type.startswith("image/"):
-        return f'<img src="{escape(href, quote=True)}" alt="{escape(label, quote=True)}">'
-    if re.match(r"[A-Za-z][A-Za-z0-9+.-]*:", href):
-        return f'<a href="{escape(href, quote=True)}">{escape(label or href)}</a>'
-    name = label or PurePosixPath(href).name
-    return (f'<span class="source-reference" data-source-path="{escape(href, quote=True)}">{escape(name)}</span>'
-            f' ({_code({"attrs": {}, "text": href})})')
+def _image(asset: dict[str, str], alt: str) -> str:
+    """An image from its asset's bytes, never from the vault or the network; without bytes (a
+    remote image the build could not fetch), its alt text is a visible label in its place."""
+    if "data" in asset:
+        return (f'<img src="data:{escape(asset["mediaType"], quote=True)};base64,{asset["data"]}" '
+                f'alt="{escape(alt, quote=True)}">')
+    shown = escape(alt or asset["href"], quote=True)
+    return f'<span class="image-unavailable" role="img" aria-label="{shown}">{shown}</span>'
+
+
+def _file(asset: dict[str, str], label: str) -> str:
+    """The core checked that a vault file exists inside the vault; its provenance is its
+    vault-relative path, never the reference as authored. An asset without a path is a URL."""
+    if asset["mediaType"].startswith("image/"):
+        return _image(asset, label)
+    if "path" not in asset:
+        return f'<a href="{escape(asset["href"], quote=True)}">{escape(label or asset["href"])}</a>'
+    path = asset["path"]
+    name = label or PurePosixPath(path).name
+    return (f'<span class="source-reference" data-source-path="{escape(path, quote=True)}">{escape(name)}</span>'
+            f' ({_code({"attrs": {}, "text": path})})')
 
 
 # Canonical callout kind: its tone, the shared semantic card colour (obs artifact-ui.md).
@@ -298,8 +318,8 @@ CALLOUT_TONES = {
 
 
 def _callout(node: dict[str, object], context: Context) -> str:
-    """A callout is a card titled by its authored title or, untitled, by its kind; ``important``
-    is the untitled emphasis box."""
+    """A callout is a card titled by ``attrs.title`` exactly as the core gives it (the core resolves an
+    untitled callout's title); ``important`` is the emphasis box."""
     kind, title = node["attrs"]["kind"], node["attrs"]["title"]
     if kind not in CALLOUT_TONES:
         raise RenderError(f"Chapter {context.chapter or HOME}: callout kind {kind!r} is not one of "
@@ -310,7 +330,6 @@ def _callout(node: dict[str, object], context: Context) -> str:
     else:
         opening = (f'<aside class="content-card content-callout content-callout--{CALLOUT_TONES[kind]}" '
                    f'data-callout="{kind}" aria-label="{name}">\n')
-        title = title or name
     header = f'<header class="content-card-title">{_inline(title, context)}</header>\n' if title else ""
     return f"{opening}{header}{_nodes(node['children'], context)}</aside>\n"
 
@@ -412,31 +431,21 @@ def _references(node: dict[str, object], context: Context) -> str:
     return ""
 
 
-def _definition_html(frontmatter: dict[str, object], context: Context) -> str:
+def _definition_html(frontmatter: dict[str, object], slug: str, context: Context) -> str:
     """A glossary note's definition as inline HTML, for its hover card and register rows."""
     if frontmatter.get("kind") != "glossary" or "definition" not in frontmatter:
         return ""
-    return _inline(frontmatter["definition"], context)
-
-
-SYNTAX_EXTENSIONS = {"callout": "callouts"}
+    return _field_html(slug, "definition", frontmatter["definition"], context)
 
 
 def _extension(node: dict[str, object], context: Context) -> str:
-    """An Obsidian syntax extension the source used (obs extensions.md). It marks the syntax; the
-    capability that owns the syntax renders its content, so the marker itself shows nothing.
-    Trusted runtime extensions are another thing: artifact.js's ``obsArtifact.trustedExtension``."""
-    syntax = node["attrs"].get("syntax")
-    owner = SYNTAX_EXTENSIONS.get(syntax)
-    if owner is None:
-        raise RenderError(f"Chapter {context.chapter or HOME}: syntax extension {syntax!r} is not one obs-html "
-                          f"renders; it renders {', '.join(sorted(SYNTAX_EXTENSIONS))}. Remedy: write the "
-                          "content without that syntax, or extend obs-html's SYNTAX_EXTENSIONS.")
-    if owner not in context.document["capabilities"]:
-        raise RenderError(f"Chapter {context.chapter or HOME}: syntax extension {syntax!r} is used, but the "
-                          f"Document does not use {owner!r}, which renders it; regenerate the Document with "
-                          "the obs core.")
-    return ""
+    """An Obsidian syntax extension the source used (obs extensions.md). None has an input-model
+    contract yet, so the core emits none and obs-html renders none; a callout is a ``callouts``
+    node. Trusted runtime extensions are another thing: artifact.js's ``obsArtifact.trustedExtension``."""
+    raise RenderError(f"Chapter {context.chapter or HOME}: syntax extension {node['attrs'].get('syntax')!r} is "
+                      "not one obs-html (src/obs_html/render.py) renders: no syntax extension has an input-model "
+                      "contract yet (obs spec/capabilities/extensions.md), and a callout is a callouts node. "
+                      "Remedy: regenerate the Document with the obs core.")
 
 
 PROPERTY_EDITOR_SCHEMA = json.loads(files("obs_html").joinpath("property-editor.schema.json")
@@ -446,15 +455,11 @@ PROTECTED_FIELDS = frozenset(PROPERTY_EDITOR_SCHEMA["$defs"]["editableField"]["n
 
 
 def _property_editor(node: dict[str, object], context: Context) -> str:
-    """A ``property-editor`` fence: a text editor for one existing string field of an authored
+    """A ``property-editors`` node: a text editor for one existing string field of an authored
     note; properties.js commits edits through artifact.js (``obsArtifact.commitProperty``), which
-    checks the same declaration. The core has no capability for the fence (obs input-model,
-    Reviewed copy), so the Document carries it as a code node in that language."""
+    checks the same declaration. ``attrs.spec`` is the fence's mapping (obs property-editors)."""
     place = f"Chapter {context.chapter or HOME}: property editor"
-    try:
-        spec = yaml.safe_load(node.get("text", ""))
-    except yaml.YAMLError as error:
-        raise RenderError(f"{place} is not valid YAML: {error}. Remedy: fix the property-editor fence.") from error
+    spec = node["attrs"]["spec"]
     field = spec.get("field") if isinstance(spec, dict) else None
     if isinstance(field, str) and field.lower() in PROTECTED_FIELDS:
         raise RenderError(f"{place} cannot change the protected field {field!r}. Remedy: edit another field.")
@@ -533,6 +538,7 @@ CAPABILITIES: dict[str, Renderer] = {
     "marks": _mark,
     "named-icons": _nothing,
     "profiles": _nothing,
+    "property-editors": _property_editor,
     "quantities": _quantity,
     "queries": _nothing,
     "references": _references,
@@ -574,7 +580,7 @@ def render(document: dict[str, object], config: Config,
     context.chapters[HOME] = document["manifest"]["title"]  # The core links the manifest as home.
     model = _resolve_icons(_model(document, config, context), assets)
     return prepare_artifact_scripts(assets.resolve_markup(
-        _shell(model, style.stylesheet, assets, config, trusted_runtime)))
+        _shell(model, list(context.unknown.values()), style.stylesheet, assets, config, trusted_runtime)))
 
 
 def _resolve_icons(value: object, assets: SemanticAssets) -> object:
@@ -604,7 +610,7 @@ def _model(document: dict[str, object], config: Config, context: Context) -> dic
     settings = config.artifact
     title = manifest["title"]
     metadata = {key: value for key, value in manifest["metadata"].items() if key != "obsHtml"}
-    home_html = _cover(title, metadata, profile["heading"] == "compact") + _note_body(
+    home_html = _cover(title, metadata, profile["heading"] == "compact", context) + _note_body(
         manifest.get("abstract", []), "", context)
     notes = [_note(0, title, HOME, HOME, {}, home_html, context)]
     notes.extend(_chapter_notes(document["chapters"], context, 0))
@@ -676,8 +682,8 @@ def _note(depth: int, title: str, slug: str, generated: str, frontmatter: dict[s
         "depth": depth, "title": title, "slug": slug, "sourcePath": f"{slug}.md",
         "generated": generated, "cssClasses": _css_classes(frontmatter, slug),
         "frontmatter": frontmatter, "editableProperties": context.editable,
-        "frontmatterHtml": _frontmatter_html(frontmatter, context),
-        "definitionHtml": _definition_html(frontmatter, context), "marks": context.marks, "tables": context.tables, "html": html,
+        "frontmatterHtml": _frontmatter_html(frontmatter, slug, context),
+        "definitionHtml": _definition_html(frontmatter, slug, context), "marks": context.marks, "tables": context.tables, "html": html,
     }
 
 
@@ -695,8 +701,8 @@ def _attach_records(records: list[dict[str, object]], notes: list[dict[str, obje
             note["ignored"] = True  # Runtime selections skip it (artifact.js, selectable).
         if note is not None and not note["generated"]:
             note["frontmatter"] = {**fields, **note["frontmatter"]}
-            note["frontmatterHtml"] = _frontmatter_html(note["frontmatter"], context)
-            note["definitionHtml"] = _definition_html(note["frontmatter"], context)
+            note["frontmatterHtml"] = _frontmatter_html(note["frontmatter"], note["slug"], context)
+            note["definitionHtml"] = _definition_html(note["frontmatter"], note["slug"], context)
             note["sourcePath"] = source_path
             continue
         if note is not None:
@@ -706,18 +712,18 @@ def _attach_records(records: list[dict[str, object]], notes: list[dict[str, obje
             "depth": 0, "title": str(fields.get("title") or record["id"]), "slug": record["id"],
             "sourcePath": source_path, "generated": "", "cssClasses": [],
             "frontmatter": fields, "editableProperties": {},
-            "frontmatterHtml": _frontmatter_html(fields, context),
-            "definitionHtml": _definition_html(fields, context), "marks": [], "tables": [], "html": "", "record": True,
+            "frontmatterHtml": _frontmatter_html(fields, record["id"], context),
+            "definitionHtml": _definition_html(fields, record["id"], context), "marks": [], "tables": [], "html": "", "record": True,
             **({"ignored": True} if record.get("ignored") else {}),
         })
 
 
-def _cover(title: str, metadata: dict[str, object], compact: bool) -> str:
+def _cover(title: str, metadata: dict[str, object], compact: bool, context: Context) -> str:
     def value(item: object) -> str:
         return escape(_text(item))
 
     product = metadata.get("product") if isinstance(metadata.get("product"), dict) else {}
-    subtitle = _inline(metadata["subtitle"]) if metadata.get("subtitle") else ""
+    subtitle = _inline(metadata["subtitle"], context) if metadata.get("subtitle") else ""
     if compact:
         product_text = " ".join(value(product[key]) for key in ("name", "version") if product.get(key))
         parts = [("cover-organization", value(metadata.get("organization", ""))),
@@ -753,44 +759,85 @@ def _nodes(nodes: list[dict[str, object]], context: Context) -> str:
 
 def _node(node: dict[str, object], context: Context) -> str:
     kind = node["type"]
-    if kind in CAPABILITIES:
-        return CAPABILITIES[kind](node, context)
-    if kind not in STRUCTURAL:
-        return _unknown(node, context)
-    if kind == "text":
-        return _text_node(node, context)
-    if kind == "code" and node["attrs"].get("language") == "property-editor":
-        return _property_editor(node, context)
-    if kind == "code":
-        return _code(node)
-    if kind == "paragraph":
-        return _paragraph(node, context)
-    if kind == "list" and _tight(node):
-        tag = "ol" if node["attrs"].get("ordered") else "ul"
-        items = "".join(f"<li>{_tight_item(item, context)}</li>\n" for item in node["children"])
+    return (CAPABILITIES.get(kind) or STRUCTURAL_NODES.get(kind) or _unknown)(node, context)
+
+
+def _list(node: dict[str, object], context: Context) -> str:
+    tag = "ol" if node["attrs"].get("ordered") else "ul"
+    if node["attrs"]["tight"]:
+        items = "".join(f"<li>{_tight_item(item, context)}</li>\n" if item["type"] == "list-item"
+                        else _node(item, context) for item in node["children"])
         return f"<{tag}>\n{items}</{tag}>\n"
-    inner = _nodes(node["children"], context)
-    if kind == "section":
-        level = min(max(int(node["attrs"].get("level", 1)), 1), 6)
-        anchor = context.headings.get(f"{context.chapter or HOME}#{_identifier(_plain(node))}", "")
-        identifier = f' id="{anchor}"' if anchor else ""
-        return f"<h{level}{identifier}>{inner}</h{level}>\n"
-    if kind == "list":
-        tag = "ol" if node["attrs"].get("ordered") else "ul"
-        return f"<{tag}>\n{inner}</{tag}>\n"
-    if kind == "list-item":
-        return f"<li>{inner}</li>\n"
-    return f'<div class="document">{inner}</div>\n'
+    return f"<{tag}>\n{_nodes(node['children'], context)}</{tag}>\n"
+
+
+def _section(node: dict[str, object], context: Context) -> str:
+    level = min(max(int(node["attrs"].get("level", 1)), 1), 6)
+    anchor = context.headings.get(f"{context.chapter or HOME}#{_identifier(_plain(node))}", "")
+    identifier = f' id="{anchor}"' if anchor else ""
+    return f"<h{level}{identifier}>{_nodes(node['children'], context)}</h{level}>\n"
+
+
+def _wrap(opening: str, closing: str) -> Renderer:
+    """A node shown as its children inside one element."""
+    return lambda node, context: f"{opening}{_nodes(node['children'], context)}{closing}"
+
+
+def _table(node: dict[str, object], context: Context) -> str:
+    """A pipe table: its header rows (every cell a header) in the head, the other rows in the body."""
+    def header(row: dict[str, object]) -> bool:
+        return bool(row["children"]) and all(cell["attrs"].get("header") for cell in row["children"])
+
+    head = [row for row in node["children"] if header(row)]
+    body = [row for row in node["children"] if not header(row)]
+    return ("<table>\n" + (f"<thead>\n{_nodes(head, context)}</thead>\n" if head else "")
+            + (f"<tbody>\n{_nodes(body, context)}</tbody>\n" if body else "") + "</table>\n")
+
+
+def _table_cell(node: dict[str, object], context: Context) -> str:
+    tag = "th" if node["attrs"].get("header") else "td"
+    align = node["attrs"].get("align")
+    style = f' style="text-align:{escape(str(align), quote=True)}"' if align else ""
+    return f"<{tag}{style}>{_nodes(node['children'], context)}</{tag}>"
+
+
+MATH_ERRORS = tuple(error for error in vars(math_exceptions).values()
+                    if isinstance(error, type) and issubclass(error, Exception))
+
+
+def _math(node: dict[str, object], context: Context) -> str:
+    """TeX math as MathML: display math is a block, inline math a span."""
+    display = bool(node["attrs"].get("display"))
+    formula = node.get("text", "")
+    try:
+        markup = mathml(formula, display="block" if display else "inline")
+    except MATH_ERRORS as error:
+        raise RenderError(f"Chapter {context.chapter or HOME}: math formula {formula!r} is not valid TeX "
+                          f"({type(error).__name__}). Remedy: correct the formula in its note.") from error
+    return f'<div class="math block">{markup}</div>\n' if display else f'<span class="math inline">{markup}</span>'
+
+
+def _field(node: dict[str, object], context: Context) -> str:
+    """A frontmatter field outside its frontmatter node (which renders it in the panel): its text."""
+    return (f'<span class="frontmatter-field" data-field="{escape(node["attrs"]["name"], quote=True)}">'
+            f"{_nodes(node['children'], context)}</span>")
 
 
 def _unknown(node: dict[str, object], context: Context) -> str:
-    """A node type this adapter does not know shows its text, never nothing, and warns once per type."""
+    """A node type this adapter does not know shows its text plain, never nothing, and raises one
+    limited-function warning per type: on stderr and in the artifact's notice center."""
     kind = node["type"]
     if kind not in context.unknown:
-        context.unknown.add(kind)
-        print(f"Warning: obs-html (src/obs_html/render.py): Document node type {kind!r} is not rendered by "
-              f"this adapter, first in chapter {context.chapter or HOME!r}; its text is shown without its "
-              f"formatting. Remedy: add a renderer for {kind!r} to src/obs_html/render.py.", file=sys.stderr)
+        listed = "lists it as structural" if kind in STRUCTURAL else "does not list it"
+        limit = context.unknown[kind] = {
+            "key": f"node-{kind}", "feature": f'Document node type "{kind}"',
+            "reason": f"obs-html (src/obs_html/render.py) does not render node type {kind!r}; its text is "
+                      f"shown plain, without its formatting. The core's document.schema.json {listed}.",
+            "observation": f"first in chapter {context.chapter or HOME!r}",
+            "remedy": f"Add a renderer for {kind!r} to src/obs_html/render.py.",
+        }
+        print(f"Warning: obs-html (src/obs_html/render.py): limited function: {limit['reason']} "
+              f"Seen {limit['observation']}. Remedy: {limit['remedy']}", file=sys.stderr)
     return (f'<span class="unknown-node" data-node-type="{escape(kind, quote=True)}">'
             f"{escape(_plain(node))}</span>")
 
@@ -813,16 +860,6 @@ def _code(node: dict[str, object]) -> str:
         position = separator.end()
     pieces.append(escape(text[position:]))
     return f"<code>{'<wbr>'.join(pieces)}</code>"
-
-
-def _tight(node: dict[str, object]) -> bool:
-    """A list whose items each hold one paragraph (plus nested lists) renders tight, as
-    Markdown's usual tight lists do; the Document does not say whether a list was loose."""
-    return all(
-        sum(child["type"] == "paragraph" for child in item["children"]) == 1
-        and all(child["type"] in {"paragraph", "list"} for child in item["children"])
-        for item in node["children"]
-    )
 
 
 def _tight_item(item: dict[str, object], context: Context) -> str:
@@ -888,11 +925,31 @@ def _text_node(node: dict[str, object], context: Context) -> str:
             return f'<a class="internal-link" href="#{chapter}">{text}</a>'
         return f'<a href="{escape(link["href"], quote=True)}">{text}</a>'
     if "asset" in attrs:
-        asset = context.files.get(attrs["asset"])
-        if asset is None:
-            raise RenderError(f"Text names an unknown asset: {attrs['asset']}.")
-        return f'<img src="{escape(asset["href"], quote=True)}" alt="{escape(node.get("text", ""), quote=True)}">'
+        asset = _document_asset(attrs["asset"], f"an image names asset {attrs['asset']!r}, which", context)
+        return _image(asset, node.get("text", ""))
     return text
+
+
+STRUCTURAL_NODES: dict[str, Renderer] = {
+    "document": _wrap('<div class="document">', "</div>\n"),
+    "section": _section,
+    "paragraph": _paragraph,
+    "text": _text_node,
+    "list": _list,
+    "list-item": _wrap("<li>", "</li>\n"),
+    "code": lambda node, _context: _code(node),
+    "quote": _wrap("<blockquote>\n", "</blockquote>\n"),
+    "table": _table,
+    "table-row": _wrap("<tr>", "</tr>\n"),
+    "table-cell": _table_cell,
+    "emphasis": _wrap("<em>", "</em>"),
+    "strong": _wrap("<strong>", "</strong>"),
+    "strikethrough": _wrap("<s>", "</s>"),
+    "math": _math,
+    "field": _field,
+    "rule": lambda _node, _context: "<hr>\n",
+}
+"""One renderer per structural type (STRUCTURAL); a type without one renders as an unknown node."""
 
 
 def _note_target(href: str, context: Context) -> str | None:
@@ -908,8 +965,9 @@ def _note_target(href: str, context: Context) -> str | None:
     return chapter if chapter in context.chapters else None
 
 
-def _shell(model: dict[str, object], stylesheet: str, assets: SemanticAssets, config: Config,
-           trusted_runtime: tuple[str, str] | None) -> str:
+def _shell(model: dict[str, object], limits: list[dict[str, str]], stylesheet: str, assets: SemanticAssets,
+           config: Config, trusted_runtime: tuple[str, str] | None) -> str:
+    """The artifact page; ``limits`` are the Document's limited functions (capabilities.js warns of each)."""
     package = files("obs_html")
 
     def read(*parts: str) -> str:
@@ -965,7 +1023,6 @@ def _shell(model: dict[str, object], stylesheet: str, assets: SemanticAssets, co
   <script id="reader-startup-script">
 {reader_startup}  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="color-scheme" content="light dark">
   <title>{escape(title)}</title>
   <style id="artifact-styles">
 {stylesheet}
@@ -1025,6 +1082,7 @@ def _shell(model: dict[str, object], stylesheet: str, assets: SemanticAssets, co
 
   {encode_artifact_data(model, config.artifact["dataCompression"])}
   <script id="obs-comments" type="application/json" data-comment-island>{_empty_comment_island()}</script>
+  <script id="document-limits" type="application/json">{_json_island(limits)}</script>
   <script id="capabilities-script">
 {read("capabilities.js")}
   </script>
@@ -1074,6 +1132,10 @@ def _shell(model: dict[str, object], stylesheet: str, assets: SemanticAssets, co
 </body>
 </html>
 """
+
+
+def _json_island(value: object) -> str:
+    return json.dumps(value, ensure_ascii=True, separators=(",", ":")).replace("</", "<\\/")
 
 
 def _empty_comment_island() -> str:
@@ -1170,11 +1232,20 @@ def _inline(value: object, context: Context | None = None) -> str:
     html = INLINE.renderInline(source)
     if context is None:
         return html
+    html = IMAGE_TAG.sub(lambda match: _metadata_image(match, context), html)
     html = NOTE_HREF.sub(lambda match: _note_href(match, context), html)
     return WIKILINK.sub(lambda match: _frontmatter_link(match, context), html)
 
 
 NOTE_HREF = re.compile(r'<a href="([^"]*)">')
+IMAGE_TAG = re.compile(r'<img src="([^"]*)" alt="([^"]*)"[^>]*>')
+
+
+def _metadata_image(match: re.Match[str], context: Context) -> str:
+    """An image in a metadata string renders from the asset the core made of its reference."""
+    href = unescape(match[1])
+    asset = next((item for item in context.files.values() if item["href"] == href), {"href": href})
+    return _image(asset, unescape(match[2]))
 
 
 def _note_href(match: re.Match[str], context: Context) -> str:
@@ -1201,7 +1272,7 @@ def _frontmatter_link(match: re.Match[str], context: Context) -> str:
     return _internal_link(chapter, heading, label, context)
 
 
-def _frontmatter_html(metadata: dict[str, object], context: Context) -> dict[str, str]:
+def _frontmatter_html(metadata: dict[str, object], slug: str, context: Context) -> dict[str, str]:
     """Each flattened frontmatter field's display HTML, as the frontmatter panel shows it."""
     rendered: dict[str, str] = {}
 
@@ -1216,16 +1287,23 @@ def _frontmatter_html(metadata: dict[str, object], context: Context) -> dict[str
             if not value:
                 rendered[name] = "[]"
             elif all(not isinstance(item, (dict, list)) for item in value):
-                rendered[name] = ", ".join(_inline("null" if item is None else item, context)
-                                           for item in value)
+                rendered[name] = ", ".join(_field_html(slug, f"{name}.{index}", item, context)
+                                           for index, item in enumerate(value))
             else:
                 for index, item in enumerate(value):
                     add(f"{name}.{index}", item)
         elif name:
-            rendered[name] = _inline("null" if value is None else value, context)
+            rendered[name] = _field_html(slug, name, value, context)
 
     add("", metadata)
     return rendered
+
+
+def _field_html(slug: str, name: str, value: object, context: Context) -> str:
+    """A field's display HTML: its field node where the chapter's frontmatter carries one (a nonempty
+    string), else its value as text; a record's fields, which carry no nodes, are inline Markdown."""
+    fields = context.fields.get(slug, {})
+    return fields[name] if name in fields else _inline("null" if value is None else value, context)
 
 
 def _flatten(value: object, prefix: str = ""):

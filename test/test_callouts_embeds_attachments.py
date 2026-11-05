@@ -4,12 +4,16 @@ Each test builds a contract-valid Document as the core emits it (see the core's 
 a callout's ``kind`` is the canonical type, its ``title`` the authored rest of the marker line;
 an attachment names a Document asset; an embed keeps its target and the chapter it resolves to).
 """
+import json
+
 import pytest
 
+from conftest import ROOT
 from obs_html.config import load_config
 from obs_html.render import RenderError, render
 from obs_html.artifact_data import decode_artifact_data
 
+from conftest import PIXEL
 from documents import chapter, document as build, node, paragraph, text
 
 
@@ -39,9 +43,9 @@ def _callout(kind: str, title: str = "", *body: str | dict) -> dict:
 @pytest.mark.parametrize("kind", sorted(CALLOUTS))
 def test_callout_types_render_as_titled_tone_cards(kind) -> None:
     link = node("wikilinks", target="two", chapter="two", heading="", label="two")
-    html = _html(_callout(kind, "", "Body with ", link, "."))
+    name = kind.capitalize()  # The core's title for an untitled callout of this kind.
+    html = _html(_callout(kind, name, "Body with ", link, "."))
     tone = CALLOUTS[kind]
-    name = kind.capitalize()
     assert html == (
         f'<aside class="content-card content-callout content-callout--{tone}" '
         f'data-callout="{kind}" aria-label="{name}">\n'
@@ -85,13 +89,15 @@ def test_an_unknown_callout_kind_names_the_chapter_the_kind_and_the_remedy() -> 
         _html(_callout("shout", "", "Body."))
 
 
-IMAGE = {"id": "logo", "href": "images/logo.png", "mediaType": "image/png"}
-DATA = {"id": "data", "href": "input/data.bin", "mediaType": "application/octet-stream"}
+IMAGE = {"id": "logo", "href": "images/logo.png", "mediaType": "image/png", "path": "images/logo.png",
+         "data": PIXEL}
+DATA = {"id": "data", "href": "input/data.bin", "mediaType": "application/octet-stream", "path": "input/data.bin",
+        "data": "AA=="}
 
 
 def test_an_image_attachment_is_document_content() -> None:
     html = _html(paragraph(node("attachments", asset="logo", label="The logo")), assets=[IMAGE])
-    assert html == '<p><img src="images/logo.png" alt="The logo"></p>\n'
+    assert html == f'<p><img src="data:image/png;base64,{PIXEL}" alt="The logo"></p>\n'
 
 
 def test_a_file_attachment_renders_as_provenance_text() -> None:
@@ -111,9 +117,13 @@ def test_an_attachment_naming_an_unknown_asset_names_the_chapter_and_the_remedy(
 
 
 def test_attachments_never_carry_an_absolute_local_path() -> None:
-    absolute = {"id": "abs", "href": "/srv/vault/data.bin", "mediaType": "application/octet-stream"}
-    with pytest.raises(RenderError, match=r"Chapter one: attachment 'abs' .*absolute.*vault-relative"):
-        _html(paragraph(node("attachments", asset="abs", label="x")), assets=[absolute])
+    """The core checks that the file exists inside the vault; the adapter shows its vault path, never
+    the reference as authored."""
+    absolute = {"id": "abs", "href": "/srv/vault/data.bin", "mediaType": "application/octet-stream",
+                "path": "data.bin", "data": "AA=="}
+    html = _html(paragraph(node("attachments", asset="abs", label="x")), assets=[absolute])
+    assert html == ('<p><span class="source-reference" data-source-path="data.bin">x</span>'
+                    ' (<code>data.<wbr>bin</code>)</p>\n')
 
 
 def test_a_note_embed_links_to_its_chapter_or_renders_unresolved() -> None:
@@ -124,9 +134,11 @@ def test_a_note_embed_links_to_its_chapter_or_renders_unresolved() -> None:
 
 
 def test_a_file_embed_renders_like_an_attachment() -> None:
-    html = _html(paragraph(node("embeds", target="icon.svg", chapter=None), " ",
-                           node("embeds", target="input/data.bin", chapter=None)))
-    assert html == ('<p><img src="icon.svg" alt=""> '
+    icon = {"id": "icon", "href": "icon.svg", "mediaType": "image/svg+xml", "path": "icon.svg", "data": "PHN2Zy8+"}
+    html = _html(paragraph(node("embeds", target="icon.svg", chapter=None, asset="icon"), " ",
+                           node("embeds", target="input/data.bin", chapter=None, asset="data")),
+                 assets=[icon, DATA])
+    assert html == ('<p><img src="data:image/svg+xml;base64,PHN2Zy8+" alt=""> '
                     '<span class="source-reference" data-source-path="input/data.bin">data.bin</span>'
                     ' (<code>input/<wbr>data.<wbr>bin</code>)</p>\n')
 
@@ -136,12 +148,31 @@ def test_callout_bodies_render_their_inline_nodes() -> None:
     assert '<p>Use <span class="source-reference" data-source-path="input/data.bin">it</span>' in html
 
 
+def test_a_core_built_callout_body_renders_its_list_wikilink_nested_callout_and_link() -> None:
+    """The ``callouts`` vault of fixtures/build_documents.py, built by the core: the body arrives as
+    nodes, and the Document names callouts, not extensions."""
+    document = json.loads((ROOT / "test" / "fixtures" / "documents" / "callouts.json").read_text(encoding="utf-8"))
+    assert "callouts" in document["capabilities"] and "extensions" not in document["capabilities"]
+    html = next(note for note in decode_artifact_data(render(document, CONFIG))["notes"]
+                if note["slug"] == "guide")["html"]
+    assert html.endswith(
+        '<aside class="content-card content-callout content-callout--warning" data-callout="warning" '
+        'aria-label="Warning">\n<header class="content-card-title">Check the limits</header>\n'
+        '<ul>\n<li>first item</li>\n<li>see <a class="internal-link" href="#target">Target</a></li>\n</ul>\n'
+        '<aside class="content-card content-callout content-callout--accent" data-callout="tip" '
+        'aria-label="Tip">\n<header class="content-card-title">Tip</header>\n'
+        '<p>Nested <strong>tip</strong> with <a href="https://example.org">a link</a>.</p>\n'
+        '</aside>\n</aside>\n'
+    )
+
+
 @pytest.mark.browser
 def test_callout_tones_are_distinct_titled_cards_in_the_reader(tmp_path, reader_browser) -> None:
     """Moved from the interim's browser tests: each tone has its own border and fill, and the
     title takes the border colour, in the paged reader and the print book alike."""
     kinds = ["note", "success", "warning", "danger", "quote"]
-    document = build("Doc", chapter("one", "One", *(_callout(kind, "", f"{kind} body.") for kind in kinds)))
+    document = build("Doc", chapter("one", "One", *(_callout(kind, kind.capitalize(), f"{kind} body.")
+                                                   for kind in kinds)))  # The core's titles.
     artifact = tmp_path / "artifact.html"
     artifact.write_text(render(document, CONFIG), encoding="utf-8")
     page = reader_browser.new_page(viewport={"width": 1200, "height": 1000})

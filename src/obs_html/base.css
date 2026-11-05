@@ -156,14 +156,15 @@
 
 html,
 body {
+    background-color: var(--color-canvas);
+    color: var(--color-text);
     height: 100%;
     margin: 0;
     overflow: hidden;
 }
 
 body {
-    background: linear-gradient(180deg, var(--color-canvas), var(--color-canvas-secondary));
-    color: var(--color-text);
+    background: linear-gradient(180deg, var(--color-canvas), var(--color-canvas-secondary)) var(--color-canvas);
     font-family: var(--font-content);
     letter-spacing: 0;
 }
@@ -304,6 +305,12 @@ a:focus-visible {
 
 .chapter-body pre code {
     padding: 0;
+}
+
+.chapter-body hr {
+    border: none;
+    border-block-start: var(--border-width) solid var(--color-border);
+    margin-block: 1.5rem;
 }
 
 .chapter-body blockquote {
@@ -834,6 +841,14 @@ math {
 .document-subtitle img {
     height: 2rem;
     width: auto;
+}
+
+/* An image whose asset has no bytes: its alt text, framed where the image would be. */
+.image-unavailable {
+    border: 1px dashed currentColor;
+    border-radius: 0.25rem;
+    display: inline-block;
+    padding: 0 0.4em;
 }
 
 .document-subtitle a:has(img) {

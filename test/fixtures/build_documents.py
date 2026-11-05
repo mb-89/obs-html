@@ -9,7 +9,9 @@ Regenerate after changing a vault, with an obs checkout whose core accepts ``obs
 Bases (the core this adapter was built against refused them; the Documents validate against the core's schema,
 which test_moved_dom_contracts.py checks)::
 
-    uv run python test/fixtures/build_documents.py <obs checkout>
+    uv run python test/fixtures/build_documents.py <obs checkout> [vault ...]
+
+Name vaults to rebuild only those (the keys of ``VAULTS``); without one it rebuilds all.
 """
 from __future__ import annotations
 
@@ -27,7 +29,8 @@ HERE = Path(__file__).parent
 
 def complete(root: Path) -> None:
     """test_complete_document_dom_interactions. Changed: the glossary links its BLUF note, which
-    the core includes only when linked (the interim included every glossary note)."""
+    the core includes only when linked (the interim included every glossary note); the subtitle
+    badges are vault files, so the Document carries their bytes without a network fetch."""
     notes = {
         "parent": "# Parent\n\n[[node#Extra]]\n\n[1](reference.md)\n",
         "child": "---\nbottom line: Child result.\n---\n# Child\n\nQuestion. #mark/question/child_question\n\nResolve this. #mark/open_point/child_open\n",
@@ -98,13 +101,16 @@ def complete(root: Path) -> None:
     (root / "shared.png").write_bytes(shared_image)
     notes["parent"] += "\n![Shared image](shared.png)\n"
     notes["child"] += "\n![Shared image](shared.png)\n"
+    for badge in ("obsidian", "html"):
+        (root / f"{badge}.svg").write_text(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="60" height="20"><rect width="60" height="20"/></svg>',
+            encoding="utf-8")
     for name, source in notes.items():
         (root / f"{name}.md").write_text(source, encoding="utf-8")
     manifest = root / "manifest.md"
     manifest.write_text(
         "---\ntitle: Test document\n"
-        "subtitle: 'Bridge **subtitle** ![Obsidian](https://example.invalid/obsidian.svg) "
-        "![HTML](https://example.invalid/html.svg)'\n"
+        "subtitle: 'Bridge **subtitle** ![Obsidian](obsidian.svg) ![HTML](html.svg)'\n"
         "status: active\nowners: {team: [Ada, Lin]}\n"
         "---\n"
         "- [[parent|Parent]]\n  - [[child|Child]]\n    - [[node|Node]]\n"
@@ -222,27 +228,64 @@ def table_help(root: Path) -> None:
         encoding="utf-8")
 
 
+def structural(root: Path) -> None:
+    """test_structural_nodes.py's vault: every Markdown construct the core emits as a structural node."""
+    (root / "manifest.md").write_text("- [[formatting]]\n", encoding="utf-8")
+    (root / "formatting.md").write_text(
+        "---\nowner: {name: '*Ada* **Lovelace**'}\ntags: ['~~old~~', plain]\ncount: 3\n---\n"
+        "# Formatting\n\n"
+        "Plain, **strong *emphasis inside* and ~~struck~~**, *emphasis **strong inside***, "
+        "~~struck **strong *all three***~~ and inline $x^2$ math.\n\n"
+        "$$\nE = mc^2\n$$\n\n"
+        "> A quoted **line**.\n\n"
+        "| Left | Center | Right |\n|:---|:---:|---:|\n| a | *b* | 3 |\n\n"
+        "---\n\n"
+        "> [!note]\n> Untitled note body.\n",
+        encoding="utf-8",
+    )
+
+
+def callouts(root: Path) -> None:
+    """test_callouts_embeds_attachments.py's vault: a titled callout whose body holds a list with a
+    wikilink and a nested callout with a link."""
+    (root / "manifest.md").write_text("- [[guide]]\n- [[target]]\n", encoding="utf-8")
+    (root / "guide.md").write_text(
+        "# Guide\n\n"
+        "> [!warning] Check the limits\n"
+        "> - first item\n"
+        "> - see [[target]]\n"
+        ">\n"
+        "> > [!tip]\n"
+        "> > Nested **tip** with [a link](https://example.org).\n",
+        encoding="utf-8",
+    )
+    (root / "target.md").write_text("# Target\n\nTarget text.\n", encoding="utf-8")
+
+
 VAULTS = {"complete": complete, "artifact-change": artifact_change, "projections": projections,
-          "table-help": table_help}
+          "table-help": table_help, "structural": structural, "callouts": callouts}
 
 
-def main(core: Path) -> None:
+def main(core: Path, names: list[str]) -> None:
     with tempfile.TemporaryDirectory() as temporary:
         work = Path(temporary)
         capabilities = work / "capabilities.json"
         subprocess.run(["uv", "run", "python", "-m", "obs.capabilities", "--notes", "spec/capabilities",
                         "--output", str(capabilities)], cwd=core, check=True)
-        for name, write in VAULTS.items():
+        for name in names or VAULTS:
             root = work / name
             root.mkdir()
-            write(root)
+            VAULTS[name](root)
             subprocess.run(["uv", "run", "obs-document", "--document", str(HERE / "documents" / f"{name}.json"),
                             "--source", str(root / "manifest.md"), "--capability-reference", str(capabilities)],
                            cwd=core, check=True)
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        raise SystemExit("test/fixtures/build_documents.py: usage: build_documents.py <obs checkout>. Remedy: "
-                         "name an obs checkout whose core accepts obsHtml keys in Bases.")
-    main(Path(sys.argv[1]).resolve())
+    unknown = sorted(set(sys.argv[2:]) - set(VAULTS))
+    if len(sys.argv) < 2 or unknown:
+        raise SystemExit("test/fixtures/build_documents.py: usage: build_documents.py <obs checkout> [vault ...]"
+                         f"{'; unknown vault ' + ', '.join(unknown) if unknown else ''}. Remedy: name an obs "
+                         "checkout whose core accepts obsHtml keys in Bases, and vaults among "
+                         f"{', '.join(VAULTS)} (none builds all).")
+    main(Path(sys.argv[1]).resolve(), sys.argv[2:])

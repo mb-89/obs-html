@@ -147,7 +147,7 @@ async function open(artifactPath, linkedomPath) {
         window, document, console, CustomEvent: window.CustomEvent, AbortController, URLSearchParams, URL,
         MutationObserver: window.MutationObserver,
         TextEncoder, TextDecoder, ReadableStream, Response, CompressionStream, DecompressionStream,
-        atob, btoa, structuredClone,
+        atob, btoa, structuredClone, performance,
         addEventListener: window.addEventListener.bind(window),
         removeEventListener: window.removeEventListener.bind(window),
         NodeFilter: {SHOW_TEXT: 4},

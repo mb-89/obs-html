@@ -1,9 +1,8 @@
 """References, syntax extensions and property editors render as the interim adapter in obs did.
 
 Documents are built as the core emits them (its vault.py): a glossary or reference note
-carries a ``references`` node with its frontmatter, a callout a ``extensions`` marker with
-``syntax: callout`` before its ``callouts`` node, and a ``property-editor`` fence, which has no
-core capability, a code node in that language. The property-editor cases are the interim's
+carries a ``references`` node with its frontmatter, and a ``property-editor`` fence a
+``property-editors`` node with its mapping in ``attrs.spec``. The property-editor cases are the interim's
 test_property_editors.py on Documents.
 """
 import json
@@ -26,9 +25,8 @@ def _notes(source: dict) -> dict[str, dict]:
 
 
 def _editor(fence: dict, metadata: dict) -> dict:
-    return build("Doc", chapter("one", "One", heading(1, "One"), {
-        "type": "code", "attrs": {"language": "property-editor"}, "children": [],
-        "text": json.dumps(fence)}, metadata=metadata))
+    return build("Doc", chapter("one", "One", heading(1, "One"), node("property-editors", source=json.dumps(fence),
+                                                                      spec=fence), metadata=metadata))
 
 
 def test_a_glossary_note_carries_its_definition_for_hover_cards_and_registers() -> None:
@@ -65,23 +63,13 @@ def test_invalid_reference_notes_fail_naming_the_chapter_and_the_remedy(metadata
                CONFIG)
 
 
-def test_a_callout_syntax_extension_renders_through_its_callout() -> None:
-    callout = {"type": "callouts", "attrs": {"kind": "note", "title": "Heads up"},
-               "children": [paragraph("Body.")]}
-    notes = _notes(build("Doc", chapter("one", "One", node("extensions", syntax="callout"), callout)))
-    assert notes["one"]["html"].count("<aside") == 1
-    assert "Heads up" in notes["one"]["html"]
-
-
-def test_an_unknown_syntax_extension_fails_naming_the_syntax_and_the_remedy() -> None:
-    with pytest.raises(RenderError, match="Chapter one: syntax extension 'diagram' is not one obs-html renders; "
-                                          "it renders callout. Remedy"):
-        render(build("Doc", chapter("one", "One", node("extensions", syntax="diagram"))), CONFIG)
-
-
-def test_a_syntax_extension_without_its_owning_capability_fails() -> None:
-    with pytest.raises(RenderError, match="does not use 'callouts'.*regenerate the Document"):
-        render(build("Doc", chapter("one", "One", node("extensions", syntax="callout"))), CONFIG)
+@pytest.mark.parametrize("syntax", ["callout", "diagram"])
+def test_a_syntax_extension_fails_naming_the_syntax_its_source_and_the_remedy(syntax) -> None:
+    """No syntax extension has an input-model contract yet (the core's extensions.md), so the core
+    emits none; a callout is a ``callouts`` node, never an ``extensions`` marker."""
+    with pytest.raises(RenderError, match=f"Chapter one: syntax extension {syntax!r} .*obs-html \\(src/obs_html/"
+                                          "render.py\\).*extensions.md.*Remedy: regenerate the Document"):
+        render(build("Doc", chapter("one", "One", node("extensions", syntax=syntax))), CONFIG)
 
 
 def test_property_editor_is_explicit_and_canonical() -> None:
@@ -162,8 +150,8 @@ def test_invalid_or_oversized_editors_fail_with_a_remedy(fence, message) -> None
 
 
 def test_a_field_has_one_editor_and_home_has_none() -> None:
-    fence = {"type": "code", "attrs": {"language": "property-editor"}, "children": [],
-             "text": "version: 1\nfield: explanation\nlabel: Review\n"}
+    fence = node("property-editors", source="version: 1\nfield: explanation\nlabel: Review\n",
+                 spec={"version": 1, "field": "explanation", "label": "Review"})
     with pytest.raises(RenderError, match="declares 'explanation' more than once"):
         render(build("Doc", chapter("one", "One", fence, fence, metadata={"explanation": "x"})), CONFIG)
     with pytest.raises(RenderError, match="Chapter home: property editor needs an existing text field"):

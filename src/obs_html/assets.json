@@ -254,13 +254,13 @@
         "canvas": {
           "value": {
             "light": "#ffffff",
-            "dark": "#111111"
+            "dark": "#1f1f1f"
           }
         },
         "canvas-secondary": {
           "value": {
             "light": "#f5f5f5",
-            "dark": "#1c1c1c"
+            "dark": "#262626"
           }
         },
         "surface": {
@@ -278,7 +278,7 @@
         "text": {
           "value": {
             "light": "#000000",
-            "dark": "#ffffff"
+            "dark": "#dddddd"
           }
         },
         "text-muted": {
