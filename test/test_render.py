@@ -132,6 +132,82 @@ def test_records_join_the_queryable_population_outside_the_reading_order(documen
     assert records["alpha"]["html"] == ""
 
 
+def test_a_record_path_is_its_note_source_path() -> None:
+    source = build("Paths", chapter("items-alpha", "Alpha"), records=(
+        {"id": "items-alpha", "type": "note", "path": "items/alpha.md", "fields": {}},
+        {"id": "items-beta", "type": "note", "path": "items/beta.md", "fields": {}}))
+    notes = _notes(source)
+    assert notes["items-alpha"]["sourcePath"] == "items/alpha.md"
+    assert notes["items-beta"]["sourcePath"] == "items/beta.md"
+
+
+def test_frontmatter_wikilinks_link_the_chapter_their_record_path_names() -> None:
+    fields = {"dependsOn": ["[[capabilities/markdown]]", "[[wikilinks|Links]]", "[[gone]]", "[[detail]]"]}
+    source = build("Links", chapter("capabilities-markdown", "Markdown"),
+                   chapter("capabilities-wikilinks", "Wikilinks"), chapter("capabilities-bases", "Bases"),
+                   records=(
+                       {"id": "capabilities-markdown", "type": "note", "path": "capabilities/markdown.md",
+                        "fields": {}},
+                       {"id": "capabilities-wikilinks", "type": "note", "path": "capabilities/wikilinks.md",
+                        "fields": {}},
+                       {"id": "capabilities-bases", "type": "note", "path": "capabilities/bases.md",
+                        "fields": fields},
+                       {"id": "detail", "type": "note", "path": "detail.md", "fields": {}}))
+    html = _notes(source)["capabilities-bases"]["frontmatterHtml"]["dependsOn"]
+    assert html == ('<a class="internal-link" href="#capabilities-markdown">Markdown</a>, '
+                    '<a class="internal-link" href="#capabilities-wikilinks">Links</a>, '
+                    '<span class="unresolved" title="gone">gone</span>, '
+                    '<span class="unresolved" title="detail">detail</span>')
+
+
+def _filtered(filters: object, view_filters: object = None) -> dict:
+    view = {"type": "table", "name": "Items", "order": ["file.name"],
+            **({"filters": view_filters} if view_filters is not None else {})}
+    base = node("bases", source="filters: ...\n", spec={"filters": filters, "views": [view]})
+    return build("Filters", chapter("items", "Items", base))
+
+
+@pytest.mark.parametrize(("filters", "view_filters", "expression"), [
+    ("rank > 1", None, "rank > 1"),
+    ({"and": ['kind == "item"', 'file.size == 1']}, None, "file.size == 1"),
+    ('kind == "item"', {"or": ['formula.total == 1']}, "formula.total == 1"),
+    ({"xor": ['kind == "item"']}, None, '{"xor": ["kind == \\"item\\""]}'),
+])
+def test_a_filter_the_adapter_cannot_evaluate_names_the_base_the_expression_and_what_is_supported(
+        filters, view_filters, expression) -> None:
+    with pytest.raises(RenderError) as failure:
+        _render(_filtered(filters, view_filters))
+    message = str(failure.value)
+    assert 'Base "Items" (items-base-1) in chapter items' in message
+    assert f"cannot evaluate the filter: {expression}. " in message
+    assert "Supported:" in message and "file.name, file.path, file.folder, file.ext" in message
+
+
+def test_the_filter_check_accepts_and_refuses_what_the_shared_conformance_fixture_says(core_root) -> None:
+    import json
+    fixture = json.loads((core_root / "test" / "fixtures" / "bases-filter-conformance.json").read_text(
+        encoding="utf-8"))
+    for case in fixture["cases"]:
+        _render(_filtered(case["filter"]))
+    for filters in fixture["unsupported"]:
+        with pytest.raises(RenderError, match="cannot evaluate the filter"):
+            _render(_filtered(filters))
+
+
+def test_an_ignored_record_marks_its_note_and_an_ignored_chapter_stays_in_the_reading_order() -> None:
+    link = node("wikilinks", target="kept", chapter="kept", heading="", label="kept")
+    source = build("Ignored", chapter("kept", "Kept"), chapter("index", "Index", paragraph(link)), records=(
+        {"id": "kept", "type": "note", "path": "kept.md", "fields": {"ignored": True}, "ignored": True},
+        {"id": "aside", "type": "note", "path": "aside.md", "fields": {"ignored": True}, "ignored": True},
+        {"id": "index", "type": "note", "path": "index.md", "fields": {}}))
+    model = _model(source)
+    notes = {note["slug"]: note for note in model["notes"]}
+    assert notes["kept"]["ignored"] is True and notes["aside"]["ignored"] is True
+    assert "ignored" not in notes["index"]
+    assert "kept" in model["toc"]
+    assert '<a class="internal-link" href="#kept">Kept</a>' in notes["index"]["html"]
+
+
 def test_command_fences_render_escaped_output_and_skip_silent_producers(document) -> None:
     commands = []
     notes = _notes(document, lambda command: commands.append(command) or "<b>derived</b>\n")
@@ -230,6 +306,12 @@ def test_a_wikilink_links_to_the_chapter_the_core_names() -> None:
                 heading="", label="architecture")
     html = _notes(_linking(link))["index"]["html"]
     assert '<a class="internal-link" href="#design-input-architecture">Architecture</a>' in html
+
+
+def test_a_link_to_the_manifest_links_to_the_home_page() -> None:
+    link = node("wikilinks", target="manifest", chapter="home", heading="", label="manifest")
+    html = _notes(_linking(link))["index"]["html"]
+    assert '<a class="internal-link" href="#home">Links</a>' in html
 
 
 def test_a_wikilink_without_a_chapter_is_unresolved_even_when_an_id_matches() -> None:

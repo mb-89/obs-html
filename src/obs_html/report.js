@@ -121,6 +121,9 @@
     const records = notes.map(makeRecord);
     const recordsBySlug = new Map(records.map((record) => [record.slug, record]));
     const isDocument = (record) => record?.frontmatter?.obsHtml?.document !== false;
+    // An ignored note (obs markdown-frontmatter, Ignored notes) is never selected or counted
+    // automatically; explicit links still reach it.
+    const selectable = (record) => record?.ignored !== true;
     const queryPopulation = globalThis.obsQuery.compileConditions(queryProfile.where);
     const scalarValues = (value) => (Array.isArray(value) ? value.flat(Infinity) : [value])
         .filter((item) => item !== undefined && item !== null && typeof item !== "object")
@@ -160,8 +163,8 @@
     });
     refreshQueryFields();
     const filterRecords = () => queryProfile.scope === "records"
-        ? records.filter((record) => !record.generated && queryPopulation.match(record))
-        : records;
+        ? records.filter((record) => !record.generated && selectable(record) && queryPopulation.match(record))
+        : records.filter(selectable);
     const facetFields = (population, catalog) => {
         const selected = catalog && new Map(catalog.map(entry => [entry.field.toLocaleLowerCase(), entry]));
         const values = new Map();
@@ -787,7 +790,7 @@
         sourcePath: record.sourcePath,
     });
 
-    const noteTableRows = () => records.filter((record) => !record.generated).map((record) => {
+    const noteTableRows = () => records.filter((record) => !record.generated && selectable(record)).map((record) => {
         const ownFields = noteOwnFields(record);
         return tableRecord(`note:${record.slug}`, {
             ...Object.fromEntries(record.metadataEntries),
@@ -814,10 +817,11 @@
 
     const chapterTableRows = () => {
         const ancestors = [];
-        return chapterRecords.filter((record) => !record.generated).map((record) => {
+        return chapterRecords.filter((record) => !record.generated).flatMap((record) => {
             ancestors.length = record.depth;
             const parentKey = record.depth ? ancestors[record.depth - 1] || "" : "";
-            ancestors[record.depth] = record.slug;
+            ancestors[record.depth] = selectable(record) ? record.slug : parentKey;
+            if (!selectable(record)) return [];
             const ownFields = noteOwnFields(record);
             const row = tableRecord(record.slug, {
                 ...Object.fromEntries(record.metadataEntries),
@@ -873,7 +877,7 @@
     }));
 
     const glossaryTableRows = () => records.filter(
-        (record) => record.frontmatter.kind === "glossary",
+        (record) => record.frontmatter.kind === "glossary" && selectable(record),
     ).map((record) => {
         const ownFields = {
             sourcePath: record.sourcePath,
@@ -3291,6 +3295,7 @@
         ping,
         records,
         isDocument,
+        selectable,
         documentRecords: () => records.filter(isDocument),
         searchHits,
         filterRecords,

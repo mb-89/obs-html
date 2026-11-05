@@ -11,7 +11,7 @@ import json
 import re
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from html import escape
+from html import escape, unescape
 from importlib.metadata import version
 from importlib.resources import files
 from pathlib import Path
@@ -64,6 +64,7 @@ class Context:
     tables: list[dict[str, object]] = field(default_factory=list)
     marks: list[dict[str, object]] = field(default_factory=list)
     frontmatter: dict[str, object] = field(default_factory=dict)
+    paths: dict[str, str] = field(default_factory=dict)
 
 
 Renderer = Callable[[dict[str, object], Context], str]
@@ -132,8 +133,47 @@ def _base(node: dict[str, object], context: Context) -> str:
     except ValueError as error:
         raise RenderError(f"Base in chapter {context.chapter or HOME}: {error}") from error
     key = f"{context.chapter or HOME}-base-{len(context.tables) + 1}"
+    for filters in [definition.get("filters"), *(view.get("filters") for view in definition.get("views", []))]:
+        unsupported = _unsupported_filter(filters)
+        if unsupported is not None:
+            names = ", ".join(str(view.get("name", "")) for view in definition.get("views", []))
+            raise RenderError(
+                f'Base "{names}" ({key}) in chapter {context.chapter or HOME}: obs-html cannot evaluate '
+                f"the filter: {unsupported}. Supported: comparisons PROPERTY == LITERAL or PROPERTY != LITERAL, "
+                "where PROPERTY is a frontmatter property (dotted, or note[\"name with spaces\"]) or one of "
+                f"{', '.join(FILE_PROPERTIES)}, and LITERAL is quoted text, a number, true, false or null; "
+                "combined with and, or and not. Remedy: rewrite the filter in this subset.")
     context.tables.append({"key": key, "definition": definition})
     return f'<div class="data-table-placeholder" data-base-table="{escape(key, quote=True)}"></div>\n'
+
+
+FILE_PROPERTIES = ("file.name", "file.path", "file.folder", "file.ext")
+COMPARISON = re.compile(json.loads(files("obs_html").joinpath("base.schema.json").read_text(encoding="utf-8"))
+                        ["$defs"]["comparison"]["pattern"])
+
+
+def _unsupported_filter(filters: object) -> str | None:
+    """The first filter expression base.js cannot evaluate, as authored, or None.
+
+    The schema's comparison pattern owns the comparison syntax (generic-tables, Bases filter
+    grammar); base.js evaluates the same subset at runtime.
+    """
+    if filters is None:
+        return None
+    if isinstance(filters, str):
+        match = COMPARISON.fullmatch(filters)
+        if not match or match[1] == "recordType" or (match[2] or "").startswith("file."):
+            return filters
+        name = (match[1] or "").removeprefix("note.")
+        if name.startswith(("formula.", "this.", "file.")) and (match[1] != name or name not in FILE_PROPERTIES):
+            return filters
+        return None
+    if isinstance(filters, dict) and len(filters) == 1:
+        [(operator, operands)] = filters.items()
+        operands = operands if isinstance(operands, list) else [operands]
+        if operator in {"and", "or", "not"} and operands and all(item is not None for item in operands):
+            return next((found for found in map(_unsupported_filter, operands) if found is not None), None)
+    return json.dumps(filters, ensure_ascii=False)
 
 
 def _figure(node: dict[str, object], context: Context) -> str:
@@ -179,10 +219,13 @@ def render(document: dict[str, object], config: Config,
         document, command_runner, assets,
         links={item["id"]: item for item in document["links"]},
         files={item["id"]: item for item in document["assets"]},
+        paths={record["path"].removesuffix(".md"): record["id"]
+               for record in document["records"] if record.get("type") == "note"},
     )
     _index(document["chapters"], context)
     if HOME in context.chapters:
         raise RenderError(f"Chapter id {HOME!r} is reserved for the document's home page.")
+    context.chapters[HOME] = document["manifest"]["title"]  # The core links the manifest as home.
     model = _resolve_icons(_model(document, config, context), assets)
     return prepare_report_scripts(assets.resolve_markup(
         _shell(model, style.stylesheet, assets, config, trusted_runtime)))
@@ -219,7 +262,7 @@ def _model(document: dict[str, object], config: Config, context: Context) -> dic
         manifest.get("abstract", []), "", context)
     notes = [_note(0, title, HOME, HOME, {}, home_html, context)]
     notes.extend(_chapter_notes(document["chapters"], context, 0))
-    _attach_records(document["records"], notes)
+    _attach_records(document["records"], notes, context)
     return {
         "assets": context.assets.resources,
         "embeddedAssets": context.assets.embedded_assets,
@@ -277,31 +320,38 @@ def _note(depth: int, title: str, slug: str, generated: str, frontmatter: dict[s
         "depth": depth, "title": title, "slug": slug, "sourcePath": f"{slug}.md",
         "generated": generated, "cssClasses": _css_classes(frontmatter, slug),
         "frontmatter": frontmatter, "editableProperties": {},
-        "frontmatterHtml": _frontmatter_html(frontmatter),
+        "frontmatterHtml": _frontmatter_html(frontmatter, context),
         "definitionHtml": "", "marks": context.marks, "tables": context.tables, "html": html,
     }
 
 
-def _attach_records(records: list[dict[str, object]], notes: list[dict[str, object]]) -> None:
+def _attach_records(records: list[dict[str, object]], notes: list[dict[str, object]],
+                    context: Context) -> None:
     """Records join the queryable population: a chapter's own record adds to its frontmatter,
-    any other record becomes a record-only note outside the reading order."""
+    any other record becomes a record-only note outside the reading order. A note record's
+    path is its note's source path, which Bases read file.* properties from (obs bases.md)."""
     by_slug = {note["slug"]: note for note in notes}
     for record in records:
         fields = dict(record["fields"])
         note = by_slug.get(record["id"])
+        source_path = record.get("path") or f"{record['id']}.md"
+        if note is not None and record.get("ignored"):
+            note["ignored"] = True  # Runtime selections skip it (report.js, selectable).
         if note is not None and not note["generated"]:
             note["frontmatter"] = {**fields, **note["frontmatter"]}
-            note["frontmatterHtml"] = _frontmatter_html(note["frontmatter"])
+            note["frontmatterHtml"] = _frontmatter_html(note["frontmatter"], context)
+            note["sourcePath"] = source_path
             continue
         if note is not None:
             raise RenderError(f"Record id {record['id']!r} is reserved for the document's home page.")
         fields["obsHtml"] = {**(fields.get("obsHtml") or {}), "document": False}
         notes.append({
             "depth": 0, "title": str(fields.get("title") or record["id"]), "slug": record["id"],
-            "sourcePath": f"{record['id']}.md", "generated": "", "cssClasses": [],
+            "sourcePath": source_path, "generated": "", "cssClasses": [],
             "frontmatter": fields, "editableProperties": {},
-            "frontmatterHtml": _frontmatter_html(fields),
+            "frontmatterHtml": _frontmatter_html(fields, context),
             "definitionHtml": "", "marks": [], "tables": [], "html": "", "record": True,
+            **({"ignored": True} if record.get("ignored") else {}),
         })
 
 
@@ -705,19 +755,42 @@ def _css_classes(frontmatter: dict[str, object], slug: str) -> list[str]:
 INLINE = MarkdownIt("commonmark", {"html": False})
 
 
-def _inline(value: object) -> str:
+def _inline(value: object, context: Context | None = None) -> str:
     """Inline Markdown of a metadata string (bold, links, images such as badges); raw HTML stays text.
 
     The Document carries metadata values as authored strings, so their inline Markdown is
-    rendered here, as the interim adapter did, until the core carries them as nodes.
+    rendered here, as the interim adapter did, until the core carries them as nodes. With a
+    context, wikilinks link the chapter their note record names (see _frontmatter_link).
     """
     source = _text(value)
     if re.fullmatch(r"https?://[^\s<>]+", source, re.IGNORECASE):
         source = f"<{source}>"
-    return INLINE.renderInline(source)
+    html = INLINE.renderInline(source)
+    return WIKILINK.sub(lambda match: _frontmatter_link(match, context), html) if context else html
 
 
-def _frontmatter_html(metadata: dict[str, object]) -> dict[str, str]:
+WIKILINK = re.compile(r"\[\[([^\[\]|#]*)(?:#([^\[\]|]*))?(?:\|([^\[\]]*))?\]\]")
+
+
+def _frontmatter_link(match: re.Match[str], context: Context) -> str:
+    """A frontmatter wikilink, as rendered text, links like a body wikilink: to the chapter whose
+    note record has the target's path (or, as Obsidian resolves it, the only path ending in the
+    target), titled by the chapter unless aliased; any other target renders unresolved."""
+    target, heading, label = (unescape(group).strip() if group else "" for group in match.groups())
+    path = target.removesuffix(".md")
+    chapter = context.paths.get(path)
+    if chapter is None:
+        candidates = [identifier for known, identifier in context.paths.items() if known.endswith(f"/{path}")]
+        chapter = candidates[0] if path and len(candidates) == 1 else None
+    if chapter not in context.chapters:
+        shown = label or target
+        return f'<span class="unresolved" title="{escape(target, quote=True)}">{escape(shown)}</span>'
+    anchor = context.headings.get(f"{chapter}#{_identifier(heading)}") if heading else None
+    href = f"#{chapter}/{anchor.removeprefix(f'{chapter}--')}" if anchor else f"#{chapter}"
+    return f'<a class="internal-link" href="{href}">{escape(label or context.chapters[chapter])}</a>'
+
+
+def _frontmatter_html(metadata: dict[str, object], context: Context) -> dict[str, str]:
     """Each flattened frontmatter field's display HTML, as the frontmatter panel shows it."""
     rendered: dict[str, str] = {}
 
@@ -732,12 +805,13 @@ def _frontmatter_html(metadata: dict[str, object]) -> dict[str, str]:
             if not value:
                 rendered[name] = "[]"
             elif all(not isinstance(item, (dict, list)) for item in value):
-                rendered[name] = ", ".join(_inline("null" if item is None else item) for item in value)
+                rendered[name] = ", ".join(_inline("null" if item is None else item, context)
+                                           for item in value)
             else:
                 for index, item in enumerate(value):
                     add(f"{name}.{index}", item)
         elif name:
-            rendered[name] = _inline("null" if value is None else value)
+            rendered[name] = _inline("null" if value is None else value, context)
 
     add("", metadata)
     return rendered

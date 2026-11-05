@@ -22,7 +22,7 @@ LETTER = {"widthMillimeters": 215.9, "heightMillimeters": 279.4, "marginMillimet
 @pytest.fixture(scope="module")
 def report(tmp_path_factory: pytest.TempPathFactory) -> Path:
     """A report with two chapters, one Base table over three records, printed on Letter paper."""
-    records = tuple({"id": name, "type": "note", "fields": {"kind": "item", "rank": rank}}
+    records = tuple({"id": name, "type": "note", "path": f"{name}.md", "fields": {"kind": "item", "rank": rank}}
                     for rank, name in enumerate(["alpha", "beta", "gamma"], 1))
     base = node("bases", source="filters: ...\n", spec={
         "filters": {"and": ['kind == "item"']},

@@ -785,7 +785,7 @@
       }
       spec = {...spec, ...graph};
     }
-    const records = globalThis.obsReport.records.filter(record =>
+    const records = globalThis.obsReport.records.filter(record => globalThis.obsReport.selectable(record) &&
       globalThis.obsReport.matchesFilter(record) && sankeyConditionsMatch(record, spec.data.where));
     const links = spec.links.map((link, index) => ({
       ...link,

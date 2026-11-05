@@ -619,6 +619,7 @@
     {
       "id": "alpha",
       "type": "note",
+      "path": "alpha.md",
       "fields": {
         "kind": "item",
         "rank": 1,
@@ -630,6 +631,7 @@
     {
       "id": "beta",
       "type": "note",
+      "path": "beta.md",
       "fields": {
         "kind": "item",
         "rank": 2,
@@ -641,6 +643,7 @@
     {
       "id": "gamma",
       "type": "note",
+      "path": "gamma.md",
       "fields": {
         "kind": "item",
         "item": {
@@ -651,6 +654,7 @@
     {
       "id": "other",
       "type": "note",
+      "path": "other.md",
       "fields": {
         "kind": "other",
         "rank": 3
