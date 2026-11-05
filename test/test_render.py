@@ -6,7 +6,7 @@ from obs_html.config import load_config
 from obs_html.render import RenderError, render
 from obs_html.artifact_data import decode_artifact_data
 
-from documents import chapter, document as build, heading, node, paragraph
+from documents import chapter, document as build, heading, node, paragraph, text
 
 
 CONFIG = load_config()
@@ -224,10 +224,25 @@ def test_unsupported_capabilities_are_refused(document) -> None:
     document["capabilities"].append("figures")
     with pytest.raises(RenderError, match="does not render: figures"):
         _render(document)
-    document["capabilities"].remove("figures")
-    document["chapters"][1]["content"].append({"type": "figures", "attrs": {}, "children": []})
-    with pytest.raises(RenderError, match="does not render: figures"):
-        _render(document)
+
+
+def test_an_unknown_node_type_renders_its_text_and_warns_once_naming_the_source_and_the_remedy(
+        capsys) -> None:
+    def unknown(value: str) -> dict:
+        return {"type": "shout", "attrs": {}, "children": [text(value)]}
+
+    # A type the Document does not declare as a capability, as a newer core's structural types are.
+    unknowing = build("Unknown", chapter("one", "One", paragraph("Say ", unknown("<loud>"), "."),
+                                         paragraph(unknown("again"))))
+    unknowing["capabilities"].remove("shout")
+    notes = _notes(unknowing)
+    html = notes["one"]["html"]
+    assert 'Say <span class="unknown-node" data-node-type="shout">&lt;loud&gt;</span>.' in html
+    assert '<span class="unknown-node" data-node-type="shout">again</span>' in html
+    warnings = [line for line in capsys.readouterr().err.splitlines() if "'shout'" in line]
+    assert len(warnings) == 1
+    assert warnings[0].startswith("Warning: obs-html (src/obs_html/render.py): ")
+    assert "chapter 'one'" in warnings[0] and "Remedy:" in warnings[0]
 
 
 def test_the_home_slug_is_reserved(document) -> None:

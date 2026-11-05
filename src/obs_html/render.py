@@ -11,6 +11,7 @@ import json
 import math
 import mimetypes
 import re
+import sys
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from html import escape, unescape
@@ -73,6 +74,7 @@ class Context:
     aliases: dict[str, str | None] = field(default_factory=dict)
     records: dict[str, dict[str, object]] = field(default_factory=dict)
     editable: dict[str, dict[str, object]] = field(default_factory=dict)
+    unknown: set[str] = field(default_factory=set)
 
 
 Renderer = Callable[[dict[str, object], Context], str]
@@ -754,7 +756,7 @@ def _node(node: dict[str, object], context: Context) -> str:
     if kind in CAPABILITIES:
         return CAPABILITIES[kind](node, context)
     if kind not in STRUCTURAL:
-        raise RenderError(f"Document node uses a capability this adapter does not render: {kind}.")
+        return _unknown(node, context)
     if kind == "text":
         return _text_node(node, context)
     if kind == "code" and node["attrs"].get("language") == "property-editor":
@@ -779,6 +781,18 @@ def _node(node: dict[str, object], context: Context) -> str:
     if kind == "list-item":
         return f"<li>{inner}</li>\n"
     return f'<div class="document">{inner}</div>\n'
+
+
+def _unknown(node: dict[str, object], context: Context) -> str:
+    """A node type this adapter does not know shows its text, never nothing, and warns once per type."""
+    kind = node["type"]
+    if kind not in context.unknown:
+        context.unknown.add(kind)
+        print(f"Warning: obs-html (src/obs_html/render.py): Document node type {kind!r} is not rendered by "
+              f"this adapter, first in chapter {context.chapter or HOME!r}; its text is shown without its "
+              f"formatting. Remedy: add a renderer for {kind!r} to src/obs_html/render.py.", file=sys.stderr)
+    return (f'<span class="unknown-node" data-node-type="{escape(kind, quote=True)}">'
+            f"{escape(_plain(node))}</span>")
 
 
 # A separator run inside a code span is a break opportunity only between word characters,
