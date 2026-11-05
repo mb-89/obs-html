@@ -9,11 +9,17 @@ The scan reads the strings the reader can see and fails on the words "document" 
 - the limited-function notices written into the page, here for a node type the adapter lacks.
 
 ALLOWED lists the only phrases that may still contain one of the words, each with its reason.
+
+An HTML whose embedded data is damaged says, when opened, that the error comes from its embedded
+data and how to recover: rebuild it or open the original file.
 """
 import json
 import re
 from html.parser import HTMLParser
 from pathlib import Path
+
+import pytest
+from playwright.sync_api import expect
 
 import obs_html
 from obs_html.config import load_config
@@ -30,6 +36,7 @@ READER_ATTRIBUTES = frozenset({"aria-label", "aria-description", "title", "alt",
 ALLOWED: dict[str, str] = {
     "document type": "the manifest field the author fills in; the runtime reads it by that name",
     "document.schema.json": "the core's schema file a limited-function notice names as its source",
+    "obs-document": "the core's command an error's remedy names",
 }
 
 
@@ -169,3 +176,31 @@ def test_reader_facing_text_names_no_kind(document, capsys) -> None:
     assert not hits, ("Reader-facing text names a kind (artifact-ui.md, Reader-facing text); "
                       "say what it is without the noun, or list a phrase in ALLOWED with its reason:\n"
                       + "\n".join(hits))
+
+
+# A damaged copy's data island, in place of the one obs-html wrote.
+ISLAND = '<script id="artifact-data" type="application/json" data-artifact-data{}>{{}}</script>'
+DAMAGE = {
+    "missing": "",
+    "gzip not binary": ISLAND.format(' data-encoding="gzip"'),
+    "unknown encoding": ISLAND.format(' data-encoding="zstd"'),
+    "no chapters": ISLAND.format(""),
+}
+
+
+@pytest.mark.browser
+@pytest.mark.parametrize("damage", DAMAGE)
+def test_an_html_whose_embedded_data_is_damaged_says_so_and_how_to_recover(
+        tmp_path: Path, reader_browser, fixture_artifact: Path, damage: str) -> None:
+    page_html = fixture_artifact.read_text(encoding="utf-8")
+    island = re.search(r'<script id="artifact-data"[^>]*>.*?</script>', page_html, re.S)
+    assert island, "test_reader_text.py: the fixture artifact carries no artifact-data island"
+    damaged = tmp_path / "damaged.html"
+    damaged.write_text(page_html[:island.start()] + DAMAGE[damage] + page_html[island.end():], encoding="utf-8")
+    page = reader_browser.new_page()
+    page.goto(damaged.as_uri())
+    expect(page.locator("html")).to_have_attribute("data-artifact-status", "error")
+    message = page.locator("#artifact-initialization-error").inner_text()
+    # The source: this HTML's embedded data; the remedy: rebuild, or open the original file.
+    assert message.startswith("HTML could not be opened: The HTML's embedded data "), message
+    assert "Rebuild it with obs-html or open the original file." in message, message
