@@ -386,6 +386,7 @@
     const chapterBody = document.querySelector("[data-chapter-body]");
     const chapterScroll = document.querySelector("[data-chapter-scroll]");
     const frontmatterToggle = document.querySelector("[data-frontmatter-toggle]");
+    const bandPath = document.querySelector("[data-top-band-path]");
     const frontmatterPanel = document.querySelector("[data-frontmatter-panel]");
     const frontmatterBody = document.querySelector("[data-frontmatter-body]");
     const tocTree = document.querySelector("[data-toc-tree]");
@@ -1841,7 +1842,7 @@
     };
 
     const syncBreadcrumbs = () => {
-        chapterBody.querySelectorAll(".chapter-breadcrumb-chooser").forEach((chooser) => {
+        bandPath.querySelectorAll(".chapter-breadcrumb-chooser").forEach((chooser) => {
             const links = [...chooser.querySelectorAll(".chapter-breadcrumb-menu a")];
             links.forEach((link) => {
                 link.hidden = !visibleIndices.includes(Number(link.dataset.chapterIndex));
@@ -1900,6 +1901,7 @@
             const link = document.createElement("a");
             link.href = `#${chapters[chapterIndex].slug}`;
             link.textContent = chapters[chapterIndex].title;
+            link.title = link.textContent;
             if (chapterIndex === index) {
                 link.setAttribute("aria-current", "page");
                 currentCrumb = link;
@@ -1910,6 +1912,7 @@
             const label = document.createElement("a");
             label.href = `#${record.slug}`;
             label.textContent = record.title;
+            label.title = label.textContent;
             label.setAttribute("aria-current", "page");
             navigation.append(label);
             currentCrumb = label;
@@ -1925,7 +1928,7 @@
                 currentCrumb.setAttribute("aria-expanded", String(chooser.hasAttribute("open")));
             });
         }
-        chapterBody.prepend(navigation);
+        bandPath.replaceChildren(navigation);
         syncBreadcrumbs();
     };
 

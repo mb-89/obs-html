@@ -51,7 +51,6 @@
             button.setAttribute("aria-label", `${severity.label}: ${count} ${count === 1 ? "notice" : "notices"}`);
             button.title = button.getAttribute("aria-label");
         });
-        updateClearance();
         document.dispatchEvent(new CustomEvent("obs-notices-change"));
     };
     const open = (key) => {
@@ -141,21 +140,14 @@
         groups.forEach((_, key) => close(key));
     });
 
-    // The icon row reserves its height at the top of the page so it never covers artifact controls;
-    // an open list floats over the page below it.
-    const updateClearance = () => {
-        const visible = [...groups.values()].some(({group}) => !group.hidden);
-        const bounds = area.getBoundingClientRect();
-        document.documentElement.style.setProperty("--filter-header-clearance",
-            `${visible ? Math.ceil(bounds.bottom + bounds.top) : 0}px`);
-    };
-    window.addEventListener("resize", updateClearance);
-    if (globalThis.ResizeObserver) new ResizeObserver(updateClearance).observe(area);
+    // The icons sit in the top band, directly left of the menu; a figure overlay takes them along.
+    const band = document.querySelector("[data-top-band-end]");
+    const dock = () => band.prepend(area);
     document.addEventListener("obs-figure-overlay", ({detail}) => {
-        (detail.open ? detail.dialog : document.body).append(area);
-        updateClearance();
+        if (detail.open) detail.dialog.append(area);
+        else dock();
     });
-    document.body.append(area);
+    dock();
 
     globalThis.obsNotices = Object.freeze({
         post,
