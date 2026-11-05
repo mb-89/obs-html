@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 
 from conftest import CORE_ROOT, ROOT
-from documents import chapter, document as build, node, paragraph, text
+from documents import chapter, document as build, paragraph, text
 from obs_html.artifact_data import decode_artifact_data
 from obs_html.config import load_config
 from obs_html.render import RenderError, render
@@ -78,6 +78,15 @@ def test_a_core_built_document_renders_every_markdown_construct(document_validat
     # Frontmatter fields render from their field nodes, by dotted path; data-only values stay data.
     assert note["frontmatterHtml"] == {"owner.name": "<em>Ada</em> <strong>Lovelace</strong>",
                                        "tags": "<s>old</s>, plain", "count": "3"}
+
+
+def test_an_untitled_note_callout_shows_the_core_title_and_the_adapter_adds_none() -> None:
+    html = _notes(STRUCTURAL)["formatting"]["html"]
+    assert '<header class="content-card-title">Note</header>\n<p>Untitled note body.</p>' in html
+    untitled = {"type": "callouts", "attrs": {"kind": "note", "title": ""}, "children": [paragraph("Body.")]}
+    html = _notes(build("Doc", chapter("one", "One", untitled)))["one"]["html"]
+    assert "content-card-title" not in html and "Note</header>" not in html
+    assert '<aside class="content-card content-callout content-callout--accent" data-callout="note"' in html
 
 
 def test_an_invalid_formula_names_the_chapter_the_formula_and_the_remedy() -> None:

@@ -305,8 +305,8 @@ CALLOUT_TONES = {
 
 
 def _callout(node: dict[str, object], context: Context) -> str:
-    """A callout is a card titled by its authored title or, untitled, by its kind; ``important``
-    is the untitled emphasis box."""
+    """A callout is a card titled by ``attrs.title`` exactly as the core gives it (the core resolves an
+    untitled callout's title); ``important`` is the emphasis box."""
     kind, title = node["attrs"]["kind"], node["attrs"]["title"]
     if kind not in CALLOUT_TONES:
         raise RenderError(f"Chapter {context.chapter or HOME}: callout kind {kind!r} is not one of "
@@ -317,7 +317,6 @@ def _callout(node: dict[str, object], context: Context) -> str:
     else:
         opening = (f'<aside class="content-card content-callout content-callout--{CALLOUT_TONES[kind]}" '
                    f'data-callout="{kind}" aria-label="{name}">\n')
-        title = title or name
     header = f'<header class="content-card-title">{_inline(title, context)}</header>\n' if title else ""
     return f"{opening}{header}{_nodes(node['children'], context)}</aside>\n"
 
