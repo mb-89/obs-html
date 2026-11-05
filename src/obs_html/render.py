@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import json
 import math
-import mimetypes
 import re
 import sys
 from dataclasses import dataclass, field
@@ -257,8 +256,7 @@ def _embed(node: dict[str, object], context: Context) -> str:
     target, chapter = node["attrs"]["target"], node["attrs"]["chapter"]
     if "asset" in node["attrs"]:
         identifier = node["attrs"]["asset"]
-        return _file(_document_asset(identifier, f"embed {target!r} names asset {identifier!r}, which", context),
-                     "", context)
+        return _file(_document_asset(identifier, f"embed {target!r} names asset {identifier!r}, which", context), "")
     if chapter is None:
         return f'<span class="unresolved embed" title="{escape(target, quote=True)}">{escape(target)}</span>'
     return f'<a class="internal-link embed" href="#{chapter}">{escape(_chapter_title(chapter, context))}</a>'
@@ -269,8 +267,7 @@ def _attachment(node: dict[str, object], context: Context) -> str:
     provenance text (its label and path), as the interim adapter rendered it without
     --embed-attachments."""
     identifier, label = node["attrs"]["asset"], node["attrs"]["label"]
-    return _file(_document_asset(identifier, f"attachment names asset {identifier!r}, which", context), label,
-                 context)
+    return _file(_document_asset(identifier, f"attachment names asset {identifier!r}, which", context), label)
 
 
 def _document_asset(identifier: str, what: str, context: Context) -> dict[str, str]:
@@ -291,18 +288,17 @@ def _image(asset: dict[str, str], alt: str) -> str:
     return f'<span class="image-unavailable" role="img" aria-label="{shown}">{shown}</span>'
 
 
-def _file(asset: dict[str, str], label: str, context: Context) -> str:
-    href = asset["href"]
-    if re.match(r"(?:file:|/|\\\\|[A-Za-z]:[\\/])", href):
-        raise RenderError(f"Chapter {context.chapter or HOME}: attachment {asset['id']!r} has the absolute path "
-                          f"{href!r}, which would expose the build machine; link the file by its vault-relative path.")
+def _file(asset: dict[str, str], label: str) -> str:
+    """The core checked that a vault file exists inside the vault; its provenance is its
+    vault-relative path, never the reference as authored. An asset without a path is a URL."""
     if asset["mediaType"].startswith("image/"):
         return _image(asset, label)
-    if re.match(r"[A-Za-z][A-Za-z0-9+.-]*:", href):
-        return f'<a href="{escape(href, quote=True)}">{escape(label or href)}</a>'
-    name = label or PurePosixPath(href).name
-    return (f'<span class="source-reference" data-source-path="{escape(href, quote=True)}">{escape(name)}</span>'
-            f' ({_code({"attrs": {}, "text": href})})')
+    if "path" not in asset:
+        return f'<a href="{escape(asset["href"], quote=True)}">{escape(label or asset["href"])}</a>'
+    path = asset["path"]
+    name = label or PurePosixPath(path).name
+    return (f'<span class="source-reference" data-source-path="{escape(path, quote=True)}">{escape(name)}</span>'
+            f' ({_code({"attrs": {}, "text": path})})')
 
 
 # Canonical callout kind: its tone, the shared semantic card colour (obs artifact-ui.md).

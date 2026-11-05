@@ -114,9 +114,13 @@ def test_an_attachment_naming_an_unknown_asset_names_the_chapter_and_the_remedy(
 
 
 def test_attachments_never_carry_an_absolute_local_path() -> None:
-    absolute = {"id": "abs", "href": "/srv/vault/data.bin", "mediaType": "application/octet-stream"}
-    with pytest.raises(RenderError, match=r"Chapter one: attachment 'abs' .*absolute.*vault-relative"):
-        _html(paragraph(node("attachments", asset="abs", label="x")), assets=[absolute])
+    """The core checks that the file exists inside the vault; the adapter shows its vault path, never
+    the reference as authored."""
+    absolute = {"id": "abs", "href": "/srv/vault/data.bin", "mediaType": "application/octet-stream",
+                "path": "data.bin", "data": "AA=="}
+    html = _html(paragraph(node("attachments", asset="abs", label="x")), assets=[absolute])
+    assert html == ('<p><span class="source-reference" data-source-path="data.bin">x</span>'
+                    ' (<code>data.<wbr>bin</code>)</p>\n')
 
 
 def test_a_note_embed_links_to_its_chapter_or_renders_unresolved() -> None:

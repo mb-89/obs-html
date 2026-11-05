@@ -51,7 +51,8 @@ its origin, a vault file or a remote image the build fetched; the artifact never
 and never loads an image URL, so it shows every image without the network. An image whose asset
 has no bytes, a remote image the build could not fetch, shows its alt text as a visible label in
 its place (its URL as text where it has none); the core's build warning names the remedy. Any other
-attachment renders as provenance text: its label and its path.
+attachment renders as provenance text: its label and its vault-relative path. Whether a referenced
+file exists and stays inside the vault is the core's input check, not the adapter's.
 
 ## Command fences
 
