@@ -4,8 +4,11 @@ Each test builds a contract-valid Document as the core emits it (see the core's 
 a callout's ``kind`` is the canonical type, its ``title`` the authored rest of the marker line;
 an attachment names a Document asset; an embed keeps its target and the chapter it resolves to).
 """
+import json
+
 import pytest
 
+from conftest import ROOT
 from obs_html.config import load_config
 from obs_html.render import RenderError, render
 from obs_html.artifact_data import decode_artifact_data
@@ -134,6 +137,24 @@ def test_a_file_embed_renders_like_an_attachment() -> None:
 def test_callout_bodies_render_their_inline_nodes() -> None:
     html = _html(_callout("tip", "", text("Use "), node("attachments", asset="data", label="it")), assets=[DATA])
     assert '<p>Use <span class="source-reference" data-source-path="input/data.bin">it</span>' in html
+
+
+def test_a_core_built_callout_body_renders_its_list_wikilink_nested_callout_and_link() -> None:
+    """The ``callouts`` vault of fixtures/build_documents.py, built by the core: the body arrives as
+    nodes, and the Document names callouts, not extensions."""
+    document = json.loads((ROOT / "test" / "fixtures" / "documents" / "callouts.json").read_text(encoding="utf-8"))
+    assert "callouts" in document["capabilities"] and "extensions" not in document["capabilities"]
+    html = next(note for note in decode_artifact_data(render(document, CONFIG))["notes"]
+                if note["slug"] == "guide")["html"]
+    assert html.endswith(
+        '<aside class="content-card content-callout content-callout--warning" data-callout="warning" '
+        'aria-label="Warning">\n<header class="content-card-title">Check the limits</header>\n'
+        '<ul>\n<li>first item</li>\n<li>see <a class="internal-link" href="#target">Target</a></li>\n</ul>\n'
+        '<aside class="content-card content-callout content-callout--accent" data-callout="tip" '
+        'aria-label="Tip">\n<header class="content-card-title">Tip</header>\n'
+        '<p>Nested <strong>tip</strong> with <a href="https://example.org">a link</a>.</p>\n'
+        '</aside>\n</aside>\n'
+    )
 
 
 @pytest.mark.browser

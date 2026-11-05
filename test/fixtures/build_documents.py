@@ -9,7 +9,9 @@ Regenerate after changing a vault, with an obs checkout whose core accepts ``obs
 Bases (the core this adapter was built against refused them; the Documents validate against the core's schema,
 which test_moved_dom_contracts.py checks)::
 
-    uv run python test/fixtures/build_documents.py <obs checkout>
+    uv run python test/fixtures/build_documents.py <obs checkout> [vault ...]
+
+Name vaults to rebuild only those (the keys of ``VAULTS``); without one it rebuilds all.
 """
 from __future__ import annotations
 
@@ -239,27 +241,47 @@ def structural(root: Path) -> None:
     )
 
 
+def callouts(root: Path) -> None:
+    """test_callouts_embeds_attachments.py's vault: a titled callout whose body holds a list with a
+    wikilink and a nested callout with a link."""
+    (root / "manifest.md").write_text("- [[guide]]\n- [[target]]\n", encoding="utf-8")
+    (root / "guide.md").write_text(
+        "# Guide\n\n"
+        "> [!warning] Check the limits\n"
+        "> - first item\n"
+        "> - see [[target]]\n"
+        ">\n"
+        "> > [!tip]\n"
+        "> > Nested **tip** with [a link](https://example.org).\n",
+        encoding="utf-8",
+    )
+    (root / "target.md").write_text("# Target\n\nTarget text.\n", encoding="utf-8")
+
+
 VAULTS = {"complete": complete, "artifact-change": artifact_change, "projections": projections,
-          "table-help": table_help, "structural": structural}
+          "table-help": table_help, "structural": structural, "callouts": callouts}
 
 
-def main(core: Path) -> None:
+def main(core: Path, names: list[str]) -> None:
     with tempfile.TemporaryDirectory() as temporary:
         work = Path(temporary)
         capabilities = work / "capabilities.json"
         subprocess.run(["uv", "run", "python", "-m", "obs.capabilities", "--notes", "spec/capabilities",
                         "--output", str(capabilities)], cwd=core, check=True)
-        for name, write in VAULTS.items():
+        for name in names or VAULTS:
             root = work / name
             root.mkdir()
-            write(root)
+            VAULTS[name](root)
             subprocess.run(["uv", "run", "obs-document", "--document", str(HERE / "documents" / f"{name}.json"),
                             "--source", str(root / "manifest.md"), "--capability-reference", str(capabilities)],
                            cwd=core, check=True)
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        raise SystemExit("test/fixtures/build_documents.py: usage: build_documents.py <obs checkout>. Remedy: "
-                         "name an obs checkout whose core accepts obsHtml keys in Bases.")
-    main(Path(sys.argv[1]).resolve())
+    unknown = sorted(set(sys.argv[2:]) - set(VAULTS))
+    if len(sys.argv) < 2 or unknown:
+        raise SystemExit("test/fixtures/build_documents.py: usage: build_documents.py <obs checkout> [vault ...]"
+                         f"{'; unknown vault ' + ', '.join(unknown) if unknown else ''}. Remedy: name an obs "
+                         "checkout whose core accepts obsHtml keys in Bases, and vaults among "
+                         f"{', '.join(VAULTS)} (none builds all).")
+    main(Path(sys.argv[1]).resolve(), sys.argv[2:])

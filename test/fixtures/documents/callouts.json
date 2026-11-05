@@ -1,0 +1,278 @@
+{
+  "schemaVersion": 1,
+  "manifest": {
+    "title": "Manifest",
+    "metadata": {},
+    "abstract": [
+      {
+        "type": "manifest",
+        "attrs": {},
+        "children": []
+      }
+    ]
+  },
+  "chapters": [
+    {
+      "id": "guide",
+      "title": "Guide",
+      "content": [
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "guide"
+          },
+          "children": []
+        },
+        {
+          "type": "markdown",
+          "attrs": {},
+          "children": []
+        },
+        {
+          "type": "section",
+          "attrs": {
+            "level": 1
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Guide"
+            }
+          ]
+        },
+        {
+          "type": "callouts",
+          "attrs": {
+            "kind": "warning",
+            "title": "Check the limits"
+          },
+          "children": [
+            {
+              "type": "list",
+              "attrs": {
+                "ordered": false
+              },
+              "children": [
+                {
+                  "type": "list-item",
+                  "attrs": {},
+                  "children": [
+                    {
+                      "type": "paragraph",
+                      "attrs": {},
+                      "children": [
+                        {
+                          "type": "text",
+                          "attrs": {},
+                          "children": [],
+                          "text": "first item"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "list-item",
+                  "attrs": {},
+                  "children": [
+                    {
+                      "type": "paragraph",
+                      "attrs": {},
+                      "children": [
+                        {
+                          "type": "text",
+                          "attrs": {},
+                          "children": [],
+                          "text": "see "
+                        },
+                        {
+                          "type": "wikilinks",
+                          "attrs": {
+                            "target": "target",
+                            "chapter": "target",
+                            "heading": "",
+                            "label": "target"
+                          },
+                          "children": []
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "callouts",
+              "attrs": {
+                "kind": "tip",
+                "title": "Tip"
+              },
+              "children": [
+                {
+                  "type": "paragraph",
+                  "attrs": {},
+                  "children": [
+                    {
+                      "type": "text",
+                      "attrs": {},
+                      "children": [],
+                      "text": "Nested "
+                    },
+                    {
+                      "type": "strong",
+                      "attrs": {},
+                      "children": [
+                        {
+                          "type": "text",
+                          "attrs": {},
+                          "children": [],
+                          "text": "tip"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "attrs": {},
+                      "children": [],
+                      "text": " with "
+                    },
+                    {
+                      "type": "text",
+                      "attrs": {
+                        "link": "a-link"
+                      },
+                      "children": [],
+                      "text": "a link"
+                    },
+                    {
+                      "type": "text",
+                      "attrs": {},
+                      "children": [],
+                      "text": "."
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "children": [],
+      "metadata": {}
+    },
+    {
+      "id": "target",
+      "title": "Target",
+      "content": [
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "target"
+          },
+          "children": []
+        },
+        {
+          "type": "markdown",
+          "attrs": {},
+          "children": []
+        },
+        {
+          "type": "section",
+          "attrs": {
+            "level": 1
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Target"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "attrs": {},
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Target text."
+            }
+          ]
+        }
+      ],
+      "children": [],
+      "metadata": {}
+    }
+  ],
+  "links": [
+    {
+      "id": "target",
+      "href": "target",
+      "label": "target"
+    },
+    {
+      "id": "a-link",
+      "href": "https://example.org",
+      "label": "a link"
+    }
+  ],
+  "assets": [],
+  "records": [
+    {
+      "id": "guide",
+      "type": "note",
+      "path": "guide.md",
+      "fields": {}
+    },
+    {
+      "id": "manifest",
+      "type": "note",
+      "path": "manifest.md",
+      "fields": {}
+    },
+    {
+      "id": "target",
+      "type": "note",
+      "path": "target.md",
+      "fields": {}
+    },
+    {
+      "id": "chapter-guide",
+      "type": "chapter",
+      "note": "guide",
+      "fields": {
+        "chapter": "Guide",
+        "title": "Guide",
+        "depth": "0",
+        "slug": "guide",
+        "sourcePath": "guide.md"
+      }
+    },
+    {
+      "id": "chapter-target",
+      "type": "chapter",
+      "note": "target",
+      "fields": {
+        "chapter": "Target",
+        "title": "Target",
+        "depth": "0",
+        "slug": "target",
+        "sourcePath": "target.md"
+      }
+    }
+  ],
+  "semanticResources": [],
+  "diagnostics": [],
+  "capabilities": [
+    "callouts",
+    "chapter-inclusion",
+    "manifest",
+    "markdown",
+    "wikilinks"
+  ]
+}
