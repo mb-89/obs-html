@@ -10,8 +10,10 @@
     "attachments",
     "bases",
     "callouts",
+    "cards-metrics",
     "chapter-inclusion",
     "command-fences",
+    "count-query",
     "document-presentation",
     "embeds",
     "figure-descriptor",
@@ -21,6 +23,7 @@
     "marks",
     "named-icons",
     "profiles",
+    "quantities",
     "queries",
     "wikilinks"
   ]

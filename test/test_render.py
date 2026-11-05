@@ -126,7 +126,7 @@ def test_base_views_become_runtime_tables(document) -> None:
 def test_records_join_the_queryable_population_outside_the_reading_order(document) -> None:
     model = _model(document)
     records = {note["slug"]: note for note in model["notes"] if note["slug"] not in model["toc"]}
-    assert set(records) == {"alpha", "beta", "gamma", "other"}
+    assert set(records) == {"alpha", "beta", "gamma", "other", "ranked"}  # ranked: an included quantity note.
     assert records["alpha"]["frontmatter"] == {
         "kind": "item", "rank": 1, "item": {"name": "Alpha"}, "obsHtml": {"document": False}}
     assert records["alpha"]["html"] == ""

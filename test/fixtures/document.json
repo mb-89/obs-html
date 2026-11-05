@@ -626,9 +626,140 @@
               ]
             }
           ]
+        },
+        {
+          "type": "cards-metrics",
+          "attrs": {
+            "source": "{\"version\": 1, \"cards\": [{\"title\": \"Items\", \"body\": \"Ranked: [[rankedItems]].\", \"metrics\": [{\"label\": \"Items\", \"where\": [{\"field\": \"kind\", \"equals\": \"item\"}]}, {\"label\": \"Ranks\", \"from\": \"ranked\", \"where\": [], \"distinct\": \"rank\"}]}]}",
+            "spec": {
+              "version": 1,
+              "cards": [
+                {
+                  "title": "Items",
+                  "body": "Ranked: [[rankedItems]].",
+                  "metrics": [
+                    {
+                      "label": "Items",
+                      "where": [
+                        {
+                          "field": "kind",
+                          "equals": "item"
+                        }
+                      ]
+                    },
+                    {
+                      "label": "Ranks",
+                      "from": "ranked",
+                      "where": [],
+                      "distinct": "rank"
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "children": []
         }
       ],
       "children": []
+    },
+    {
+      "id": "ranked",
+      "title": "Ranked items",
+      "toc": false,
+      "metadata": {
+        "kind": "quantity",
+        "aliases": [
+          "rankedItems"
+        ],
+        "source": "[[intro]]",
+        "query": {
+          "where": [
+            {
+              "field": "kind",
+              "equals": "item"
+            }
+          ],
+          "distinct": "rank"
+        }
+      },
+      "children": [],
+      "content": [
+        {
+          "type": "markdown-frontmatter",
+          "attrs": {
+            "metadata": {
+              "kind": "quantity",
+              "aliases": [
+                "rankedItems"
+              ],
+              "source": "[[intro]]",
+              "query": {
+                "where": [
+                  {
+                    "field": "kind",
+                    "equals": "item"
+                  }
+                ],
+                "distinct": "rank"
+              }
+            }
+          },
+          "children": []
+        },
+        {
+          "type": "quantities",
+          "attrs": {
+            "metadata": {
+              "kind": "quantity",
+              "aliases": [
+                "rankedItems"
+              ],
+              "source": "[[intro]]",
+              "query": {
+                "where": [
+                  {
+                    "field": "kind",
+                    "equals": "item"
+                  }
+                ],
+                "distinct": "rank"
+              }
+            }
+          },
+          "children": []
+        },
+        {
+          "type": "queries",
+          "attrs": {
+            "query": {
+              "where": [
+                {
+                  "field": "kind",
+                  "equals": "item"
+                }
+              ],
+              "distinct": "rank"
+            }
+          },
+          "children": []
+        },
+        {
+          "type": "count-query",
+          "attrs": {
+            "query": {
+              "where": [
+                {
+                  "field": "kind",
+                  "equals": "item"
+                }
+              ],
+              "distinct": "rank"
+            }
+          },
+          "children": []
+        }
+      ]
     }
   ],
   "links": [
@@ -694,6 +825,27 @@
         "kind": "other",
         "rank": 3
       }
+    },
+    {
+      "id": "ranked",
+      "type": "note",
+      "path": "ranked.md",
+      "fields": {
+        "kind": "quantity",
+        "aliases": [
+          "rankedItems"
+        ],
+        "source": "[[intro]]",
+        "query": {
+          "where": [
+            {
+              "field": "kind",
+              "equals": "item"
+            }
+          ],
+          "distinct": "rank"
+        }
+      }
     }
   ],
   "semanticResources": [],
@@ -707,8 +859,10 @@
     "attachments",
     "bases",
     "callouts",
+    "cards-metrics",
     "chapter-inclusion",
     "command-fences",
+    "count-query",
     "document-presentation",
     "embeds",
     "figure-descriptor",
@@ -718,6 +872,7 @@
     "marks",
     "named-icons",
     "profiles",
+    "quantities",
     "queries",
     "wikilinks"
   ]

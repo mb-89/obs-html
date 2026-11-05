@@ -8,6 +8,7 @@ runtime (report.js and its companions) reads to build the reader, the bars and t
 from __future__ import annotations
 
 import json
+import math
 import mimetypes
 import re
 from dataclasses import dataclass, field
@@ -66,6 +67,8 @@ class Context:
     marks: list[dict[str, object]] = field(default_factory=list)
     frontmatter: dict[str, object] = field(default_factory=dict)
     paths: dict[str, str] = field(default_factory=dict)
+    aliases: dict[str, str | None] = field(default_factory=dict)
+    records: dict[str, dict[str, object]] = field(default_factory=dict)
 
 
 Renderer = Callable[[dict[str, object], Context], str]
@@ -89,11 +92,157 @@ def _wikilink(node: dict[str, object], context: Context) -> str:
     if chapter is None:
         return (f'<span class="unresolved" title="{escape(attrs["target"], quote=True)}">'
                 f'{escape(attrs["label"])}</span>')
+    label = "" if attrs["label"] == attrs["target"] else attrs["label"]  # Unaliased: the note's title.
+    return _internal_link(chapter, attrs["heading"], label, context)
+
+
+def _internal_link(chapter: str, heading: str, label: str, context: Context) -> str:
+    """A link to a chapter, titled by its label or, unaliased, by the chapter; an unaliased
+    link to a quantity note without a heading shows the quantity (obs quantities.md)."""
     title = _chapter_title(chapter, context)
-    label = escape(title if attrs["label"] == attrs["target"] else attrs["label"])  # Unaliased: the note's title.
-    anchor = context.headings.get(f"{chapter}#{_identifier(attrs['heading'])}") if attrs["heading"] else None
+    if not label and not heading:
+        quantity = _quantity_link(chapter, context)
+        if quantity:
+            return quantity
+    anchor = context.headings.get(f"{chapter}#{_identifier(heading)}") if heading else None
     href = f"#{chapter}/{anchor.removeprefix(f'{chapter}--')}" if anchor else f"#{chapter}"
-    return f'<a class="internal-link" href="{href}">{label}</a>'
+    return f'<a class="internal-link" href="{href}">{escape(label or title)}</a>'
+
+
+def _quantity_link(chapter: str, context: Context) -> str:
+    """A static quantity shows its value and unit; a query quantity is a pending count that the
+    runtime (cards.js) fills from the current filter, naming only its owner's source path."""
+    record = context.records.get(chapter)
+    fields = record["fields"] if record else {}
+    if fields.get("kind") != "quantity":
+        return ""
+    if "query" in fields:
+        return (f'<a class="internal-link" href="#{chapter}" '
+                f'data-quantity-reference="{escape(str(record["path"]), quote=True)}" '
+                'aria-busy="true" role="status">Calculating…</a>')
+    return f'<a class="internal-link" href="#{chapter}">{escape(_quantity_label(fields))}</a>'
+
+
+def _quantity_label(metadata: dict[str, object]) -> str:
+    value = metadata.get("value", 0)
+    number = str(int(value)) if isinstance(value, float) and value.is_integer() and value != 0 else str(value)
+    unit = metadata.get("unit")
+    return f"{number} {unit.strip()}" if isinstance(unit, str) else number
+
+
+QUANTITY_ALIAS = re.compile(r"[A-Za-z][A-Za-z0-9_]{0,39}")
+NOTE_LINK = re.compile(r"!?\[\[[^\[\]]+\]\]")
+
+
+def _quantity(node: dict[str, object], context: Context) -> str:
+    """A quantity note's metadata, checked as the interim adapter checked it; its value shows
+    where the note is linked (see _quantity_link), not in its own body."""
+    metadata = node["attrs"]["metadata"]
+    where = f"Chapter {context.chapter or HOME}: quantity"
+    value, unit, aliases, source = (metadata.get(key) for key in ("value", "unit", "aliases", "source"))
+    if ("value" in metadata) == ("query" in metadata):
+        raise RenderError(f"{where} needs exactly one of value or query. Remedy: give the quantity note "
+                          "either a numeric value or a count query, not both.")
+    if "value" in metadata and (isinstance(value, bool) or not isinstance(value, (int, float))
+                                or not math.isfinite(value)):
+        raise RenderError(f"{where} value must be a finite number, not {value!r}. Remedy: write the value "
+                          "as a number; put its unit into unit.")
+    if "unit" in metadata and (not isinstance(unit, str) or not unit.strip()):
+        raise RenderError(f"{where} unit must be a non-empty string when supplied. Remedy: write the unit "
+                          "as text or remove unit.")
+    aliases = [aliases] if isinstance(aliases, str) else aliases
+    if not isinstance(aliases, list) or len(aliases) != 1 or not isinstance(aliases[0], str) \
+            or not QUANTITY_ALIAS.fullmatch(aliases[0].strip()):
+        raise RenderError(f"{where} needs one short variable-style alias, not {aliases!r}. Remedy: give the "
+                          "note one alias of letters, digits and underscores, starting with a letter.")
+    sources = [source] if isinstance(source, str) else source
+    if not isinstance(sources, list) or not sources or not all(
+            isinstance(item, str) and item.strip() for item in sources) \
+            or not any(NOTE_LINK.search(item) for item in sources):
+        raise RenderError(f"{where} source must be a non-empty string or list of them with a note link. "
+                          "Remedy: cite the supporting note as a wikilink in source.")
+    return ""
+
+
+def _count_query(node: dict[str, object], context: Context) -> str:
+    """A count query is data the runtime evaluates (cards.js) from the note's frontmatter."""
+    if not isinstance(node["attrs"]["query"].get("where"), list):
+        raise RenderError(f"Chapter {context.chapter or HOME}: count query has no where list; "
+                          "regenerate the Document with the obs core.")
+    return ""
+
+
+CAPABILITY_FENCES = {"base", "cards", "cmd", "figure", "property-editor"}
+
+
+def _cards(node: dict[str, object], context: Context) -> str:
+    """Data-only cards: titled sections whose metric slots the runtime (cards.js) counts from the
+    globally filtered records; only the metric declarations enter the browser."""
+    place = f"Chapter {context.chapter or HOME}"
+    cards = node["attrs"]["spec"].get("cards")
+    if not isinstance(cards, list) or not all(
+            isinstance(card, dict) and isinstance(card.get("title"), str) and isinstance(card.get("body"), str)
+            and isinstance(card.get("metrics", []), list) for card in cards):
+        raise RenderError(f"{place}: cards fence is not a list of cards with a title, a body and metrics; "
+                          "regenerate the Document with the obs core.")
+    rendered = []
+    for card in cards:
+        what = f"{place}: card {card['title']!r}"
+        series = (card.get("obsHtml") or {}).get("metricsFrom")
+        if series:
+            _check_series(series, what, context)
+        metrics = [dict(metric) for metric in card.get("metrics", [])]
+        for metric in metrics:
+            if "secondary" in metric:
+                metric["valueHtml"] = _markdown(f'[[{metric["from"]}]] ([[{metric["secondary"]}]])', what, context)\
+                    .strip().removeprefix("<p>").removesuffix("</p>")
+        payload = escape(json.dumps(metrics, ensure_ascii=False), quote=True)
+        slots = "".join(f'<div data-record-metric="{index}" role="status" aria-busy="true">Calculating…</div>'
+                        for index in range(len(metrics)))
+        style = f'record-metrics--{card["metricStyle"]}' if card.get("metricStyle") else ""
+        series_data = f' data-record-series="{escape(json.dumps(series), quote=True)}"' if series else ""
+        rendered.append(
+            f'<section class="content-card record-card" data-record-card="{payload}"{series_data}>'
+            f'<header class="content-card-title">{escape(card["title"])}</header>'
+            + (f'<div class="record-metrics {style}">{slots}</div>' if metrics or series else "")
+            + _markdown(card["body"], what, context) + "</section>")
+    return '<div class="record-cards" data-record-cards>' + "".join(rendered) + "</div>\n"
+
+
+def _check_series(series: dict[str, object], what: str, context: Context) -> None:
+    """A metric series reads a list from a note's frontmatter: one metric per uniquely labelled item."""
+    name = f"{what} metric series {series.get('sourceNote')}/{series.get('property')}"
+    record = context.records.get(context.paths.get(str(series.get("sourceNote")), ""))
+    value: object = record["fields"] if record else None
+    for part in str(series.get("property")).split("."):
+        value = value.get(part) if isinstance(value, dict) else None
+    if not isinstance(value, list):
+        raise RenderError(f"{name} is not a list. Remedy: name a note path and a frontmatter list property.")
+    labels: set[object] = set()
+    for item in value:
+        fields = [item.get(str(series.get(key))) if isinstance(item, dict) else None
+                  for key in ("labelProperty", "distinctProperty")]
+        if any(not isinstance(field, str) or not field.strip() for field in fields) or fields[0] in labels:
+            raise RenderError(f"{name} needs unique labels and non-empty distinct names. Remedy: give every "
+                              "list item its own label and a distinct property value.")
+        labels.add(fields[0])
+
+
+BLOCK = MarkdownIt("commonmark", {"html": False})
+CODE = re.compile(r"(<pre\b.*?</pre>|<code>.*?</code>)", re.DOTALL)
+
+
+def _markdown(source: str, what: str, context: Context) -> str:
+    """A card body: Markdown with wikilinks, raw HTML as text. The Document carries it as authored
+    Markdown, not as nodes, so a capability fence in it cannot render here."""
+    for token in BLOCK.parse(source):
+        language = token.info.strip().split()[0] if token.type == "fence" and token.info.strip() else ""
+        if language in CAPABILITY_FENCES:
+            raise RenderError(f"{what} body holds a {language} fence, which obs-html cannot render inside a "
+                              f"card. Remedy: move the {language} fence out of the card body.")
+    parts = CODE.split(BLOCK.render(source))
+    return "".join(part if index % 2 else WIKILINK.sub(lambda match: _frontmatter_link(match, context), part)
+                   for index, part in enumerate(parts))
 
 
 def _embed(node: dict[str, object], context: Context) -> str:
@@ -245,8 +394,10 @@ CAPABILITIES: dict[str, Renderer] = {
     "attachments": _attachment,
     "bases": _base,
     "callouts": _callout,
+    "cards-metrics": _cards,
     "chapter-inclusion": _nothing,
     "command-fences": _command,
+    "count-query": _count_query,
     "document-presentation": _nothing,
     "embeds": _embed,
     "figure-descriptor": _figure,
@@ -256,6 +407,7 @@ CAPABILITIES: dict[str, Renderer] = {
     "marks": _mark,
     "named-icons": _nothing,
     "profiles": _nothing,
+    "quantities": _quantity,
     "queries": _nothing,
     "wikilinks": _wikilink,
 }
@@ -280,7 +432,14 @@ def render(document: dict[str, object], config: Config,
         files={item["id"]: item for item in document["assets"]},
         paths={record["path"].removesuffix(".md"): record["id"]
                for record in document["records"] if record.get("type") == "note"},
+        records={record["id"]: record for record in document["records"] if record.get("type") == "note"},
     )
+    for record in context.records.values():
+        aliases = record["fields"].get("aliases")
+        for alias in [aliases] if isinstance(aliases, str) else aliases if isinstance(aliases, list) else []:
+            if isinstance(alias, str) and alias.strip():
+                key = alias.strip().casefold()  # An alias two notes share resolves to neither.
+                context.aliases[key] = record["id"] if key not in context.aliases else None
     _index(document["chapters"], context)
     if HOME in context.chapters:
         raise RenderError(f"Chapter id {HOME!r} is reserved for the document's home page.")
@@ -322,6 +481,9 @@ def _model(document: dict[str, object], config: Config, context: Context) -> dic
     notes = [_note(0, title, HOME, HOME, {}, home_html, context)]
     notes.extend(_chapter_notes(document["chapters"], context, 0))
     _attach_records(document["records"], notes, context)
+    for note in notes:
+        if note["frontmatter"].get("kind") == "quantity" and "value" in note["frontmatter"]:
+            note["valueLabel"] = _quantity_label(note["frontmatter"])  # Its hover card shows it.
     return {
         "assets": context.assets.resources,
         "embeddedAssets": context.assets.embedded_assets,
@@ -614,6 +776,10 @@ def _shell(model: dict[str, object], stylesheet: str, assets: SemanticAssets, co
                           + "</script>")
         figure_assets = (f'<style id="figure-styles">{read("figures.css")}</style>{plotly}'
                          f'<script id="figure-script">{read("figures.js")}</script>')
+    card_assets = ""
+    if "data-record-cards" in data or any(note["frontmatter"].get("kind") == "quantity"
+                                          and "query" in note["frontmatter"] for note in model["notes"]):
+        card_assets = f'<script id="cards-script">{read("cards.js")}</script>'
     startup = model["reading"]
     reader_startup = "".join(
         f"    {line}\n" for line in read("reader-startup.js")
@@ -730,6 +896,7 @@ def _shell(model: dict[str, object], stylesheet: str, assets: SemanticAssets, co
 {read("report.js")}
   </script>
   {figure_assets}
+  {card_assets}
   <script id="pages-script">
 {read("pages.js")}
   </script>
@@ -839,21 +1006,19 @@ WIKILINK = re.compile(r"\[\[([^\[\]|#]*)(?:#([^\[\]|]*))?(?:\|([^\[\]]*))?\]\]")
 
 
 def _frontmatter_link(match: re.Match[str], context: Context) -> str:
-    """A frontmatter wikilink, as rendered text, links like a body wikilink: to the chapter whose
-    note record has the target's path (or, as Obsidian resolves it, the only path ending in the
-    target), titled by the chapter unless aliased; any other target renders unresolved."""
+    """A wikilink in authored text links like a body wikilink: to the chapter whose note record
+    has the target's path, or, as Obsidian resolves it, the only path ending in the target, or
+    the only note with the target as alias; any other target renders unresolved."""
     target, heading, label = (unescape(group).strip() if group else "" for group in match.groups())
     path = target.removesuffix(".md")
     chapter = context.paths.get(path)
     if chapter is None:
         candidates = [identifier for known, identifier in context.paths.items() if known.endswith(f"/{path}")]
-        chapter = candidates[0] if path and len(candidates) == 1 else None
+        chapter = candidates[0] if path and len(candidates) == 1 else context.aliases.get(path.casefold())
     if chapter not in context.chapters:
         shown = label or target
         return f'<span class="unresolved" title="{escape(target, quote=True)}">{escape(shown)}</span>'
-    anchor = context.headings.get(f"{chapter}#{_identifier(heading)}") if heading else None
-    href = f"#{chapter}/{anchor.removeprefix(f'{chapter}--')}" if anchor else f"#{chapter}"
-    return f'<a class="internal-link" href="{href}">{escape(label or context.chapters[chapter])}</a>'
+    return _internal_link(chapter, heading, label, context)
 
 
 def _frontmatter_html(metadata: dict[str, object], context: Context) -> dict[str, str]:
