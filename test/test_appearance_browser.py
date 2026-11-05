@@ -123,3 +123,21 @@ def test_switching_appearance_recolours_at_once_with_native_controls(tmp_path, r
     assert dark["text"]["color"] != light["text"]["color"]
     assert (light["select"]["scheme"], dark["select"]["scheme"]) == ("light", "dark")
     assert errors == []
+
+
+@pytest.mark.browser
+def test_dark_is_a_near_black_page_with_white_headings_and_light_grey_text(tmp_path, reader_browser) -> None:
+    """Dark is the look the owner chose; Light keeps the white page with black text."""
+    errors: list[str] = []
+    frame = open_chapter(tmp_path, reader_browser, errors, "light")
+    light = frame.evaluate(COLOURS)
+    choose(frame, "dark")
+    dark = frame.evaluate(COLOURS)
+
+    page = rgba(dark["html"]["background"])
+    assert all(abs(channel - 0x1f) <= 8 for channel in page[:3]), f"dark page {dark['html']}"
+    assert rgba(dark["heading"]["color"])[:3] == (255, 255, 255), f"dark heading {dark['heading']}"
+    assert 0.5 < luminance(dark["text"]["color"]) < 0.9, f"dark text is light grey {dark['text']}"
+    assert rgba(light["html"]["background"])[:3] == (255, 255, 255), f"light page {light['html']}"
+    assert rgba(light["text"]["color"])[:3] == (0, 0, 0), f"light text {light['text']}"
+    assert errors == []
