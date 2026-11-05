@@ -46,23 +46,39 @@
     });
     const work = [];
     let opening = true;
+    // Startup work runs in slices: a step yields to the browser only once the slice has
+    // run as long as a browser long task (50 ms), and then waits until a frame is painted.
+    const sliceMilliseconds = 50;
+    let sliceStart = performance.now();
     const paint = () => new Promise(resolve =>
-        requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        requestAnimationFrame(() => requestAnimationFrame(resolve))).then(() => {
+        sliceStart = performance.now();
+    });
+    const yieldSlice = async () => {
+        if (performance.now() - sliceStart >= sliceMilliseconds) await paint();
+    };
+    // Each startup step is a User Timing measure named "obs-startup <step>"; profilers and the
+    // startup test read them with performance.getEntriesByType("measure").
+    const step = async (name, run) => {
+        const start = performance.now();
+        try {
+            return await run();
+        } finally {
+            performance.measure(`obs-startup ${name}`, {start});
+        }
+    };
     globalThis.obsStartup = Object.freeze({
-        yield: paint,
+        paint,
+        yield: yieldSlice,
         defer(label, run) {
             if (opening) work.push({label, run});
-            else paint().then(run).catch(fail);
+            else yieldSlice().then(run).catch(fail);
         },
     });
     const parsed = document.readyState === "loading"
         ? new Promise((resolve) => document.addEventListener("DOMContentLoaded", resolve, {once: true}))
         : Promise.resolve();
-    const dataReady = parsed.then(async () => {
-        document.documentElement.dataset.artifactStatus = "loading";
-        document.querySelector(".app-shell")?.setAttribute("inert", "");
-        document.querySelector("[data-menu-button]")?.setAttribute("disabled", "");
-        await paint();
+    const decode = async () => {
         const island = document.querySelector("[data-artifact-data]");
         if (!island) throw new Error("Canonical artifact data is missing.");
         let text = island.textContent;
@@ -84,12 +100,20 @@
         island.type = "application/json";
         delete island.dataset.encoding;
         return data;
+    };
+    const dataReady = parsed.then(async () => {
+        document.documentElement.dataset.artifactStatus = "loading";
+        document.querySelector(".app-shell")?.setAttribute("inert", "");
+        document.querySelector("[data-menu-button]")?.setAttribute("disabled", "");
+        await paint();
+        return step("decode artifact data", decode);
     });
     globalThis.obsArtifactTransport = Object.freeze({encode, writeIsland, restoreScripts});
     globalThis.obsHtmlDataReady = dataReady;
     globalThis.obsHtmlReady = dataReady.then(async () => {
         for (const original of document.querySelectorAll(`script[type="${inertType}"]`)) {
-            await paint();
+            await yieldSlice();
+            const start = performance.now();
             const script = document.createElement("script");
             for (const {name, value} of original.attributes) {
                 if (name !== "type") script.setAttribute(name, value);
@@ -112,6 +136,7 @@
             }
             if (failure) throw failure;
             if (loaded) await loaded;
+            performance.measure(`obs-startup start ${script.id || "script"}`, {start});
         }
         const selected = document.querySelector('meta[name="obs-trusted-runtime"]')?.content || "";
         globalThis.obsArtifact?.validateApplicationRuntime?.(selected);
@@ -119,8 +144,8 @@
         document.querySelector("[data-menu-button]")?.removeAttribute("disabled");
         document.dispatchEvent(new CustomEvent("obs-html-interactive"));
         for (const task of work) {
-            await paint();
-            await task.run();
+            await yieldSlice();
+            await step(task.label, task.run);
         }
         opening = false;
         document.documentElement.dataset.artifactStatus = "ready";
