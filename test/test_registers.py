@@ -76,6 +76,23 @@ TYPE_VIEWS = {
 }
 
 
+def test_a_register_embedded_in_a_paragraph_renders_outside_it_and_keeps_the_text_around_it() -> None:
+    """A register's table is a block, which HTML allows in no paragraph: the paragraph's text
+    around the embed stays paragraphs, in order, and an embed alone leaves no empty paragraph."""
+    alone = render(REGISTERS, CONFIG)
+    notes = {note["slug"]: note["html"] for note in decode_artifact_data(alone)["notes"]}
+    assert '<h1 id="points--points">Points</h1>\n<p>All views.</p>\n<div class="data-table-placeholder" ' \
+        in notes["points"]
+    register = _register(REGISTERS, "points")
+    document = build("Doc", chapter("one", "One", {"type": "paragraph", "attrs": {}, "children": [
+        {"type": "text", "attrs": {}, "children": [], "text": "Before "}, register,
+        {"type": "text", "attrs": {}, "children": [], "text": " after"}]}), records=tuple(REGISTERS["records"]))
+    html = next(note["html"] for note in decode_artifact_data(render(document, CONFIG))["notes"]
+                if note["slug"] == "one")
+    assert html.startswith('<p>Before </p>\n<div class="data-table-placeholder" data-base-table="one-base-1"></div>\n'
+                           "<p> after</p>\n"), html
+
+
 def test_the_record_type_views_cover_every_record_type_of_the_core_schema() -> None:
     assert sorted(TYPE_VIEWS) == sorted(RECORD_TYPES)
 

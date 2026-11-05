@@ -881,6 +881,7 @@ input[data-property-single-line]:focus {
 }
 
 .math.block {
+    display: block;
     margin-block: 1rem;
     overflow-x: auto;
 }
