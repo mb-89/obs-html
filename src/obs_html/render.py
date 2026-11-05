@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import json
 import math
-import mimetypes
 import re
 import sys
 from dataclasses import dataclass, field
@@ -261,11 +260,11 @@ def _markdown(source: str, what: str, context: Context) -> str:
 
 def _embed(node: dict[str, object], context: Context) -> str:
     """An embedded note links to its chapter, titled like an unaliased wikilink; an embedded
-    file (a target with a non-note suffix, which no chapter resolves) renders like an attachment."""
+    file (one that names a Document asset) renders like an attachment."""
     target, chapter = node["attrs"]["target"], node["attrs"]["chapter"]
-    if chapter is None and PurePosixPath(target).suffix.lower() not in {"", ".md"}:
-        media_type = mimetypes.guess_type(target)[0] or "application/octet-stream"
-        return _file(target, "", media_type, f"embed {target!r}", context)
+    if "asset" in node["attrs"]:
+        identifier = node["attrs"]["asset"]
+        return _file(_document_asset(identifier, f"embed {target!r} names asset {identifier!r}, which", context), "")
     if chapter is None:
         return f'<span class="unresolved embed" title="{escape(target, quote=True)}">{escape(target)}</span>'
     return f'<a class="internal-link embed" href="#{chapter}">{escape(_chapter_title(chapter, context))}</a>'
@@ -274,26 +273,40 @@ def _embed(node: dict[str, object], context: Context) -> str:
 def _attachment(node: dict[str, object], context: Context) -> str:
     """An attachment names a Document asset: an image is document content, any other file is
     provenance text (its label and path), as the interim adapter rendered it without
-    --embed-attachments; the adapter has only the Document, not the file's bytes."""
+    --embed-attachments."""
     identifier, label = node["attrs"]["asset"], node["attrs"]["label"]
+    return _file(_document_asset(identifier, f"attachment names asset {identifier!r}, which", context), label)
+
+
+def _document_asset(identifier: str, what: str, context: Context) -> dict[str, str]:
     asset = context.files.get(identifier)
     if asset is None:
-        raise RenderError(f"Chapter {context.chapter or HOME}: attachment names asset {identifier!r}, which "
-                          "the Document's assets do not contain; regenerate the Document with the obs core.")
-    return _file(asset["href"], label, asset["mediaType"], f"attachment {identifier!r}", context)
+        raise RenderError(f"Chapter {context.chapter or HOME}: {what} the Document's assets do not contain; "
+                          "regenerate the Document with the obs core.")
+    return asset
 
 
-def _file(href: str, label: str, media_type: str, what: str, context: Context) -> str:
-    if re.match(r"(?:file:|/|\\\\|[A-Za-z]:[\\/])", href):
-        raise RenderError(f"Chapter {context.chapter or HOME}: {what} has the absolute path {href!r}, which "
-                          "would expose the build machine; link the file by its vault-relative path.")
-    if media_type.startswith("image/"):
-        return f'<img src="{escape(href, quote=True)}" alt="{escape(label, quote=True)}">'
-    if re.match(r"[A-Za-z][A-Za-z0-9+.-]*:", href):
-        return f'<a href="{escape(href, quote=True)}">{escape(label or href)}</a>'
-    name = label or PurePosixPath(href).name
-    return (f'<span class="source-reference" data-source-path="{escape(href, quote=True)}">{escape(name)}</span>'
-            f' ({_code({"attrs": {}, "text": href})})')
+def _image(asset: dict[str, str], alt: str) -> str:
+    """An image from its asset's bytes, never from the vault or the network; without bytes (a
+    remote image the build could not fetch), its alt text is a visible label in its place."""
+    if "data" in asset:
+        return (f'<img src="data:{escape(asset["mediaType"], quote=True)};base64,{asset["data"]}" '
+                f'alt="{escape(alt, quote=True)}">')
+    shown = escape(alt or asset["href"], quote=True)
+    return f'<span class="image-unavailable" role="img" aria-label="{shown}">{shown}</span>'
+
+
+def _file(asset: dict[str, str], label: str) -> str:
+    """The core checked that a vault file exists inside the vault; its provenance is its
+    vault-relative path, never the reference as authored. An asset without a path is a URL."""
+    if asset["mediaType"].startswith("image/"):
+        return _image(asset, label)
+    if "path" not in asset:
+        return f'<a href="{escape(asset["href"], quote=True)}">{escape(label or asset["href"])}</a>'
+    path = asset["path"]
+    name = label or PurePosixPath(path).name
+    return (f'<span class="source-reference" data-source-path="{escape(path, quote=True)}">{escape(name)}</span>'
+            f' ({_code({"attrs": {}, "text": path})})')
 
 
 # Canonical callout kind: its tone, the shared semantic card colour (obs artifact-ui.md).
@@ -646,7 +659,7 @@ def _model(document: dict[str, object], config: Config, context: Context) -> dic
     settings = config.artifact
     title = manifest["title"]
     metadata = {key: value for key, value in manifest["metadata"].items() if key != "obsHtml"}
-    home_html = _cover(title, metadata, profile["heading"] == "compact") + _note_body(
+    home_html = _cover(title, metadata, profile["heading"] == "compact", context) + _note_body(
         manifest.get("abstract", []), "", context)
     notes = [_note(0, title, HOME, HOME, {}, home_html, context)]
     notes.extend(_chapter_notes(document["chapters"], context, 0))
@@ -756,12 +769,12 @@ def _attach_records(records: list[dict[str, object]], notes: list[dict[str, obje
         })
 
 
-def _cover(title: str, metadata: dict[str, object], compact: bool) -> str:
+def _cover(title: str, metadata: dict[str, object], compact: bool, context: Context) -> str:
     def value(item: object) -> str:
         return escape(_text(item))
 
     product = metadata.get("product") if isinstance(metadata.get("product"), dict) else {}
-    subtitle = _inline(metadata["subtitle"]) if metadata.get("subtitle") else ""
+    subtitle = _inline(metadata["subtitle"], context) if metadata.get("subtitle") else ""
     if compact:
         product_text = " ".join(value(product[key]) for key in ("name", "version") if product.get(key))
         parts = [("cover-organization", value(metadata.get("organization", ""))),
@@ -802,8 +815,9 @@ def _node(node: dict[str, object], context: Context) -> str:
 
 def _list(node: dict[str, object], context: Context) -> str:
     tag = "ol" if node["attrs"].get("ordered") else "ul"
-    if _tight(node):
-        items = "".join(f"<li>{_tight_item(item, context)}</li>\n" for item in node["children"])
+    if node["attrs"]["tight"]:
+        items = "".join(f"<li>{_tight_item(item, context)}</li>\n" if item["type"] == "list-item"
+                        else _node(item, context) for item in node["children"])
         return f"<{tag}>\n{items}</{tag}>\n"
     return f"<{tag}>\n{_nodes(node['children'], context)}</{tag}>\n"
 
@@ -899,16 +913,6 @@ def _code(node: dict[str, object]) -> str:
     return f"<code>{'<wbr>'.join(pieces)}</code>"
 
 
-def _tight(node: dict[str, object]) -> bool:
-    """A list whose items each hold one paragraph (plus nested lists) renders tight, as
-    Markdown's usual tight lists do; the Document does not say whether a list was loose."""
-    return all(
-        sum(child["type"] == "paragraph" for child in item["children"]) == 1
-        and all(child["type"] in {"paragraph", "list"} for child in item["children"])
-        for item in node["children"]
-    )
-
-
 def _tight_item(item: dict[str, object], context: Context) -> str:
     parts = []
     for child in item["children"]:
@@ -972,10 +976,8 @@ def _text_node(node: dict[str, object], context: Context) -> str:
             return f'<a class="internal-link" href="#{chapter}">{text}</a>'
         return f'<a href="{escape(link["href"], quote=True)}">{text}</a>'
     if "asset" in attrs:
-        asset = context.files.get(attrs["asset"])
-        if asset is None:
-            raise RenderError(f"Text names an unknown asset: {attrs['asset']}.")
-        return f'<img src="{escape(asset["href"], quote=True)}" alt="{escape(node.get("text", ""), quote=True)}">'
+        asset = _document_asset(attrs["asset"], f"an image names asset {attrs['asset']!r}, which", context)
+        return _image(asset, node.get("text", ""))
     return text
 
 
@@ -1281,11 +1283,20 @@ def _inline(value: object, context: Context | None = None) -> str:
     html = INLINE.renderInline(source)
     if context is None:
         return html
+    html = IMAGE_TAG.sub(lambda match: _metadata_image(match, context), html)
     html = NOTE_HREF.sub(lambda match: _note_href(match, context), html)
     return WIKILINK.sub(lambda match: _frontmatter_link(match, context), html)
 
 
 NOTE_HREF = re.compile(r'<a href="([^"]*)">')
+IMAGE_TAG = re.compile(r'<img src="([^"]*)" alt="([^"]*)"[^>]*>')
+
+
+def _metadata_image(match: re.Match[str], context: Context) -> str:
+    """An image in a metadata string renders from the asset the core made of its reference."""
+    href = unescape(match[1])
+    asset = next((item for item in context.files.values() if item["href"] == href), {"href": href})
+    return _image(asset, unescape(match[2]))
 
 
 def _note_href(match: re.Match[str], context: Context) -> str:

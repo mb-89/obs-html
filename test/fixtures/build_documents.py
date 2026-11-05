@@ -12,8 +12,8 @@ which test_moved_dom_contracts.py checks)::
     uv run python test/fixtures/build_documents.py <obs checkout> [vault ...]
 
 Name vaults to rebuild only those (the keys of ``VAULTS``); without one it rebuilds all. A build
-never reaches the network: remote images come from ``REMOTE``, and a Document with diagnostics is
-refused, so nothing environment-specific is committed.
+never reaches the network: a remote image fails it, and so does a Document with diagnostics, so
+nothing environment-specific is committed.
 """
 from __future__ import annotations
 
@@ -32,9 +32,10 @@ HERE = Path(__file__).parent
 
 def complete(root: Path) -> None:
     """test_complete_document_dom_interactions. Changed: the glossary links its BLUF note, which
-    the core includes only when linked (the interim included every glossary note); the references
-    are two registers, whose views declare the members, since only a register carries the core's
-    rows (the interim read Base-level members of fences)."""
+    the core includes only when linked (the interim included every glossary note); the subtitle
+    badges are vault files, so the Document carries their bytes without a network fetch; the
+    references are two registers, whose views declare the members, since only a register carries
+    the core's rows (the interim read Base-level members of fences)."""
     notes = {
         "parent": "# Parent\n\n[[node#Extra]]\n\n[1](reference.md)\n",
         "child": "---\nbottom line: Child result.\n---\n# Child\n\nQuestion. #mark/question/child_question\n\nResolve this. #mark/open_point/child_open\n",
@@ -95,6 +96,10 @@ def complete(root: Path) -> None:
     (root / "shared.png").write_bytes(shared_image)
     notes["parent"] += "\n![Shared image](shared.png)\n"
     notes["child"] += "\n![Shared image](shared.png)\n"
+    for badge in ("obsidian", "html"):
+        (root / f"{badge}.svg").write_text(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="60" height="20"><rect width="60" height="20"/></svg>',
+            encoding="utf-8")
     for name, source in notes.items():
         (root / f"{name}.md").write_text(source, encoding="utf-8")
     (root / "numbered.base").write_text(
@@ -111,8 +116,7 @@ def complete(root: Path) -> None:
     manifest = root / "manifest.md"
     manifest.write_text(
         "---\ntitle: Test document\n"
-        "subtitle: 'Bridge **subtitle** ![Obsidian](https://example.invalid/obsidian.svg) "
-        "![HTML](https://example.invalid/html.svg)'\n"
+        "subtitle: 'Bridge **subtitle** ![Obsidian](obsidian.svg) ![HTML](html.svg)'\n"
         "status: active\nowners: {team: [Ada, Lin]}\n"
         "---\n"
         "- [[parent|Parent]]\n  - [[child|Child]]\n    - [[node|Node]]\n"
@@ -310,28 +314,19 @@ VAULTS = {"complete": complete, "artifact-change": artifact_change, "projections
           "registers": registers}
 
 
-ICON = (b'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">'
-        b'<rect width="16" height="16" fill="#135"/></svg>')
-REMOTE = {"https://example.invalid/obsidian.svg": ICON, "https://example.invalid/html.svg": ICON}
-"""The fake network: the bytes of every remote image a vault embeds. A build never fetches."""
-
-# Runs obs-document in the core's environment with the core's one network read replaced by REMOTE.
+# Runs obs-document in the core's environment with the core's one network read refused.
 DRIVER = """
-import base64, json, sys
+import sys
 from obs import document, vault
-served = {url: base64.b64decode(data) for url, data in json.loads(sys.argv[1]).items()}
 def fetch(url):
-    if url not in served:
-        raise SystemExit(f"test/fixtures/build_documents.py: no fake response for the remote image {url}. "
-                         "Remedy: add its bytes to REMOTE in build_documents.py.")
-    return served[url], None
+    raise SystemExit(f"test/fixtures/build_documents.py: a vault embeds the remote image {url}, which a "
+                     "fixture build never fetches. Remedy: save the image into the vault and embed it locally.")
 vault.fetch_remote = fetch
-sys.exit(document.main(sys.argv[2:]))
+sys.exit(document.main(sys.argv[1:]))
 """
 
 
 def main(core: Path, names: list[str]) -> None:
-    served = json.dumps({url: base64.b64encode(data).decode("ascii") for url, data in REMOTE.items()})
     with tempfile.TemporaryDirectory() as temporary:
         work = Path(temporary)
         capabilities = work / "capabilities.json"
@@ -342,7 +337,7 @@ def main(core: Path, names: list[str]) -> None:
             root.mkdir()
             VAULTS[name](root)
             output = HERE / "documents" / f"{name}.json"
-            subprocess.run(["uv", "run", "python", "-c", DRIVER, served, "--document", str(output),
+            subprocess.run(["uv", "run", "python", "-c", DRIVER, "--document", str(output),
                             "--source", str(root / "manifest.md"), "--capability-reference", str(capabilities)],
                            cwd=core, check=True)
             diagnostics = json.loads(output.read_text(encoding="utf-8"))["diagnostics"]

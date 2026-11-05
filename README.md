@@ -41,6 +41,19 @@ The artifact verification harness, `test/browser/artifact-harness.cjs`, opens a 
 DOM and drives it step by step (data, chapter, table, page mode, print and presentation geometry);
 its header comment is its reference.
 
+## Images and attachments
+
+Reader: whoever puts images in a Document for obs-html or changes how it renders them.
+
+An image renders from the bytes of its Document asset
+([Asset bytes](../../spec/design_input/architecture.md#asset-bytes)) as a `data:` URL, whatever
+its origin, a vault file or a remote image the build fetched; the artifact never reads the vault
+and never loads an image URL, so it shows every image without the network. An image whose asset
+has no bytes, a remote image the build could not fetch, shows its alt text as a visible label in
+its place (its URL as text where it has none); the core's build warning names the remedy. Any other
+attachment renders as provenance text: its label and its vault-relative path. Whether a referenced
+file exists and stays inside the vault is the core's input check, not the adapter's.
+
 ## Command fences
 
 Reader: whoever builds an artifact with `--execute-commands` or reads captured command output in one.

@@ -4,7 +4,7 @@
     "title": "Test document",
     "metadata": {
       "title": "Test document",
-      "subtitle": "Bridge **subtitle** ![Obsidian](https://example.invalid/obsidian.svg) ![HTML](https://example.invalid/html.svg)",
+      "subtitle": "Bridge **subtitle** ![Obsidian](obsidian.svg) ![HTML](html.svg)",
       "status": "active",
       "owners": {
         "team": [
@@ -19,7 +19,7 @@
         "attrs": {
           "metadata": {
             "title": "Test document",
-            "subtitle": "Bridge **subtitle** ![Obsidian](https://example.invalid/obsidian.svg) ![HTML](https://example.invalid/html.svg)",
+            "subtitle": "Bridge **subtitle** ![Obsidian](obsidian.svg) ![HTML](html.svg)",
             "status": "active",
             "owners": {
               "team": [
@@ -1920,15 +1920,17 @@
     },
     {
       "id": "obsidian",
-      "href": "https://example.invalid/obsidian.svg",
+      "href": "obsidian.svg",
       "mediaType": "image/svg+xml",
-      "data": "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmlld0JveD0iMCAwIDE2IDE2Ij48cmVjdCB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIGZpbGw9IiMxMzUiLz48L3N2Zz4="
+      "path": "obsidian.svg",
+      "data": "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSIyMCI+PHJlY3Qgd2lkdGg9IjYwIiBoZWlnaHQ9IjIwIi8+PC9zdmc+"
     },
     {
       "id": "html",
-      "href": "https://example.invalid/html.svg",
+      "href": "html.svg",
       "mediaType": "image/svg+xml",
-      "data": "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmlld0JveD0iMCAwIDE2IDE2Ij48cmVjdCB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIGZpbGw9IiMxMzUiLz48L3N2Zz4="
+      "path": "html.svg",
+      "data": "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSIyMCI+PHJlY3Qgd2lkdGg9IjYwIiBoZWlnaHQ9IjIwIi8+PC9zdmc+"
     }
   ],
   "records": [
@@ -2001,7 +2003,7 @@
       "path": "manifest.md",
       "fields": {
         "title": "Test document",
-        "subtitle": "Bridge **subtitle** ![Obsidian](https://example.invalid/obsidian.svg) ![HTML](https://example.invalid/html.svg)",
+        "subtitle": "Bridge **subtitle** ![Obsidian](obsidian.svg) ![HTML](html.svg)",
         "status": "active",
         "owners": {
           "team": [
@@ -2216,7 +2218,7 @@
       "type": "documentMetadata",
       "fields": {
         "key": "subtitle",
-        "value": "Bridge **subtitle** ![Obsidian](https://example.invalid/obsidian.svg) ![HTML](https://example.invalid/html.svg)"
+        "value": "Bridge **subtitle** ![Obsidian](obsidian.svg) ![HTML](html.svg)"
       }
     },
     {
