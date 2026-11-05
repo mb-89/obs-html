@@ -1039,17 +1039,22 @@ def _shell(model: dict[str, object], limits: list[dict[str, str]], stylesheet: s
   <style id="semantic-asset-styles">{assets.css()}</style>
 </head>
 <body>
+  <header class="top-band" data-top-band>
+    <div class="top-band-path" data-top-band-path data-transient-content></div>
+    <button class="icon-button frontmatter-toggle" type="button" data-frontmatter-toggle
+            aria-label="Show frontmatter" aria-expanded="false"
+            aria-controls="frontmatter-panel" title="Show frontmatter" hidden>
+      {markup("frontmatter")}
+    </button>
+    <div class="top-band-end" data-top-band-end>
+      <button class="icon-button menu-button" type="button" data-menu-button
+              aria-label="Open bars menu" aria-expanded="false" title="Bars" disabled>{markup("menu")}</button>
+    </div>
+  </header>
   <div class="app-shell" inert>
     {_dock_region("top")}
     {_dock_region("left")}
     <main class="reader-shell">
-      <div class="frontmatter-nav-zone">
-        <button class="frontmatter-toggle" type="button" data-frontmatter-toggle
-                aria-label="Show frontmatter" aria-expanded="false"
-                aria-controls="frontmatter-panel" title="Show frontmatter" hidden>
-          {markup("frontmatter")}
-        </button>
-      </div>
       <div class="chapter-scroll" data-chapter-scroll tabindex="-1">
         <section class="frontmatter-panel" id="frontmatter-panel" data-frontmatter-panel
                  aria-label="Frontmatter" hidden>
@@ -1079,8 +1084,6 @@ def _shell(model: dict[str, object], limits: list[dict[str, str]], stylesheet: s
   <script id="running-header-script" data-header-metadata="{header_metadata}">
 {read("running-header.js")}
   </script>
-  <button class="icon-button menu-button" type="button" data-menu-button
-          aria-label="Open bars menu" aria-expanded="false" title="Bars" disabled>{markup("menu")}</button>
   <section class="bars-menu" data-bars-menu aria-label="Bars" hidden>
     {''.join(_menu_row(bar) for bar in bars)}
   </section>

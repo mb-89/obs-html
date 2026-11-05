@@ -16,6 +16,84 @@ from obs_html.render import render
 
 pytestmark = pytest.mark.browser
 
+LONG = "A chapter title long enough to need more room than a narrow top band has"
+WIDTHS = {"desktop": 1100, "narrow": 390}
+
+# Each top control's box, in the order the band shows them.
+TOP_BAND = """() => {
+    const box = (element) => {
+        const r = element.getBoundingClientRect();
+        return {top: r.top, left: r.left, right: r.right, width: r.width, height: r.height};
+    };
+    const crumbs = document.querySelector(".chapter-breadcrumbs");
+    const links = [...crumbs.querySelectorAll(":scope > a:not(.chapter-home-link)")];
+    return {
+        home: box(document.querySelector(".chapter-home-link")),
+        crumbs: box(crumbs),
+        // Crumbs that leave the band's one line, above or below it.
+        offRow: [...crumbs.children].filter((item) => item.getClientRects().length).filter((item) => {
+            const r = item.getBoundingClientRect(), row = crumbs.getBoundingClientRect();
+            return r.top < row.top - 1 || r.bottom > row.bottom + 1;
+        }).map((item) => item.textContent || item.className),
+        truncated: links.filter((link) => link.scrollWidth > link.clientWidth)
+            .map((link) => ({text: link.textContent, title: link.title})),
+        chevron: box(document.querySelector("[data-frontmatter-toggle]")),
+        notices: [...document.querySelectorAll("[data-header-notices] [data-notice-icon]")]
+            .filter((icon) => icon.getClientRects().length).map(box),
+        menu: box(document.querySelector("[data-menu-button]")),
+        arrows: [...document.querySelectorAll("[data-step]")].map(box),
+        viewport: innerWidth,
+    };
+}"""
+
+
+def band_artifact() -> str:
+    return render(document(
+        "Band",
+        chapter("one", LONG, heading(1, LONG), paragraph("Parent text."), children=(
+            chapter("one-a", LONG + " too", heading(1, "Child"), paragraph("Child text."),
+                    metadata={"status": "draft"}),
+        )),
+        chapter("two", "Two", heading(1, "Two"), paragraph("Second chapter text.")),
+    ), load_config())
+
+
+@pytest.mark.parametrize("width", WIDTHS)
+def test_every_top_control_is_one_square_size_in_one_row(tmp_path: Path, reader_browser, width: str) -> None:
+    from playwright.sync_api import expect
+
+    errors: list[str] = []
+    _page, frame = open_viewer(tmp_path, reader_browser, errors, band_artifact(), "light",
+                               width=WIDTHS[width])
+    frame.evaluate("location.hash = '#one-a'")
+    expect(frame.locator("[data-active-chapter]")).to_have_attribute("data-chapter", "one-a")
+    frame.evaluate("""() => ["error", "warning", "information"].forEach((severity) =>
+        globalThis.obsNotices.post({id: severity, severity, title: severity}))""")
+    band = frame.evaluate(TOP_BAND)
+
+    squares = [band["home"], band["chevron"], *band["notices"], band["menu"]]
+    assert len(band["notices"]) == 3
+    size = band["menu"]["height"]
+    assert [(round(item["width"]), round(item["height"])) for item in squares] == [(round(size),) * 2] * 6
+    assert {round(item["top"]) for item in [*squares, band["crumbs"]]} == {round(band["menu"]["top"])}
+    assert round(band["crumbs"]["height"]) == round(size)
+    assert band["offRow"] == []
+    # The notice icons sit directly left of the menu, in severity order.
+    lefts = [item["left"] for item in band["notices"]]
+    assert lefts == sorted(lefts)
+    assert 0 <= band["menu"]["left"] - band["notices"][-1]["right"] <= size / 4
+    assert band["crumbs"]["right"] <= band["chevron"]["left"] <= band["chevron"]["right"] <= lefts[0]
+    # Previous and next stay at the viewport edges, below the band.
+    previous, following = band["arrows"]
+    # Next keeps its inset clear of a scrollbar (base.css --chapter-nav-inset-end, 1rem).
+    assert previous["left"] == 0 and 0 <= band["viewport"] - following["right"] <= 16
+    assert min(previous["top"], following["top"]) >= band["menu"]["top"] + size
+    if width == "narrow":
+        assert band["truncated"], "the long crumbs do not truncate at narrow width"
+        assert all(item["title"] == item["text"] for item in band["truncated"])
+    assert errors == []
+
+
 # Each sheet's running-header lines that its own content already shows as a heading.
 REPEATED_HEADINGS = """() => [...document.querySelectorAll(".paper-sheet")].flatMap((sheet) => {
     const headings = new Set([...sheet.querySelectorAll("h1, h2, h3, h4, h5, h6")]

@@ -1204,7 +1204,6 @@
         clone.querySelectorAll("[data-transient-view]").forEach((view) => view.remove());
         clone.querySelectorAll("dialog.figure-overlay").forEach((view) => view.remove());
         clone.classList.remove("paged-mode", "preparing-print");
-        clone.style.removeProperty("--filter-header-clearance");
         const active = clone.querySelector("[data-active-chapter]");
         if (active) active.hidden = false;
         const clonedIsland = clone.querySelector("[data-comment-island]");

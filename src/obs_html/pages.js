@@ -935,10 +935,8 @@
             }
             if (!measuredStarts.size && globalThis.obsStartup) measureProvisionally(slug);
             liveNodes = [...body.childNodes].filter((node) => node !== screen);
-            const breadcrumbs = body.querySelector(".chapter-breadcrumbs");
-            breadcrumbs?.remove();
             const source = document.createElement("div");
-            source.append(...liveNodes.filter((node) => node !== breadcrumbs));
+            source.append(...liveNodes);
             const entries = slug === "home" ? groups(selected, source, false)
                 : [{slug, source}];
             body.replaceChildren(screen);
@@ -956,7 +954,6 @@
             } finally {
                 screen.classList.remove("laying-out");
             }
-            if (breadcrumbs) screen.prepend(breadcrumbs);
             refreshSheets(reason);
         } catch (error) {
             showError(error);
