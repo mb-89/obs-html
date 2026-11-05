@@ -842,7 +842,9 @@
     {
       "id": "logo",
       "href": "images/logo.png",
-      "mediaType": "image/png"
+      "mediaType": "image/png",
+      "path": "images/logo.png",
+      "data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
     }
   ],
   "records": [
