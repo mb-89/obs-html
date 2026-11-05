@@ -20,7 +20,8 @@ says where the reference, swept then in the same frame, has the same fault, whic
 difference.
 
 Run it alone with `uv run pytest test/test_parity_browser.py`; it builds the artifacts once per
-run. Each test runs on its own worker in the complete suite: one per frame for the interaction
+run, without the network: the core's Document through the core's test/offline_obs_document.py.
+Each test runs on its own worker in the complete suite: one per frame for the interaction
 script and one per frame and pair of widths for the sweep.
 """
 import json
@@ -35,6 +36,9 @@ import pytest
 from conftest import CORE_ROOT, FAST_FRAMES, built_once
 from obs_html.cli import main as obs_html
 from preview import SANDBOXES, http_origin, open_preview
+
+# The core's obs-document with the core's fake remote fetcher: no subprocess reaches the network.
+OFFLINE_DOCUMENT = CORE_ROOT / "test" / "offline_obs_document.py"
 
 # step -> why this adapter may still differ from the interim reference there.
 KNOWN_DIFFERENCES: dict[str, str] = {}
@@ -127,16 +131,17 @@ def parity_artifacts(tmp_path_factory) -> dict[str, str]:
 
     def build(folder: Path) -> None:
         capabilities, document = folder / "capabilities.json", folder / "spec.json"
-        run([uv, "run", "--project", str(core), "python", "-m", "obs.capabilities",
+        run([uv, "run", "--offline", "--project", str(core), "python", "-m", "obs.capabilities",
              "--notes", str(core / "spec" / "capabilities"), "--output", str(capabilities)],
             core, "building the capability reference with the core")
-        run([uv, "run", "--project", str(core), "obs-document", "--document", str(document),
-             "--source", str(core / "spec" / "manifest.md"), "--capability-reference", str(capabilities)],
-            core, "building obs's spec Document with the core")
+        run([uv, "run", "--offline", "--project", str(core), "python", str(OFFLINE_DOCUMENT),
+             "--document", str(document), "--source", str(core / "spec" / "manifest.md"),
+             "--capability-reference", str(capabilities)],
+            core, "building obs's spec Document with the core, without the network")
         assert obs_html([str(document), str(folder / "adapter.html"), "--execute-commands",
                          "--command-root", str(core / "spec")]) == 0, \
             "test/test_parity_browser.py: obs-html could not render obs's spec Document"
-        run([uv, "run", "--project", str(reference), "obs-html-interim", "--source", str(core / "spec"),
+        run([uv, "run", "--offline", "--project", str(reference), "obs-html-interim", "--source", str(core / "spec"),
              "--output", str(folder / "reference.html"), "--execute-commands"],
             reference, "rendering obs's spec with the interim reference")
 
