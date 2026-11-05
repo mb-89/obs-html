@@ -25,21 +25,15 @@ Each test runs on its own worker in the complete suite: one per frame for the in
 script and one per frame and pair of widths for the sweep.
 """
 import json
-import os
 import re
-import shutil
-import subprocess
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import pytest
 
 from conftest import CORE_ROOT, FAST_FRAMES, built_once
-from obs_html.cli import main as obs_html
 from preview import SANDBOXES, http_origin, open_preview
-
-# The core's obs-document with the core's fake remote fetcher: no subprocess reaches the network.
-OFFLINE_DOCUMENT = CORE_ROOT / "test" / "offline_obs_document.py"
+from spec_artifact import run, spec_artifact, uv
 
 # step -> why this adapter may still differ from the interim reference there.
 KNOWN_DIFFERENCES: dict[str, str] = {}
@@ -98,16 +92,6 @@ POINTER = """(element) => {
 }"""
 
 
-def run(command: list[str], cwd: Path, what: str) -> None:
-    """Run a build step; on failure name the step, its command and its output."""
-    environment = {key: value for key, value in os.environ.items() if key != "VIRTUAL_ENV"}
-    result = subprocess.run(command, cwd=cwd, env=environment, text=True, encoding="utf-8",
-                            capture_output=True, timeout=900)
-    if result.returncode:
-        pytest.fail(f"test/test_parity_browser.py: {what} failed: {' '.join(command)} (in {cwd})\n"
-                    f"{result.stdout[-2000:]}{result.stderr[-2000:]}", pytrace=False)
-
-
 def require_reference(core: Path) -> Path:
     """obs still carries the interim adapter; once obs removes it, this gate goes too."""
     if not (core / "src" / "obs_html_interim" / "cli.py").is_file():
@@ -122,39 +106,23 @@ def require_reference(core: Path) -> Path:
 
 @pytest.fixture(scope="session")
 def parity_artifacts(tmp_path_factory) -> dict[str, str]:
-    """obs's spec built by this adapter and by the interim reference, once per run."""
+    """obs's spec built by this adapter (test/spec_artifact.py) and by the interim reference, once per run."""
     core = CORE_ROOT
     reference = require_reference(core)
-    uv = shutil.which("uv")
-    if not uv:
-        pytest.fail("test/test_parity_browser.py: uv not found on PATH. Remedy: install uv "
-                    "(https://docs.astral.sh/uv/).", pytrace=False)
 
     def build(folder: Path) -> None:
-        capabilities, document = folder / "capabilities.json", folder / "spec.json"
-        # The interim reference builds alongside the Document and this adapter's render.
+        # The interim reference builds alongside this adapter's spec artifact.
         with ThreadPoolExecutor(1) as alongside:
             reference_built = alongside.submit(
-                run, [uv, "run", "--offline", "--project", str(reference), "obs-html-interim", "--source",
+                run, [uv(), "run", "--offline", "--project", str(reference), "obs-html-interim", "--source",
                       str(core / "spec"), "--output", str(folder / "reference.html"), "--execute-commands"],
                 reference, "rendering obs's spec with the interim reference")
-            build_adapter(folder, capabilities, document)
+            spec_artifact(tmp_path_factory)
             reference_built.result()
 
-    def build_adapter(folder: Path, capabilities: Path, document: Path) -> None:
-        run([uv, "run", "--offline", "--project", str(core), "python", "-m", "obs.capabilities",
-             "--notes", str(core / "spec" / "capabilities"), "--output", str(capabilities)],
-            core, "building the capability reference with the core")
-        run([uv, "run", "--offline", "--project", str(core), "python", str(OFFLINE_DOCUMENT),
-             "--document", str(document), "--source", str(core / "spec" / "manifest.md"),
-             "--capability-reference", str(capabilities)],
-            core, "building obs's spec Document with the core, without the network")
-        assert obs_html([str(document), str(folder / "adapter.html"), "--execute-commands",
-                         "--command-root", str(core / "spec")]) == 0, \
-            "test/test_parity_browser.py: obs-html could not render obs's spec Document"
-
     folder = built_once(tmp_path_factory, "parity", build)
-    return {name: (folder / f"{name}.html").read_text(encoding="utf-8") for name in ("adapter", "reference")}
+    return {"adapter": spec_artifact(tmp_path_factory).read_text(encoding="utf-8"),
+            "reference": (folder / "reference.html").read_text(encoding="utf-8")}
 
 
 def interact(page, frame) -> tuple[list[tuple[str, object]], list[str]]:
