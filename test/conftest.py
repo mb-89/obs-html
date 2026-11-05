@@ -9,6 +9,9 @@ from filelock import FileLock
 from jsonschema import Draft202012Validator
 from referencing import Registry, Resource
 
+import network_guard
+
+network_guard.install()
 
 ROOT = Path(__file__).parents[1]
 FIXTURE = ROOT / "test" / "fixtures" / "document.json"
@@ -68,6 +71,19 @@ def fixture_artifact(tmp_path_factory) -> Path:
 @pytest.fixture
 def document() -> dict[str, object]:
     return json.loads(FIXTURE.read_text(encoding="utf-8"))
+
+
+@pytest.hookimpl(wrapper=True)
+def pytest_runtest_protocol(item, nextitem):
+    with network_guard.running(item.nodeid):
+        return (yield)
+
+
+@pytest.hookimpl(wrapper=True)
+def pytest_runtest_makereport(item, call):
+    report = yield
+    network_guard.fail(report)
+    return report
 
 
 def pytest_collection_modifyitems(config, items):
