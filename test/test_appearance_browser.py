@@ -13,7 +13,8 @@ from documents import chapter, document, heading, paragraph
 from obs_html.config import load_config
 from obs_html.render import render
 
-APPEARANCES = ("light", "dark", "system")
+# appearance -> the root's color-scheme
+APPEARANCES = {"light": "light", "dark": "dark", "system": "light dark"}
 
 # What the reader sees, and the background each is read against.
 COLOURS = """() => {
@@ -96,6 +97,7 @@ def test_each_appearance_paints_its_own_opaque_readable_colours(tmp_path, reader
         choose(frame, appearance)
         colours = frame.evaluate(COLOURS)
         seen[appearance] = colours
+        assert colours["html"]["scheme"] == APPEARANCES[appearance]
         for element in ("html", "body"):
             assert rgba(colours[element]["background"])[3] == 1, f"{appearance}: {element} {colours[element]}"
         for element in ("body", "heading", "text"):

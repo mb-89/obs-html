@@ -965,7 +965,6 @@ def _shell(model: dict[str, object], stylesheet: str, assets: SemanticAssets, co
   <script id="reader-startup-script">
 {reader_startup}  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="color-scheme" content="light dark">
   <title>{escape(title)}</title>
   <style id="artifact-styles">
 {stylesheet}
