@@ -1157,22 +1157,6 @@ math {
     flex-direction: row-reverse;
 }
 
-/* Everything on the title page is centered, its running header too: one centered line each. */
-.paper-sheet[data-page-chapter="home"] .paper-header {
-    align-items: center;
-    flex-direction: column;
-    gap: 0;
-}
-
-.paper-sheet[data-page-chapter="home"] .paper-header > span {
-    max-width: 100%;
-    text-align: center;
-}
-
-.paper-sheet[data-page-chapter="home"] .paper-header > span:empty {
-    display: none;
-}
-
 .page-contents {
     list-style: none;
     padding: 0;

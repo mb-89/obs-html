@@ -700,14 +700,23 @@
             const slug = sheet.dataset.pageChapter;
             const sectionTitle = data.notes.find((record) => record.slug === slug)?.title ||
                 sectionTitles.get(slug) || "";
-            [identity.textContent, section.textContent] =
-                globalThis.obsRunningHeader.content(metadata, slug, sectionTitle);
+            // No text twice in one view: the title sheet's cover already shows the identity,
+            // confidentiality and legal lines, and a sheet that shows its section's heading
+            // leaves the section out of its running header.
+            if (slug !== "home") {
+                const headings = new Set([...sheet.querySelectorAll("h1, h2, h3, h4, h5, h6")]
+                    .map((heading) => heading.textContent.trim()));
+                [identity.textContent, section.textContent] =
+                    globalThis.obsRunningHeader.content(metadata, slug, sectionTitle)
+                        .map((line) => headings.has(String(line).trim()) ? "" : line);
+            }
             header.append(identity, section);
             const footer = document.createElement("footer");
             footer.className = "paper-footer";
             const legal = document.createElement("div");
             legal.className = "paper-legal";
-            legal.textContent = [metadata.copyright, metadata.confidentiality].filter(Boolean).join(" · ");
+            legal.textContent = slug === "home" ? ""
+                : [metadata.copyright, metadata.confidentiality].filter(Boolean).join(" · ");
             const author = document.createElement("span");
             author.textContent = [text(metadata.authors), metadata.organization].filter(Boolean).join(" · ");
             const reference = document.createElement("span");
