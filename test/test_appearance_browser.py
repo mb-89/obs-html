@@ -105,7 +105,8 @@ def test_each_appearance_paints_its_own_opaque_readable_colours(tmp_path, reader
             assert ratio >= 4.5, f"{appearance}: {element} contrast {ratio:.2f} {colours[element]}"
 
     assert seen["light"]["body"]["background"] != seen["dark"]["body"]["background"]
-    assert seen["system"]["body"] == seen[host_scheme]["body"], "System follows the host's scheme"
+    for colour in ("background", "color"):
+        assert seen["system"]["body"][colour] == seen[host_scheme]["body"][colour], "System follows the host"
     assert errors == []
 
 

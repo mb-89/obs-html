@@ -156,14 +156,15 @@
 
 html,
 body {
+    background-color: var(--color-canvas);
+    color: var(--color-text);
     height: 100%;
     margin: 0;
     overflow: hidden;
 }
 
 body {
-    background: linear-gradient(180deg, var(--color-canvas), var(--color-canvas-secondary));
-    color: var(--color-text);
+    background: linear-gradient(180deg, var(--color-canvas), var(--color-canvas-secondary)) var(--color-canvas);
     font-family: var(--font-content);
     letter-spacing: 0;
 }
