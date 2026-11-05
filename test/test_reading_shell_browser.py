@@ -5,12 +5,16 @@ Paged view: no text twice in one view) and spec/design_input/input-model.md (cha
 of contents and previous/next walk the same non-hidden manifest lines). Each test opens the
 artifact in the viewer fixture (test/browser/viewer.py).
 """
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
 from browser.viewer import open_viewer
+from conftest import CORE_ROOT
 from documents import chapter, document, heading, paragraph
 
+from obs_html.cli import main as obs_html
 from obs_html.config import load_config
 from obs_html.render import render
 
@@ -45,6 +49,33 @@ TOP_BAND = """() => {
         viewport: innerWidth,
     };
 }"""
+
+
+def assert_contents_and_walk(tmp_path: Path, reader_browser, artifact: str, chapters: list[str]) -> None:
+    """The contents list exactly ``chapters``, and previous/next walk them both ways from Home."""
+    from playwright.sync_api import expect
+
+    errors: list[str] = []
+    _page, frame = open_viewer(tmp_path, reader_browser, errors, artifact, "light")
+    contents = frame.evaluate("""() => [...document.querySelectorAll("[data-toc-tree] [data-toc-link]")]
+        .map((link) => link.getAttribute("href").slice(1))""")
+    walk = []
+    following = frame.locator('[data-step="1"]')
+    while following.is_enabled():
+        following.click()
+        frame.evaluate("globalThis.obsArtifact.whenChapterReady()")
+        walk.append(frame.locator("[data-active-chapter]").get_attribute("data-chapter"))
+    assert contents == chapters
+    assert walk == contents
+    backwards = []
+    previous = frame.locator('[data-step="-1"]')
+    while previous.is_enabled():
+        previous.click()
+        frame.evaluate("globalThis.obsArtifact.whenChapterReady()")
+        backwards.append(frame.locator("[data-active-chapter]").get_attribute("data-chapter"))
+    assert backwards == [*reversed(contents[:-1]), "home"]
+    expect(frame.locator("[data-active-chapter]")).to_have_attribute("data-chapter", "home")
+    assert errors == []
 
 
 def band_artifact() -> str:
@@ -132,8 +163,6 @@ def test_the_title_page_shows_the_document_type_once(tmp_path: Path, reader_brow
 def test_the_contents_and_previous_next_walk_the_same_chapters(tmp_path: Path, reader_browser) -> None:
     """The Document as the core emits a manifest with a hidden line: the hidden line is no chapter,
     and a note the manifest does not list is a `toc: false` chapter, reachable only by its link."""
-    from playwright.sync_api import expect
-
     unlisted = {**chapter("secret", "Secret", paragraph("Reached by link only.")), "toc": False}
     artifact = render(document(
         "Walk",
@@ -144,24 +173,29 @@ def test_the_contents_and_previous_next_walk_the_same_chapters(tmp_path: Path, r
         )),
         chapter("two", "Two", paragraph("Two.")),
     ), load_config())
-    errors: list[str] = []
-    _page, frame = open_viewer(tmp_path, reader_browser, errors, artifact, "light")
-    contents = frame.evaluate("""() => [...document.querySelectorAll("[data-toc-tree] [data-toc-link]")]
-        .map((link) => link.getAttribute("href").slice(1))""")
-    walk = []
-    following = frame.locator('[data-step="1"]')
-    while following.is_enabled():
-        following.click()
-        frame.evaluate("globalThis.obsArtifact.whenChapterReady()")
-        walk.append(frame.locator("[data-active-chapter]").get_attribute("data-chapter"))
-    assert contents == ["one", "one-a", "one-b", "two"]
-    assert walk == contents
-    backwards = []
-    previous = frame.locator('[data-step="-1"]')
-    while previous.is_enabled():
-        previous.click()
-        frame.evaluate("globalThis.obsArtifact.whenChapterReady()")
-        backwards.append(frame.locator("[data-active-chapter]").get_attribute("data-chapter"))
-    assert backwards == [*reversed(contents[:-1]), "home"]
-    expect(frame.locator("[data-active-chapter]")).to_have_attribute("data-chapter", "home")
-    assert errors == []
+    assert_contents_and_walk(tmp_path, reader_browser, artifact, ["one", "one-a", "one-b", "two"])
+
+
+def test_a_manifest_with_commented_lines_walks_its_visible_chapters_end_to_end(
+    tmp_path: Path, reader_browser,
+) -> None:
+    """The same walk through obs-document and obs-html: the core hides the `%%` manifest lines,
+    so the contents and previous/next walk one, one-a, one-b and two."""
+    vault = tmp_path / "vault"
+    vault.mkdir()
+    (vault / "manifest.md").write_text(
+        "---\ntitle: Walk\n---\n- [[one]]\n  - [[one-a]]\n  %% - [[secret]] %%\n  - [[one-b]]\n"
+        "%%\n- [[gone]]\n%%\n- [[two]]\n", encoding="utf-8",
+    )
+    for name in ("one", "one-a", "one-b", "two"):
+        (vault / f"{name}.md").write_text(f"{name} body.\n", encoding="utf-8")
+    built, capabilities = tmp_path / "document.json", tmp_path / "capabilities.json"
+    subprocess.run([sys.executable, "-m", "obs.capabilities", "--notes",
+                    str(CORE_ROOT / "spec" / "capabilities"), "--output", str(capabilities)], check=True)
+    subprocess.run([sys.executable, "-m", "obs.document", "--source", str(vault / "manifest.md"),
+                    "--document", str(built), "--capability-reference", str(capabilities)], check=True)
+    destination = tmp_path / "artifact.html"
+    assert obs_html([str(built), str(destination)]) == 0
+    assert_contents_and_walk(
+        tmp_path, reader_browser, destination.read_text(encoding="utf-8"), ["one", "one-a", "one-b", "two"],
+    )
