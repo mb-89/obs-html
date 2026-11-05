@@ -52,7 +52,8 @@
             {
               "type": "list",
               "attrs": {
-                "ordered": false
+                "ordered": false,
+                "tight": true
               },
               "children": [
                 {

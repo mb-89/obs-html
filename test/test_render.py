@@ -306,6 +306,14 @@ def test_lists_of_single_paragraph_items_render_tight(document) -> None:
     assert "<ol>\n<li>one</li>\n<li>two</li>\n</ol>" in html
 
 
+def test_a_loose_list_renders_its_paragraphs_even_with_one_paragraph_per_item(document) -> None:
+    intro = next(chapter for chapter in document["chapters"] if chapter["id"] == "intro")
+    listing = next(node for node in intro["content"] if node["type"] == "list")
+    listing["attrs"]["tight"] = False
+    html = _notes(document)["intro"]["html"]
+    assert "<ol>\n<li><p>one</p>\n</li>\n<li><p>two</p>\n</li>\n</ol>" in html
+
+
 def test_unaliased_wikilinks_show_the_chapter_title(document) -> None:
     document["chapters"][1]["content"].append({"type": "paragraph", "attrs": {}, "children": [
         {"type": "wikilinks", "attrs": {"target": "intro", "chapter": "intro", "heading": "", "label": "intro"}, "children": []}]})

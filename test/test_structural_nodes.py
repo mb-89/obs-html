@@ -37,7 +37,8 @@ def _structural_node(kind: str) -> dict:
     word = _word(kind)
     if kind in {"text", "code", "math"}:
         return {"type": kind, "attrs": {"display": False} if kind == "math" else {}, "children": [], "text": word}
-    attrs = {"table-cell": {"header": False}, "field": {"name": "name"}, "section": {"level": 2}}.get(kind, {})
+    attrs = {"table-cell": {"header": False}, "field": {"name": "name"}, "section": {"level": 2},
+             "list": {"ordered": False, "tight": True}}.get(kind, {})
     return {"type": kind, "attrs": attrs, "children": [] if kind == "rule" else [text(word)]}
 
 
