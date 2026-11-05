@@ -1,5 +1,4 @@
 """Native-browser tier: the fixture artifact's presentation runs in Chromium."""
-import base64
 
 import pytest
 
@@ -49,12 +48,12 @@ def test_the_print_book_holds_every_front_page_and_chapter(artifact_page) -> Non
 def test_everything_on_the_title_page_is_centered(tmp_path, reader_browser) -> None:
     import json
     document = json.loads(FIXTURE.read_text(encoding="utf-8"))
-    document["manifest"]["metadata"]["subtitle"] = f"Bridge ![A](data:image/png;base64,{PIXEL})"
+    document["manifest"]["metadata"]["subtitle"] = "Bridge ![A](https://badges.test/a.png)"
+    document["assets"].append({"id": "a", "href": "https://badges.test/a.png", "mediaType": "image/png",
+                               "data": PIXEL})
     document["manifest"]["metadata"]["confidentiality"] = "Internal"
     source = tmp_path / "document.json"
     source.write_text(json.dumps(document), encoding="utf-8")
-    (tmp_path / "images").mkdir()
-    (tmp_path / "images" / "logo.png").write_bytes(base64.b64decode(PIXEL))
     artifact = tmp_path / "artifact.html"
     cli.main([str(source), str(artifact), "--execute-commands", "--command-root", str(tmp_path)])
     page = reader_browser.new_page(viewport={"width": 1200, "height": 1000})
