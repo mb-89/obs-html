@@ -34,7 +34,9 @@ from obs_html.styles import load_style
 from obs_html.timings import stage
 
 
-STRUCTURAL = {"document", "section", "paragraph", "text", "list", "list-item", "code"}
+STRUCTURAL = frozenset(json.loads(files("obs").joinpath("document.schema.json").read_text(encoding="utf-8"))
+                       ["$defs"]["structuralType"]["enum"])
+"""The node types every adapter renders, as the core's Document schema lists them (structuralType)."""
 PROFILE_DEFAULTS = {
     "layout": "paged",
     "heading": "cover",
@@ -753,34 +755,33 @@ def _nodes(nodes: list[dict[str, object]], context: Context) -> str:
 
 def _node(node: dict[str, object], context: Context) -> str:
     kind = node["type"]
-    if kind in CAPABILITIES:
-        return CAPABILITIES[kind](node, context)
-    if kind not in STRUCTURAL:
-        return _unknown(node, context)
-    if kind == "text":
-        return _text_node(node, context)
-    if kind == "code" and node["attrs"].get("language") == "property-editor":
+    return (CAPABILITIES.get(kind) or STRUCTURAL_NODES.get(kind) or _unknown)(node, context)
+
+
+def _code_node(node: dict[str, object], context: Context) -> str:
+    if node["attrs"].get("language") == "property-editor":
         return _property_editor(node, context)
-    if kind == "code":
-        return _code(node)
-    if kind == "paragraph":
-        return _paragraph(node, context)
-    if kind == "list" and _tight(node):
-        tag = "ol" if node["attrs"].get("ordered") else "ul"
+    return _code(node)
+
+
+def _list(node: dict[str, object], context: Context) -> str:
+    tag = "ol" if node["attrs"].get("ordered") else "ul"
+    if _tight(node):
         items = "".join(f"<li>{_tight_item(item, context)}</li>\n" for item in node["children"])
         return f"<{tag}>\n{items}</{tag}>\n"
-    inner = _nodes(node["children"], context)
-    if kind == "section":
-        level = min(max(int(node["attrs"].get("level", 1)), 1), 6)
-        anchor = context.headings.get(f"{context.chapter or HOME}#{_identifier(_plain(node))}", "")
-        identifier = f' id="{anchor}"' if anchor else ""
-        return f"<h{level}{identifier}>{inner}</h{level}>\n"
-    if kind == "list":
-        tag = "ol" if node["attrs"].get("ordered") else "ul"
-        return f"<{tag}>\n{inner}</{tag}>\n"
-    if kind == "list-item":
-        return f"<li>{inner}</li>\n"
-    return f'<div class="document">{inner}</div>\n'
+    return f"<{tag}>\n{_nodes(node['children'], context)}</{tag}>\n"
+
+
+def _section(node: dict[str, object], context: Context) -> str:
+    level = min(max(int(node["attrs"].get("level", 1)), 1), 6)
+    anchor = context.headings.get(f"{context.chapter or HOME}#{_identifier(_plain(node))}", "")
+    identifier = f' id="{anchor}"' if anchor else ""
+    return f"<h{level}{identifier}>{_nodes(node['children'], context)}</h{level}>\n"
+
+
+def _wrap(opening: str, closing: str) -> Renderer:
+    """A node shown as its children inside one element."""
+    return lambda node, context: f"{opening}{_nodes(node['children'], context)}{closing}"
 
 
 def _unknown(node: dict[str, object], context: Context) -> str:
@@ -788,9 +789,11 @@ def _unknown(node: dict[str, object], context: Context) -> str:
     kind = node["type"]
     if kind not in context.unknown:
         context.unknown.add(kind)
+        listed = "lists it as structural" if kind in STRUCTURAL else "does not list it"
         print(f"Warning: obs-html (src/obs_html/render.py): Document node type {kind!r} is not rendered by "
               f"this adapter, first in chapter {context.chapter or HOME!r}; its text is shown without its "
-              f"formatting. Remedy: add a renderer for {kind!r} to src/obs_html/render.py.", file=sys.stderr)
+              f"formatting. The core's document.schema.json {listed}. Remedy: add a renderer for {kind!r} "
+              "to src/obs_html/render.py.", file=sys.stderr)
     return (f'<span class="unknown-node" data-node-type="{escape(kind, quote=True)}">'
             f"{escape(_plain(node))}</span>")
 
@@ -893,6 +896,18 @@ def _text_node(node: dict[str, object], context: Context) -> str:
             raise RenderError(f"Text names an unknown asset: {attrs['asset']}.")
         return f'<img src="{escape(asset["href"], quote=True)}" alt="{escape(node.get("text", ""), quote=True)}">'
     return text
+
+
+STRUCTURAL_NODES: dict[str, Renderer] = {
+    "document": _wrap('<div class="document">', "</div>\n"),
+    "section": _section,
+    "paragraph": _paragraph,
+    "text": _text_node,
+    "list": _list,
+    "list-item": _wrap("<li>", "</li>\n"),
+    "code": _code_node,
+}
+"""One renderer per structural type (STRUCTURAL); a type without one renders as an unknown node."""
 
 
 def _note_target(href: str, context: Context) -> str | None:
