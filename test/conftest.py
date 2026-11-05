@@ -1,8 +1,12 @@
+import base64
 import contextlib
 import json
+import os
+import shutil
 from pathlib import Path
 
 import pytest
+from filelock import FileLock
 from jsonschema import Draft202012Validator
 from referencing import Registry, Resource
 
@@ -25,6 +29,43 @@ def document_validator(core_root: Path) -> Draft202012Validator:
     registry = Registry().with_resource("figure.schema.json", Resource.from_contents(figure))
     schema = json.loads((schemas / "document.schema.json").read_text(encoding="utf-8"))
     return Draft202012Validator(schema, registry=registry)
+
+
+def built_once(tmp_path_factory, name: str, build) -> Path:
+    """The folder ``build(folder)`` fills, built once per run and shared by every xdist worker.
+
+    Workers' temporary folders sit side by side in the run's folder; the first worker to ask
+    builds there under a lock and the others wait for it and read what it built.
+    """
+    root = tmp_path_factory.getbasetemp()
+    if os.environ.get("PYTEST_XDIST_WORKER"):
+        root = root.parent
+    folder = root / name
+    with FileLock(f"{folder}.lock"):
+        if not (folder / ".built").is_file():
+            shutil.rmtree(folder, ignore_errors=True)
+            folder.mkdir()
+            build(folder)
+            (folder / ".built").touch()
+    return folder
+
+
+PIXEL = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
+
+
+@pytest.fixture(scope="session")
+def fixture_artifact(tmp_path_factory) -> Path:
+    """The fixture Document rendered by this adapter, once per run; tests only read it."""
+    from obs_html import cli
+
+    def build(folder: Path) -> None:
+        (folder / "images").mkdir()
+        (folder / "images" / "logo.png").write_bytes(base64.b64decode(PIXEL))
+        assert cli.main([str(FIXTURE), str(folder / "artifact.html"), "--execute-commands",
+                         "--command-root", str(folder)]) == 0, \
+            "test/conftest.py: obs-html could not render the fixture Document test/fixtures/document.json"
+
+    return built_once(tmp_path_factory, "fixture-artifact", build) / "artifact.html"
 
 
 @pytest.fixture

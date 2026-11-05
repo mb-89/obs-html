@@ -3,20 +3,16 @@ import base64
 
 import pytest
 
-from conftest import FIXTURE
+from conftest import FIXTURE, PIXEL
 from obs_html import cli
 
 
 pytestmark = pytest.mark.browser
-PIXEL = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
 
 
 @pytest.fixture
-def artifact_page(tmp_path, reader_browser):
-    (tmp_path / "images").mkdir()
-    (tmp_path / "images" / "logo.png").write_bytes(base64.b64decode(PIXEL))
-    artifact = tmp_path / "artifact.html"
-    cli.main([str(FIXTURE), str(artifact), "--execute-commands", "--command-root", str(tmp_path)])
+def artifact_page(fixture_artifact, reader_browser):
+    artifact = fixture_artifact
     page = reader_browser.new_page(viewport={"width": 1200, "height": 1000})
     errors = []
     page.on("pageerror", lambda error: errors.append(str(error)))

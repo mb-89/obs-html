@@ -19,7 +19,7 @@ closed. It holds this adapter to the design notes alone: a covered control fails
 says where the reference has the same fault, which is not a parity difference.
 
 Run it alone with `uv run pytest test/test_parity_browser.py`; it builds the artifacts once per
-session. Each test runs on its own worker in the complete suite: one per frame for the interaction
+run. Each test runs on its own worker in the complete suite: one per frame for the interaction
 script and one per frame for the sweep.
 """
 import json
@@ -31,7 +31,7 @@ from pathlib import Path
 
 import pytest
 
-from conftest import CORE_ROOT, FAST_FRAMES
+from conftest import CORE_ROOT, FAST_FRAMES, built_once
 from obs_html.cli import main as obs_html
 from preview import SANDBOXES, http_origin, open_preview
 
@@ -108,31 +108,31 @@ def require_reference(core: Path) -> Path:
 
 @pytest.fixture(scope="session")
 def parity_artifacts(tmp_path_factory) -> dict[str, str]:
-    """obs's spec built by this adapter and by the interim reference."""
+    """obs's spec built by this adapter and by the interim reference, once per run."""
     core = CORE_ROOT
     reference = require_reference(core)
     uv = shutil.which("uv")
     if not uv:
         pytest.fail("test/test_parity_browser.py: uv not found on PATH. Remedy: install uv "
                     "(https://docs.astral.sh/uv/).", pytrace=False)
-    folder = tmp_path_factory.mktemp("parity")
-    capabilities, document = folder / "capabilities.json", folder / "spec.json"
-    run([uv, "run", "--project", str(core), "python", "-m", "obs.capabilities",
-         "--notes", str(core / "spec" / "capabilities"), "--output", str(capabilities)],
-        core, "building the capability reference with the core")
-    run([uv, "run", "--project", str(core), "obs-document", "--document", str(document),
-         "--source", str(core / "spec" / "manifest.md"), "--capability-reference", str(capabilities)],
-        core, "building obs's spec Document with the core")
-    adapter = folder / "adapter.html"
-    assert obs_html([str(document), str(adapter), "--execute-commands",
-                     "--command-root", str(core / "spec")]) == 0, \
-        "test/test_parity_browser.py: obs-html could not render obs's spec Document"
-    interim = folder / "reference.html"
-    run([uv, "run", "--project", str(reference), "obs-html-interim", "--source", str(core / "spec"),
-         "--output", str(interim), "--execute-commands"],
-        reference, "rendering obs's spec with the interim reference")
-    return {"adapter": adapter.read_text(encoding="utf-8"),
-            "reference": interim.read_text(encoding="utf-8")}
+
+    def build(folder: Path) -> None:
+        capabilities, document = folder / "capabilities.json", folder / "spec.json"
+        run([uv, "run", "--project", str(core), "python", "-m", "obs.capabilities",
+             "--notes", str(core / "spec" / "capabilities"), "--output", str(capabilities)],
+            core, "building the capability reference with the core")
+        run([uv, "run", "--project", str(core), "obs-document", "--document", str(document),
+             "--source", str(core / "spec" / "manifest.md"), "--capability-reference", str(capabilities)],
+            core, "building obs's spec Document with the core")
+        assert obs_html([str(document), str(folder / "adapter.html"), "--execute-commands",
+                         "--command-root", str(core / "spec")]) == 0, \
+            "test/test_parity_browser.py: obs-html could not render obs's spec Document"
+        run([uv, "run", "--project", str(reference), "obs-html-interim", "--source", str(core / "spec"),
+             "--output", str(folder / "reference.html"), "--execute-commands"],
+            reference, "rendering obs's spec with the interim reference")
+
+    folder = built_once(tmp_path_factory, "parity", build)
+    return {name: (folder / f"{name}.html").read_text(encoding="utf-8") for name in ("adapter", "reference")}
 
 
 def interact(page, frame) -> tuple[list[tuple[str, object]], list[str]]:
