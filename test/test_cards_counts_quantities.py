@@ -148,6 +148,42 @@ def test_a_core_built_card_body_renders_its_base_table_and_its_nested_card() -> 
     assert overview["tables"][0]["definition"]["views"][0]["order"] == ["file.name", "status"]
 
 
+def test_the_metric_contract_reaches_the_runtime_as_the_interim_adapter_ships_it() -> None:
+    """Every metric field and the metric series reach cards.js unchanged, as the interim's
+    render_cards ships them; only the compound value's links are this adapter's own."""
+    from obs_html_interim.cards import render_cards
+
+    document = _fixture()
+    fence = next(item for item in next(chapter for chapter in document["chapters"] if chapter["id"] == "overview")
+                 ["content"] if item["type"] == "cards-metrics")
+    groups = next(record for record in document["records"] if record["id"] == "groups")["fields"]
+    # The interim refuses a nested cards fence, so it renders the cards with metrics alone.
+    metric_cards = [card for card in fence["attrs"]["spec"]["cards"] if card.get("metrics") or card.get("obsHtml")]
+    reference = render_cards(json.dumps({"version": 1, "cards": metric_cards}), lambda source: "", "overview.md",
+                             lambda note: groups)
+    html = next(note for note in decode_artifact_data(render(document, CONFIG))["notes"]
+                if note["slug"] == "overview")["html"]
+
+    def cards(markup: str) -> list[tuple[list[dict], str | None]]:
+        result = []
+        for section in markup.split('<section class="content-card record-card" ')[1:]:
+            payload = [{key: value for key, value in metric.items() if key != "valueHtml"}
+                       for metric in _card_payload(section)]
+            series = section.split('data-record-series="')[1].split('"')[0] if "data-record-series" in section else None
+            result.append((payload, series))
+        return result
+
+    shipped = cards(html)
+    assert [payload for payload, _ in shipped if payload] == [
+        [*card["metrics"]] for card in fence["attrs"]["spec"]["cards"] if card.get("metrics")]
+    assert {"key", "denominator", "link", "tone", "toneRules", "secondaryLink", "obsHtml"} <= {
+        field for payload, _ in shipped for metric in payload for field in metric}
+    assert shipped[-1][1] is not None and json.loads(unescape(shipped[-1][1])) == \
+        fence["attrs"]["spec"]["cards"][2]["obsHtml"]["metricsFrom"]
+    reference_cards = cards(reference)
+    assert [card for card in shipped if card[0] or card[1]] == [card for card in reference_cards if card[0] or card[1]]
+
+
 def test_card_bodies_not_matching_the_cards_name_the_chapter_and_the_remedy() -> None:
     fence = _cards({"title": "One", "body": ""}, {"title": "Two", "body": ""})
     fence["children"].pop()
