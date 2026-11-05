@@ -307,6 +307,12 @@ a:focus-visible {
     padding: 0;
 }
 
+.chapter-body hr {
+    border: none;
+    border-block-start: var(--border-width) solid var(--color-border);
+    margin-block: 1.5rem;
+}
+
 .chapter-body blockquote {
     border-inline-start: 0.2rem solid var(--color-accent);
     color: var(--color-text-muted);

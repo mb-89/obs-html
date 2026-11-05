@@ -141,9 +141,12 @@
     });
 
     // Each limit is a warning entry of the notice center: the feature, why, what the canary observed
-    // (where its result records an observation) and the remedy.
-    if (!limits.length) return;
-    const mount = () => limits.forEach((entry) => {
+    // (where its result records an observation) and the remedy. So is each limited function of the
+    // Document that obs-html wrote into the page (document-limits), such as a node type shown as text.
+    const island = view.document.getElementById("document-limits");
+    const warnings = [...limits, ...(island ? JSON.parse(island.textContent) : [])];
+    if (!warnings.length) return;
+    const mount = () => warnings.forEach((entry) => {
         const details = view.document.createElement("dl");
         details.dataset.capability = entry.key;
         [["Feature", entry.feature], ["Why", entry.reason], ["Observed", entry.observation],
