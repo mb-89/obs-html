@@ -11,7 +11,9 @@ which test_moved_dom_contracts.py checks)::
 
     uv run python test/fixtures/build_documents.py <obs checkout> [vault ...]
 
-Name vaults to rebuild only those (the keys of ``VAULTS``); without one it rebuilds all.
+Name vaults to rebuild only those (the keys of ``VAULTS``); without one it rebuilds all. A build
+never reaches the network: remote images come from ``REMOTE``, and a Document with diagnostics is
+refused, so nothing environment-specific is committed.
 """
 from __future__ import annotations
 

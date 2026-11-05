@@ -135,3 +135,11 @@ def test_a_base_fence_with_members_fails_naming_the_field_and_the_remedy() -> No
     assert "Base in chapter one" in str(error.value)
     assert "views.0.obsHtml.members" in str(error.value)
     assert "Remedy:" in str(error.value)
+
+
+def test_the_base_schema_accepts_members_only_in_a_view() -> None:
+    """The core refuses Base-level members (generic-tables); the adapter's schema has no place for them."""
+    schema = json.loads((ROOT / "src" / "obs_html" / "base.schema.json").read_text(encoding="utf-8"))
+    assert "members" not in schema["properties"]["obsHtml"]["properties"]
+    assert schema["properties"]["views"]["items"]["properties"]["obsHtml"]["properties"]["members"] == {
+        "$ref": "#/$defs/members"}

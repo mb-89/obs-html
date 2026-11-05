@@ -249,7 +249,22 @@
               "type": "risk"
             }
           },
-          "children": []
+          "children": [
+            {
+              "type": "field",
+              "attrs": {
+                "name": "type"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "risk"
+                }
+              ]
+            }
+          ]
         },
         {
           "type": "chapter-inclusion",
@@ -304,6 +319,127 @@
       }
     },
     {
+      "id": "glossary",
+      "title": "Datum",
+      "toc": false,
+      "content": [
+        {
+          "type": "markdown-frontmatter",
+          "attrs": {
+            "metadata": {
+              "kind": "glossary",
+              "term": "Datum",
+              "definition": "A reference.",
+              "status": "approved"
+            }
+          },
+          "children": [
+            {
+              "type": "field",
+              "attrs": {
+                "name": "kind"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "glossary"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "term"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "Datum"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "definition"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "A reference."
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "status"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "approved"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "references",
+          "attrs": {
+            "metadata": {
+              "kind": "glossary",
+              "term": "Datum",
+              "definition": "A reference.",
+              "status": "approved"
+            }
+          },
+          "children": []
+        },
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "glossary"
+          },
+          "children": []
+        },
+        {
+          "type": "markdown",
+          "attrs": {},
+          "children": []
+        },
+        {
+          "type": "section",
+          "attrs": {
+            "level": 1
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Datum"
+            }
+          ]
+        }
+      ],
+      "children": [],
+      "metadata": {
+        "kind": "glossary",
+        "term": "Datum",
+        "definition": "A reference.",
+        "status": "approved"
+      }
+    },
+    {
       "id": "slugged",
       "title": "Slugged",
       "toc": false,
@@ -333,7 +469,106 @@
               ]
             }
           },
-          "children": []
+          "children": [
+            {
+              "type": "field",
+              "attrs": {
+                "name": "kind"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "evidence"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "slug"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "custom"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "tags.0"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "a"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "tags.1"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "b"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "nested.owner"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "Ann"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "items.0.name"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "x"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "items.1.name"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "y"
+                }
+              ]
+            }
+          ]
         },
         {
           "type": "chapter-inclusion",
@@ -472,6 +707,76 @@
           }
         ]
       }
+    },
+    {
+      "id": "chapter-registers",
+      "type": "chapter",
+      "note": "registers",
+      "fields": {
+        "chapter": "Registers",
+        "title": "Registers",
+        "depth": "0",
+        "slug": "registers",
+        "sourcePath": "registers.md"
+      }
+    },
+    {
+      "id": "chapter-marked",
+      "type": "chapter",
+      "note": "marked",
+      "fields": {
+        "chapter": "Marked",
+        "title": "Marked",
+        "depth": "0",
+        "slug": "marked",
+        "sourcePath": "marked.md"
+      }
+    },
+    {
+      "id": "glossary-draft-term",
+      "type": "glossary",
+      "note": "draft-term",
+      "fields": {
+        "sourcePath": "draft-term.md",
+        "term": "Draft",
+        "definition": "Not yet.",
+        "aliases": []
+      }
+    },
+    {
+      "id": "glossary-glossary",
+      "type": "glossary",
+      "note": "glossary",
+      "fields": {
+        "sourcePath": "glossary.md",
+        "term": "Datum",
+        "definition": "A reference.",
+        "aliases": []
+      }
+    },
+    {
+      "id": "tag-marked-open-point-datum-watch",
+      "type": "tag",
+      "note": "marked",
+      "fields": {
+        "sourcePath": "marked.md",
+        "type": "open_point",
+        "label": "datum_watch",
+        "text": "Watch the datum.",
+        "source": "Marked"
+      }
+    },
+    {
+      "id": "tag-registers-risk-register-check",
+      "type": "tag",
+      "note": "registers",
+      "fields": {
+        "sourcePath": "registers.md",
+        "type": "risk",
+        "label": "register_check",
+        "text": "Check the register.",
+        "source": "Registers"
+      }
     }
   ],
   "semanticResources": [],
@@ -482,6 +787,7 @@
     "manifest",
     "markdown",
     "markdown-frontmatter",
-    "marks"
+    "marks",
+    "references"
   ]
 }

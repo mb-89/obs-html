@@ -167,7 +167,158 @@
               "instructions": "Keep the **original evidence**.\n\n- Read [[target|the canonical instructions]].\n- Open [the official export](https://example.org/export).\n- Download [the source archive](obs-source:archive).\n\n<script>window.helpInjected = true</script>"
             }
           },
-          "children": []
+          "children": [
+            {
+              "type": "field",
+              "attrs": {
+                "name": "kind"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "evidence"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "instructions"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "Keep the "
+                },
+                {
+                  "type": "strong",
+                  "attrs": {},
+                  "children": [
+                    {
+                      "type": "text",
+                      "attrs": {},
+                      "children": [],
+                      "text": "original evidence"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "."
+                },
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "\n"
+                },
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "\n"
+                },
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "- Read "
+                },
+                {
+                  "type": "wikilinks",
+                  "attrs": {
+                    "target": "target",
+                    "chapter": "target",
+                    "heading": "",
+                    "label": "the canonical instructions"
+                  },
+                  "children": []
+                },
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "."
+                },
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "\n"
+                },
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "- Open "
+                },
+                {
+                  "type": "text",
+                  "attrs": {
+                    "link": "the-official-export"
+                  },
+                  "children": [],
+                  "text": "the official export"
+                },
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "."
+                },
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "\n"
+                },
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "- Download "
+                },
+                {
+                  "type": "text",
+                  "attrs": {
+                    "link": "the-source-archive"
+                  },
+                  "children": [],
+                  "text": "the source archive"
+                },
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "."
+                },
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "\n"
+                },
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "\n"
+                },
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "<script>window.helpInjected = true</script>"
+                }
+              ]
+            }
+          ]
         },
         {
           "type": "chapter-inclusion",
@@ -184,7 +335,23 @@
       }
     }
   ],
-  "links": [],
+  "links": [
+    {
+      "id": "the-canonical-instructions",
+      "href": "target",
+      "label": "the canonical instructions"
+    },
+    {
+      "id": "the-official-export",
+      "href": "https://example.org/export",
+      "label": "the official export"
+    },
+    {
+      "id": "the-source-archive",
+      "href": "obs-source:archive",
+      "label": "the source archive"
+    }
+  ],
   "assets": [],
   "records": [
     {
@@ -213,6 +380,30 @@
       "type": "note",
       "path": "target.md",
       "fields": {}
+    },
+    {
+      "id": "chapter-chapter",
+      "type": "chapter",
+      "note": "chapter",
+      "fields": {
+        "chapter": "Chapter",
+        "title": "Chapter",
+        "depth": "0",
+        "slug": "chapter",
+        "sourcePath": "chapter.md"
+      }
+    },
+    {
+      "id": "chapter-target",
+      "type": "chapter",
+      "note": "target",
+      "fields": {
+        "chapter": "Target",
+        "title": "Target",
+        "depth": "0",
+        "slug": "target",
+        "sourcePath": "target.md"
+      }
     }
   ],
   "semanticResources": [],
@@ -222,6 +413,7 @@
     "chapter-inclusion",
     "manifest",
     "markdown",
-    "markdown-frontmatter"
+    "markdown-frontmatter",
+    "wikilinks"
   ]
 }

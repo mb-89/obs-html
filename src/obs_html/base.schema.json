@@ -146,8 +146,7 @@
           "type": "integer",
           "minimum": 1,
           "description": "Approximate body-row threshold for a table's vertical viewport."
-        },
-        "members": {"$ref": "#/$defs/members"}
+        }
       }
     }
   },
