@@ -29,6 +29,7 @@ import os
 import re
 import shutil
 import subprocess
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import pytest
@@ -131,6 +132,16 @@ def parity_artifacts(tmp_path_factory) -> dict[str, str]:
 
     def build(folder: Path) -> None:
         capabilities, document = folder / "capabilities.json", folder / "spec.json"
+        # The interim reference builds alongside the Document and this adapter's render.
+        with ThreadPoolExecutor(1) as alongside:
+            reference_built = alongside.submit(
+                run, [uv, "run", "--offline", "--project", str(reference), "obs-html-interim", "--source",
+                      str(core / "spec"), "--output", str(folder / "reference.html"), "--execute-commands"],
+                reference, "rendering obs's spec with the interim reference")
+            build_adapter(folder, capabilities, document)
+            reference_built.result()
+
+    def build_adapter(folder: Path, capabilities: Path, document: Path) -> None:
         run([uv, "run", "--offline", "--project", str(core), "python", "-m", "obs.capabilities",
              "--notes", str(core / "spec" / "capabilities"), "--output", str(capabilities)],
             core, "building the capability reference with the core")
@@ -141,9 +152,6 @@ def parity_artifacts(tmp_path_factory) -> dict[str, str]:
         assert obs_html([str(document), str(folder / "adapter.html"), "--execute-commands",
                          "--command-root", str(core / "spec")]) == 0, \
             "test/test_parity_browser.py: obs-html could not render obs's spec Document"
-        run([uv, "run", "--offline", "--project", str(reference), "obs-html-interim", "--source", str(core / "spec"),
-             "--output", str(folder / "reference.html"), "--execute-commands"],
-            reference, "rendering obs's spec with the interim reference")
 
     folder = built_once(tmp_path_factory, "parity", build)
     return {name: (folder / f"{name}.html").read_text(encoding="utf-8") for name in ("adapter", "reference")}
