@@ -78,7 +78,7 @@ class Context:
     aliases: dict[str, str | None] = field(default_factory=dict)
     records: dict[str, dict[str, object]] = field(default_factory=dict)
     editable: dict[str, dict[str, object]] = field(default_factory=dict)
-    unknown: set[str] = field(default_factory=set)
+    unknown: dict[str, dict[str, str]] = field(default_factory=dict)
     fields: dict[str, dict[str, str]] = field(default_factory=dict)
 
 
@@ -582,7 +582,7 @@ def render(document: dict[str, object], config: Config,
     context.chapters[HOME] = document["manifest"]["title"]  # The core links the manifest as home.
     model = _resolve_icons(_model(document, config, context), assets)
     return prepare_artifact_scripts(assets.resolve_markup(
-        _shell(model, style.stylesheet, assets, config, trusted_runtime)))
+        _shell(model, list(context.unknown.values()), style.stylesheet, assets, config, trusted_runtime)))
 
 
 def _resolve_icons(value: object, assets: SemanticAssets) -> object:
@@ -831,15 +831,20 @@ def _field(node: dict[str, object], context: Context) -> str:
 
 
 def _unknown(node: dict[str, object], context: Context) -> str:
-    """A node type this adapter does not know shows its text, never nothing, and warns once per type."""
+    """A node type this adapter does not know shows its text plain, never nothing, and raises one
+    limited-function warning per type: on stderr and in the artifact's notice center."""
     kind = node["type"]
     if kind not in context.unknown:
-        context.unknown.add(kind)
         listed = "lists it as structural" if kind in STRUCTURAL else "does not list it"
-        print(f"Warning: obs-html (src/obs_html/render.py): Document node type {kind!r} is not rendered by "
-              f"this adapter, first in chapter {context.chapter or HOME!r}; its text is shown without its "
-              f"formatting. The core's document.schema.json {listed}. Remedy: add a renderer for {kind!r} "
-              "to src/obs_html/render.py.", file=sys.stderr)
+        limit = context.unknown[kind] = {
+            "key": f"node-{kind}", "feature": f'Document node type "{kind}"',
+            "reason": f"obs-html (src/obs_html/render.py) does not render node type {kind!r}; its text is "
+                      f"shown plain, without its formatting. The core's document.schema.json {listed}.",
+            "observation": f"first in chapter {context.chapter or HOME!r}",
+            "remedy": f"Add a renderer for {kind!r} to src/obs_html/render.py.",
+        }
+        print(f"Warning: obs-html (src/obs_html/render.py): limited function: {limit['reason']} "
+              f"Seen {limit['observation']}. Remedy: {limit['remedy']}", file=sys.stderr)
     return (f'<span class="unknown-node" data-node-type="{escape(kind, quote=True)}">'
             f"{escape(_plain(node))}</span>")
 
@@ -979,8 +984,9 @@ def _note_target(href: str, context: Context) -> str | None:
     return chapter if chapter in context.chapters else None
 
 
-def _shell(model: dict[str, object], stylesheet: str, assets: SemanticAssets, config: Config,
-           trusted_runtime: tuple[str, str] | None) -> str:
+def _shell(model: dict[str, object], limits: list[dict[str, str]], stylesheet: str, assets: SemanticAssets,
+           config: Config, trusted_runtime: tuple[str, str] | None) -> str:
+    """The artifact page; ``limits`` are the Document's limited functions (capabilities.js warns of each)."""
     package = files("obs_html")
 
     def read(*parts: str) -> str:
@@ -1095,6 +1101,7 @@ def _shell(model: dict[str, object], stylesheet: str, assets: SemanticAssets, co
 
   {encode_artifact_data(model, config.artifact["dataCompression"])}
   <script id="obs-comments" type="application/json" data-comment-island>{_empty_comment_island()}</script>
+  <script id="document-limits" type="application/json">{_json_island(limits)}</script>
   <script id="capabilities-script">
 {read("capabilities.js")}
   </script>
@@ -1144,6 +1151,10 @@ def _shell(model: dict[str, object], stylesheet: str, assets: SemanticAssets, co
 </body>
 </html>
 """
+
+
+def _json_island(value: object) -> str:
+    return json.dumps(value, ensure_ascii=True, separators=(",", ":")).replace("</", "<\\/")
 
 
 def _empty_comment_island() -> str:

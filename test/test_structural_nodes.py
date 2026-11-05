@@ -87,3 +87,55 @@ def test_an_invalid_formula_names_the_chapter_the_formula_and_the_remedy() -> No
     message = str(raised.value)
     assert message.startswith("Chapter one: math formula 'x^'")
     assert "Remedy:" in message
+
+
+def test_an_invented_node_type_raises_one_limited_function_warning_naming_it(capsys) -> None:
+    def invented(value: str) -> dict:
+        return {"type": "sparkle", "attrs": {}, "children": [text(value)]}
+
+    document = build("Doc", chapter("one", "One", paragraph(invented("first")), paragraph(invented("second"))))
+    document["capabilities"].remove("sparkle")
+    html = render(document, CONFIG)
+    notes = {note["slug"]: note for note in decode_artifact_data(html)["notes"]}
+    assert '<span class="unknown-node" data-node-type="sparkle">second</span>' in notes["one"]["html"]
+    limits = json.loads(re.search(r'<script id="document-limits" type="application/json">(.*?)</script>',
+                                  html)[1])
+    assert len(limits) == 1
+    assert limits[0]["key"] == "node-sparkle"
+    assert "sparkle" in limits[0]["feature"]
+    assert "obs-html (src/obs_html/render.py)" in limits[0]["reason"]
+    assert "chapter 'one'" in limits[0]["observation"]
+    assert limits[0]["remedy"]
+    warnings = [line for line in capsys.readouterr().err.splitlines() if "'sparkle'" in line]
+    assert len(warnings) == 1 and "Remedy:" in warnings[0]
+
+
+def test_a_document_without_unknown_nodes_carries_no_limits() -> None:
+    html = render(build("Doc", chapter("one", "One", paragraph("Known."))), CONFIG)
+    assert '<script id="document-limits" type="application/json">[]</script>' in html
+
+
+@pytest.mark.browser
+def test_the_notice_center_shows_one_limited_function_warning_per_unknown_type(tmp_path: Path,
+                                                                                reader_browser) -> None:
+    from playwright.sync_api import expect
+    from test_sandboxed_preview_browser import open_page
+
+    def invented(value: str) -> dict:
+        return {"type": "sparkle", "attrs": {}, "children": [text(value)]}
+
+    document = build("Doc", chapter("one", "One", paragraph(invented("first")), paragraph(invented("second"))))
+    document["capabilities"].remove("sparkle")
+    path = tmp_path / "artifact.html"
+    path.write_text(render(document, CONFIG), encoding="utf-8")
+    errors: list[str] = []
+    page = open_page(reader_browser, path, errors)
+    expect(page.locator("html")).to_have_attribute("data-artifact-status", "ready")
+    entries = page.locator('[data-notice-list="warning"] [data-notice]')
+    expect(entries).to_have_count(1)
+    expect(entries.first).to_have_attribute("data-notice", "capability-node-sparkle")
+    expect(entries.first.locator("[data-notice-title]")).to_have_text(
+        'Limited functionality: Document node type "sparkle"')
+    expect(entries.first.locator("[data-notice-details]")).to_contain_text("obs-html (src/obs_html/render.py)")
+    assert page.locator('[data-notice-list="error"] [data-notice]').count() == 0
+    assert errors == []
