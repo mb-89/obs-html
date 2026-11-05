@@ -29,7 +29,118 @@
             }
           }
         },
-        "children": []
+        "children": [
+          {
+            "type": "field",
+            "attrs": {
+              "name": "title"
+            },
+            "children": [
+              {
+                "type": "text",
+                "attrs": {},
+                "children": [],
+                "text": "Test document"
+              }
+            ]
+          },
+          {
+            "type": "field",
+            "attrs": {
+              "name": "subtitle"
+            },
+            "children": [
+              {
+                "type": "text",
+                "attrs": {},
+                "children": [],
+                "text": "Bridge "
+              },
+              {
+                "type": "strong",
+                "attrs": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "attrs": {},
+                    "children": [],
+                    "text": "subtitle"
+                  }
+                ]
+              },
+              {
+                "type": "text",
+                "attrs": {},
+                "children": [],
+                "text": " "
+              },
+              {
+                "type": "attachments",
+                "attrs": {
+                  "asset": "obsidian",
+                  "label": "Obsidian"
+                },
+                "children": []
+              },
+              {
+                "type": "text",
+                "attrs": {},
+                "children": [],
+                "text": " "
+              },
+              {
+                "type": "attachments",
+                "attrs": {
+                  "asset": "html",
+                  "label": "HTML"
+                },
+                "children": []
+              }
+            ]
+          },
+          {
+            "type": "field",
+            "attrs": {
+              "name": "status"
+            },
+            "children": [
+              {
+                "type": "text",
+                "attrs": {},
+                "children": [],
+                "text": "active"
+              }
+            ]
+          },
+          {
+            "type": "field",
+            "attrs": {
+              "name": "owners.team.0"
+            },
+            "children": [
+              {
+                "type": "text",
+                "attrs": {},
+                "children": [],
+                "text": "Ada"
+              }
+            ]
+          },
+          {
+            "type": "field",
+            "attrs": {
+              "name": "owners.team.1"
+            },
+            "children": [
+              {
+                "type": "text",
+                "attrs": {},
+                "children": [],
+                "text": "Lin"
+              }
+            ]
+          }
+        ]
       },
       {
         "type": "manifest",
@@ -219,7 +330,22 @@
                   "bottom line": "Child result."
                 }
               },
-              "children": []
+              "children": [
+                {
+                  "type": "field",
+                  "attrs": {
+                    "name": "bottom line"
+                  },
+                  "children": [
+                    {
+                      "type": "text",
+                      "attrs": {},
+                      "children": [],
+                      "text": "Child result."
+                    }
+                  ]
+                }
+              ]
             },
             {
               "type": "chapter-inclusion",
@@ -323,7 +449,92 @@
                       "extra": "omitted"
                     }
                   },
-                  "children": []
+                  "children": [
+                    {
+                      "type": "field",
+                      "attrs": {
+                        "name": "bottom line"
+                      },
+                      "children": [
+                        {
+                          "type": "text",
+                          "attrs": {},
+                          "children": [],
+                          "text": "Node result."
+                        }
+                      ]
+                    },
+                    {
+                      "type": "field",
+                      "attrs": {
+                        "name": "owner.team.0"
+                      },
+                      "children": [
+                        {
+                          "type": "text",
+                          "attrs": {},
+                          "children": [],
+                          "text": "Ada"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "field",
+                      "attrs": {
+                        "name": "owner.team.1"
+                      },
+                      "children": [
+                        {
+                          "type": "text",
+                          "attrs": {},
+                          "children": [],
+                          "text": "Lin"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "field",
+                      "attrs": {
+                        "name": "description"
+                      },
+                      "children": [
+                        {
+                          "type": "text",
+                          "attrs": {},
+                          "children": [],
+                          "text": "Long metadata Long metadata Long metadata Long metadata Long metadata Long metadata Long metadata Long metadata Long metadata Long metadata Long metadata Long metadata Long metadata Long metadata Long metadata Long metadata Long metadata Long metadata Long metadata Long metadata"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "field",
+                      "attrs": {
+                        "name": "status"
+                      },
+                      "children": [
+                        {
+                          "type": "text",
+                          "attrs": {},
+                          "children": [],
+                          "text": "draft"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "field",
+                      "attrs": {
+                        "name": "extra"
+                      },
+                      "children": [
+                        {
+                          "type": "text",
+                          "attrs": {},
+                          "children": [],
+                          "text": "omitted"
+                        }
+                      ]
+                    }
+                  ]
                 },
                 {
                   "type": "chapter-inclusion",
@@ -631,72 +842,100 @@
           ]
         },
         {
-          "type": "bases",
-          "attrs": {
-            "source": "filters: 'kind == \"reference\"'\nproperties:\n  obsHtml.label:\n    displayName: No.\nviews:\n  - type: table\n    order: [obsHtml.label, document, description]\nobsHtml:\n  members:\n    - path: reference.md\n      label: '[1]'\n    - path: quiet-reference.md\n      label: '[2]'\n",
-            "spec": {
-              "filters": "kind == \"reference\"",
-              "properties": {
-                "obsHtml.label": {
-                  "displayName": "No."
-                }
-              },
-              "views": [
-                {
-                  "type": "table",
-                  "order": [
-                    "obsHtml.label",
-                    "document",
-                    "description"
-                  ]
-                }
-              ],
-              "obsHtml": {
-                "members": [
-                  {
-                    "path": "reference.md",
-                    "label": "[1]"
+          "type": "paragraph",
+          "attrs": {},
+          "children": [
+            {
+              "type": "registers",
+              "attrs": {
+                "target": "numbered.base",
+                "heading": "",
+                "base": {
+                  "filters": "kind == \"reference\"",
+                  "properties": {
+                    "obsHtml.label": {
+                      "displayName": "No."
+                    }
                   },
-                  {
-                    "path": "quiet-reference.md",
-                    "label": "[2]"
-                  }
+                  "views": [
+                    {
+                      "type": "table",
+                      "order": [
+                        "obsHtml.label",
+                        "document",
+                        "description"
+                      ],
+                      "obsHtml": {
+                        "members": [
+                          {
+                            "path": "reference.md",
+                            "label": "[1]"
+                          },
+                          {
+                            "path": "quiet-reference.md",
+                            "label": "[2]"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                },
+                "view": null,
+                "rows": [
+                  [
+                    "quiet-reference",
+                    "reference"
+                  ]
                 ]
-              }
+              },
+              "children": []
             }
-          },
-          "children": []
+          ]
         },
         {
-          "type": "bases",
-          "attrs": {
-            "source": "filters: 'kind == \"reference\"'\nviews:\n  - type: table\n    order: [obsHtml.label, document]\nobsHtml:\n  members:\n    - path: quiet-reference.md\n      label: B\n    - path: reference.md\n      label: A\n",
-            "spec": {
-              "filters": "kind == \"reference\"",
-              "views": [
-                {
-                  "type": "table",
-                  "order": [
-                    "obsHtml.label",
-                    "document"
+          "type": "paragraph",
+          "attrs": {},
+          "children": [
+            {
+              "type": "registers",
+              "attrs": {
+                "target": "lettered.base",
+                "heading": "",
+                "base": {
+                  "filters": "kind == \"reference\"",
+                  "views": [
+                    {
+                      "type": "table",
+                      "order": [
+                        "obsHtml.label",
+                        "document"
+                      ],
+                      "obsHtml": {
+                        "members": [
+                          {
+                            "path": "quiet-reference.md",
+                            "label": "B"
+                          },
+                          {
+                            "path": "reference.md",
+                            "label": "A"
+                          }
+                        ]
+                      }
+                    }
                   ]
-                }
-              ],
-              "obsHtml": {
-                "members": [
-                  {
-                    "path": "quiet-reference.md",
-                    "label": "B"
-                  },
-                  {
-                    "path": "reference.md",
-                    "label": "A"
-                  }
+                },
+                "view": null,
+                "rows": [
+                  [
+                    "quiet-reference",
+                    "reference"
+                  ]
                 ]
-              }
+              },
+              "children": []
             }
-          },
-          "children": []
+          ]
         }
       ],
       "children": [],
@@ -719,7 +958,80 @@
               "definition": "The principle of presenting the [[bottom line]] first."
             }
           },
-          "children": []
+          "children": [
+            {
+              "type": "field",
+              "attrs": {
+                "name": "kind"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "glossary"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "term"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "BLUF"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "aliases.0"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "Conclusion upfront"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "definition"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "The principle of presenting the "
+                },
+                {
+                  "type": "wikilinks",
+                  "attrs": {
+                    "target": "bottom line",
+                    "chapter": "conclusion",
+                    "heading": "",
+                    "label": "bottom line"
+                  },
+                  "children": []
+                },
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": " first."
+                }
+              ]
+            }
+          ]
         },
         {
           "type": "references",
@@ -828,7 +1140,126 @@
               "citation": "See [[details]] **source note**."
             }
           },
-          "children": []
+          "children": [
+            {
+              "type": "field",
+              "attrs": {
+                "name": "kind"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "glossary"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "term"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "Conclusion"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "aliases.0"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "bottom line"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "definition"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "The conclusion."
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "table"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "abbreviations"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "citation"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "See "
+                },
+                {
+                  "type": "wikilinks",
+                  "attrs": {
+                    "target": "details",
+                    "chapter": "details",
+                    "heading": "",
+                    "label": "details"
+                  },
+                  "children": []
+                },
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": " "
+                },
+                {
+                  "type": "strong",
+                  "attrs": {},
+                  "children": [
+                    {
+                      "type": "text",
+                      "attrs": {},
+                      "children": [],
+                      "text": "source note"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "."
+                }
+              ]
+            }
+          ]
         },
         {
           "type": "references",
@@ -997,7 +1428,130 @@
               "citation": "See [[details]] **sheet 2** and $x$."
             }
           },
-          "children": []
+          "children": [
+            {
+              "type": "field",
+              "attrs": {
+                "name": "kind"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "quantity"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "unit"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "\u00b5m"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "aliases.0"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "flatness_A"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "source"
+              },
+              "children": [
+                {
+                  "type": "wikilinks",
+                  "attrs": {
+                    "target": "details",
+                    "chapter": "details",
+                    "heading": "",
+                    "label": "details"
+                  },
+                  "children": []
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "citation"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "See "
+                },
+                {
+                  "type": "wikilinks",
+                  "attrs": {
+                    "target": "details",
+                    "chapter": "details",
+                    "heading": "",
+                    "label": "details"
+                  },
+                  "children": []
+                },
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": " "
+                },
+                {
+                  "type": "strong",
+                  "attrs": {},
+                  "children": [
+                    {
+                      "type": "text",
+                      "attrs": {},
+                      "children": [],
+                      "text": "sheet 2"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": " and "
+                },
+                {
+                  "type": "math",
+                  "attrs": {
+                    "display": false
+                  },
+                  "children": [],
+                  "text": "x"
+                },
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "."
+                }
+              ]
+            }
+          ]
         },
         {
           "type": "quantities",
@@ -1079,7 +1633,58 @@
               "citation": "**Canonical** [[details]]"
             }
           },
-          "children": []
+          "children": [
+            {
+              "type": "field",
+              "attrs": {
+                "name": "owner"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "Ada"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "citation"
+              },
+              "children": [
+                {
+                  "type": "strong",
+                  "attrs": {},
+                  "children": [
+                    {
+                      "type": "text",
+                      "attrs": {},
+                      "children": [],
+                      "text": "Canonical"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": " "
+                },
+                {
+                  "type": "wikilinks",
+                  "attrs": {
+                    "target": "details",
+                    "chapter": "details",
+                    "heading": "",
+                    "label": "details"
+                  },
+                  "children": []
+                }
+              ]
+            }
+          ]
         },
         {
           "type": "chapter-inclusion",
@@ -1109,7 +1714,50 @@
               "kind": "reference"
             }
           },
-          "children": []
+          "children": [
+            {
+              "type": "field",
+              "attrs": {
+                "name": "document"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "Unlinked source"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "description"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "Selected only by a Bases query."
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "kind"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "reference"
+                }
+              ]
+            }
+          ]
         },
         {
           "type": "references",
@@ -1151,7 +1799,52 @@
               "kind": "reference"
             }
           },
-          "children": []
+          "children": [
+            {
+              "type": "field",
+              "attrs": {
+                "name": "document"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {
+                    "link": "source-document"
+                  },
+                  "children": [],
+                  "text": "Source document"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "description"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "A source whose metadata is its complete content."
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "kind"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "reference"
+                }
+              ]
+            }
+          ]
         },
         {
           "type": "references",
@@ -1207,6 +1900,11 @@
       "label": "bottom line"
     },
     {
+      "id": "source-document",
+      "href": "details.md",
+      "label": "Source document"
+    },
+    {
       "id": "metadata-only",
       "href": "metadata-only",
       "label": "metadata-only"
@@ -1216,7 +1914,21 @@
     {
       "id": "shared-image",
       "href": "shared.png",
-      "mediaType": "image/png"
+      "mediaType": "image/png",
+      "path": "shared.png",
+      "data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a8xoAAAAASUVORK5CYII="
+    },
+    {
+      "id": "obsidian",
+      "href": "https://example.invalid/obsidian.svg",
+      "mediaType": "image/svg+xml",
+      "data": "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmlld0JveD0iMCAwIDE2IDE2Ij48cmVjdCB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIGZpbGw9IiMxMzUiLz48L3N2Zz4="
+    },
+    {
+      "id": "html",
+      "href": "https://example.invalid/html.svg",
+      "mediaType": "image/svg+xml",
+      "data": "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmlld0JveD0iMCAwIDE2IDE2Ij48cmVjdCB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIGZpbGw9IiMxMzUiLz48L3N2Zz4="
     }
   ],
   "records": [
@@ -1368,6 +2080,165 @@
       "type": "note",
       "path": "unreferenced.md",
       "fields": {}
+    },
+    {
+      "id": "chapter-parent",
+      "type": "chapter",
+      "note": "parent",
+      "fields": {
+        "chapter": "Parent",
+        "title": "Parent",
+        "depth": "0",
+        "slug": "parent",
+        "sourcePath": "parent.md"
+      }
+    },
+    {
+      "id": "chapter-child",
+      "type": "chapter",
+      "note": "child",
+      "fields": {
+        "chapter": "Child",
+        "title": "Child",
+        "depth": "1",
+        "slug": "child",
+        "sourcePath": "child.md"
+      }
+    },
+    {
+      "id": "chapter-node",
+      "type": "chapter",
+      "note": "node",
+      "fields": {
+        "chapter": "Node",
+        "title": "Node",
+        "depth": "2",
+        "slug": "node",
+        "sourcePath": "node.md"
+      }
+    },
+    {
+      "id": "chapter-glossary",
+      "type": "chapter",
+      "note": "glossary",
+      "fields": {
+        "chapter": "Glossary",
+        "title": "Glossary",
+        "depth": "0",
+        "slug": "glossary",
+        "sourcePath": "glossary.md"
+      }
+    },
+    {
+      "id": "chapter-tags",
+      "type": "chapter",
+      "note": "tags",
+      "fields": {
+        "chapter": "Tags",
+        "title": "Tags",
+        "depth": "0",
+        "slug": "tags",
+        "sourcePath": "tags.md"
+      }
+    },
+    {
+      "id": "chapter-references",
+      "type": "chapter",
+      "note": "references",
+      "fields": {
+        "chapter": "References",
+        "title": "References",
+        "depth": "0",
+        "slug": "references",
+        "sourcePath": "references.md"
+      }
+    },
+    {
+      "id": "glossary-bluf",
+      "type": "glossary",
+      "note": "bluf",
+      "fields": {
+        "sourcePath": "bluf.md",
+        "term": "BLUF",
+        "definition": "The principle of presenting the [[bottom line]] first.",
+        "aliases": [
+          "Conclusion upfront"
+        ]
+      }
+    },
+    {
+      "id": "tag-child-question-child-question",
+      "type": "tag",
+      "note": "child",
+      "fields": {
+        "sourcePath": "child.md",
+        "type": "question",
+        "label": "child_question",
+        "text": "Question.",
+        "source": "Child"
+      }
+    },
+    {
+      "id": "tag-child-open-point-child-open",
+      "type": "tag",
+      "note": "child",
+      "fields": {
+        "sourcePath": "child.md",
+        "type": "open_point",
+        "label": "child_open",
+        "text": "Resolve this.",
+        "source": "Child"
+      }
+    },
+    {
+      "id": "glossary-conclusion",
+      "type": "glossary",
+      "note": "conclusion",
+      "fields": {
+        "sourcePath": "conclusion.md",
+        "term": "Conclusion",
+        "definition": "The conclusion.",
+        "aliases": [
+          "bottom line"
+        ]
+      }
+    },
+    {
+      "id": "document-metadata-title",
+      "type": "documentMetadata",
+      "fields": {
+        "key": "title",
+        "value": "Test document"
+      }
+    },
+    {
+      "id": "document-metadata-subtitle",
+      "type": "documentMetadata",
+      "fields": {
+        "key": "subtitle",
+        "value": "Bridge **subtitle** ![Obsidian](https://example.invalid/obsidian.svg) ![HTML](https://example.invalid/html.svg)"
+      }
+    },
+    {
+      "id": "document-metadata-status",
+      "type": "documentMetadata",
+      "fields": {
+        "key": "status",
+        "value": "active"
+      }
+    },
+    {
+      "id": "document-metadata-owners",
+      "type": "documentMetadata",
+      "fields": {
+        "key": "owners",
+        "value": {
+          "team": [
+            "Ada",
+            "Lin"
+          ]
+        }
+      }
     }
   ],
   "semanticResources": [],
@@ -1383,6 +2254,7 @@
     "marks",
     "quantities",
     "references",
+    "registers",
     "wikilinks"
   ]
 }

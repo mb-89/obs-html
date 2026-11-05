@@ -30,7 +30,9 @@ HERE = Path(__file__).parent
 
 def complete(root: Path) -> None:
     """test_complete_document_dom_interactions. Changed: the glossary links its BLUF note, which
-    the core includes only when linked (the interim included every glossary note)."""
+    the core includes only when linked (the interim included every glossary note); the references
+    are two registers, whose views declare the members, since only a register carries the core's
+    rows (the interim read Base-level members of fences)."""
     notes = {
         "parent": "# Parent\n\n[[node#Extra]]\n\n[1](reference.md)\n",
         "child": "---\nbottom line: Child result.\n---\n# Child\n\nQuestion. #mark/question/child_question\n\nResolve this. #mark/open_point/child_open\n",
@@ -82,17 +84,7 @@ def complete(root: Path) -> None:
             "---\ndocument: Unlinked source\n"
             "description: Selected only by a Bases query.\nkind: reference\n---\n"
         ),
-        "references": (
-            "# References\n\n```base\nfilters: 'kind == \"reference\"'\n"
-            "properties:\n  obsHtml.label:\n    displayName: No.\n"
-            "views:\n  - type: table\n    order: [obsHtml.label, document, description]\n"
-            "obsHtml:\n  members:\n    - path: reference.md\n      label: '[1]'\n"
-            "    - path: quiet-reference.md\n      label: '[2]'\n```\n\n"
-            "```base\nfilters: 'kind == \"reference\"'\n"
-            "views:\n  - type: table\n    order: [obsHtml.label, document]\n"
-            "obsHtml:\n  members:\n    - path: quiet-reference.md\n      label: B\n"
-            "    - path: reference.md\n      label: A\n```\n"
-        ),
+        "references": "# References\n\n![[numbered.base]]\n\n![[lettered.base]]\n",
         "unreferenced": "# Not included\n\n[[missing]]\n",
     }
     shared_image = base64.b64decode(
@@ -103,6 +95,17 @@ def complete(root: Path) -> None:
     notes["child"] += "\n![Shared image](shared.png)\n"
     for name, source in notes.items():
         (root / f"{name}.md").write_text(source, encoding="utf-8")
+    (root / "numbered.base").write_text(
+        "filters: 'kind == \"reference\"'\n"
+        "properties:\n  obsHtml.label:\n    displayName: No.\n"
+        "views:\n  - type: table\n    order: [obsHtml.label, document, description]\n"
+        "    obsHtml:\n      members:\n        - path: reference.md\n          label: '[1]'\n"
+        "        - path: quiet-reference.md\n          label: '[2]'\n", encoding="utf-8")
+    (root / "lettered.base").write_text(
+        "filters: 'kind == \"reference\"'\n"
+        "views:\n  - type: table\n    order: [obsHtml.label, document]\n"
+        "    obsHtml:\n      members:\n        - path: quiet-reference.md\n          label: B\n"
+        "        - path: reference.md\n          label: A\n", encoding="utf-8")
     manifest = root / "manifest.md"
     manifest.write_text(
         "---\ntitle: Test document\n"

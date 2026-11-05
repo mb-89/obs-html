@@ -96,6 +96,12 @@ def test_records_other_than_notes_do_not_become_notes() -> None:
 
 
 @pytest.mark.dom
+def test_views_with_different_members_show_the_core_rows_in_member_order_with_their_labels(inspected) -> None:
+    [views] = inspected["points"]["views"]
+    assert views[0] == {"name": "Labelled", "rows": ["note:c-point", "note:a-point"], "labels": ["C", "A"]}
+
+
+@pytest.mark.dom
 def test_the_adapter_shows_the_core_rows_and_evaluates_no_selection(tmp_path: Path) -> None:
     """Rows the filter and members would not select show when the core names them, in its order, and
     no others."""
@@ -105,6 +111,12 @@ def test_the_adapter_shows_the_core_rows_and_evaluates_no_selection(tmp_path: Pa
                                                                                           "note:a-point"]
 
 
+def test_no_members_evaluation_remains_in_the_adapter() -> None:
+    runtime = (ROOT / "src" / "obs_html" / "artifact.js").read_text(encoding="utf-8")
+    assert "definition.obsHtml?.members" not in runtime
+    assert "Missing Bases member note" not in runtime
+
+
 def test_a_register_row_the_records_do_not_hold_fails_naming_the_register_and_the_remedy() -> None:
     document = copy.deepcopy(REGISTERS)
     _register(document, "second")["attrs"]["rows"][1] = ["gone"]
@@ -112,4 +124,14 @@ def test_a_register_row_the_records_do_not_hold_fails_naming_the_register_and_th
         render(document, CONFIG)
     assert "Register points.base#Second in chapter second" in str(error.value)
     assert "rows.1" in str(error.value)
+    assert "Remedy:" in str(error.value)
+
+
+def test_a_base_fence_with_members_fails_naming_the_field_and_the_remedy() -> None:
+    spec = {"views": [{"type": "table", "order": ["file.name"],
+                       "obsHtml": {"members": [{"path": "a.md", "label": "A"}]}}]}
+    with pytest.raises(RenderError) as error:
+        render(build("Doc", chapter("one", "One", node("bases", source="", spec=spec))), CONFIG)
+    assert "Base in chapter one" in str(error.value)
+    assert "views.0.obsHtml.members" in str(error.value)
     assert "Remedy:" in str(error.value)

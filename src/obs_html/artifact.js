@@ -1301,7 +1301,6 @@
             if (Object.hasOwn(row.ownFields, field)) return row.ownFields[field];
             return owner ? globalThis.obsBases.recordValue(owner, field) : undefined;
         });
-        const members = definition.obsHtml?.members;
         // A register's rows are the core's selection (obs capabilities/registers): this view's, or,
         // under a reader-edited query, all of the register's, which that query narrows. A fence's
         // rows are selected here. Generation provenance is the adapter's own documentMetadata.
@@ -1327,36 +1326,31 @@
                     globalThis.obsBases.recordValue(owner, field) !== undefined)),
             });
         });
-        if (members) {
-            const notesByPath = new Map();
+        // A view's members order the core's rows and label them (generic-tables); the core selected
+        // them, so a member names a row here or nothing.
+        const members = view.obsHtml?.members;
+        if (coreKeys && members) {
             const notePath = (row) => recordsBySlug.get(row.noteId)?.sourcePath ?? row.values.sourcePath;
-            rows.filter((row) => typeof notePath(row) === "string")
-                .forEach((row) => {
-                    const records = notesByPath.get(notePath(row)) || [];
-                    records.push(row);
-                    notesByPath.set(notePath(row), records);
-                });
-            rows = members.flatMap((member) => {
-                const noteRows = notesByPath.get(member.path);
-                if (!noteRows) throw new Error(`Missing Bases member note: ${member.path}`);
-                const label = member.label ?? "";
-                return noteRows.map((row) => {
-                    const values = {...row.values, "obsHtml.label": label};
+            const position = new Map(members.map((member, index) => [member.path, index]));
+            const place = row => position.get(notePath(row)) ?? members.length;
+            rows = rows.map((row, index) => ({row, index}))
+                .sort((left, right) => place(left.row) - place(right.row) || left.index - right.index)
+                .map(({row}) => {
+                    const member = members[position.get(notePath(row))];
+                    if (!member) return row;
+                    const label = member.label ?? "";
                     const cells = {...row.cells};
                     if (member.label !== undefined && row.noteId) {
-                        cells["obsHtml.label"] = {
-                            type: "detail", href: `#${row.noteId}`, label,
-                        };
+                        cells["obsHtml.label"] = {type: "detail", href: `#${row.noteId}`, label};
                     }
                     return {
                         ...row,
-                        values,
+                        values: {...row.values, "obsHtml.label": label},
                         ownFields: {...row.ownFields, "obsHtml.label": label},
                         fields: {...row.fields, "obshtml.label": [label]},
                         cells,
                     };
                 });
-            });
         }
         const matched = rows.filter((row) => selection.match(row));
         const fields = [...new Set([

@@ -345,8 +345,16 @@ def _command(node: dict[str, object], context: Context) -> str:
 
 
 def _base(node: dict[str, object], context: Context) -> str:
-    """A Base fence is a table placeholder; the runtime evaluates its views over the island's rows."""
-    return _data_table(node["attrs"]["spec"], None, context)
+    """A Base fence is a table placeholder; the runtime evaluates its views over the island's rows.
+    Members need the core's rows, which only a register carries."""
+    definition = node["attrs"]["spec"]
+    for index, view in enumerate(definition.get("views", [])):
+        if "members" in (view.get("obsHtml") or {}):
+            raise RenderError(
+                f"Base in chapter {context.chapter or HOME}: views.{index}.obsHtml.members: obs-html shows "
+                "members only in a register, whose rows the obs core selects. Remedy: move the Base into a "
+                ".base file and embed it with ![[<file>.base]].")
+    return _data_table(definition, None, context)
 
 
 def _register(node: dict[str, object], context: Context) -> str:
