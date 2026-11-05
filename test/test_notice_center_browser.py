@@ -34,6 +34,9 @@ def test_three_severities_give_exactly_three_icons_with_counts(tmp_path: Path, r
     errors: list[str] = []
     page = open_artifact(tmp_path, reader_browser, errors)
     assert visible_icons(page) == {}
+    # The icons take their place in the top band's one row; the reader below never moves.
+    reader_top = lambda: page.locator("[data-chapter-scroll]").bounding_box()["y"]
+    top = reader_top()
     post(page, [
         {"id": "e1", "severity": "error", "title": "Broken figure", "details": "The figure failed."},
         {"id": "w1", "severity": "warning", "title": "First warning"},
@@ -48,11 +51,11 @@ def test_three_severities_give_exactly_three_icons_with_counts(tmp_path: Path, r
     assert [icons.nth(index).locator("[data-notice-count]").inner_text() for index in range(3)] == [
         "1", "2", "3"]
     assert icons.nth(1).get_attribute("aria-label") == "Warnings: 2 notices"
+    assert reader_top() == top
     keep_screenshot(page, "notice-center-three-icons")
     page.evaluate("['e1', 'w1', 'w2', 'i1', 'i2', 'i3'].forEach((id) => globalThis.obsNotices.remove(id))")
     assert visible_icons(page) == {}
-    assert page.evaluate("getComputedStyle(document.documentElement)"
-                         ".getPropertyValue('--filter-header-clearance').trim()") == "0px"
+    assert reader_top() == top
     assert errors == []
 
 

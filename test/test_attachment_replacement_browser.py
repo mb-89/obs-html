@@ -66,7 +66,7 @@ def _artifact(tmp_path: Path, trusted: bool) -> Path:
     source = document(
         "Evidence",
         chapter("one", "One", heading(1, "One"), paragraph("Chapter.")),
-        records=tuple({"id": slug, "fields": {"title": slug}} for slug in ("test", "summary", "other")),
+        records=tuple({"id": slug, "type": "note", "path": f"{slug}.md", "fields": {"title": slug}} for slug in ("test", "summary", "other")),
     )
     path = tmp_path / ("trusted.html" if trusted else "plain.html")
     path.write_text(render(source, load_config(), trusted_runtime=("fixture-v1", BUNDLE) if trusted else None),

@@ -106,7 +106,8 @@
                 "items": {"type": "string", "pattern": "\\S"}
               },
               "columnSizing": {"enum": ["equal"]},
-              "detailFontSize": {"type": "integer", "minimum": 8, "maximum": 14}
+              "detailFontSize": {"type": "integer", "minimum": 8, "maximum": 14},
+              "members": {"$ref": "#/$defs/members"}
             }
           }
         }
@@ -145,27 +146,28 @@
           "type": "integer",
           "minimum": 1,
           "description": "Approximate body-row threshold for a table's vertical viewport."
-        },
-        "members": {
-          "type": "array",
-          "minItems": 1,
-          "items": {
-            "type": "object",
-            "required": ["path"],
-            "additionalProperties": false,
-            "properties": {
-              "path": {
-                "type": "string",
-                "pattern": "^(?!/)(?![A-Za-z]:)(?!.*(?:^|/)\\.\\.(?:/|$))[^\\\\?#]+\\.md$"
-              },
-              "label": {"type": "string"}
-            }
-          }
         }
       }
     }
   },
   "$defs": {
+    "members": {
+      "description": "A view's members: the core selects the rows (obs capabilities/registers); the adapter shows their order and labels.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["path"],
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "type": "string",
+            "pattern": "^(?!/)(?![A-Za-z]:)(?!.*(?:^|/)\\.\\.(?:/|$))[^\\\\?#]+\\.md$"
+          },
+          "label": {"type": "string"}
+        }
+      }
+    },
     "iconName": {"$ref": "assets.schema.json#/$defs/name"},
     "text": {"type": "string", "pattern": "\\S"},
     "guidedCard": {

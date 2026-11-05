@@ -68,6 +68,20 @@ folder and the user name as a path component, and fails naming where it found on
 before anything is written. A hit in captured output is an obs defect; a hit in authored content
 is fixed in the source.
 
+## Registers
+
+Reader: whoever embeds a `.base` file in a note built with obs-html, or changes how obs-html shows one.
+
+A register renders from its `registers` node alone (obs
+[capabilities/registers](../../spec/capabilities/registers.md), "Document node"): each view shows
+the rows the core selected for it, and obs-html evaluates no selection of its own. A view's
+`obsHtml.members` only orders those rows and labels them as `obsHtml.label`
+([generic-tables](../../spec/design_input/generic-tables.md)). A `documentMetadata` view also shows
+obs-html's generation rows (`timestamp`, `generator`, `target`) that its filter selects, since the
+core has none. A query the reader edits in the table's Query view narrows the register's rows.
+Members need the core's rows, so a `base` fence whose view declares them fails the build; the
+remedy is to move the Base into a `.base` file and embed it.
+
 ## License
 
 [MIT](LICENSE).

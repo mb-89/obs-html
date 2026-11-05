@@ -77,6 +77,7 @@ class Context:
     editable: dict[str, dict[str, object]] = field(default_factory=dict)
     unknown: dict[str, dict[str, str]] = field(default_factory=dict)
     fields: dict[str, dict[str, str]] = field(default_factory=dict)
+    row_keys: dict[str, str] = field(default_factory=dict)
 
 
 Renderer = Callable[[dict[str, object], Context], str]
@@ -358,8 +359,54 @@ def _command(node: dict[str, object], context: Context) -> str:
 
 
 def _base(node: dict[str, object], context: Context) -> str:
-    """A Base view is a table placeholder; the runtime evaluates it over the island's notes."""
+    """A Base fence is a table placeholder; the runtime evaluates its views over the island's rows.
+    Members need the core's rows, which only a register carries."""
     definition = node["attrs"]["spec"]
+    for index, view in enumerate(definition.get("views", [])):
+        if "members" in (view.get("obsHtml") or {}):
+            raise RenderError(
+                f"Base in chapter {context.chapter or HOME}: views.{index}.obsHtml.members: obs-html shows "
+                "members only in a register, whose rows the obs core selects. Remedy: move the Base into a "
+                ".base file and embed it with ![[<file>.base]].")
+    return _data_table(definition, None, context)
+
+
+def _register(node: dict[str, object], context: Context) -> str:
+    """A register is a table placeholder whose rows are the core's: per view, the row keys of the
+    records it selects (obs capabilities/registers, Document node). The adapter selects nothing; a
+    heading embeds its one view, no heading every view with the selector."""
+    attrs = node["attrs"]
+    place = f"Register {attrs['target']}{'#' + attrs['heading'] if attrs['heading'] else ''} in chapter {context.chapter or HOME}"
+    rows = []
+    for index, identifiers in enumerate(attrs["rows"]):
+        missing = next((identifier for identifier in identifiers if identifier not in context.row_keys), None)
+        if missing is not None:
+            raise RenderError(f"{place}: rows.{index} names record {missing!r}, which the Document's records do "
+                              "not contain. Remedy: regenerate the Document with the obs core.")
+        rows.append([context.row_keys[identifier] for identifier in identifiers])
+    definition, view = attrs["base"], attrs["view"]
+    if view is not None:
+        definition, rows = {**definition, "views": [definition["views"][view]]}, [rows[view]]
+    return _data_table(definition, rows, context)
+
+
+def _row_keys(records: list[dict[str, object]]) -> dict[str, str]:
+    """Each record's key among the runtime's table rows, by record id: the keys artifact.js gives
+    the rows it builds per record type (noteTableRows, chapterTableRows, tagTableRows,
+    glossaryTableRows, documentMetadataRows, documentHistoryRows)."""
+    history = [record["id"] for record in records if record["type"] == "documentHistory"]
+    keys = {
+        "note": lambda record: f"note:{record['id']}",
+        "chapter": lambda record: record["fields"]["slug"],
+        "tag": lambda record: f"{record['note']}:{record['fields']['type']}:{record['fields']['label']}",
+        "glossary": lambda record: f"glossary:{record['note']}",
+        "documentMetadata": lambda record: f"metadata:{record['fields']['key']}",
+        "documentHistory": lambda record: f"history:{history.index(record['id'])}",
+    }
+    return {record["id"]: keys[record["type"]](record) for record in records}
+
+
+def _data_table(definition: dict[str, object], rows: list[list[str]] | None, context: Context) -> str:
     try:
         context.assets.normalize_definition(definition)
     except ValueError as error:
@@ -375,7 +422,7 @@ def _base(node: dict[str, object], context: Context) -> str:
                 "where PROPERTY is a frontmatter property (dotted, or note[\"name with spaces\"]) or one of "
                 f"{', '.join(FILE_PROPERTIES)}, and LITERAL is quoted text, a number, true, false or null; "
                 "combined with and, or and not. Remedy: rewrite the filter in this subset.")
-    context.tables.append({"key": key, "definition": definition})
+    context.tables.append({"key": key, "definition": definition, **({"rows": rows} if rows is not None else {})})
     return f'<div class="data-table-placeholder" data-base-table="{escape(key, quote=True)}"></div>\n'
 
 
@@ -543,6 +590,7 @@ CAPABILITIES: dict[str, Renderer] = {
     "quantities": _quantity,
     "queries": _nothing,
     "references": _references,
+    "registers": _register,
     "wikilinks": _wikilink,
 }
 
@@ -566,6 +614,7 @@ def render(document: dict[str, object], config: Config,
         paths={record["path"].removesuffix(".md"): record["id"]
                for record in document["records"] if record.get("type") == "note"},
         records={record["id"]: record for record in document["records"] if record.get("type") == "note"},
+        row_keys=_row_keys(document["records"]),
     )
     for record in context.records.values():
         aliases = record["fields"].get("aliases")
@@ -689,11 +738,13 @@ def _note(depth: int, title: str, slug: str, generated: str, frontmatter: dict[s
 
 def _attach_records(records: list[dict[str, object]], notes: list[dict[str, object]],
                     context: Context) -> None:
-    """Records join the queryable population: a chapter's own record adds to its frontmatter,
-    any other record becomes a record-only note outside the reading order. A note record's
+    """Note records join the queryable population: a chapter's own record adds to its frontmatter,
+    any other note record becomes a record-only note outside the reading order. A note record's
     path is its note's source path, which Bases read file.* properties from (obs bases.md)."""
     by_slug = {note["slug"]: note for note in notes}
     for record in records:
+        if record["type"] != "note":
+            continue  # A projected row reaches a register through its rows (_register), not as a note.
         fields = dict(record["fields"])
         note = by_slug.get(record["id"])
         source_path = record.get("path") or f"{record['id']}.md"
@@ -1030,17 +1081,22 @@ def _shell(model: dict[str, object], limits: list[dict[str, str]], stylesheet: s
   <style id="semantic-asset-styles">{assets.css()}</style>
 </head>
 <body>
+  <header class="top-band" data-top-band>
+    <div class="top-band-path" data-top-band-path data-transient-content></div>
+    <button class="icon-button frontmatter-toggle" type="button" data-frontmatter-toggle
+            aria-label="Show frontmatter" aria-expanded="false"
+            aria-controls="frontmatter-panel" title="Show frontmatter" hidden>
+      {markup("frontmatter")}
+    </button>
+    <div class="top-band-end" data-top-band-end>
+      <button class="icon-button menu-button" type="button" data-menu-button
+              aria-label="Open bars menu" aria-expanded="false" title="Bars" disabled>{markup("menu")}</button>
+    </div>
+  </header>
   <div class="app-shell" inert>
     {_dock_region("top")}
     {_dock_region("left")}
     <main class="reader-shell">
-      <div class="frontmatter-nav-zone">
-        <button class="frontmatter-toggle" type="button" data-frontmatter-toggle
-                aria-label="Show frontmatter" aria-expanded="false"
-                aria-controls="frontmatter-panel" title="Show frontmatter" hidden>
-          {markup("frontmatter")}
-        </button>
-      </div>
       <div class="chapter-scroll" data-chapter-scroll tabindex="-1">
         <section class="frontmatter-panel" id="frontmatter-panel" data-frontmatter-panel
                  aria-label="Frontmatter" hidden>
@@ -1070,8 +1126,6 @@ def _shell(model: dict[str, object], limits: list[dict[str, str]], stylesheet: s
   <script id="running-header-script" data-header-metadata="{header_metadata}">
 {read("running-header.js")}
   </script>
-  <button class="icon-button menu-button" type="button" data-menu-button
-          aria-label="Open bars menu" aria-expanded="false" title="Bars" disabled>{markup("menu")}</button>
   <section class="bars-menu" data-bars-menu aria-label="Bars" hidden>
     {''.join(_menu_row(bar) for bar in bars)}
   </section>

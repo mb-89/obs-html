@@ -76,21 +76,15 @@ def test_everything_on_the_title_page_is_centered(tmp_path, reader_browser) -> N
             const box = image.getBoundingClientRect();
             boxes.push(['img', box.left + box.width / 2 - middle]);
         });
-        // The title sheet's running header (identity and confidentiality above the rule).
-        heading.closest('.paper-sheet').querySelectorAll('.paper-header > span').forEach(span => {
-            if (!span.textContent.trim()) return;
-            const range = document.createRange();
-            range.selectNodeContents(span);
-            const box = range.getBoundingClientRect();
-            boxes.push(['header: ' + span.textContent.trim(), box.left + box.width / 2 - middle]);
-        });
+        // The title sheet's running header repeats nothing the cover shows: it holds no text.
+        boxes.push(['header: ' + heading.closest('.paper-sheet').querySelector('.paper-header').textContent.trim(), 0]);
         return boxes;
     }""")
     page.close()
     texts = [text for text, _offset in offsets]
-    for expected in ("Example org", "Fixture document", "Specification", "Bridge", "img", "Ada, Lin",
-                     "header: Widget · Specification", "header: Internal"):
+    for expected in ("Example org", "Fixture document", "Specification", "Bridge", "img", "Ada, Lin"):
         assert any(expected in text for text in texts), (expected, texts)
+    assert [text for text in texts if text.startswith("header:")] == ["header: "]
     off_center = [(text, round(offset)) for text, offset in offsets
                   if abs(offset) > 2 and text not in {"Bridge", "img"}]
     assert off_center == []

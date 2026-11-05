@@ -386,6 +386,7 @@
     const chapterBody = document.querySelector("[data-chapter-body]");
     const chapterScroll = document.querySelector("[data-chapter-scroll]");
     const frontmatterToggle = document.querySelector("[data-frontmatter-toggle]");
+    const bandPath = document.querySelector("[data-top-band-path]");
     const frontmatterPanel = document.querySelector("[data-frontmatter-panel]");
     const frontmatterBody = document.querySelector("[data-frontmatter-body]");
     const tocTree = document.querySelector("[data-toc-tree]");
@@ -1266,6 +1267,9 @@
         return editor;
     };
 
+    // Each register's definition as rendered: a different one is the reader's edited query.
+    const authoredDefinitions = new Map(records.flatMap(record => (record.tables || [])
+        .filter(table => table.rows).map(table => [table.key, JSON.stringify(table.definition)])));
     const tableDefinition = (table, staticView = false) => {
         const definition = globalThis.obsBases.project(table.definition, records);
         const viewIndex = Math.min(table.view || 0, definition.views.length - 1);
@@ -1298,8 +1302,20 @@
             if (Object.hasOwn(row.ownFields, field)) return row.ownFields[field];
             return owner ? globalThis.obsBases.recordValue(owner, field) : undefined;
         });
-        const members = definition.obsHtml?.members;
-        let rows = allRows.filter(row => row.values.recordType === (recordType || "note"));
+        // A register's rows are the core's selection (obs capabilities/registers): this view's, or,
+        // under a reader-edited query, all of the register's, which that query narrows. A fence's
+        // rows are selected here. Generation provenance is the adapter's own documentMetadata.
+        const edited = table.rows && JSON.stringify(table.definition) !== authoredDefinitions.get(table.key);
+        const coreKeys = !table.rows ? undefined : edited ? [...new Set(table.rows.flat())] : table.rows[viewIndex];
+        const rowsByKey = coreKeys && new Map(allRows.map(row => [row.key, row]));
+        let rows = coreKeys ? coreKeys.map(key => {
+            if (!rowsByKey.has(key)) throw new Error(`Register ${table.key}: the core's row ${key} is not in this artifact. Regenerate the Document with the obs core and render it again.`);
+            return rowsByKey.get(key);
+        }).filter(row => row.values.recordType === (recordType || "note")) : allRows.filter(row => row.values.recordType === (recordType || "note"));
+        if (coreKeys && recordType === "documentMetadata") {
+            rows.push(...allRows.filter(row => row.key.startsWith("generation:") && compiled.match(row)));
+        }
+        const selection = coreKeys && !edited ? {empty: true, match: () => true} : compiled;
         if (nativeNotes) rows = rows.map(row => {
             const owner = recordsBySlug.get(row.noteId);
             const values = Object.fromEntries(Object.keys(row.values).flatMap(field => {
@@ -1311,38 +1327,33 @@
                     globalThis.obsBases.recordValue(owner, field) !== undefined)),
             });
         });
-        if (members) {
-            const notesByPath = new Map();
+        // A view's members order the core's rows and label them (generic-tables); the core selected
+        // them, so a member names a row here or nothing.
+        const members = view.obsHtml?.members;
+        if (coreKeys && members) {
             const notePath = (row) => recordsBySlug.get(row.noteId)?.sourcePath ?? row.values.sourcePath;
-            rows.filter((row) => typeof notePath(row) === "string")
-                .forEach((row) => {
-                    const records = notesByPath.get(notePath(row)) || [];
-                    records.push(row);
-                    notesByPath.set(notePath(row), records);
-                });
-            rows = members.flatMap((member) => {
-                const noteRows = notesByPath.get(member.path);
-                if (!noteRows) throw new Error(`Missing Bases member note: ${member.path}`);
-                const label = member.label ?? "";
-                return noteRows.map((row) => {
-                    const values = {...row.values, "obsHtml.label": label};
+            const position = new Map(members.map((member, index) => [member.path, index]));
+            const place = row => position.get(notePath(row)) ?? members.length;
+            rows = rows.map((row, index) => ({row, index}))
+                .sort((left, right) => place(left.row) - place(right.row) || left.index - right.index)
+                .map(({row}) => {
+                    const member = members[position.get(notePath(row))];
+                    if (!member) return row;
+                    const label = member.label ?? "";
                     const cells = {...row.cells};
                     if (member.label !== undefined && row.noteId) {
-                        cells["obsHtml.label"] = {
-                            type: "detail", href: `#${row.noteId}`, label,
-                        };
+                        cells["obsHtml.label"] = {type: "detail", href: `#${row.noteId}`, label};
                     }
                     return {
                         ...row,
-                        values,
+                        values: {...row.values, "obsHtml.label": label},
                         ownFields: {...row.ownFields, "obsHtml.label": label},
                         fields: {...row.fields, "obshtml.label": [label]},
                         cells,
                     };
                 });
-            });
         }
-        const matched = rows.filter((row) => compiled.match(row));
+        const matched = rows.filter((row) => selection.match(row));
         const fields = [...new Set([
             ...view.order,
             ...matched.flatMap((row) => Object.keys(row.values)),
@@ -1434,7 +1445,7 @@
             properties,
             rows,
             query,
-            baseQuery: compiled,
+            baseQuery: selection,
             maxRows: definition.obsHtml?.maxRows,
             wide: view.obsHtml?.wide === true,
             compact: view.obsHtml?.compact === true,
@@ -1831,7 +1842,7 @@
     };
 
     const syncBreadcrumbs = () => {
-        chapterBody.querySelectorAll(".chapter-breadcrumb-chooser").forEach((chooser) => {
+        bandPath.querySelectorAll(".chapter-breadcrumb-chooser").forEach((chooser) => {
             const links = [...chooser.querySelectorAll(".chapter-breadcrumb-menu a")];
             links.forEach((link) => {
                 link.hidden = !visibleIndices.includes(Number(link.dataset.chapterIndex));
@@ -1890,6 +1901,7 @@
             const link = document.createElement("a");
             link.href = `#${chapters[chapterIndex].slug}`;
             link.textContent = chapters[chapterIndex].title;
+            link.title = link.textContent;
             if (chapterIndex === index) {
                 link.setAttribute("aria-current", "page");
                 currentCrumb = link;
@@ -1900,6 +1912,7 @@
             const label = document.createElement("a");
             label.href = `#${record.slug}`;
             label.textContent = record.title;
+            label.title = label.textContent;
             label.setAttribute("aria-current", "page");
             navigation.append(label);
             currentCrumb = label;
@@ -1915,7 +1928,7 @@
                 currentCrumb.setAttribute("aria-expanded", String(chooser.hasAttribute("open")));
             });
         }
-        chapterBody.prepend(navigation);
+        bandPath.replaceChildren(navigation);
         syncBreadcrumbs();
     };
 
