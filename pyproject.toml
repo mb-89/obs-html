@@ -8,6 +8,7 @@ license-files = ["LICENSE"]
 dependencies = [
     "obs",
     "jsonschema>=4.26.0",
+    "latex2mathml>=3.81.1",
     "markdown-it-py>=3.0",
     "pillow>=13.0.0",
     "playwright>=1.64.0",

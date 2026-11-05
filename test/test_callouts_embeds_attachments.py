@@ -40,9 +40,9 @@ def _callout(kind: str, title: str = "", *body: str | dict) -> dict:
 @pytest.mark.parametrize("kind", sorted(CALLOUTS))
 def test_callout_types_render_as_titled_tone_cards(kind) -> None:
     link = node("wikilinks", target="two", chapter="two", heading="", label="two")
-    html = _html(_callout(kind, "", "Body with ", link, "."))
+    name = kind.capitalize()  # The core's title for an untitled callout of this kind.
+    html = _html(_callout(kind, name, "Body with ", link, "."))
     tone = CALLOUTS[kind]
-    name = kind.capitalize()
     assert html == (
         f'<aside class="content-card content-callout content-callout--{tone}" '
         f'data-callout="{kind}" aria-label="{name}">\n'
@@ -150,7 +150,8 @@ def test_callout_tones_are_distinct_titled_cards_in_the_reader(tmp_path, reader_
     """Moved from the interim's browser tests: each tone has its own border and fill, and the
     title takes the border colour, in the paged reader and the print book alike."""
     kinds = ["note", "success", "warning", "danger", "quote"]
-    document = build("Doc", chapter("one", "One", *(_callout(kind, "", f"{kind} body.") for kind in kinds)))
+    document = build("Doc", chapter("one", "One", *(_callout(kind, kind.capitalize(), f"{kind} body.")
+                                                   for kind in kinds)))  # The core's titles.
     artifact = tmp_path / "artifact.html"
     artifact.write_text(render(document, CONFIG), encoding="utf-8")
     page = reader_browser.new_page(viewport={"width": 1200, "height": 1000})

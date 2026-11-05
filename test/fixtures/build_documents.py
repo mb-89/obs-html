@@ -226,8 +226,25 @@ def table_help(root: Path) -> None:
         encoding="utf-8")
 
 
+def structural(root: Path) -> None:
+    """test_structural_nodes.py's vault: every Markdown construct the core emits as a structural node."""
+    (root / "manifest.md").write_text("- [[formatting]]\n", encoding="utf-8")
+    (root / "formatting.md").write_text(
+        "---\nowner: {name: '*Ada* **Lovelace**'}\ntags: ['~~old~~', plain]\ncount: 3\n---\n"
+        "# Formatting\n\n"
+        "Plain, **strong *emphasis inside* and ~~struck~~**, *emphasis **strong inside***, "
+        "~~struck **strong *all three***~~ and inline $x^2$ math.\n\n"
+        "$$\nE = mc^2\n$$\n\n"
+        "> A quoted **line**.\n\n"
+        "| Left | Center | Right |\n|:---|:---:|---:|\n| a | *b* | 3 |\n\n"
+        "---\n\n"
+        "> [!note]\n> Untitled note body.\n",
+        encoding="utf-8",
+    )
+
+
 VAULTS = {"complete": complete, "artifact-change": artifact_change, "projections": projections,
-          "table-help": table_help}
+          "table-help": table_help, "structural": structural}
 
 
 def main(core: Path) -> None:

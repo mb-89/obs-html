@@ -1,7 +1,7 @@
 """Build small contract-valid Documents for runtime tests, as the core would emit them."""
 from __future__ import annotations
 
-STRUCTURAL = {"document", "section", "paragraph", "text", "list", "list-item", "code"}
+from obs_html.render import STRUCTURAL
 
 
 def text(value: str) -> dict:
