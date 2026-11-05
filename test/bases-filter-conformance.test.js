@@ -1,7 +1,7 @@
 "use strict";
 
-// Runs the shared Bases filter fixture against the browser evaluator; pytest runs the same
-// fixture against the generator (test_bases_filter_conformance.py).
+// Runs the core's shared Bases filter fixture (test/fixtures at the repository root) against the
+// browser evaluator; test_render.py runs the same fixture against the renderer's filter check.
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
@@ -12,7 +12,8 @@ const schema = fs.readFileSync(path.join(root, "src", "obs_html", "base.schema.j
 globalThis.document = {querySelector: selector => selector === "#base-schema" ? {textContent: schema} : null};
 vm.runInThisContext(fs.readFileSync(path.join(root, "src", "obs_html", "base.js"), "utf8"));
 
-const fixture = JSON.parse(fs.readFileSync(path.join(__dirname, "fixtures", "bases-filter-conformance.json"), "utf8"));
+const fixture = JSON.parse(fs.readFileSync(
+    path.join(root, "..", "..", "test", "fixtures", "bases-filter-conformance.json"), "utf8"));
 const records = fixture.records.map(record => ({
     id: record.id, sourcePath: record.path, frontmatter: record.frontmatter,
 }));

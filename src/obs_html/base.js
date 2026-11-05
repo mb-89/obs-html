@@ -206,13 +206,27 @@
         if (typeof value === "object") return Object.values(value).some(assigned);
         return true;
     };
+    // capabilities/bases#Comparisons owns the rule set: text ignores case unless a query
+    // condition's flag asks for it, and property names ignore case.
+    const escapePattern = text => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replaceAll("/", "\\/");
+    const textMatcher = (expected, matchCase = false) => {
+        if (matchCase) return actual => actual === expected;
+        const pattern = new RegExp(`^${escapePattern(expected)}$`, "i");
+        return actual => pattern.test(actual);
+    };
+    const propertyKey = (mapping, name) => {
+        if (Object.hasOwn(mapping, name)) return name;
+        const folded = name.toLowerCase();
+        return Object.keys(mapping).find(key => key.toLowerCase() === folded);
+    };
     const compileFilter = (filter, valueFor) => {
         if (filter === undefined || filter === null) return {empty: true, match: () => true};
         if (typeof filter === "string") {
             const {field, operator, expected} = comparison(filter);
+            const sameText = typeof expected === "string" ? textMatcher(expected) : null;
             return {empty: false, match: row => {
                 const actual = valueFor(row, field) ?? null;
-                const equal = actual === expected;
+                const equal = sameText && typeof actual === "string" ? sameText(actual) : actual === expected;
                 return operator === "==" ? equal : !equal;
             }};
         }
@@ -232,15 +246,17 @@
         if (field === "file.path") return record.sourcePath || "";
         if (field === "file.ext") return extension < 0 ? "" : fileName.slice(extension + 1);
         if (field === "file.folder") return record.sourcePath?.split("/").slice(0, -1).join("/") || "";
-        if (Object.hasOwn(record.frontmatter || {}, field)) return record.frontmatter[field];
+        const whole = propertyKey(record.frontmatter || {}, field);
+        if (whole !== undefined) return record.frontmatter[whole];
         const traverse = (value, parts) => {
             if (!parts.length) return value;
             if (Array.isArray(value) && !/^(?:0|[1-9][0-9]*)$/.test(parts[0])) {
                 return value.flatMap(item => traverse(item, parts)).filter(item => item !== undefined);
             }
             const [part, ...remaining] = parts;
-            return value !== null && typeof value === "object" && Object.hasOwn(value, part)
-                ? traverse(value[part], remaining) : undefined;
+            if (Array.isArray(value)) return Object.hasOwn(value, part) ? traverse(value[part], remaining) : undefined;
+            const key = isObject(value) ? propertyKey(value, part) : undefined;
+            return key === undefined ? undefined : traverse(value[key], remaining);
         };
         return traverse(record.frontmatter, field.split("."));
     };
@@ -308,6 +324,6 @@
     };
     globalThis.obsBases = {
         validate, parse, dump, filterExpression, compileFilter, assigned, quoteField, recordValue, referenceRecords,
-        project, expandMetadata,
+        project, expandMetadata, textMatcher, escapePattern,
     };
 })();
