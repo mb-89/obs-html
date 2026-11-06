@@ -21,11 +21,13 @@ import subprocess
 import zipfile
 from pathlib import Path
 
-from conftest import CORE_ROOT
+from conftest import CORE_ROOT, spec_build
 from obs_html import reproduce
 from obs_html.cli import main as obs_html
 from obs_html.source_archive import embedded
-from spec_artifact import OFFLINE_DOCUMENT, run, uv
+from spec_artifact import run, uv
+
+OFFLINE_DOCUMENT = spec_build.OFFLINE_DOCUMENT
 
 PRODUCED = "design_output/obs-html-specification.html"
 """What obs's spec producer writes, the file its References entry attaches."""
