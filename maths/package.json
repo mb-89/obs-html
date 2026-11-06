@@ -1,0 +1,7 @@
+{
+  "private": true,
+  "description": "The maths library equation figures evaluate with in the reader (features.py, equations); installed with npm ci, embedded by the renderer, never fetched by an artifact.",
+  "dependencies": {
+    "mathjs": "15.2.0"
+  }
+}

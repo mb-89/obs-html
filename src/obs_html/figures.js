@@ -845,6 +845,11 @@
       control.title = "Show or hide the plot legend";
       return control;
     },
+    // An equation figure's view options (equations.js).
+    trace: figure => globalThis.obsEquations.option("trace", figure),
+    axis: figure => globalThis.obsEquations.option("axis", figure),
+    swap: figure => globalThis.obsEquations.option("swap", figure),
+    family: figure => globalThis.obsEquations.option("family", figure),
   };
   function optionsMenu(figure) {
     const keys = (figure.dataset.figureOptions || "").split(" ").filter(key => FIGURE_OPTIONS[key]);
@@ -884,6 +889,7 @@
       } catch (_error) { /* An HTML without the plotting canary reports nothing more. */ }
       return;
     }
+    if (spec.kind === "equations") { globalThis.obsEquations.render(figure, spec, host); return; }
     const chart = document.createElement("div");
     chart.className = "figure-chart"; host.append(chart);
     const semanticBorder = getComputedStyle(document.documentElement)
@@ -992,6 +998,24 @@
       });
     },
     async preparePrint(container) {
+      // An equation figure prints the reader's view; a caption note says where it changed.
+      for (const figure of container.querySelectorAll('[data-figure-kind="equations"]:not(:has(> img))')) {
+        if (!window.Plotly) throw new Error("Cannot print graph: Plotly could not load.");
+        const {src, changed} = await globalThis.obsEquations.printImage(figure, JSON.parse(figure.dataset.figureSpec));
+        const image = document.createElement("img");
+        image.className = "figure-default";
+        image.alt = figure.querySelector("figcaption")?.textContent || figure.id;
+        image.src = src;
+        figure.prepend(image);
+        if (changed) {
+          const note = document.createElement("span");
+          note.className = "figure-view-note";
+          note.textContent = ` ${globalThis.obsEquations.VIEW_NOTE}`;
+          let caption = figure.querySelector("figcaption");
+          if (!caption) { caption = document.createElement("figcaption"); figure.append(caption); }
+          (caption.querySelector("p:last-child") || caption).append(note);
+        }
+      }
       for (const figure of container.querySelectorAll('[data-figure-kind="plot"]:not(:has(> img))')) {
         if (!window.Plotly) throw new Error("Cannot print graph: Plotly could not load.");
         const spec = JSON.parse(figure.dataset.figureSpec);

@@ -228,19 +228,50 @@
     max-width: 100%;
 }
 
-.figure-overlay > [data-figure-kind="plot"] {
+.figure-overlay > [data-figure-kind="plot"],
+.figure-overlay > [data-figure-kind="equations"] {
     display: flex;
     flex-direction: column;
     height: 100%;
 }
 
-.figure-overlay [data-figure-kind="plot"] > .figure-live {
+.figure-overlay [data-figure-kind="plot"] > .figure-live,
+.figure-overlay [data-figure-kind="equations"] > .figure-live {
     flex: 1;
     min-height: 0;
 }
 
 .figure-overlay .figure-chart {
     height: 100%;
+}
+
+/* An equation figure's options (equations.js) and its progress while curves compute. */
+.figure-options .equation-options {
+    border-top: var(--border-width) solid var(--color-border);
+    display: grid;
+    gap: 0.35rem;
+    padding-top: 0.45rem;
+}
+
+.figure-options .equation-option {
+    align-items: center;
+    display: grid;
+    gap: 0.5rem;
+    grid-template-columns: 8rem minmax(0, 1fr);
+    font-family: var(--font-interface);
+    font-size: 0.8rem;
+}
+
+.figure-options .equation-option-error {
+    color: var(--color-danger, currentColor);
+    font-size: 0.8rem;
+    margin: 0;
+}
+
+.equation-progress {
+    font-family: var(--font-interface);
+    font-size: 0.8rem;
+    margin: 0.25rem 0 0;
 }
 
 .figure-chart g.legend:focus {
