@@ -795,10 +795,17 @@ On such a chapter the top band shows, left of the notice icons:
   Pick only where the chapter has a decision figure.
 - **The comment:** Decline, Ask and Pick open a one-line comment entry in the band, directly
   under the keys, and only then; Pick shows there the other options' letters ("Pick A"), as the
-  figure's column heads do. There is no comment box in the page and no browser dialog.
+  figure's column heads do, and "None of the above", which needs a comment as Decline does and
+  is sent as the pick's option `none`. There is no comment box in the page and no browser dialog.
 
-A complete verdict, a Bless or another verdict with its comment (and, for Pick, its letter, the
-comment confirmed with Enter), opens the next chapter of the walk.
+A verdict is complete as a Bless, or as another verdict with its comment (and, for Pick, its
+letter); Enter confirms the comment and closes the entry. A verdict never walks: decided by the
+user, 6 Nov 2026 (work issue `feature/deck-shell-verdicts-20261106`), the reader moves on by
+swipe, the keys or the arrows, so the chapter stays after a verdict.
+
+Verdicts toggle, by the same decision: the active key (Bless, Decline, Ask or Pick) or the
+active pick ("Pick B", the band's or the figure's), chosen again, clears the verdict back to
+"Bless pending". The comment entry closes, and Send's count drops.
 
 **Send** shows in the band, on every chapter, while any chapter asks: "Send 1/2", the complete
 verdicts of the asking chapters. It is disabled until one is complete, and hands one payload to
@@ -824,7 +831,12 @@ decision is a one-pager, not a document page, so an artifact can be read as scre
 the walk as one screen: the chapter at the reader's full width inside a side gutter that holds
 the chapter arrows, with no page frame, cover, running header, footer or page number. The
 manifest's title shows only in the top band, between the breadcrumbs and the frontmatter
-chevron; it truncates first, its full text its tooltip. Home shows its content without the cover.
+chevron; it truncates first, its full text its tooltip.
+
+Decided by the user, 6 Nov 2026 (work issue `feature/deck-shell-verdicts-20261106`): screens have
+no title screen. The walk holds the chapters only, and the deck opens on its first chapter. Home,
+the band's or the menu's, opens that chapter too; shown as pages, Home is the cover as before.
+Only a filter that matches no chapter shows Home, and clearing it opens the first chapter.
 
 Without a declared `obsHtml.layout`, a manifest whose listed chapters (the reading order) all
 ask for a bless opens in `screens`; any other opens in `paged`. A declared layout always wins.
@@ -836,7 +848,7 @@ example deck (`spec/examples/bless-deck`) opens in screens by this rule.
   swipe, the keys and the band's position walk; their gutter goes to the content, which keeps a
   text margin. Hidden, not moved into the band: on a phone the band has no square to spare, and
   swipe already walks there. With a mouse, the arrows stay as they are. The top band shows the position on the chapters of the walk, "2 / 3", as
-  one of its squares, first at the band's end; Home, which is not one of them, shows none. The
+  one of its squares, first at the band's end. The
   bottom of the screen stays free for content.
 - **Show as pages** switches to the paged view for the session; switching it off returns to
   screens.

@@ -597,10 +597,19 @@
         menuButton.setAttribute("aria-expanded", String(open));
     };
 
+    // Artifact-ui.md "Screens": the screens walk has no Home; Home opens its first chapter.
+    const screensWalk = () => document.documentElement.classList.contains("screens-mode");
+    const walkIndices = () => screensWalk()
+        ? visibleIndices.filter((index) => chapters[index].generated !== "home")
+        : visibleIndices;
+    // Screens show Home only while the walk holds no chapter, as under a filter that matches none.
+    const leaveHome = () => {
+        if (screensWalk() && activeChapter.dataset.chapter === "home") activateChapter("home", "replace");
+    };
     const stepTarget = (step) => {
         if (activeIndex < 0) return undefined;
         const targets = [
-            ...visibleIndices.map((index) => ({type: "chapter", index})),
+            ...walkIndices().map((index) => ({type: "chapter", index})),
         ];
         let position = targets.findIndex(
             (target) => target.type === "chapter" && target.index === activeIndex,
@@ -1994,6 +2003,8 @@
         if (tableFilter !== null) globalThis.obsQuery.compile(tableFilter);
         const record = recordsBySlug.get(noteSlug);
         if (!record) return;
+        const firstScreen = record.generated === "home" && screensWalk() ? walkIndices()[0] : undefined;
+        if (firstScreen !== undefined) return activateChapter(chapters[firstScreen].slug, historyMode);
         if (!isDocument(record)) {
             activateChapter("home", historyMode);
             return;
@@ -2359,6 +2370,7 @@
             link.closest("li").hidden = !visibleTocIndices.has(Number(link.dataset.chapterIndex));
         });
         if (activeIndex >= 0 && !visibleTocIndices.has(activeIndex)) activateChapter("home", "replace");
+        else leaveHome();
         syncBreadcrumbs();
         const summary = filterSummary();
         if (query.empty) globalThis.obsNotices.remove("applied-filter");
@@ -2456,6 +2468,7 @@
             .forEach(node => anchorObserver?.observe(node));
     };
     document.addEventListener("obs-pages-layout", reanchor);
+    document.addEventListener("obs-pages-layout", leaveHome);
     const releaseAnchor = () => {
         anchoredHit = null;
         anchorObserver?.disconnect();

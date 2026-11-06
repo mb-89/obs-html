@@ -14,6 +14,8 @@ from __future__ import annotations
 from html import escape
 
 STATES = {"bless": "Blessed", "decline": "Declined", "ask": "Question", "pick": "Picked"}
+NONE = "None of the above"
+"""The state of a pick of none of the options (obs input-model, Answers), as bless.js names it."""
 SYMBOLS = {2: "++", 1: "+", 0: "S", -1: "−", -2: "−−"}
 """ctrl's mark symbols, as the decision figure shows them (vendor/pugh.js, SYMBOL)."""
 
@@ -64,8 +66,10 @@ def record_html(chapter: dict) -> str:
         for index, short in enumerate(body["shortNames"]):
             names.setdefault(chr(65 + index), short)
     state = STATES[verdict["verdict"]]
-    if verdict.get("pick"):
-        letter = verdict["pick"]["option"]
+    letter = verdict.get("pick", {}).get("option")
+    if letter == "none":
+        state = NONE
+    elif letter:
         state += f" {letter}" + (f" · {names[letter]}" if names.get(letter) else "")
     outdated = "outdated" in request
     title = ("Outdated answer: the chapter changed after it was answered, so it asks again"

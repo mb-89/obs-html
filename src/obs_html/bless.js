@@ -2,7 +2,13 @@
    requests) shows a pill with its state in the top band and, beside it, the verdict keys Bless,
    Decline, Ask and Pick. Decline, Ask and Pick take a one-line comment in the band, under the
    keys; Pick takes another option of the chapter's decision figure by its letter, here or from
-   the option's column head ("Pick B"). A complete verdict opens the next chapter of the walk.
+   the option's column head ("Pick B"), or None of the above (option "none"). A verdict never walks: the reader walks the chapters. The
+   active key or pick, chosen again, clears the verdict to pending.
+   API for the decision figure (pugh-figure.js): pick(anchor, option) picks an option of a figure by
+   its letter, or "none" for None of the above, toggling as the band's keys do; picked(anchor) is the
+   figure's picked option, a letter, "none" or null. Each change of a chapter's verdict by a key or a
+   pick, not by typing its comment, fires "obs-bless-change" on document, its detail
+   {chapter, verdict}, the verdict a copy or null where it was cleared.
    Send hands every complete verdict to the answer sink (answers.js) as one payload whose fields
    obs's src/obs/answers.schema.json owns; spec/capabilities/bless.md owns the contract and
    artifact-ui.md the top band. The verdicts are session state; which were sent is kept in
@@ -12,6 +18,7 @@ globalThis.obsBless = (() => {
   const GLYPHS = {bless: "✓", decline: "✗", ask: "?", pick: "⇄"};
   const STATES = {bless: "Blessed", decline: "Declined", ask: "Question", pick: "Picked"};
   const NEEDS_COMMENT = new Set(["decline", "ask", "pick"]);
+  const NONE = "None of the above";  // A pick of none of the options, option "none" (bless_record.py names it so).
   const data = JSON.parse(document.querySelector("[data-artifact-data]").textContent);
   const template = document.createElement("template");
   /** Each decision figure of a note: its anchor and its options' letters and names (pugh-figure.js letters them). */
@@ -99,9 +106,10 @@ globalThis.obsBless = (() => {
     const request = requests.get(slug), verdict = verdicts.get(slug);
     picks.replaceChildren(...request.figures.flatMap(figure => {
       const winner = document.getElementById(figure.anchor)?.dataset.pughWinner;
-      return figure.options.filter(option => option.letter !== winner).map(option => {
-        const key = element("button", {type: "button", className: "filter-pill", textContent: pickLabel(figure, option),
-          title: `Pick ${option.letter}: ${option.name}`});
+      return [...figure.options.filter(option => option.letter !== winner), {letter: "none"}].map(option => {
+        const key = element("button", {type: "button", className: "filter-pill",
+          textContent: option.letter === "none" ? NONE : pickLabel(figure, option),
+          title: option.letter === "none" ? NONE : `Pick ${option.letter}: ${option.name}`});
         key.dataset.blessPick = `${figure.anchor}:${option.letter}`;
         key.setAttribute("aria-pressed", String(verdict?.pick?.figure === figure.anchor && verdict.pick.option === option.letter));
         key.addEventListener("click", () => pick(figure.anchor, option.letter));
@@ -119,27 +127,40 @@ globalThis.obsBless = (() => {
     comment.focus();
   }
   function closeEntry() { entry.hidden = true; }
-  function next() {
-    const step = document.querySelector('[data-step="1"]');
-    if (step && !step.disabled) step.click();
-  }
   function finish() {
-    if (!complete(verdicts.get(active))) { update(); return; }
-    closeEntry();
-    next();
+    if (complete(verdicts.get(active))) closeEntry();
+    update();
+  }
+  /** Set a chapter's verdict, or clear it to pending with null, and tell the page (obs-bless-change). */
+  function decide(slug, verdict) {
+    if (verdict) verdicts.set(slug, verdict);
+    else verdicts.delete(slug);
+    if (!verdict && slug === active) closeEntry();
+    update();
+    document.dispatchEvent(new CustomEvent("obs-bless-change",
+      {detail: {chapter: slug, verdict: verdict ? structuredClone(verdict) : null}}));
   }
   function choose(verdict) {
     const previous = verdicts.get(active);
-    verdicts.set(active, {...previous, verdict, ...(verdict === "pick" ? {} : {pick: undefined})});
-    update();
+    if (previous?.verdict === verdict) { decide(active, null); return; }
+    decide(active, {...previous, verdict, ...(verdict === "pick" ? {} : {pick: undefined})});
     if (NEEDS_COMMENT.has(verdict)) openEntry();
-    else { closeEntry(); next(); }
+    else closeEntry();
   }
-  /** Pick another option of a decision figure of the active chapter, from the band or its column head. */
-  function pick(anchor, letter) {
-    const previous = verdicts.get(active);
-    verdicts.set(active, {...previous, verdict: "pick", pick: {figure: anchor, option: letter}});
-    update();
+  /** The asking chapter that holds a decision figure, by the figure's anchor; undefined elsewhere. */
+  const chapterOf = anchor => [...requests.keys()].find(key => requests.get(key).figures.some(figure => figure.anchor === anchor));
+  /** A figure's picked option: its letter, "none", or null. */
+  function picked(anchor) {
+    const verdict = verdicts.get(chapterOf(anchor));
+    return verdict?.verdict === "pick" && verdict.pick?.figure === anchor ? verdict.pick.option : null;
+  }
+  /** Pick an option of a decision figure, from the band, its column head or the figure; the active pick clears. */
+  function pick(anchor, option) {
+    const slug = chapterOf(anchor);
+    if (!slug) return;
+    if (picked(anchor) === option) { decide(slug, null); return; }
+    decide(slug, {...verdicts.get(slug), verdict: "pick", pick: {figure: anchor, option}});
+    if (slug !== active) return;
     openEntry();
     if (complete(verdicts.get(active))) comment.select();
   }
@@ -159,6 +180,7 @@ globalThis.obsBless = (() => {
   /** A verdict's state and, for Pick, the picked option's short name where its figure gives one. */
   function verdictParts(verdict) {
     if (verdict.verdict !== "pick" || !verdict.pick) return [STATES[verdict.verdict]];
+    if (verdict.pick.option === "none") return [NONE];
     const spec = specs.get(verdict.pick.figure);
     const short = spec && globalThis.obsPugh.options(spec).find(option => option.letter === verdict.pick.option)?.short;
     return [`Picked ${verdict.pick.option}`, ...(short ? [short] : [])];
@@ -224,7 +246,7 @@ globalThis.obsBless = (() => {
   }
   /** A decision figure's column-head key, "Pick B", where its chapter asks; null elsewhere (pugh-figure.js). */
   function columnKey(anchor, letter) {
-    const slug = [...requests.keys()].find(key => requests.get(key).figures.some(figure => figure.anchor === anchor));
+    const slug = chapterOf(anchor);
     if (!slug || slug !== active) return null;
     const key = element("button", {type: "button", className: "filter-pill bless-column-pick", textContent: `Pick ${letter}`});
     key.dataset.blessColumnPick = `${anchor}:${letter}`;
@@ -241,5 +263,5 @@ globalThis.obsBless = (() => {
     update();
   });
   update();
-  return Object.freeze({columnKey, payload, verdicts: () => structuredClone(Object.fromEntries(verdicts))});
+  return Object.freeze({columnKey, payload, pick, picked, verdicts: () => structuredClone(Object.fromEntries(verdicts))});
 })();

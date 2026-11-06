@@ -38,3 +38,10 @@ def test_the_record_names_the_picked_option_by_the_short_name_the_document_carri
     # The core resolved the names (obs input-model, Pugh decision figures); the record keeps no rule of its own.
     assert "Picked B · Second" in record_html(chapter)
     assert "Picked C<" in record_html(picked_c)
+
+
+def test_the_record_names_none_of_the_above() -> None:
+    chapter = _chapter("answer")
+    chapter["bless"]["answer"] = {**VERDICT, "verdict": "pick", "pick": {"figure": "choice", "option": "none"}}
+
+    assert '<span data-bless-record-verdict>None of the above</span>' in record_html(chapter)

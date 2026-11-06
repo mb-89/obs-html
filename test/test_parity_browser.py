@@ -200,11 +200,15 @@ def interact(page, frame) -> tuple[list[tuple[str, object]], list[str]]:
         """Whether the notice center shows the changed-HTML notice."""
         return frame.locator('[data-notice="changed-html"]').count() > 0
 
+    # The walk: Home, then the listed chapters; screens have no Home, and Home opens the first chapter
+    # (artifact-ui.md, Screens).
     steps.append(("chapters", frame.evaluate("""() => {
         const home = document.querySelector(".chapter-home-link").getAttribute("href").slice(1);
         const listed = [...document.querySelectorAll("[data-toc-tree] a")].map((link) => link.getAttribute("href").slice(1));
-        return [home, ...listed.filter((slug) => !slug.includes("/") && slug !== home)];
+        const chapters = listed.filter((slug) => !slug.includes("/") && slug !== home);
+        return document.documentElement.classList.contains("screens-mode") ? chapters : [home, ...chapters];
     }""")))
+    first = steps[-1][1][0]
     steps.append(("start", chapter()))
     steps.append(("icons on start", frame.evaluate(ICONS)))
     for count in range(1, 5):
@@ -227,8 +231,8 @@ def interact(page, frame) -> tuple[list[tuple[str, object]], list[str]]:
             pointer('[data-step="1"] .chapter-nav-icon')
         origin = chapter()
         home = pointer(".chapter-home-link")
-        if home != "home":
-            violations.append(f"Home by pointer from {origin}: {home}, not home")
+        if home != first:
+            violations.append(f"Home by pointer from {origin}: {home}, not {first}")
     frame.locator(".chapter-home-link").first.focus()
     page.keyboard.press("Enter")
     steps.append(("Home by keyboard after the pointer checks", settle()))
@@ -300,7 +304,7 @@ CHROME = ("toolbar", "chapter arrows", "breadcrumbs", "bars menu")
 
 def expected_steps(steps: list[tuple[str, object]]) -> dict[str, object]:
     """What each navigation step must observe, from the chapters in order (the first step): the
-    arrows and keys walk them one by one, Home is the first, a contents link opens the
+    arrows and keys walk them one by one, Home opens the first, a contents link opens the
     chapter it names, a filter matching nothing disables both arrows and clearing it keeps the
     chapter. Steps it does not name are checked in check_steps."""
     order = dict(steps)["chapters"]
