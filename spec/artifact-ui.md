@@ -608,6 +608,9 @@ the criterion names held at its left.
 
   The current Home crumb offers top-level chapters.
 
+  A click anywhere outside the breadcrumbs, the menu and a docked bar included, closes an open
+  chooser.
+
   A node has no child chooser; ancestor
   crumbs continue to navigate.
 
