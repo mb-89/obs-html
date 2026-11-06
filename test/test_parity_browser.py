@@ -436,3 +436,45 @@ def test_the_sweep_names_a_covered_control_and_what_covers_it(tmp_path: Path, co
     faults = {(fault["control"], fault["covering"]) for result in results for fault in result["faults"]}
     assert ('a.chapter-home-link "Home"', 'div.cover "Cover"') in faults, faults
     assert errors == []
+
+
+@pytest.mark.browser
+def test_the_sweep_reaches_a_self_link_whose_lines_lie_on_either_side_of_the_reader(
+        tmp_path: Path, coverage_browser) -> None:
+    """The fault #251 met in obs's spec, at 360 px with the Comments bar docked right: review mode
+    makes the body wider than the reader, and the note's link to itself wraps with its first line
+    right of the reader's view and its second left of it. Scrolled to as a whole, it shows neither;
+    the sweep then scrolls to one line, as a reader does. The self-link fixture's link is made to
+    wrap so, on every open: a spacer and a line break, and a link before it that scrolls the reader
+    between the two lines."""
+    from obs_html.config import load_config
+    from obs_html.render import render
+
+    artifact = render(json.loads((Path(__file__).parent / "fixtures" / "documents" / "self-link.json")
+                                 .read_text(encoding="utf-8")), load_config())
+    errors: list[str] = []
+    page, frame = open_preview(tmp_path, coverage_browser, errors, artifact, "null-origin")
+    try:
+        page.set_viewport_size({"width": 460, "height": 800})
+        page.evaluate("() => document.getElementById('artifact').style.width = '360px'")
+        frame.evaluate("""() => {
+            const open = obsArtifact.activateChapter;
+            obsArtifact.activateChapter = async (...request) => {
+                const opened = await open(...request);
+                const link = document.querySelector('[data-chapter-body] a.internal-link[href="#long"]');
+                if (link) {
+                    link.innerHTML = "Lo<br>ng";
+                    link.insertAdjacentHTML("beforebegin", '<span style="display:inline-block;width:1200px"></span>');
+                    link.closest("p").insertAdjacentHTML("beforebegin",
+                        '<p><span style="display:inline-block;width:700px"></span><a href="#short">Short</a></p>');
+                }
+                return opened;
+            };
+        }""")
+        results = frame.locator("html").evaluate(COVERAGE.read_text(encoding="utf-8"), {
+            "views": ["continuous"], "layouts": [["comments", "right"]], "firstChapterLayouts": []})
+    finally:
+        page.close()
+    assert [result["chapter"] for result in results] == ["long", "short"]
+    assert [fault for result in results for fault in result["faults"]] == []
+    assert errors == []

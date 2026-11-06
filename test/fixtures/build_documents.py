@@ -423,10 +423,23 @@ def property_editor_projection(root: Path) -> None:
     )
 
 
+def self_link(root: Path) -> None:
+    """A whole-note self-link: a note long enough to scroll, whose last paragraph links the note
+    itself, and a second chapter. Its code fence has a line too long to wrap, so in review mode
+    (the Comments bar open), whose body grows to hold what overflows, the body is wider than a
+    narrow reader."""
+    (root / "manifest.md").write_text("- [[long]]\n- [[short]]\n", encoding="utf-8")
+    prose = "\n\n".join(f"Paragraph {index} of a note long enough to scroll. " * 6 for index in range(30))
+    fence = f"```text\n{'a line too long to wrap ' * 6}\n```\n"
+    (root / "long.md").write_text(f"# Long\n\n{fence}\n{prose}\n\nAfter all these paragraphs and the wide fence above them, back to the top: [[long]].\n",
+                                  encoding="utf-8")
+    (root / "short.md").write_text("# Short\n\nBody.\n", encoding="utf-8")
+
+
 VAULTS = {"document": document, "complete": complete, "artifact-change": artifact_change, "projections": projections,
           "table-help": table_help, "structural": structural, "callouts": callouts,
           "registers": registers, "cards": cards,
-          "property-editor-projection": property_editor_projection}
+          "property-editor-projection": property_editor_projection, "self-link": self_link}
 RUNS_COMMANDS = {"document"}
 """The vaults whose cmd fences the build runs (obs-document --execute-commands): ``echo`` only."""
 DIAGNOSED = {"document"}

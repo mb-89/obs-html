@@ -2034,7 +2034,10 @@
             }
         });
         updateStepButtons();
+        // The chapter opens at its heading: at its top and its start, also where the reader had
+        // scrolled a wide (review-mode) body sideways.
         chapterScroll.scrollTop = 0;
+        chapterScroll.scrollLeft = 0;
         previousScrollTop = 0;
         chapterScroll.focus({ preventScroll: true });
         const revealHeading = () => {

@@ -311,6 +311,11 @@ failures have their form in [[input-model#Chapter content]].
   and available static content on the next paint, before expensive table or calculated
   overview work. Results must not remain apparently unresponsive while its table loads.
 
+  A link to a whole note opens it at its heading: the chapter is scrolled to its top and to its
+  start, also where the reader had scrolled it sideways (review mode lets a wide body overflow).
+  A note's link to itself is such a link: it scrolls the chapter back to its heading, and where
+  the chapter is at its top already nothing moves.
+
   Pending table/overview regions use a shared accessible loading treatment; animation
   respects reduced-motion preferences and stops on completion or explicit failure.
 
