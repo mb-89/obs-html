@@ -1,0 +1,491 @@
+{
+ "source": "ctrl test/pugh.test.mjs at commit 2839d765ff04d5586f1f0199203bbebf2d03cd22: each matrix and the results its test asserts (totals, ranking, suggestion, verdict, each runner-up's single-weight tie point)",
+ "matrices": [
+  {
+   "name": "small",
+   "test": "a small matrix, checked by hand",
+   "matrix": {
+    "title": "Small",
+    "criteria": [
+     {
+      "key": "err",
+      "weight": 3,
+      "better": "lower",
+      "tolerance": 0.1,
+      "floor": 0
+     },
+     {
+      "key": "speed",
+      "weight": 2,
+      "better": "higher",
+      "tolerance": 0.1,
+      "floor": 0
+     },
+     {
+      "key": "cost",
+      "weight": 1,
+      "better": "lower",
+      "tolerance": 0.25,
+      "floor": 1
+     }
+    ],
+    "candidates": [
+     {
+      "key": "D",
+      "values": {
+       "err": 1,
+       "speed": 10,
+       "cost": 9
+      }
+     },
+     {
+      "key": "A",
+      "values": {
+       "err": 0.4,
+       "speed": 10.5,
+       "cost": 19
+      },
+      "tieBreak": 2
+     },
+     {
+      "key": "B",
+      "values": {
+       "err": 0.85,
+       "speed": 30,
+       "cost": 4
+      },
+      "tieBreak": 1
+     }
+    ],
+    "datum": {
+     "prefer": [
+      "D"
+     ]
+    },
+    "sensitivity": {
+     "seed": 3,
+     "draws": 2000
+    }
+   },
+   "expected": {
+    "totals": {
+     "D": 0,
+     "A": 5,
+     "B": 8
+    },
+    "ranking": [
+     "B",
+     "A",
+     "D"
+    ],
+    "suggestion": "B",
+    "verdict": "holds",
+    "ties": {
+     "A": {
+      "criterion": "speed",
+      "to": 0.5,
+      "now": false,
+      "reasonable": false
+     },
+     "D": null
+    }
+   }
+  },
+  {
+   "name": "small with C",
+   "test": "sensitivity: tie points and the smallest change agree with brute force",
+   "matrix": {
+    "title": "Small",
+    "criteria": [
+     {
+      "key": "err",
+      "weight": 3,
+      "better": "lower",
+      "tolerance": 0.1,
+      "floor": 0
+     },
+     {
+      "key": "speed",
+      "weight": 2,
+      "better": "higher",
+      "tolerance": 0.1,
+      "floor": 0
+     },
+     {
+      "key": "cost",
+      "weight": 1,
+      "better": "lower",
+      "tolerance": 0.25,
+      "floor": 1
+     }
+    ],
+    "candidates": [
+     {
+      "key": "D",
+      "values": {
+       "err": 1,
+       "speed": 10,
+       "cost": 9
+      }
+     },
+     {
+      "key": "A",
+      "values": {
+       "err": 0.4,
+       "speed": 10.5,
+       "cost": 19
+      },
+      "tieBreak": 2
+     },
+     {
+      "key": "B",
+      "values": {
+       "err": 0.85,
+       "speed": 30,
+       "cost": 4
+      },
+      "tieBreak": 1
+     },
+     {
+      "key": "C",
+      "values": {
+       "err": 0.95,
+       "speed": 22,
+       "cost": 9
+      },
+      "tieBreak": 0
+     }
+    ],
+    "datum": {
+     "prefer": [
+      "D"
+     ]
+    },
+    "sensitivity": {
+     "seed": 3,
+     "draws": 2000
+    }
+   },
+   "expected": {
+    "totals": {
+     "D": 0,
+     "A": 5,
+     "B": 8,
+     "C": 4
+    },
+    "ranking": [
+     "B",
+     "A",
+     "C",
+     "D"
+    ],
+    "suggestion": "B",
+    "verdict": "holds",
+    "ties": {
+     "A": {
+      "criterion": "speed",
+      "to": 0.5,
+      "now": false,
+      "reasonable": false
+     },
+     "C": null,
+     "D": null
+    }
+   }
+  },
+  {
+   "name": "judged",
+   "test": "judged marks, several raters (median, spread), and a judged datum shift",
+   "matrix": {
+    "criteria": [
+     {
+      "key": "x",
+      "weight": 1,
+      "better": "lower"
+     },
+     {
+      "key": "look",
+      "weight": 2,
+      "better": "higher",
+      "kind": "judged"
+     }
+    ],
+    "candidates": [
+     {
+      "key": "D",
+      "values": {
+       "x": 1
+      }
+     },
+     {
+      "key": "A",
+      "values": {
+       "x": 1
+      },
+      "marks": {
+       "look": [
+        2,
+        1,
+        2
+       ]
+      }
+     },
+     {
+      "key": "B",
+      "values": {
+       "x": 1
+      },
+      "marks": {
+       "look": [
+        -1,
+        1
+       ]
+      }
+     }
+    ],
+    "datum": {
+     "prefer": [
+      "D"
+     ]
+    }
+   },
+   "expected": {
+    "totals": {
+     "D": 0,
+     "A": 4,
+     "B": 0
+    },
+    "ranking": [
+     "A",
+     "D",
+     "B"
+    ],
+    "suggestion": "A",
+    "verdict": "holds",
+    "ties": {
+     "D": {
+      "criterion": "look",
+      "to": 0,
+      "now": false,
+      "reasonable": false
+     },
+     "B": {
+      "criterion": "look",
+      "to": 0,
+      "now": false,
+      "reasonable": false
+     }
+    }
+   }
+  },
+  {
+   "name": "tied now",
+   "test": "verdict: the choice holds, depends on the weights, tied now",
+   "matrix": {
+    "title": "Small",
+    "criteria": [
+     {
+      "key": "err",
+      "weight": 3,
+      "better": "lower",
+      "tolerance": 0.1,
+      "floor": 0
+     },
+     {
+      "key": "speed",
+      "weight": 2,
+      "better": "higher",
+      "tolerance": 0.1,
+      "floor": 0
+     },
+     {
+      "key": "cost",
+      "weight": 1,
+      "better": "lower",
+      "tolerance": 0.25,
+      "floor": 1
+     }
+    ],
+    "candidates": [
+     {
+      "key": "D",
+      "values": {
+       "err": 1,
+       "speed": 10,
+       "cost": 9
+      }
+     },
+     {
+      "key": "A",
+      "values": {
+       "err": 0.4,
+       "speed": 10.5,
+       "cost": 19
+      },
+      "tieBreak": 2
+     },
+     {
+      "key": "B",
+      "values": {
+       "err": 0.85,
+       "speed": 30,
+       "cost": 4
+      },
+      "tieBreak": 1
+     },
+     {
+      "key": "B2",
+      "values": {
+       "err": 0.85,
+       "speed": 30,
+       "cost": 4
+      },
+      "tieBreak": 5
+     }
+    ],
+    "datum": {
+     "prefer": [
+      "D"
+     ]
+    },
+    "sensitivity": {
+     "seed": 3,
+     "draws": 2000
+    }
+   },
+   "expected": {
+    "totals": {
+     "D": 0,
+     "A": 5,
+     "B": 8,
+     "B2": 8
+    },
+    "ranking": [
+     "B",
+     "B2",
+     "A",
+     "D"
+    ],
+    "suggestion": "B",
+    "verdict": "depends",
+    "ties": {
+     "B2": {
+      "criterion": null,
+      "to": null,
+      "now": true,
+      "reasonable": true
+     },
+     "A": {
+      "criterion": "speed",
+      "to": 0.5,
+      "now": false,
+      "reasonable": false
+     },
+     "D": null
+    }
+   }
+  },
+  {
+   "name": "gates",
+   "test": "gates: a hard limit before the datum, a ratio to the datum after, the datum exempt",
+   "matrix": {
+    "title": "Small",
+    "criteria": [
+     {
+      "key": "err",
+      "weight": 3,
+      "better": "lower",
+      "tolerance": 0.1,
+      "floor": 0
+     },
+     {
+      "key": "speed",
+      "weight": 2,
+      "better": "higher",
+      "tolerance": 0.1,
+      "floor": 0
+     },
+     {
+      "key": "cost",
+      "weight": 1,
+      "better": "lower",
+      "tolerance": 0.25,
+      "floor": 1
+     }
+    ],
+    "candidates": [
+     {
+      "key": "D",
+      "values": {
+       "err": 1,
+       "speed": 10,
+       "cost": 9
+      }
+     },
+     {
+      "key": "A",
+      "values": {
+       "err": 0.4,
+       "speed": 10.5,
+       "cost": 19
+      },
+      "tieBreak": 2
+     },
+     {
+      "key": "B",
+      "values": {
+       "err": 0.85,
+       "speed": 30,
+       "cost": 4
+      },
+      "tieBreak": 1
+     },
+     {
+      "key": "C",
+      "values": {
+       "err": 2.5,
+       "speed": 50,
+       "cost": 1
+      }
+     }
+    ],
+    "datum": {
+     "prefer": [
+      "D"
+     ]
+    },
+    "sensitivity": {
+     "seed": 3,
+     "draws": 2000
+    },
+    "gates": [
+     {
+      "criterion": "cost",
+      "max": 15
+     },
+     {
+      "criterion": "err",
+      "maxRatio": 2
+     }
+    ]
+   },
+   "expected": {
+    "totals": {
+     "D": 0,
+     "A": 5,
+     "B": 8,
+     "C": 0
+    },
+    "ranking": [
+     "B",
+     "D"
+    ],
+    "suggestion": "B",
+    "verdict": "holds",
+    "ties": {
+     "D": null
+    }
+   }
+  }
+ ]
+}
