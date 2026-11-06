@@ -1,4 +1,4 @@
-"""Exclusive per-stage wall-clock durations for ``--timings``.
+"""Exclusive per-stage wall-clock durations for ``--timings``, and the warning about a slow stage.
 
 ``STAGES`` is the one list of stages; help and baselines read it. Owners mark their work with ``stage(name)``; it costs nothing unless a ``recording()``
 is active. A nested stage pauses its enclosing stage, so durations never overlap.
@@ -14,7 +14,7 @@ from typing import Iterator
 
 from jsonschema import Draft202012Validator
 
-from obs_html.errors import InputError, schema_error
+from obs_html.errors import InputError, schema_error, warn
 
 BASELINES = files("obs_html") / "timing-baselines.json"
 """Each stage's baseline seconds; adapters/html/spec/architecture.md#build-stage-timings owns how they are measured."""
@@ -47,6 +47,22 @@ def load_baselines() -> dict[str, float]:
             raise InputError(BASELINES, f"stages.{name}", "names no build stage",
                              f"Name one of {', '.join(STAGES)} (obs_html.timings.STAGES), or remove it")
     return value["stages"]
+
+
+def warn_slower_stages(durations: dict[str, float], baselines: dict[str, float], relative: float,
+                       absolute_seconds: float) -> None:
+    """Warn about each stage that exceeds its baseline by both thresholds."""
+    for name, seconds in durations.items():
+        baseline = baselines.get(name)
+        if baseline is None:
+            continue
+        increase = seconds - baseline
+        if increase > absolute_seconds and increase > relative * baseline:
+            warn(InputError(
+                BASELINES, f"stages.{name}", f"took {seconds:.3f} s, {increase / baseline:.0%} and "
+                f"{increase:.3f} s over its baseline of {baseline:.3f} s",
+                f"Find what made it slower; if the new time is intended, measure the stage again and "
+                f"record it there, as {OWNER} says"))
 
 
 class Timings:
