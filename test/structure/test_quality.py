@@ -81,14 +81,16 @@ def built_once_builds(module: ast.Module, functions: dict[str, ast.FunctionDef])
 def violations(path: Path) -> list[str]:
     """Each browser test of the module that reaches a browser call or a builder, and where."""
     module = ast.parse(path.read_text(encoding="utf-8"))
-    functions = {node.name: node for node in ast.walk(module) if isinstance(node, ast.FunctionDef)}
+    # The module's functions and classes: a call to a class reaches every method it has.
+    functions = {node.name: node for node in module.body if isinstance(node, (ast.FunctionDef, ast.ClassDef))}
     builders = builder_names(module)
     exempt = built_once_builds(module, functions) | SHARED_FIXTURES
-    browser_fixtures = {name for name, function in functions.items()
-                        if is_fixture(function) and fixture_names(function) & BROWSER_FIXTURES}
+    browser_fixtures = {name for name, function in functions.items() if isinstance(function, ast.FunctionDef)
+                        and is_fixture(function) and fixture_names(function) & BROWSER_FIXTURES}
     found = []
     for name, test in functions.items():
-        if not name.startswith("test_") or not fixture_names(test) & (BROWSER_FIXTURES | browser_fixtures):
+        if (not name.startswith("test_") or not isinstance(test, ast.FunctionDef)
+                or not fixture_names(test) & (BROWSER_FIXTURES | browser_fixtures)):
             continue
         reached, pending = set(), [name, *(fixture_names(test) & browser_fixtures)]
         while pending:
@@ -157,11 +159,20 @@ def parity_artifacts():
 
 def test_shared_artifacts(reader_browser, built, parity_artifacts, fixture_artifact):
     reader_browser.new_page()
-''', encoding="utf-8")
+
+
+class Reader:
+    def __init__(self, reader_browser):
+        self.page = reader_browser.new_context().new_page()
+
+
+def test_own_context_in_a_class(reader_browser):
+    Reader(reader_browser)''', encoding="utf-8")
     found = violations(tmp_path / "test_new_browser.py")
     assert [line.split(":")[0] for line in found] == [
-        "test_own_browser", "test_own_browser", "test_own_artifact", "test_own_artifact", "test_own_context"]
-    assert any("test_new_browser.py:8 (helper) builds an artifact with render" in line for line in found)
+        "test_own_browser", "test_own_browser", "test_own_artifact", "test_own_artifact", "test_own_context",
+        "test_own_context_in_a_class"]
+    assert any("(helper) builds an artifact with render" in line for line in found)
     assert any("calls sync_playwright" in line for line in found)
     assert any("calls launch" in line for line in found)
     assert any("calls new_context" in line for line in found)

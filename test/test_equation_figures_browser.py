@@ -40,16 +40,15 @@ class Reader:
     """A page of the artifact whose requests beyond the file itself are refused and recorded."""
 
     def __init__(self, reader_browser, artifact: Path):
-        context = reader_browser.new_context(viewport={"width": 1200, "height": 1000})
+        self.page = reader_browser.new_page(viewport={"width": 1200, "height": 1000})
         self.requests: list[str] = []
 
         def refuse(route):
             self.requests.append(route.request.url)
             route.abort()
 
-        context.route("**/*", lambda route: route.continue_()
-                      if route.request.url.startswith(("file:", "data:", "blob:")) else refuse(route))
-        self.page = context.new_page()
+        self.page.route("**/*", lambda route: route.continue_()
+                        if route.request.url.startswith(("file:", "data:", "blob:")) else refuse(route))
         self.errors: list[str] = []
         self.page.on("pageerror", lambda error: self.errors.append(str(error)))
         self.page.goto(artifact.as_uri())
