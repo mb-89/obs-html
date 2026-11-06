@@ -334,7 +334,16 @@
                     {
                       "id": "closed",
                       "label": "Closed",
-                      "stage": 1
+                      "stage": 1,
+                      "records": {
+                        "where": [
+                          {
+                            "field": "status",
+                            "equals": "closed"
+                          }
+                        ]
+                      },
+                      "unique": "assignees"
                     }
                   ],
                   "links": [
@@ -540,7 +549,11 @@
             "metadata": {
               "kind": "point",
               "status": "closed",
-              "owner": "lin"
+              "owner": "lin",
+              "assignees": [
+                "kim",
+                "max"
+              ]
             }
           },
           "children": [
@@ -585,6 +598,34 @@
                   "text": "lin"
                 }
               ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "assignees.0"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "kim"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "assignees.1"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "max"
+                }
+              ]
             }
           ]
         },
@@ -619,7 +660,11 @@
       "metadata": {
         "kind": "point",
         "status": "closed",
-        "owner": "lin"
+        "owner": "lin",
+        "assignees": [
+          "kim",
+          "max"
+        ]
       }
     },
     {
@@ -1269,7 +1314,11 @@
       "fields": {
         "kind": "point",
         "status": "closed",
-        "owner": "lin"
+        "owner": "lin",
+        "assignees": [
+          "kim",
+          "max"
+        ]
       },
       "fieldNodes": [
         {
@@ -1311,6 +1360,34 @@
               "attrs": {},
               "children": [],
               "text": "lin"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "assignees.0"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "kim"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "assignees.1"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "max"
             }
           ]
         }
