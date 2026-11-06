@@ -30,7 +30,7 @@ from obs_html.bars import BarDefinition, discover_bars
 from obs_html.config import Config, paper
 from obs_html.errors import DOCUMENT_OF, InputError, field_path, schema_error
 from obs_html.features import included as included_features
-from obs_html.figures import render_descriptor
+from obs_html.figures import FIGURE_KINDS, render_figure
 from obs_html.artifact_data import encode_artifact_data, prepare_artifact_scripts, serialize_artifact_data
 from obs_html.semantic_assets import SemanticAssets, markup
 from obs_html.styles import load_style
@@ -85,6 +85,12 @@ class Context:
     paragraph or a heading), so it may write no block element."""
     where: list[object] = field(default_factory=list)
     """The path of the node being rendered in the Document, as an error names it."""
+    figure_position: int = 0
+    """The current note's figures so far, which name an anchor where nothing else does."""
+    figure_numbering: dict[str, object] = field(default_factory=lambda: {
+        "numbering": "none", "label": "Figure", "top": 0, "section": 0, "count": 0})
+    """The manifest's figure numbering, the current top-level contents position (0 outside the
+    contents) and the figures numbered so far in its scope."""
 
 
 def _source(document: dict[str, object]) -> str:
@@ -470,10 +476,37 @@ def _unsupported_filter(filters: object) -> str | None:
 
 
 def _figure(node: dict[str, object], context: Context) -> str:
-    """A figure fence's descriptor; an error names the note and the descriptor's field."""
-    descriptor = node["attrs"]["descriptor"]
-    return render_descriptor(descriptor, f"{context.chapter or HOME}--figure-{descriptor['id']}",
-                             _note_source(context))
+    """A figure of any kind in the one figure frame (figures.py); an error names the note and the
+    figure's field. Its number follows the manifest's obsHtml.figures numbering."""
+    if node["attrs"]["kind"] not in FIGURE_KINDS:
+        raise _stale(context, ["attrs", "kind"], f"is {node['attrs']['kind']!r}, a figure kind obs-html "
+                     "(src/obs_html/figures.py, FIGURE_KINDS) does not render", "Use one of "
+                     f"{', '.join(sorted(FIGURE_KINDS))}, or build the Document for an adapter that renders it")
+    context.figure_position += 1
+    paragraphs = []
+    for index, paragraph in enumerate(node["attrs"].get("caption", [])):
+        with _at(context, "attrs", "caption", index):
+            paragraphs.append(_phrasing(paragraph["children"], context))
+    caption_text = " ".join(_plain_text(paragraph) for paragraph in paragraphs)
+    return render_figure(node, context.chapter or HOME, context.figure_position, paragraphs, caption_text,
+                         _note_source(context), _figure_number(bool(paragraphs), context))
+
+
+def _figure_number(captioned: bool, context: Context) -> str:
+    """The next figure number of a captioned figure in a contents note, or "" (input-model.md,
+    Artifact presentation profile: figures)."""
+    numbering = context.figure_numbering
+    if not captioned or numbering["numbering"] == "none" or not numbering["section"]:
+        return ""
+    numbering["count"] += 1
+    label = numbering["label"]
+    if numbering["numbering"] == "document":
+        return f"{label} {numbering['count']}"
+    return f"{label} {numbering['section']}.{numbering['count']}"
+
+
+def _plain_text(html: str) -> str:
+    return re.sub(r"\s+", " ", unescape(re.sub(r"<[^>]*>", "", html))).strip()
 
 
 def _references(node: dict[str, object], context: Context) -> str:
@@ -561,7 +594,8 @@ CAPABILITIES: dict[str, Renderer] = {
     "count-query": _nothing,
     "embeds": _embed,
     "extensions": _extension,
-    "figure-descriptor": _figure,
+    "figure-descriptor": _nothing,
+    "figures": _figure,
     "manifest": _nothing,
     "markdown": _nothing,
     "markdown-frontmatter": _frontmatter,
@@ -649,6 +683,7 @@ def _model(document: dict[str, object], config: Config, context: Context) -> dic
     """The artifact-data island: the runtime's only model of the artifact."""
     manifest = document["manifest"]
     profile = _profile(manifest)
+    context.figure_numbering.update(numbering=profile["figures"]["numbering"], label=profile["figures"]["label"])
     settings = config.artifact
     title = manifest["title"]
     metadata = {key: value for key, value in manifest["metadata"].items() if key not in {"obs", "obsHtml"}}
@@ -709,7 +744,14 @@ def _listed(chapters: list[dict[str, object]]) -> list[str]:
 def _chapter_notes(chapters: list[dict[str, object]], context: Context, depth: int,
                    where: list[object]) -> list[dict]:
     notes = []
+    numbering = context.figure_numbering
     for index, chapter in enumerate(chapters):
+        if depth == 0:  # A top-level contents chapter opens a numbering section; a note outside none.
+            in_contents = chapter.get("toc", True)
+            numbering["top"] += in_contents
+            numbering["section"] = numbering["top"] if in_contents else 0
+            if numbering["numbering"] == "chapter":
+                numbering["count"] = 0
         context.frontmatter = dict(chapter.get("metadata") or {})
         body = _note_body(chapter["content"], chapter["id"], [*where, index, "content"], context)
         notes.append(_note(depth, chapter["title"], chapter["id"], "", context.frontmatter, body, context))
@@ -720,6 +762,7 @@ def _chapter_notes(chapters: list[dict[str, object]], context: Context, depth: i
 def _note_body(nodes: list[dict[str, object]], chapter: str, where: list[object], context: Context) -> str:
     """A note's nodes, which sit at ``where`` in the Document."""
     context.chapter, context.tables, context.marks, context.editable = chapter, [], [], {}
+    context.figure_position = 0
     context.where = where[:-1]
     body = _nodes(nodes, context, where[-1])
     context.chapter, context.where = "", []
@@ -1077,7 +1120,7 @@ def _shell(model: dict[str, object], limits: list[dict[str, str]], stylesheet: s
     figure_assets = ""
     if "data-artifact-figure" in data:
         plotly = ""
-        if 'data-figure-kind=\\"plot\\"' in data:
+        if any(feature.key == "plotting" for feature in features):
             figures = config.artifact["figures"]
             if figures["plotlyDelivery"] == "cdn":
                 plotly = (f'<script id="plotly-script" src="{figures["plotlyCdnUrl"]}" '
@@ -1200,6 +1243,7 @@ def _shell(model: dict[str, object], limits: list[dict[str, str]], stylesheet: s
 {read("base.js")}
   </script>
   <script id="data-table-script">
+{read("options-menu.js")}
 {read("table.js")}
   </script>
   <script id="zip-rewrite-script">{read("zip-rewrite.js")}</script>

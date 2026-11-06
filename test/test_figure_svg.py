@@ -119,7 +119,7 @@ def test_cli_exports_every_figure_of_a_document(document, tmp_path, capsys) -> N
 
 def test_cli_reports_a_document_without_figures(document, tmp_path, capsys) -> None:
     for chapter in document["chapters"]:
-        chapter["content"] = [node for node in chapter["content"] if node["type"] != "figure-descriptor"]
+        chapter["content"] = [node for node in chapter["content"] if node["type"] != "figures"]
     source = tmp_path / "document.json"
     source.write_text(json.dumps(document), encoding="utf-8")
     with pytest.raises(SystemExit):

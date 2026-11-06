@@ -731,6 +731,10 @@
                   }
                 ]
               }
+            },
+            "quantity": {
+              "unit": "",
+              "dimension": {}
             }
           },
           "children": []
@@ -909,6 +913,10 @@
                   }
                 ]
               }
+            },
+            "quantity": {
+              "unit": "",
+              "dimension": {}
             }
           },
           "children": []
@@ -1353,7 +1361,11 @@
             }
           ]
         }
-      ]
+      ],
+      "quantity": {
+        "unit": "",
+        "dimension": {}
+      }
     },
     {
       "id": "counts-points",
@@ -1449,7 +1461,11 @@
             }
           ]
         }
-      ]
+      ],
+      "quantity": {
+        "unit": "",
+        "dimension": {}
+      }
     },
     {
       "id": "groups",

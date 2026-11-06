@@ -2,8 +2,9 @@
 
 Each test builds a contract-valid Document as the core emits it (see the core's vault.py): a
 ``cards-metrics`` node carries the parsed fence as ``spec`` and each card's body as one
-``document`` child node; a quantity note's chapter starts with ``quantities`` (its metadata) and, with a ``query``, a
-``count-query`` node; every note is a record whose ``fields`` are its frontmatter.
+``document`` child node; a quantity note's chapter starts with ``quantities`` (its metadata and its quantity)
+and, with a ``query``, a ``count-query`` node; every note is a record whose ``fields`` are its frontmatter, and
+a quantity note's record carries its quantity (obs capabilities/quantities#Document node).
 """
 import json
 from html import escape, unescape
@@ -25,14 +26,21 @@ TOTAL = {"kind": "quantity", "aliases": ["serviceCount"], "source": "[[one]]",
 SUBSET = {"kind": "quantity", "aliases": ["activeCount"], "source": "[[one]]",
           "query": {"from": "counts/total", "where": [{"field": "active", "equals": "yes"}]}}
 LIMIT = {"kind": "quantity", "aliases": ["staticLimit"], "source": "[[one]]", "value": 20.0, "unit": "mm"}
+COUNT_QUANTITY = {"unit": "", "dimension": {}}
+LIMIT_QUANTITY = {"value": 20.0, "unit": "mm", "siValue": 0.02, "dimension": {"length": 1}}
+
+
+def _quantity_of(metadata: dict) -> dict:
+    return LIMIT_QUANTITY if "value" in metadata else COUNT_QUANTITY
 
 
 def _record(identifier: str, path: str, fields: dict) -> dict:
-    return {"id": identifier, "type": "note", "path": path, "fields": fields}
+    quantity = {"quantity": _quantity_of(fields)} if fields.get("kind") == "quantity" else {}
+    return {"id": identifier, "type": "note", "path": path, "fields": fields, **quantity}
 
 
 def _quantity_chapter(identifier: str, metadata: dict) -> dict:
-    content = [node("quantities", metadata=metadata)]
+    content = [node("quantities", metadata=metadata, quantity=_quantity_of(metadata))]
     if "query" in metadata:
         content += [node("queries", query=metadata["query"]), node("count-query", query=metadata["query"])]
     result = chapter(identifier, identifier.title(), *content, metadata=metadata)
@@ -237,7 +245,7 @@ def test_the_core_owns_the_quantity_contract_so_the_adapter_renders_what_it_rece
     validate_quantity) before a Document exists; the adapter trusts a contract-valid Document."""
     source = _document(paragraph("Text."))
     limit = next(item for item in source["chapters"] if item["id"] == "limit")
-    limit["content"][1] = node("quantities", metadata={**LIMIT, **change})
+    limit["content"][1] = node("quantities", metadata={**LIMIT, **change}, quantity=LIMIT_QUANTITY)
     assert "limit" in _notes(source)
 
 

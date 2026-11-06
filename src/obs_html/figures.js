@@ -88,7 +88,7 @@
     let originalParent = null;
     let fittedVisual = null;
     let originalVisualStyle = null;
-    const magnifier = figure.matches(".artifact-figure") ? imageMagnifier(figure) : null;
+    const magnifier = figure.dataset.figureKind === "image" ? imageMagnifier(figure) : null;
     function fitVisual() {
       if (!dialog.open) return;
       let visual = figure.querySelector(":scope > img, :scope > .sankey-canvas");
@@ -824,11 +824,38 @@
     update();
     document.addEventListener("obs-artifact-filter", update);
   }
+  // The view options a kind registers (figures.py, FigureKind.options): each builds its control,
+  // whose changes are session-only view state, never saved and never a change.
+  const FIGURE_OPTIONS = {
+    legend(figure) {
+      const control = button("Legend", () => {
+        const chart = figure.querySelector(".figure-chart");
+        if (!chart?._fullLayout || !window.Plotly) return;
+        const shown = chart._fullLayout.showlegend !== false;
+        Plotly.relayout(chart, {showlegend: !shown});
+        control.setAttribute("aria-pressed", String(!shown));
+      });
+      control.className = "filter-pill";
+      control.setAttribute("aria-pressed", "true");
+      control.title = "Show or hide the plot legend";
+      return control;
+    },
+  };
+  function optionsMenu(figure) {
+    const keys = (figure.dataset.figureOptions || "").split(" ").filter(key => FIGURE_OPTIONS[key]);
+    if (!keys.length) return;
+    const {toggle, panel} = globalThis.obsOptionsMenu({
+      label: "Figure options", toggleClass: "figure-options-toggle", panelClass: "figure-options",
+    });
+    panel.append(...keys.map(key => FIGURE_OPTIONS[key](figure)));
+    figure.append(toggle, panel);
+  }
   function initialize(figure) {
     if (!figure.isConnected || figure.closest(".print-book")) return;
     if (initialized.has(figure)) return;
     initialized.add(figure);
     overlayControls(figure);
+    optionsMenu(figure);
     if (!figure.hasAttribute("data-engineering-figure")) return;
     if (figure.dataset.figureKind === "sankey") {
       const spec = JSON.parse(figure.dataset.figureSpec);
@@ -847,6 +874,9 @@
         + (figure.querySelector(".figure-default") ? " Showing the embedded static figure." : "");
       host.append(message);
       figure.dataset.figureError = "Plotly unavailable";
+      try {
+        globalThis.obsCapabilities?.fail("plotting", "the plotting library did not load");
+      } catch (_error) { /* An HTML without the plotting canary reports nothing more. */ }
       return;
     }
     const chart = document.createElement("div");
