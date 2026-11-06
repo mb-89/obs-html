@@ -568,6 +568,11 @@ whose canary reports a host that does not run it. An artifact never loads it fro
   paged views, including narrow screens. It must not cover prose links or table
   disclosures, resizing handles, and options. Screen clearance does not change PDF
   paper dimensions or margins.
+
+  The coverage sweep in `test/test_parity_browser.py` holds every control to this, on every
+  chapter, at four widths, in both views, with no bar and with each bar open. In each view and
+  at every width it opens the contents bar on the first chapter twice, its contents collapsed
+  and then expanded by the bar's own actions, so no check depends on an earlier one's state.
 - Scrolling toward the top or bottom boundary reveals the available previous or next chapter
   arrow at full opacity. Wheel, touch and vertical keyboard scrolling do not change chapters
   automatically. Moving away or changing chapters clears the cue; nested scrollers and editors

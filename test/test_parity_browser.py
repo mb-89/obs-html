@@ -14,7 +14,8 @@ expectations were the interim adapter's observations on the same spec until obs#
 
 A second check sweeps the artifact in the same frames for covered controls
 (test/browser/control-coverage.js) at four widths, one test per frame and width, in both views and
-with the bars open and closed: a covered control fails.
+with the bars open and closed, the contents bar with its contents collapsed and expanded: a
+covered control fails. Its matrix is owned by artifact-ui.md (chapter controls).
 
 Each test opens the artifact once, in one page its checks reuse. Pointer and keyboard steps are
 real input, one round trip each; every other observation is computed in the page and returned as
@@ -364,8 +365,32 @@ WIDTHS = (360, 700, 1100, 1600)
 VIEWS = ("pages", "continuous")
 
 
+# The contents bar, which the sweep opens with its contents collapsed and expanded.
+CONTENTS = "toc"
+
+
 def layout_name(layout: list[str] | None) -> str:
-    return f"the {layout[0]} bar docked {layout[1]}" if layout else "no bar open"
+    if not layout:
+        return "no bar open"
+    contents = f", its contents {layout[2]}" if len(layout) > 2 else ""
+    return f"the {layout[0]} bar docked {layout[1]}{contents}"
+
+
+def sweep_layouts(bars: list[str]) -> tuple[list, list]:
+    """The bar layouts the sweep checks on every chapter, and those it checks on the first only.
+
+    On every chapter: no bar, the Filter bar in each dock direction (bars of one side shape the
+    reader alike) and the Comments bar, whose review mode reshapes the reader. On the first
+    chapter, every other bar on its default side, the contents bar twice: with its contents
+    collapsed and expanded.
+    """
+    docked = "filter" if "filter" in bars else bars[0]
+    layouts = [None, *([docked, side] for side in ("right", "left", "top", "bottom")),
+               *([bar, "right"] for bar in bars if bar == "comments")]
+    first = [layout for bar in bars if [bar, "right"] not in layouts
+             for layout in ([[bar, "right", state] for state in ("collapsed", "expanded")]
+                            if bar == CONTENTS else [[bar, "right"]])]
+    return layouts, first
 
 
 def covered_controls(tmp_path: Path, browser, artifact: str, frame_kind: str, name: str,
@@ -386,13 +411,7 @@ def covered_controls(tmp_path: Path, browser, artifact: str, frame_kind: str, na
         root = frame.locator("html")
         bars = root.evaluate("""() => [...new Set([...document.querySelectorAll("[data-dock-bar]")]
             .map((button) => button.dataset.dockBar))]""")
-        # On every chapter: no bar, the Filter bar in each dock direction (bars of one side
-        # shape the reader alike) and the Comments bar, whose review mode reshapes the reader.
-        # Every other bar on its default side, on the first chapter.
-        docked = "filter" if "filter" in bars else bars[0]
-        layouts = [None, *([docked, side] for side in ("right", "left", "top", "bottom")),
-                   *([bar, "right"] for bar in bars if bar == "comments")]
-        first = [[bar, "right"] for bar in bars if [bar, "right"] not in layouts]
+        layouts, first = sweep_layouts(bars)
         page.evaluate("width => document.getElementById('artifact').style.width = width", f"{width}px")
         results = root.evaluate(COVERAGE.read_text(encoding="utf-8"),
                                 {"views": list(VIEWS), "layouts": layouts, "firstChapterLayouts": first})
@@ -437,6 +456,43 @@ def test_the_sweep_runs_one_test_per_frame_and_width_each_in_its_own_group() -> 
     assert cases == [(frame_kind, width) for frame_kind in SANDBOXES for width in WIDTHS]
     assert all(isinstance(width, int) for _, width in cases), "one width per case, not a group of widths"
     assert len(groups) == len(cases) == len(set(groups))
+
+
+def test_the_sweep_checks_the_contents_bar_collapsed_and_expanded() -> None:
+    """In both views and at every width, the sweep opens the contents bar on the first chapter
+    twice, once with its contents collapsed and once expanded; every other bar once."""
+    bars = ["toc", "filter", "comments", "search", "settings"]
+    layouts, first = sweep_layouts(bars)
+    assert [layout for layout in first if layout[0] == "toc"] == [
+        ["toc", "right", "collapsed"], ["toc", "right", "expanded"]]
+    assert all(len(layout) == 2 for layout in [*layouts[1:], *first] if layout[0] != "toc")
+    assert {layout[0] for layout in [*layouts[1:], *first]} == set(bars)
+
+
+@pytest.mark.browser
+def test_the_sweep_sets_the_contents_state_it_checks(tmp_path: Path, overlay_scrollbar_browser) -> None:
+    """The contents' state is the one the layout names, whatever an earlier check left: opening
+    a nested chapter expands its parent in the contents, and the next view's collapsed check
+    still sees it collapsed."""
+    from documents import chapter, document, heading, paragraph
+
+    artifact = artifact_html(document("Sweep", chapter(
+        "one", "One", heading(1, "One"), paragraph("Text."),
+        children=(chapter("two", "Two", heading(1, "Two"), paragraph("Text.")),)),
+        chapter("three", "Three", heading(1, "Three"), paragraph("Text."))))
+    errors: list[str] = []
+    page, frame = open_preview(tmp_path, overlay_scrollbar_browser, errors, artifact, "null-origin")
+    states = [["toc", "right", "expanded"], ["toc", "right", "collapsed"]]
+    results = frame.locator("html").evaluate(COVERAGE.read_text(encoding="utf-8"), {
+        "views": list(VIEWS), "layouts": [None], "firstChapterLayouts": states})
+    counts = {(result["view"], result["layout"][2]): result["controls"]
+              for result in results if result["layout"]}
+    for view in VIEWS:
+        assert counts[(view, "collapsed")] < counts[(view, "expanded")], counts
+    assert counts[("pages", "collapsed")] == counts[("continuous", "collapsed")], counts
+    assert counts[("pages", "expanded")] == counts[("continuous", "expanded")], counts
+    assert [fault for result in results for fault in result["faults"]] == []
+    assert errors == []
 
 
 @pytest.mark.browser
