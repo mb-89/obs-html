@@ -102,18 +102,18 @@ def test_a_figure_kind_declares_what_it_needs_only_through_the_feature_registry(
 
 
 def test_the_maths_library_ships_pinned_from_its_lockfile_with_its_licence() -> None:
-    """math.js, pinned in maths/package-lock.json and installed from it, is embedded whole in an
-    artifact with an equation figure, with its licence; nothing loads it from elsewhere."""
+    """math.js, pinned in maths/package-lock.json and packaged from it (hatch_build.py), is embedded
+    whole in an artifact with an equation figure, with its licence; nothing loads it from elsewhere."""
     lock = json.loads((ROOT / "maths" / "package-lock.json").read_text(encoding="utf-8"))
-    installed = ROOT / "maths" / "node_modules" / "mathjs"
-    library = (installed / "lib" / "browser" / "math.js").read_text(encoding="utf-8")
+    packaged = SOURCE.joinpath("vendor", "maths")
+    library = packaged.joinpath("math.js").read_text(encoding="utf-8")
     html = render(with_figure("equations", EQUATIONS), CONFIG)
 
     assert lock["packages"][""]["dependencies"] == {"mathjs": lock["packages"]["node_modules/mathjs"]["version"]}
-    assert json.loads((installed / "package.json").read_text(encoding="utf-8"))["version"] == \
-        lock["packages"]["node_modules/mathjs"]["version"]
+    assert f"@version {lock['packages']['node_modules/mathjs']['version']}" in \
+        packaged.joinpath("math.js.LICENSE.txt").read_text(encoding="utf-8")
     assert library.replace("</script", "<\\/script") in html
-    assert (installed / "LICENSE").read_text(encoding="utf-8").strip() in html
+    assert packaged.joinpath("LICENSE").read_text(encoding="utf-8").strip() in html
     assert "cdn" not in html.split('id="maths-script"')[1].split("</script>")[0][:200].lower()
 
 
@@ -162,17 +162,3 @@ def _sources():
     root = SOURCE.joinpath("")
     return [path for path in sorted(root.rglob("*")) if path.suffix in {".js", ".py"}
             and "vendor" not in path.relative_to(root).parts and "__pycache__" not in path.parts]
-
-
-def test_an_equation_figure_without_the_installed_maths_library_names_its_lockfile(monkeypatch, tmp_path) -> None:
-    from obs_html import features
-    from obs_html.errors import InputError
-
-    monkeypatch.setattr(features, "MATHS_LIBRARY", tmp_path / "math.js")
-
-    with pytest.raises(InputError) as failure:
-        render(with_figure("equations", EQUATIONS), CONFIG)
-
-    assert failure.value.field == "mathjs"
-    assert str(failure.value.source) == str(ROOT / "maths" / "package-lock.json")
-    assert f"npm --prefix {ROOT / 'maths'} ci" in failure.value.remedy

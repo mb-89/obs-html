@@ -6,5 +6,5 @@ __pycache__/
 data/data_output/
 spec/design_output/
 /test/browser/node_modules/
-# The maths library, installed from its lockfile (npm --prefix adapters/html/maths ci)
-/maths/node_modules/
+# The browser assets the build writes into the package from their lockfiles (hatch_build.py)
+/src/obs_html/vendor/maths/
