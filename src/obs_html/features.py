@@ -65,7 +65,6 @@ FEATURES: tuple[Feature, ...] = (
     Feature("history", "always: every chapter has an address", _always),
     Feature("storage", "always: reader settings are kept", _always),
     Feature("printing", "always: Settings offers Print to PDF", _always),
-    Feature("dialogs", "always: messages may use browser dialogs", _always),
     Feature("downloads", "always: Download HTML and Download source ZIP", _always),
     Feature("clipboard", "always: the Comments bar offers Copy comments", _always),
     Feature("popups", "a guided card, a note a link opens as context, or a trusted runtime",

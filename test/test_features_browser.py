@@ -36,6 +36,7 @@ def test_without_a_floating_window_no_popup_code_and_no_separate_windows_notice(
     _page, frame = open_viewer(tmp_path, reader_browser, errors, html, "light")
     notices = _capability_notices(frame)
     assert "popups" not in notices and not any("Separate windows" in title for title in notices.values())
+    assert "dialogs" not in notices and not any("Dialogs" in title for title in notices.values())
     assert errors == []
 
 

@@ -63,7 +63,7 @@
             const entry = limit(key);
             return entry ? `${entry.feature} is limited here: ${entry.reason} ${entry.remedy}` : "";
         },
-        // Shows a message inline right after the control that was used, in place of alert().
+        // Shows a message inline right after the control that was used; no feature uses a browser dialog.
         note(control, message) {
             let note = control.nextElementSibling;
             if (!note?.hasAttribute("data-capability-message")) {

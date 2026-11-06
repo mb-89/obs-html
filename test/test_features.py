@@ -1,8 +1,9 @@
 """The feature registry (obs_html.features): a host-dependent reader feature ships only when used.
 
-Each feature's inclusion condition decides whether its code and its canary are in the HTML (artifact-ui.md,
-notice center).
+Each feature's inclusion condition decides whether its code and its canary are in the HTML; no
+source of the artifact calls a browser dialog (artifact-ui.md, notice center).
 """
+import re
 from importlib.resources import files
 
 import pytest
@@ -15,6 +16,7 @@ from obs_html.render import render
 
 CONFIG = load_config()
 SOURCE = files("obs_html")
+DIALOG_CALL = re.compile(r"\b(?:alert|confirm|prompt)\s*\(")
 
 
 def _link(target: str, label: str) -> dict:
@@ -52,7 +54,6 @@ CASES = {
     "history": ([plain()], []),
     "storage": ([plain()], []),
     "printing": ([plain()], []),
-    "dialogs": ([plain()], []),
     "downloads": ([plain()], []),
     "clipboard": ([plain()], []),
     "popups": ([with_context_note(), with_guided_card()], [plain()]),
@@ -91,3 +92,18 @@ def test_an_artifact_without_a_floating_window_ships_no_popup_code() -> None:
     html = render(plain(), CONFIG)
     for marker in ("window.open", "documentPictureInPicture", "Separate windows", "canary-popups"):
         assert marker not in html, f"popup code shipped without a guided card or context note: {marker}"
+
+
+def test_no_source_calls_a_browser_dialog_and_no_dialogs_canary_ships() -> None:
+    callers = [f"{path.name}:{number}" for path in _sources() for number, line in
+               enumerate(path.read_text(encoding="utf-8").splitlines(), 1) if DIALOG_CALL.search(line)]
+    assert callers == [], f"adapters/html/src/obs_html: browser dialog calls at {callers}; use obsCapabilities.note"
+    for source in (plain(), with_context_note(), with_guided_card()):
+        html = render(source, CONFIG)
+        assert 'id="canary-dialogs"' not in html and '"Dialogs"' not in html
+
+
+def _sources():
+    root = SOURCE.joinpath("")
+    return [path for path in sorted(root.rglob("*")) if path.suffix in {".js", ".py"}
+            and "vendor" not in path.relative_to(root).parts and "__pycache__" not in path.parts]

@@ -66,7 +66,7 @@ def test_canaries_find_what_a_scripts_only_sandbox_limits(tmp_path: Path, reader
     _page, frame = open_sandboxed(tmp_path, reader_browser, errors)
     limits = frame.locator("html").evaluate("() => globalThis.obsCapabilities.limits")
     assert [entry["key"] for entry in limits] == [
-        "history", "storage", "printing", "dialogs", "downloads", "clipboard"]
+        "history", "storage", "printing", "downloads", "clipboard"]
     assert all(entry["reason"] and entry["remedy"] for entry in limits)
     assert {entry["key"] for entry in limits if entry["refused"]} == {"history", "storage", "clipboard"}
     assert errors == []
@@ -96,7 +96,7 @@ def test_a_sandboxed_frame_lists_its_limits_as_warning_notices(tmp_path: Path, r
     expect(details).to_contain_text("Print to PDF")
     expect(details).to_contain_text("print dialog")
     expect(details).to_contain_text("Open the HTML file directly in a browser to print.")
-    expect(warnings.locator('[data-notice="capability-dialogs"] [data-notice-title]')).to_contain_text("Dialogs")
+    expect(warnings.locator('[data-notice="capability-dialogs"]')).to_have_count(0)
     keep_screenshot(page, "limited-functionality-expanded")
     frame.locator("html").evaluate("() => globalThis.obsFilter.setExpression('file.name == \\'One\\'')")
     information = frame.locator('[data-notice-icon="information"]')
@@ -229,7 +229,7 @@ def test_each_canary_says_what_it_observed(tmp_path: Path, reader_browser) -> No
     _page, frame = open_sandboxed(tmp_path, reader_browser, errors)
     results = frame.locator("html").evaluate("() => globalThis.obsCapabilities.results")
     assert [entry["key"] for entry in results] == [
-        "history", "storage", "printing", "dialogs", "downloads", "clipboard"]
+        "history", "storage", "printing", "downloads", "clipboard"]
     assert all(entry["observation"] for entry in results)
     observed = {entry["key"]: entry["observation"] for entry in results}
     assert observed["history"].startswith("it threw SecurityError:")

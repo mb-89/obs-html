@@ -2764,9 +2764,7 @@
                     );
                 });
             } else {
-                const message = "No table here includes this tag.";
-                if (globalThis.obsCapabilities?.limit("dialogs")) globalThis.obsCapabilities.note(link, message);
-                else globalThis.alert(message);
+                globalThis.obsCapabilities.note(link, "No table here includes this tag.");
             }
             return;
         }
