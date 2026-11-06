@@ -34,8 +34,9 @@ The adapter's own features are documented as capability notes in
 [spec/capabilities](spec/capabilities), for example the trusted extension
 [attachment replacement](spec/capabilities/attachment-replacement.md).
 
-The artifact runtime's DOM tests run in Node over a test-only DOM adapter; install it once with
-`npm --prefix test/browser ci`, then `uv run pytest -m dom` runs that tier alone.
+The artifact runtime's DOM tests run in Node over a test-only DOM adapter, which the complete
+suite (`uv run python test/suite.py` from the repository root) installs; then `uv run pytest -m dom`
+runs that tier alone.
 
 The artifact verification harness, `test/browser/artifact-harness.cjs`, opens a rendered artifact in that
 DOM and drives it step by step (data, chapter, table, page mode, print and presentation geometry);
