@@ -15,6 +15,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from html import escape, unescape
 from importlib.metadata import version
+from itertools import groupby
 from importlib.resources import files
 from pathlib import Path, PurePosixPath
 from typing import Callable
@@ -62,7 +63,6 @@ class RenderError(ValueError):
 @dataclass
 class Context:
     document: dict[str, object]
-    command_runner: Callable[[str], str] | None
     assets: SemanticAssets
     chapter: str = ""
     links: dict[str, dict[str, str]] = field(default_factory=dict)
@@ -79,6 +79,9 @@ class Context:
     unknown: dict[str, dict[str, str]] = field(default_factory=dict)
     fields: dict[str, dict[str, str]] = field(default_factory=dict)
     row_keys: dict[str, str] = field(default_factory=dict)
+    phrasing: bool = False
+    """Whether the node being rendered sits where HTML allows only phrasing content (inside a
+    paragraph or a heading), so it may write no block element."""
 
 
 Renderer = Callable[[dict[str, object], Context], str]
@@ -185,21 +188,22 @@ def _count_query(node: dict[str, object], context: Context) -> str:
     return ""
 
 
-CAPABILITY_FENCES = {"base", "cards", "cmd", "figure", "property-editor"}
-
-
 def _cards(node: dict[str, object], context: Context) -> str:
     """Data-only cards: titled sections whose metric slots the runtime (cards.js) counts from the
-    globally filtered records; only the metric declarations enter the browser."""
+    globally filtered records; only the metric declarations enter the browser. Each card's body is
+    its ``document`` child node, rendered like chapter content (nested cards included)."""
     place = f"Chapter {context.chapter or HOME}"
-    cards = node["attrs"]["spec"].get("cards")
+    cards, bodies = node["attrs"]["spec"].get("cards"), node["children"]
     if not isinstance(cards, list) or not all(
-            isinstance(card, dict) and isinstance(card.get("title"), str) and isinstance(card.get("body"), str)
+            isinstance(card, dict) and isinstance(card.get("title"), str)
             and isinstance(card.get("metrics", []), list) for card in cards):
-        raise RenderError(f"{place}: cards fence is not a list of cards with a title, a body and metrics; "
+        raise RenderError(f"{place}: cards fence is not a list of cards with a title and metrics; "
                           "regenerate the Document with the obs core.")
+    if len(bodies) != len(cards) or any(body["type"] != "document" for body in bodies):
+        raise RenderError(f"{place}: cards fence has {len(bodies)} card body for {len(cards)} cards; each card's "
+                          "body is one document node. Remedy: regenerate the Document with the obs core.")
     rendered = []
-    for card in cards:
+    for card, body in zip(cards, bodies):
         what = f"{place}: card {card['title']!r}"
         series = (card.get("obs") or {}).get("metricsFrom")
         if series:
@@ -207,8 +211,7 @@ def _cards(node: dict[str, object], context: Context) -> str:
         metrics = [dict(metric) for metric in card.get("metrics", [])]
         for metric in metrics:
             if "secondary" in metric:
-                metric["valueHtml"] = _markdown(f'[[{metric["from"]}]] ([[{metric["secondary"]}]])', what, context)\
-                    .strip().removeprefix("<p>").removesuffix("</p>")
+                metric["valueHtml"] = _inline(f'[[{metric["from"]}]] ([[{metric["secondary"]}]])', context)
         payload = escape(json.dumps(metrics, ensure_ascii=False), quote=True)
         slots = "".join(f'<div data-record-metric="{index}" role="status" aria-busy="true">Calculating…</div>'
                         for index in range(len(metrics)))
@@ -218,7 +221,7 @@ def _cards(node: dict[str, object], context: Context) -> str:
             f'<section class="content-card record-card" data-record-card="{payload}"{series_data}>'
             f'<header class="content-card-title">{escape(card["title"])}</header>'
             + (f'<div class="record-metrics {style}">{slots}</div>' if metrics or series else "")
-            + _markdown(card["body"], what, context) + "</section>")
+            + _nodes(body["children"], context) + "</section>")
     return '<div class="record-cards" data-record-cards>' + "".join(rendered) + "</div>\n"
 
 
@@ -239,23 +242,6 @@ def _check_series(series: dict[str, object], what: str, context: Context) -> Non
             raise RenderError(f"{name} needs unique labels and non-empty distinct names. Remedy: give every "
                               "list item its own label and a distinct property value.")
         labels.add(fields[0])
-
-
-BLOCK = MarkdownIt("commonmark", {"html": False})
-CODE = re.compile(r"(<pre\b.*?</pre>|<code>.*?</code>)", re.DOTALL)
-
-
-def _markdown(source: str, what: str, context: Context) -> str:
-    """A card body: Markdown with wikilinks, raw HTML as text. The Document carries it as authored
-    Markdown, not as nodes, so a capability fence in it cannot render here."""
-    for token in BLOCK.parse(source):
-        language = token.info.strip().split()[0] if token.type == "fence" and token.info.strip() else ""
-        if language in CAPABILITY_FENCES:
-            raise RenderError(f"{what} body holds a {language} fence, which obs-html cannot render inside a "
-                              f"card. Remedy: move the {language} fence out of the card body.")
-    parts = CODE.split(BLOCK.render(source))
-    return "".join(part if index % 2 else WIKILINK.sub(lambda match: _frontmatter_link(match, context), part)
-                   for index, part in enumerate(parts))
 
 
 def _embed(node: dict[str, object], context: Context) -> str:
@@ -348,12 +334,14 @@ def _mark(node: dict[str, object], _context: Context) -> str:
 
 
 def _command(node: dict[str, object], context: Context) -> str:
+    """The output the core captured; the adapter never runs a command (capabilities/command-fences)."""
     if node["attrs"].get("silent"):
         return ""
-    if context.command_runner is None:
-        raise RenderError("A command fence requires explicit command execution authorization "
-                          "(--execute-commands).")
-    output = context.command_runner(node["attrs"]["source"].strip())
+    output = node["attrs"].get("output")
+    if not isinstance(output, str):
+        raise RenderError(f"Chapter {context.chapter!r}: a command-fences node has no attrs.output, "
+                          "the output the core captures; build the Document with "
+                          "obs-document --execute-commands.")
     return f'<pre class="command-output">{escape(output)}</pre>\n'
 
 
@@ -596,7 +584,6 @@ CAPABILITIES: dict[str, Renderer] = {
 
 @stage("render")
 def render(document: dict[str, object], config: Config,
-           command_runner: Callable[[str], str] | None = None,
            style_folder: Path | None = None,
            trusted_runtime: tuple[str, str] | None = None) -> str:
     if document.get("schemaVersion") != 1:
@@ -608,7 +595,7 @@ def render(document: dict[str, object], config: Config,
     style = load_style(style_folder)
     assets = SemanticAssets(style.asset_index)
     context = Context(
-        document, command_runner, assets,
+        document, assets,
         links={item["id"]: item for item in document["links"]},
         files={item["id"]: item for item in document["assets"]},
         paths={record["path"].removesuffix(".md"): record["id"]
@@ -821,6 +808,15 @@ def _node(node: dict[str, object], context: Context) -> str:
     return (CAPABILITIES.get(kind) or STRUCTURAL_NODES.get(kind) or _unknown)(node, context)
 
 
+def _phrasing(nodes: list[dict[str, object]], context: Context) -> str:
+    """The children of an element that allows only phrasing content (a paragraph, a heading)."""
+    outer, context.phrasing = context.phrasing, True
+    try:
+        return _nodes(nodes, context)
+    finally:
+        context.phrasing = outer
+
+
 def _list(node: dict[str, object], context: Context) -> str:
     tag = "ol" if node["attrs"].get("ordered") else "ul"
     if node["attrs"]["tight"]:
@@ -834,7 +830,7 @@ def _section(node: dict[str, object], context: Context) -> str:
     level = min(max(int(node["attrs"].get("level", 1)), 1), 6)
     anchor = context.headings.get(f"{context.chapter or HOME}#{_identifier(_plain(node))}", "")
     identifier = f' id="{anchor}"' if anchor else ""
-    return f"<h{level}{identifier}>{_nodes(node['children'], context)}</h{level}>\n"
+    return f"<h{level}{identifier}>{_phrasing(node['children'], context)}</h{level}>\n"
 
 
 def _wrap(opening: str, closing: str) -> Renderer:
@@ -865,7 +861,8 @@ MATH_ERRORS = tuple(error for error in vars(math_exceptions).values()
 
 
 def _math(node: dict[str, object], context: Context) -> str:
-    """TeX math as MathML: display math is a block, inline math a span."""
+    """TeX math as MathML: display math on its own is a block; display math inside a paragraph
+    or heading is phrasing content, a span the stylesheet shows as a block; inline math a span."""
     display = bool(node["attrs"].get("display"))
     formula = node.get("text", "")
     try:
@@ -873,7 +870,9 @@ def _math(node: dict[str, object], context: Context) -> str:
     except MATH_ERRORS as error:
         raise RenderError(f"Chapter {context.chapter or HOME}: math formula {formula!r} is not valid TeX "
                           f"({type(error).__name__}). Remedy: correct the formula in its note.") from error
-    return f'<div class="math block">{markup}</div>\n' if display else f'<span class="math inline">{markup}</span>'
+    if not display:
+        return f'<span class="math inline">{markup}</span>'
+    return f'<span class="math block">{markup}</span>' if context.phrasing else f'<div class="math block">{markup}</div>\n'
 
 
 def _field(node: dict[str, object], context: Context) -> str:
@@ -889,7 +888,7 @@ def _unknown(node: dict[str, object], context: Context) -> str:
     if kind not in context.unknown:
         listed = "lists it as structural" if kind in STRUCTURAL else "does not list it"
         limit = context.unknown[kind] = {
-            "key": f"node-{kind}", "feature": f'Document node type "{kind}"',
+            "key": f"node-{kind}", "feature": f'Node type "{kind}"',
             "reason": f"obs-html (src/obs_html/render.py) does not render node type {kind!r}; its text is "
                       f"shown plain, without its formatting. The core's document.schema.json {listed}.",
             "observation": f"first in chapter {context.chapter or HOME!r}",
@@ -931,8 +930,17 @@ def _tight_item(item: dict[str, object], context: Context) -> str:
     return "".join(parts)
 
 
+BLOCK_IN_PARAGRAPH = frozenset({"registers"})
+"""Node types the core may place inside a paragraph (an embed on its own line) that render as a
+block, which HTML allows in no paragraph."""
+
+
 def _paragraph(node: dict[str, object], context: Context) -> str:
-    inner = _nodes(node["children"], context)
+    """A paragraph; a block node inside it renders between the paragraphs of the text around it."""
+    if any(child["type"] in BLOCK_IN_PARAGRAPH for child in node["children"]):
+        return "".join(_nodes(list(run), context) if block else _paragraph({**node, "children": list(run)}, context)
+                       for block, run in groupby(node["children"], lambda child: child["type"] in BLOCK_IN_PARAGRAPH))
+    inner = _phrasing(node["children"], context)
     marks = [child["attrs"] for child in node["children"] if child["type"] == "marks"]
     if not marks:
         return f"<p>{inner}</p>\n"

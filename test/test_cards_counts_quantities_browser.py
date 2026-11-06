@@ -8,10 +8,11 @@ from urllib.parse import quote
 
 import pytest
 
+from conftest import ROOT
 from obs_html.config import load_config
 from obs_html.render import render
 
-from documents import chapter, document as build, heading, node, paragraph
+from documents import chapter, document as build, heading, node, paragraph, text
 
 
 pytestmark = pytest.mark.browser
@@ -30,9 +31,13 @@ def _services(*extra: tuple[str, str, str, str, str]) -> list[dict]:
             for name, identity, active, healthy, region in [*SERVICES, *extra]]
 
 
-def _cards(*cards: dict) -> dict:
+def _cards(*cards: dict, bodies: tuple[list[dict], ...] = ()) -> dict:
+    """The node of a cards fence; ``bodies`` holds each card's body nodes, empty by default."""
     spec = {"version": 1, "cards": list(cards)}
-    return node("cards-metrics", source=json.dumps(spec), spec=spec)
+    result = node("cards-metrics", source=json.dumps(spec), spec=spec)
+    result["children"] = [{"type": "document", "attrs": {}, "children": list(body)}
+                          for body in (bodies or tuple([] for _ in cards))]
+    return result
 
 
 def _quantity(identifier: str, title: str, metadata: dict) -> dict:
@@ -65,7 +70,9 @@ GLOBAL_CARDS = _cards(
          "denominator": [{"field": "kind", "equals": "service"}]},
         {"label": "Regions", "where": [{"field": "kind", "equals": "service"}], "distinct": "region"},
     ]},
-    {"title": "Evidence", "body": "Static [instructions](https://example.org)."},
+    {"title": "Evidence", "body": "Static instructions."},
+    bodies=([paragraph("Ordinary ", {"type": "strong", "attrs": {}, "children": [text("operations")]}, ".")],
+            [paragraph("Static instructions.")]),
 )
 
 
@@ -126,7 +133,9 @@ def test_quantities_count_through_their_selection_chain_and_refresh(tmp_path, re
                     "metrics": [
                         {"label": "Same selection", "from": "counts/total", "where": [], "distinct": "identity"},
                         {"label": "Active share", "from": "counts/total", "where": [
-                            {"field": "active", "equals": "yes"}], "distinct": "identity", "denominator": []}]})
+                            {"field": "active", "equals": "yes"}], "distinct": "identity", "denominator": []}]},
+                   bodies=([paragraph("Items ", _link("serviceCount", "counts-total"), " (",
+                                      _link("activeCount", "counts-subset"), " active).")],))
     source = build(
         "Quantities",
         chapter("chapter", "Chapter", heading(1, "Operations"), cards,
@@ -207,4 +216,47 @@ def test_ignored_notes_are_never_counted(tmp_path, reader_browser) -> None:
     expect(card.locator("[data-record-metric='1'] strong")).to_have_text("2")
     page.evaluate("obsArtifact.activateChapter('chapter')")
     expect(page.locator("[data-active-chapter] [data-quantity-reference]")).to_have_text("2")
+    assert errors == []
+
+
+def test_every_metric_field_and_a_metric_series_count_as_the_interim_runtime_counts(tmp_path, reader_browser) -> None:
+    """The ``cards`` vault of fixtures/build_documents.py, built by the core. Three points: a and c
+    open (owners ada, lin), b closed (lin); no point has a reviewer. The expectations are the interim runtime's
+    (obs cards.js): a denominator makes a percentage, the first matching tone rule wins over the
+    tone, a compound value links primary and secondary, a projection counts its own fields,
+    and a series makes one metric per list entry, linked to a table filtered to its label."""
+    document = json.loads((ROOT / "test" / "fixtures" / "documents" / "cards.json").read_text(encoding="utf-8"))
+    page, errors = _open(tmp_path, reader_browser, document)
+    from playwright.sync_api import expect
+    page.evaluate("obsPages.setPaged(false); obsArtifact.activateChapter('overview')")
+    cards = page.locator("[data-active-chapter] [data-record-card]")
+    outer, metrics, series = (cards.filter(has=page.locator(f":scope > .content-card-title:text-is('{title}')"))
+                              for title in ("Outer", "Metrics", "Series"))
+    expect(page.locator("[data-active-chapter] .record-card [data-data-table='overview-base-1'] [data-row-key]")).to_have_count(3)
+    expect(outer.locator("[data-record-card] .content-card-title")).to_have_text("Inner")
+    share = metrics.locator("[data-record-metric='0']")
+    expect(share).to_have_class("record-metric record-metric--warning")
+    expect(share.locator(".record-metric-value")).to_have_text("66.7%")
+    expect(share.locator(".record-metric-value")).to_have_attribute("href", "#target")
+    compound = metrics.locator("[data-record-metric='1']")
+    expect(compound).to_have_class("record-metric record-metric--negative")
+    expect(compound.locator(".record-metric-value")).to_have_text("3 (2)")
+    expect(compound.locator("[data-quantity-reference]")).to_have_count(2)
+    assert compound.locator("[data-quantity-reference]").evaluate_all(
+        "links => links.map(link => link.getAttribute('href'))") == ["#overview", "#target"]
+    reviewed = metrics.locator("[data-record-metric='2']")
+    expect(reviewed).to_have_class("record-metric record-metric--positive")
+    expect(reviewed.locator(".record-metric-value")).to_have_text("2")
+    page.evaluate("obsCards.setProjection('review', {'b-point.md': {status: 'open'}})")
+    expect(reviewed.locator(".record-metric-value")).to_have_text("3")
+    expect(share.locator(".record-metric-value")).to_have_text("66.7%")
+    page.evaluate("obsCards.setProjection('review', null)")
+    expect(reviewed.locator(".record-metric-value")).to_have_text("2")
+    expect(series.locator(".record-metric-label")).to_have_text(["open", "closed"])
+    expect(series.locator(".record-metric-value strong")).to_have_text(["2", "0"])
+    expect(series.locator(".record-metric")).to_have_class(
+        ["record-metric record-metric--positive", "record-metric record-metric--negative"])
+    assert series.locator(".record-metric-value").evaluate_all(
+        "links => links.map(link => link.getAttribute('href'))") == [
+        f"#overview?tableFilter={quote(f'status:/^{label}$/', safe='')}" for label in ("open", "closed")]
     assert errors == []

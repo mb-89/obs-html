@@ -55,7 +55,7 @@ def test_everything_on_the_title_page_is_centered(tmp_path, reader_browser) -> N
     source = tmp_path / "document.json"
     source.write_text(json.dumps(document), encoding="utf-8")
     artifact = tmp_path / "artifact.html"
-    cli.main([str(source), str(artifact), "--execute-commands", "--command-root", str(tmp_path)])
+    cli.main([str(source), str(artifact)])
     page = reader_browser.new_page(viewport={"width": 1200, "height": 1000})
     page.goto(artifact.as_uri())
     page.wait_for_function("document.documentElement.dataset.artifactStatus === 'ready'")

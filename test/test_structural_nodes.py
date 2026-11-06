@@ -145,7 +145,20 @@ def test_the_notice_center_shows_one_limited_function_warning_per_unknown_type(t
     expect(entries).to_have_count(1)
     expect(entries.first).to_have_attribute("data-notice", "capability-node-sparkle")
     expect(entries.first.locator("[data-notice-title]")).to_have_text(
-        'Limited functionality: Document node type "sparkle"')
+        'Limited functionality: Node type "sparkle"')
     expect(entries.first.locator("[data-notice-details]")).to_contain_text("obs-html (src/obs_html/render.py)")
     assert page.locator('[data-notice-list="error"] [data-notice]').count() == 0
     assert errors == []
+
+
+def test_display_math_inside_a_paragraph_is_phrasing_content_and_on_its_own_a_block() -> None:
+    """`Text $$a^2$$ text` keeps its paragraph whole: the browser closes a <p> at a <div>."""
+    inline = {"type": "math", "attrs": {"display": True}, "children": [], "text": "a^2"}
+    alone = {"type": "math", "attrs": {"display": True}, "children": [], "text": "b^2"}
+    html = _notes(build("Doc", chapter("one", "One", paragraph("Text ", inline, " text"), alone)))["one"]["html"]
+    paragraph_html = re.search(r"<p>.*?</p>", html, re.DOTALL)[0]
+    assert paragraph_html.startswith('<p>Text <span class="math block"><math ')
+    assert paragraph_html.endswith("</math></span> text</p>")
+    assert "<div" not in paragraph_html
+    assert re.search(r'</p>\n<div class="math block"><math [^>]*display="block"[^>]*>.*<mi>b</mi>.*</math></div>\n',
+                     html, re.DOTALL)

@@ -118,7 +118,7 @@ def test_extract_comments_rejects_invalid_replies(tmp_path: Path) -> None:
 
 
 def test_generated_artifact_comment_island_round_trips_to_extractor(tmp_path: Path, document) -> None:
-    generated = render(document, load_config(), lambda command: "")
+    generated = render(document, load_config())
     reviewed_island = {
         "version": 2,
         "annotations": [

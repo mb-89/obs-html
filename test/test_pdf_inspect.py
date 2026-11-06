@@ -23,7 +23,7 @@ def printed(tmp_path_factory) -> Path:
     (folder / "images").mkdir()
     (folder / "images" / "logo.png").write_bytes(base64.b64decode(PIXEL))
     pdf = folder / "artifact.pdf"
-    cli.main([str(FIXTURE), str(pdf), "--execute-commands", "--command-root", str(folder)])
+    cli.main([str(FIXTURE), str(pdf)])
     return pdf
 
 

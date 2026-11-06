@@ -6,12 +6,10 @@ import json
 import re
 import sys
 import tempfile
-from functools import partial
 from pathlib import Path
 from time import perf_counter
 from typing import Sequence
 
-from obs_html.commands import CommandError, run_command
 from obs_html.comments import CommentError, extract_comments
 from obs_html.config import ConfigError, load_config
 from obs_html.exposure import check_artifact
@@ -26,11 +24,11 @@ EPILOG = """Rendering:
   DOCUMENT is a JSON Document (the core's obs-document writes it); it is the only input.
   DESTINATION ending in .pdf prints the rendered HTML to PDF; any other name receives HTML.
   The core calls this command as an adapter with exactly DOCUMENT and DESTINATION.
-  Command fences require --execute-commands and --command-root; review the commands first.
-  They run with --command-root as working directory, normally the source vault root.
-  Their output never carries the build machine's absolute paths, and an artifact that names the
-  home folder, user name or command root fails before writing (README, "Command fences").
-  --check renders without writing output or executing commands.
+  obs-html never runs a command: a command fence shows the output the core captured while it
+  built the Document (obs-document --execute-commands), and a Document without it fails.
+  An artifact that names the build machine's home folder or user name fails before writing
+  (README, "Command fences").
+  --check renders without writing output.
   Document diagnostics are printed to stderr, never into the HTML.
   --style FOLDER selects an external style module: a folder with style.css, laid over the
   packaged base stylesheet, and an optional assets.json semantic asset index. It must not
@@ -65,12 +63,11 @@ PDF operations:
   execution.renderedCheckTimeoutSeconds.
 
 Timings:
-  --timings prints "Timing: STAGE SECONDS s" for render, commands, figures, print and write.
+  --timings prints "Timing: STAGE SECONDS s" for render, figures, print and write.
 
 Examples:
   obs-html document.json artifact.html
   obs-html document.json artifact.pdf
-  obs-html document.json artifact.html --execute-commands --command-root vault
   obs-html document.json --check
   obs-html document.json artifact.html --style styles/corporate
   obs-html --export-pdf artifact.html --output artifact.pdf
@@ -95,12 +92,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("destination", type=Path, nargs="?", metavar="DESTINATION",
                         help="Output file: .pdf for PDF, otherwise HTML.")
     parser.add_argument("--config", type=Path, help="Settings JSON merged over the packaged cfg.json.")
-    parser.add_argument("--check", action="store_true",
-                        help="Render without writing output or executing command fences.")
-    parser.add_argument("--execute-commands", action="store_true",
-                        help="Execute command fences while rendering.")
-    parser.add_argument("--command-root", type=Path, metavar="FOLDER",
-                        help="Working directory of executed command fences.")
+    parser.add_argument("--check", action="store_true", help="Render without writing output.")
     parser.add_argument("--style", type=Path, metavar="FOLDER",
                         help="Style module folder containing style.css (and optionally assets.json); "
                              "replaces the packaged generic style.")
@@ -133,7 +125,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 _browser_operation(parser, options, config)
             else:
                 _render(parser, options, config)
-    except (CommandError, CommentError, ConfigError, RenderError, OSError, RuntimeError, ValueError) as error:
+    except (CommentError, ConfigError, RenderError, OSError, RuntimeError, ValueError) as error:
         parser.error(str(error))
     if options.timings:
         for name, seconds in {**recorded.durations, "total": perf_counter() - started}.items():
@@ -146,32 +138,23 @@ def _render(parser: argparse.ArgumentParser, options: argparse.Namespace, config
         parser.error("--output is only used with --export-pdf; give DESTINATION instead.")
     if options.document is None:
         parser.error("DOCUMENT is required.")
-    if options.check and (options.destination or options.execute_commands):
-        parser.error("--check cannot be combined with DESTINATION or --execute-commands.")
+    if options.check and options.destination:
+        parser.error("--check cannot be combined with DESTINATION.")
     if not options.check and options.destination is None:
         parser.error("DESTINATION is required unless --check is given.")
-    if options.execute_commands != (options.command_root is not None):
-        parser.error("--execute-commands and --command-root are only used together.")
     if options.destination and options.destination.resolve() == options.document.resolve():
         parser.error("DESTINATION must not overwrite DOCUMENT.")
     try:
         document = json.loads(options.document.read_text(encoding="utf-8"))
     except json.JSONDecodeError as error:
         raise RenderError(f"Invalid Document {options.document}: {error}") from error
-    if options.check:
-        runner = _check_command
-    elif options.execute_commands:
-        runner = partial(run_command, cwd=options.command_root.resolve(),
-                         timeout_seconds=config.command_timeout_seconds)
-    else:
-        runner = None
-    artifact = render(document, config, runner, style_folder=options.style,
+    artifact = render(document, config, style_folder=options.style,
                     trusted_runtime=_trusted_runtime(parser, options.trusted_runtime_bundle))
-    check_artifact(artifact, options.command_root.resolve() if options.command_root else None)
+    check_artifact(artifact)
     for diagnostic in document["diagnostics"]:
         print(f"{diagnostic['level'].title()}: {diagnostic['message']}", file=sys.stderr)
     if options.check:
-        print(f"Checked {options.document.resolve()}; no output written and no commands executed.")
+        print(f"Checked {options.document.resolve()}; no output written.")
         return
     destination = options.destination.resolve()
     if destination.suffix.lower() == ".pdf":
@@ -196,9 +179,8 @@ def _render(parser: argparse.ArgumentParser, options: argparse.Namespace, config
 
 
 def _browser_operation(parser: argparse.ArgumentParser, options: argparse.Namespace, config) -> None:
-    if (options.document or options.destination or options.check or options.execute_commands
-            or options.command_root or options.style or options.trusted_runtime_bundle
-            or options.check_rendered and options.export_pdf):
+    if (options.document or options.destination or options.check or options.style
+            or options.trusted_runtime_bundle or options.check_rendered and options.export_pdf):
         parser.error("--export-pdf and --check-rendered are separate operations without DOCUMENT.")
     from obs_html.pdf import check_rendered, export_pdf
     if options.export_pdf:
@@ -240,8 +222,8 @@ def _trusted_runtime(parser: argparse.ArgumentParser, bundle: str | None) -> tup
 
 
 def _export_figures(parser: argparse.ArgumentParser, options: argparse.Namespace) -> None:
-    if (options.document is None or options.destination or options.check or options.execute_commands
-            or options.command_root or options.style or options.trusted_runtime_bundle
+    if (options.document is None or options.destination or options.check
+            or options.style or options.trusted_runtime_bundle
             or options.export_pdf or options.check_rendered or options.output):
         parser.error("--export-figures takes only DOCUMENT: obs-html DOCUMENT --export-figures FOLDER.")
     try:
@@ -264,17 +246,11 @@ def _export_figures(parser: argparse.ArgumentParser, options: argparse.Namespace
 
 
 def _extract(parser: argparse.ArgumentParser, options: argparse.Namespace) -> None:
-    if any((options.document, options.destination, options.check, options.execute_commands,
-            options.command_root, options.style, options.trusted_runtime_bundle,
+    if any((options.document, options.destination, options.check,
+            options.style, options.trusted_runtime_bundle,
             options.export_pdf, options.check_rendered, options.output, options.export_figures)):
         parser.error("--extract-comments is a separate operation without DOCUMENT.")
     print(extract_comments(options.extract_comments.resolve()), end="")
-
-
-def _check_command(command: str) -> str:
-    if not command.strip():
-        raise CommandError("A command fence cannot be empty.")
-    return ""
 
 
 def _read_existing(path: Path) -> str | None:
