@@ -5,9 +5,12 @@ The core parses every nonempty frontmatter string into one ``field`` node of inl
 the frontmatter panels render those nodes, so the strings in ``attrs.metadata`` are data only.
 """
 import base64
+import inspect
 import json
+import re
 import subprocess
 import sys
+from importlib.resources import files
 
 from conftest import PIXEL, built_once
 from obs_html.artifact_data import decode_artifact_data
@@ -80,3 +83,27 @@ def test_the_frontmatter_panel_renders_field_nodes_and_values_without_one_as_tex
     assert panel["formula"].startswith('<span class="math inline"><math') and "<mi>a</mi>" in panel["formula"]
     assert panel["raw"] == "&lt;b&gt;raw&lt;/b&gt;"
     assert panel["rank"] == "2"
+
+
+METADATA_RENDERERS = ("_frontmatter", "_cover", "_frontmatter_html", "_field_html", "_definition_html")
+"""The render.py functions that turn metadata into HTML; each reads field nodes or shows text."""
+PYTHON_PARSING = re.compile(r"\b(?:re|INLINE|WIKILINK|IMAGE_TAG|NOTE_HREF|urllib|urlparse|unquote|mathml)\b"
+                            r"|\b_(?:inline|frontmatter_link|metadata_image|note_href)\(|renderInline|MarkdownIt")
+JS_PARSING = re.compile(r"RegExp|\.(?:match|matchAll|replace|replaceAll|split|search)\(|new URL\(|markdown|"
+                        r"/[^/\n*]+/[gimsuy]*\.(?:test|exec)\(", re.IGNORECASE)
+
+
+def test_no_metadata_renderer_parses_markdown_tex_or_urls_out_of_a_string() -> None:
+    """Requirement: metadata renders from nodes. The running header's script and the page frame's
+    header and footer block in pages.js render the metadata's display HTML the same way."""
+    import obs_html.render as module
+    found = [f"render.py {name}: {match[0]!r}" for name in METADATA_RENDERERS
+             for match in PYTHON_PARSING.finditer(inspect.getsource(getattr(module, name)))]
+    package = files("obs_html")
+    pages = package.joinpath("pages.js").read_text(encoding="utf-8")
+    frame = pages[pages.index("const metadataHtml = data.document.metadataHtml;"):pages.index("sheet.append(footer);")]
+    for name, source in (("running-header.js", package.joinpath("running-header.js").read_text(encoding="utf-8")),
+                         ("pages.js page frame", frame)):
+        found += [f"{name}: {match[0]!r}" for match in JS_PARSING.finditer(source)]
+    assert not found, ("adapters/html/src/obs_html: a metadata renderer parses a string; render the value's "
+                       f"field node instead (obs markdown-frontmatter.md, Document node): {found}")
