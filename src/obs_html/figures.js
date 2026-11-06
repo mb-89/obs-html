@@ -818,7 +818,7 @@
       })).size;
       const words = sankeyCountLabels(spec);
       return {...node, selection,
-        label: `${node.label}\n${Math.max(selected.length, unique)} ${words.unit}\n${unique} ${words.unique}`};
+        label: `${node.label}\n${selected.length} ${words.unit}\n${unique} ${words.unique}`};
     });
     figure.querySelector(".sankey-canvas").replaceWith(sankeySvg({...spec, nodes}, links));
     figure.dispatchEvent(new CustomEvent("obs-figure-render"));
