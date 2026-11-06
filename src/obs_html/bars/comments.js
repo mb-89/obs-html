@@ -69,6 +69,9 @@
     artifactDownload.type = "button";
     artifactDownload.dataset.artifactDownload = "";
     artifactDownload.textContent = "Download changed HTML";
+    // A blocked download cannot be observed, so where the canary could not decide, the help names the remedy.
+    const downloadHint = globalThis.obsCapabilities?.hint("downloads");
+    if (downloadHint) artifactDownload.dataset.hoverHelp = downloadHint;
     const changedHtmlNotice = {
         id: "changed-html", severity: "information", title: "This HTML has changed",
         details: [

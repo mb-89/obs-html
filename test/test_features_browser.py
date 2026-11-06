@@ -121,3 +121,18 @@ def test_a_refused_copy_shows_the_reason_inline_and_warns_once(tmp_path, reader_
         "(term) => term.nextElementSibling.textContent")
     assert [error for error in errors if "could not be copied" not in error] == []
 
+
+def test_download_changed_html_help_names_the_remedy_where_downloads_are_undecided(tmp_path, reader_browser) -> None:
+    errors: list[str] = []
+    _page, frame = open_viewer(tmp_path, reader_browser, errors, render(plain(), CONFIG), "light")
+    _capability_notices(frame)
+    # A new comment changes the HTML; the changed-HTML entry then holds Download changed HTML.
+    frame.locator("html").evaluate("""() => {
+        globalThis.obsComments.data.annotations.push({
+            id: "one", author: "Reader", text: "A comment.", status: "open", replies: [],
+            target: {chapter: "one", quote: "Text.", prefix: "", suffix: "", start: 0, end: 5}});
+        document.dispatchEvent(new CustomEvent("obs-canonical-property-change"));
+    }""")
+    button = frame.locator('[data-notice="changed-html"] [data-artifact-download]')
+    assert "Open the HTML file directly in a browser to download." in button.get_attribute("data-hover-help")
+    assert errors == []
