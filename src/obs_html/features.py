@@ -11,15 +11,42 @@ condition holds, so a feature the Document does not use has no code, control, ca
 A figure kind that needs a host ability or a library names the feature's key in its
 FigureKind.features (figures.py); the feature's condition reads those declarations, so the kind
 registry has no inclusion mechanism of its own. A library the renderer delivers itself (the
-plotting library, by artifact.figures.plotlyDelivery) ships exactly where its feature is included.
+plotting library, by artifact.figures.plotlyDelivery, and the maths library, embedded from its
+npm lockfile ``maths/package-lock.json``) ships exactly where its feature is included.
 """
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 import re
 from typing import Callable
 
+from .errors import InputError
 from .figures import FIGURE_KINDS
+
+
+MATHS = Path(__file__).resolve().parents[2] / "maths"
+"""The maths library's npm package: its lockfile pins math.js; ``npm ci`` installs it beside it."""
+MATHS_LIBRARY = MATHS / "node_modules" / "mathjs" / "lib" / "browser" / "math.js"
+
+
+def _maths_file(path: Path) -> str:
+    if not path.is_file():
+        raise InputError(MATHS / "package-lock.json", "mathjs", f"is not installed: {path} is missing, and an "
+                         "equation figure embeds it", f"Install it from its lockfile with `npm --prefix {MATHS} "
+                         "ci` (the suite's setup, `uv run python test/suite.py --setup`, does)")
+    return path.read_text(encoding="utf-8")
+
+
+def maths_library() -> str:
+    """The maths library (math.js) the equations feature embeds, as installed from its lockfile."""
+    return _maths_file(MATHS_LIBRARY)
+
+
+def maths_library_licence() -> str:
+    """The maths library's licence and its bundled licences, which ship with it."""
+    return (_maths_file(MATHS / "node_modules" / "mathjs" / "LICENSE") + "\n"
+            + _maths_file(MATHS_LIBRARY.with_name("math.js.LICENSE.txt"))).replace("*/", "* /")
 
 
 @dataclass(frozen=True)
@@ -90,7 +117,9 @@ FEATURES: tuple[Feature, ...] = (
     Feature("popups", "a guided card, a note a link opens as context, or a trusted runtime",
             _floating_window, ("guided-card.js",)),
     Feature("plotting", "a figure of a kind that needs the plotting library (figures.py, FIGURE_KINDS): "
-            "a stored-data plot", _figures_need("plotting")),
+            "a stored-data plot or an equation figure", _figures_need("plotting")),
+    Feature("equations", "a figure of a kind that needs the maths library (figures.py, FIGURE_KINDS): "
+            "an equation figure", _figures_need("equations"), ("equations.js",)),
 )
 
 
