@@ -69,7 +69,9 @@ Settings:
 Trusted runtime:
   --trusted-runtime-bundle ID=PATH explicitly trusts one local JavaScript application
   bundle (a regular .js file, not a link) and embeds it in the HTML after the artifact
-  runtime. The Document itself can never opt into executable code.
+  runtime. The Document itself can never opt into executable code. Through the core:
+  obs-document --adapter html --adapter-option trusted-runtime-bundle=ID=PATH, PATH a file of
+  the vault; --embed-source keeps it in the archive, and its reproduce.py names it again.
 
 Figures:
   DOCUMENT --export-figures FOLDER writes each figure of the Document as a standalone SVG,

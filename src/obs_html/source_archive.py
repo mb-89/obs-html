@@ -96,8 +96,23 @@ def package(document: dict, embed_attachments: bool = False) -> bytes | None:
             "--repository <url or folder> installs obs from another clone. A build that ran the vault's\n"
             "command fences reruns them only with python reproduce.py --execute-commands: review vault/\n"
             "first. Where a diagram renderer is missing, obs names the npm command that installs it.\n"
-            "Documents include build timestamps; byte-identical output is not promised.\n"))
+            "Documents include build timestamps; byte-identical output is not promised.\n"
+            + "".join(f"The original builder explicitly selected trusted runtime {runtime}; reproduce.py "
+                      "repeats that selection from the included vault source. Review that code before "
+                      "executing the reproduction script.\n" for runtime in _trusted_runtimes(command))))
     return buffer.getvalue()
+
+
+TRUSTED_RUNTIME = "trusted-runtime-bundle="
+"""The adapter option (adapter.json) that names the trusted runtime bundle, ID=PATH in the vault."""
+
+
+def _trusted_runtimes(command: list[str]) -> list[str]:
+    """The IDs of the trusted runtime bundles the recorded ``command`` names, as the interim's
+    REPRODUCE.txt named its one."""
+    return [value.removeprefix(TRUSTED_RUNTIME).partition("=")[0]
+            for flag, value in zip(command, command[1:])
+            if flag == "--adapter-option" and value.startswith(TRUSTED_RUNTIME)]
 
 
 def _member(name: str) -> ZipInfo:
