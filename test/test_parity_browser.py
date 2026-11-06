@@ -368,6 +368,8 @@ def test_the_step_check_names_a_step_that_went_elsewhere() -> None:
 COVERAGE = Path(__file__).parent / "browser" / "control-coverage.js"
 # Each width is swept in its own opened artifact, so the widths run on parallel workers.
 WIDTHS = (360, 700, 1100, 1600)
+# Show as pages on and off; off, the feature fixture shows screens, the layout it opens in
+# (artifact-ui.md, Screens), and an artifact that opens paged shows continuous reading.
 VIEWS = ("pages", "continuous")
 
 

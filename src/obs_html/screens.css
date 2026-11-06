@@ -11,6 +11,11 @@
     padding: 1rem var(--chapter-clearance-end) 2rem var(--chapter-nav-width);
 }
 
+/* Review mode keeps its gutter (base.css, review-mode) beside Previous's narrower pointer area. */
+.screens-mode .chapter-body.review-mode {
+    padding-inline-start: var(--review-clearance-start);
+}
+
 .screens-mode .chapter-nav {
     padding: 0.75rem 0.15rem;
 }

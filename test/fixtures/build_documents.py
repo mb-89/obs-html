@@ -691,7 +691,8 @@ def features(root: Path) -> None:
     """The browser tier's feature fixture (obs quality.md, Testing boundaries): a few chapters in
     which every feature of the registry (features.py, FEATURES, with every part) appears, read in
     both views by the reading script and the covered-control sweep (test_parity_browser.py). It is
-    archived (--embed-source) for the source-archive part; a note outside the reading order,
+    archived (--embed-source) for the source-archive part; it opens in screens, the view the
+    sweep reads beside pages, for screens; a note outside the reading order,
     opened as context, needs popups; the plot figure needs plotting, the equation figure
     equations and the decision figure pugh; the prose chapter, with the decision figure, asks for a
     bless, which needs answers and bless. Its chapters also hold what those checks read in obs's spec: prose with
@@ -701,7 +702,7 @@ def features(root: Path) -> None:
     interactive content is followed by text, as in a real document. test_features.py fails where
     a registered feature is missing. Not a moved interim vault."""
     (root / "manifest.md").write_text(
-        "---\ntitle: Feature fixture\nobsHtml: {figures: {numbering: chapter}}\n---\n"
+        "---\ntitle: Feature fixture\nobsHtml: {layout: screens, figures: {numbering: chapter}}\n---\n"
         "- [[overview]]\n- [[figures]]\n  - [[equations]]\n    - [[tables]]\n"
         "- [[prose]]\n- [[references]]\n", encoding="utf-8")
     (root / "overview.md").write_text(
