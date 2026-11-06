@@ -144,7 +144,8 @@ def test_the_pill_and_keys_show_only_on_asking_chapters_and_the_page_fits_a_phon
     expect(page.locator("[data-bless-send]")).to_be_disabled()
     _fits(page)
 
-    page.evaluate("obsArtifact.activateChapter('home')")
+    page.evaluate("obsPages.setPaged(true); obsArtifact.activateChapter('home')")  # Screens have no Home.
+    expect(page.locator("[data-active-chapter]")).to_have_attribute("data-chapter", "home")
     expect(page.locator("[data-bless-pill]")).to_be_hidden()
     expect(page.locator("[data-bless-key]:visible")).to_have_count(0)
     expect(page.locator("[data-bless-send]")).to_be_visible()
@@ -296,7 +297,7 @@ def test_the_deck_opens_in_screens_on_a_phone_that_fit_and_walk_by_swipe_and_key
                                                                                   width: int) -> None:
     """artifact-ui.md, Screens: no sideways scroll, no page frame, the band's title and position, and the
     band fits (Reading shell, the top band); swipe and the keys walk, the arrows are hidden on touch, and
-    Home has no cover."""
+    the walk has no Home."""
     from playwright.sync_api import expect
 
     page = phone_browser.new_page(viewport={"width": width, "height": 780})
@@ -325,13 +326,12 @@ def test_the_deck_opens_in_screens_on_a_phone_that_fit_and_walk_by_swipe_and_key
     page.evaluate(SWIPE, ["[data-chapter-body] h1", 120])
     expect(page.locator("[data-active-chapter]")).to_have_attribute("data-chapter", "record")
     page.evaluate("obsArtifact.whenChapterReady()")
-    page.keyboard.press("ArrowLeft")
-    expect(page.locator("[data-active-chapter]")).to_have_attribute("data-chapter", "home")
-    expect(position).to_be_hidden()
+    page.keyboard.press("ArrowLeft")  # The walk has no Home: chapter 1 is its first screen.
+    page.evaluate("obsArtifact.whenChapterReady()")
+    assert _active(page) == "record"
+    expect(position).to_have_text("1 / 2")
     assert page.evaluate(PAGE_FRAME) == 0
     _fits(page)
-    page.keyboard.press("ArrowRight")
-    expect(position).to_have_text("1 / 2")
     assert errors == []
 
 
@@ -412,3 +412,40 @@ def test_the_pill_names_the_pick_by_its_short_name_where_the_band_has_room(deck,
     assert page.evaluate(PILL) == {"label": f"{SHORT} · needs a comment", "shown": shown}
     _fits(page)
     assert errors == []
+
+
+def _phone(phone_browser, url: str, width: int = 390):
+    """The deck on the shared phone pool, opened as a reader opens it: without a chapter in the URL."""
+    page = phone_browser.new_page(viewport={"width": width, "height": 780})
+    errors: list[str] = []
+    page.on("pageerror", lambda error: errors.append(str(error)))
+    page.goto(url)
+    page.wait_for_function("document.documentElement.dataset.artifactStatus === 'ready'")
+    return page, errors
+
+
+def test_screens_open_on_the_first_chapter_and_home_goes_there(deck, phone_browser) -> None:
+    """artifact-ui.md, Screens: no title screen; Home and stepping back stay on chapter 1, and the
+    position counts chapters only. Shown as pages, Home is the cover again."""
+    from playwright.sync_api import expect
+
+    page, errors = _phone(phone_browser, deck.as_uri())
+    assert page.evaluate("document.documentElement.classList.contains('screens-mode')")
+    expect(page.locator("[data-active-chapter]")).to_have_attribute("data-chapter", "record")
+    expect(page.locator("[data-screens-position]")).to_have_text("1 / 2")
+    page.evaluate("obsArtifact.whenChapterReady()")
+    page.keyboard.press("ArrowLeft")
+    page.evaluate("obsArtifact.whenChapterReady()")
+    assert _active(page) == "record"
+    page.keyboard.press("ArrowRight")
+    expect(page.locator("[data-active-chapter]")).to_have_attribute("data-chapter", "swipe")
+    page.locator(".top-band a.chapter-home-link").click()
+    expect(page.locator("[data-active-chapter]")).to_have_attribute("data-chapter", "record")
+    expect(page.locator("[data-screens-position]")).to_have_text("1 / 2")
+    _fits(page)
+
+    page.evaluate("obsPages.setPaged(true)")
+    page.locator(".top-band a.chapter-home-link").click()
+    expect(page.locator("[data-active-chapter]")).to_have_attribute("data-chapter", "home")
+    assert errors == []
+

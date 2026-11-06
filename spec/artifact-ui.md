@@ -788,7 +788,11 @@ decision is a one-pager, not a document page, so an artifact can be read as scre
 the walk as one screen: the chapter at the reader's full width inside a side gutter that holds
 the chapter arrows, with no page frame, cover, running header, footer or page number. The
 manifest's title shows only in the top band, between the breadcrumbs and the frontmatter
-chevron; it truncates first, its full text its tooltip. Home shows its content without the cover.
+chevron; it truncates first, its full text its tooltip.
+
+Decided by the user, 6 Nov 2026 (work issue `feature/deck-shell-verdicts-20261106`): screens have
+no title screen. The walk holds the chapters only, and the deck opens on its first chapter. Home,
+the band's or the menu's, opens that chapter too; shown as pages, Home is the cover as before.
 
 Without a declared `obsHtml.layout`, a manifest whose listed chapters (the reading order) all
 ask for a bless opens in `screens`; any other opens in `paged`. A declared layout always wins.
@@ -800,7 +804,7 @@ example deck (`spec/examples/bless-deck`) opens in screens by this rule.
   swipe, the keys and the band's position walk; their gutter goes to the content, which keeps a
   text margin. Hidden, not moved into the band: on a phone the band has no square to spare, and
   swipe already walks there. With a mouse, the arrows stay as they are. The top band shows the position on the chapters of the walk, "2 / 3", as
-  one of its squares, first at the band's end; Home, which is not one of them, shows none. The
+  one of its squares, first at the band's end. The
   bottom of the screen stays free for content.
 - **Show as pages** switches to the paged view for the session; switching it off returns to
   screens.

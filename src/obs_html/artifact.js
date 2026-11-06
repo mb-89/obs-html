@@ -597,10 +597,15 @@
         menuButton.setAttribute("aria-expanded", String(open));
     };
 
+    // Artifact-ui.md "Screens": the screens walk has no Home; Home opens its first chapter.
+    const screensWalk = () => document.documentElement.classList.contains("screens-mode");
+    const walkIndices = () => screensWalk()
+        ? visibleIndices.filter((index) => chapters[index].generated !== "home")
+        : visibleIndices;
     const stepTarget = (step) => {
         if (activeIndex < 0) return undefined;
         const targets = [
-            ...visibleIndices.map((index) => ({type: "chapter", index})),
+            ...walkIndices().map((index) => ({type: "chapter", index})),
         ];
         let position = targets.findIndex(
             (target) => target.type === "chapter" && target.index === activeIndex,
@@ -1994,6 +1999,8 @@
         if (tableFilter !== null) globalThis.obsQuery.compile(tableFilter);
         const record = recordsBySlug.get(noteSlug);
         if (!record) return;
+        const firstScreen = record.generated === "home" && screensWalk() ? walkIndices()[0] : undefined;
+        if (firstScreen !== undefined) return activateChapter(chapters[firstScreen].slug, historyMode);
         if (!isDocument(record)) {
             activateChapter("home", historyMode);
             return;
@@ -2456,6 +2463,9 @@
             .forEach(node => anchorObserver?.observe(node));
     };
     document.addEventListener("obs-pages-layout", reanchor);
+    document.addEventListener("obs-pages-layout", () => {
+        if (screensWalk() && activeChapter.dataset.chapter === "home") activateChapter("home", "replace");
+    });
     const releaseAnchor = () => {
         anchoredHit = null;
         anchorObserver?.disconnect();
