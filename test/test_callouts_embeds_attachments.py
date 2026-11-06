@@ -135,13 +135,6 @@ def test_attachments_never_carry_an_absolute_local_path() -> None:
                     ' (<code>data.<wbr>bin</code>)</p>\n')
 
 
-def test_a_note_embed_links_to_its_chapter_or_renders_unresolved() -> None:
-    html = _html(paragraph(node("embeds", target="two", chapter="two"), " ",
-                           node("embeds", target="missing", chapter=None)))
-    assert html == ('<p><a class="internal-link embed" href="#two">Two</a> '
-                    '<span class="unresolved embed" title="missing">missing</span></p>\n')
-
-
 def test_a_file_embed_renders_like_an_attachment() -> None:
     icon = {"id": "icon", "href": "icon.svg", "mediaType": "image/svg+xml", "path": "icon.svg", "data": "PHN2Zy8+"}
     html = _html(paragraph(node("embeds", target="icon.svg", chapter=None, asset="icon"), " ",

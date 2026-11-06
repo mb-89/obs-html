@@ -377,10 +377,12 @@ def test_a_wikilink_without_a_chapter_is_unresolved_even_when_an_id_matches() ->
 
 
 def test_an_embed_links_to_its_chapter_or_renders_unresolved() -> None:
-    html = _notes(_linking(node("embeds", target="architecture", chapter="design-input-architecture"),
+    html = _notes(_linking(node("embeds", target="architecture", chapter="design-input-architecture"), " ",
                            node("embeds", target="index", chapter=None)))["index"]["html"]
     assert '<a class="internal-link embed" href="#design-input-architecture">Architecture</a>' in html
     assert '<span class="unresolved embed" title="index">index</span>' in html
+    assert html == ('<p><a class="internal-link embed" href="#design-input-architecture">Architecture</a> '
+                    '<span class="unresolved embed" title="index">index</span></p>\n')
 
 
 def test_a_link_to_a_chapter_the_document_lacks_names_its_chapter_and_the_remedy() -> None:

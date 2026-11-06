@@ -30,7 +30,8 @@ def _capability_notices(frame) -> dict[str, str]:
 def test_without_a_floating_window_no_popup_code_and_no_separate_windows_notice(tmp_path, reader_browser) -> None:
     errors: list[str] = []
     html = artifact_html(plain())
-    assert "window.open" not in html
+    for marker in ("window.open", "documentPictureInPicture", "Separate windows", "canary-popups"):
+        assert marker not in html, f"popup code shipped without a guided card or context note: {marker}"
     _page, frame = open_viewer(tmp_path, reader_browser, errors, html, "light")
     notices = _capability_notices(frame)
     assert "popups" not in notices and not any("Separate windows" in title for title in notices.values())
