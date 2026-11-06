@@ -11,7 +11,8 @@ from html import escape, unescape
 import pytest
 
 from obs_html.config import load_config
-from obs_html.render import RenderError, render
+from obs_html.errors import InputError
+from obs_html.render import render
 from obs_html.artifact_data import decode_artifact_data
 
 from conftest import ROOT
@@ -208,8 +209,9 @@ def test_a_metric_series_names_its_source_list_and_checks_its_labels() -> None:
     assert f'data-record-series="{escape(json.dumps(series), quote=True)}"' in html
     assert '<div class="record-metrics ">' in html
     source["records"][0]["fields"] = {"groups": {"list": [{"name": "A", "key": "a"}, {"name": "A", "key": "b"}]}}
-    with pytest.raises(RenderError, match=r"Chapter one: card 'Series' metric series one/groups.list .*unique"):
+    with pytest.raises(InputError) as failure:
         _notes(source)
+    assert (failure.value.source, failure.value.field) == (source["records"][0]["path"], "groups.list[1]")
 
 
 def test_unaliased_quantity_links_render_their_value_or_a_pending_count() -> None:

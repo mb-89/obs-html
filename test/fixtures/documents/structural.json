@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "manifest": {
     "title": "Manifest",
+    "path": "manifest.md",
     "metadata": {},
     "abstract": [
       {

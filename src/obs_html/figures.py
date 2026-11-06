@@ -14,12 +14,19 @@ from importlib.resources import files
 
 from jsonschema import Draft202012Validator
 
+from .errors import InputError, schema_error
 from .sankey import COUNT_LABELS
 from .timings import stage as timed
 
 
-class FigureError(ValueError):
-    """A FigureDescriptor's data does not match a figure this adapter draws."""
+FIGURE = "figure"
+"""The field a message names a descriptor by: the figure fence it comes from."""
+REMEDY = "Correct the figure's descriptor; see obs capabilities/figure-descriptor"
+
+
+def figure_error(source: str, field: str, problem: str, remedy: str = REMEDY) -> InputError:
+    """A descriptor this adapter cannot draw; ``source`` is the note of its figure fence."""
+    return InputError(source, f"{FIGURE}.{field}", problem, remedy)
 
 
 @cache
@@ -28,45 +35,51 @@ def _sankey_validator():
         json.loads(files("obs_html").joinpath("sankey.schema.json").read_text(encoding="utf-8")))
 
 
-def _sankey_graph(graph):
-    errors = list(_sankey_validator().iter_errors(graph))
-    if errors:
-        error = errors[0]
-        location = ".".join(str(part) for part in error.absolute_path) or "root"
-        if error.validator == "maxItems":
-            detail = f"has more than {error.validator_value} items"
-        elif error.validator == "minItems":
-            detail = f"requires at least {error.validator_value} items"
-        else:
-            detail = error.message[:160]
-        raise FigureError(f"Invalid Sankey graph at {location}: {detail}.")
+def _sankey_graph(graph, source: str):
+    """The descriptor's ``data.sankey`` graph, checked as this adapter draws it."""
+    field = "data.sankey"
+    error = schema_error(list(_sankey_validator().iter_errors(graph)), source,
+                         "obs-html's sankey.schema.json", prefix=f"{FIGURE}.{field}")
+    if error is not None:
+        raise error
     nodes = graph["nodes"]
     by_id = {}
-    for node in nodes:
+    for index, node in enumerate(nodes):
         if node["id"] in by_id:
-            raise FigureError(f"Invalid Sankey graph: duplicate node id {node['id']!r}.")
+            raise figure_error(source, f"{field}.nodes[{index}].id", f"is {node['id']!r}, the id of an earlier "
+                               "node", "Give every node its own id")
         by_id[node["id"]] = node
         if node["stage"] < 0 and node.get("placement") not in {"above", "below"}:
-            raise FigureError("Invalid Sankey graph: negative stages require explicit sink placement.")
+            raise figure_error(source, f"{field}.nodes[{index}].placement", "is missing or flow, but a node "
+                               "on a negative stage is a placed sink", "Place it above or below")
     sources = {link["source"] for link in graph["links"]}
-    for node in nodes:
+    for index, node in enumerate(nodes):
         if "branchSource" in node:
             anchor = by_id.get(node["branchSource"])
             if anchor is None or anchor.get("placement", "flow") != "flow":
-                raise FigureError("Invalid Sankey graph: branchSource must name an existing flow node.")
-    if any(node.get("placement") in {"above", "below"} and node["id"] in sources for node in nodes):
-        raise FigureError("Invalid Sankey graph: placed sinks must not have outgoing links.")
-    for link in graph["links"]:
+                raise figure_error(source, f"{field}.nodes[{index}].branchSource", f"is {node['branchSource']!r}, "
+                                   "which is no flow node of the graph", "Name an existing flow node")
+    for index, node in enumerate(nodes):
+        if node.get("placement") in {"above", "below"} and node["id"] in sources:
+            raise figure_error(source, f"{field}.nodes[{index}].placement", f"is {node['placement']!r}, but "
+                               "a placed sink has no outgoing links", "Remove its outgoing links or place "
+                               "it in the flow")
+    for index, link in enumerate(graph["links"]):
         value = link["value"]
         if isinstance(value, bool) or not math.isfinite(value):
-            raise FigureError("Invalid Sankey graph: link values must be finite numbers.")
+            raise figure_error(source, f"{field}.links[{index}].value", f"is {value!r}, not a finite number",
+                               "Give the link a finite number")
         source_node = by_id.get(link["source"])
         target_node = by_id.get(link["target"])
         if source_node is None or target_node is None:
-            raise FigureError("Invalid Sankey graph: every link endpoint must name an existing node.")
+            end = "source" if source_node is None else "target"
+            raise figure_error(source, f"{field}.links[{index}].{end}", f"is {link[end]!r}, which is no node "
+                               "of the graph", "Name an existing node")
         placed_sink = target_node.get("placement") in {"above", "below"}
         if source_node["stage"] >= target_node["stage"] and not placed_sink:
-            raise FigureError("Invalid Sankey graph: each link must move to a later stage.")
+            raise figure_error(source, f"{field}.links[{index}].target", f"is {link['target']!r}, on stage "
+                               f"{target_node['stage']}, not after its source's stage {source_node['stage']}",
+                               "Link each node to one on a later stage")
     return graph, by_id
 
 
@@ -288,41 +301,42 @@ def _path(start_x, start_y, end_x, end_y, control):
 
 
 @timed("figures")
-def render_descriptor(descriptor: dict, anchor: str) -> str:
-    """Render one FigureDescriptor as an interactive figure with a printable form."""
+def render_descriptor(descriptor: dict, anchor: str, source: str) -> str:
+    """Render one FigureDescriptor as an interactive figure with a printable form; ``source`` is
+    the note of its figure fence, as an error names it."""
     data = descriptor["data"]
     name = descriptor["id"]
     identity = f' id="{escape(anchor, quote=True)}"'
     if "sankey" in data:
-        graph, nodes = _sankey_graph(data["sankey"])
+        graph, nodes = _sankey_graph(data["sankey"], source)
         return _render_sankey(graph, nodes, "", name, "", name, identity=identity,
                               count_labels=COUNT_LABELS | data.get("countLabels", {}))
     if "traces" in data:
-        payload = {**_plot(descriptor), "kind": "plot", "source": name, "alt": name}
+        payload = {**_plot(descriptor, source), "kind": "plot", "source": name, "alt": name}
         encoded = escape(json.dumps(payload, separators=(",", ":"), allow_nan=False), quote=True)
         return (
             f'<figure class="engineering-figure" data-artifact-figure data-engineering-figure '
             f'data-figure-kind="plot" data-figure-spec="{encoded}"{identity}>'
             '<div class="figure-live" aria-label="Interactive figure"></div></figure>\n'
         )
-    raise unsupported(name)
+    raise unsupported(source)
 
 
-def unsupported(name: str) -> FigureError:
-    return FigureError(f"Figure {name}: descriptor data must carry 'sankey' or 'traces'; "
-                       "give its data one of the two shapes this adapter draws.")
+def unsupported(source: str) -> InputError:
+    return figure_error(source, "data", "carries neither 'sankey' nor 'traces'",
+                        "Give the descriptor's data one of the two shapes obs-html draws")
 
 
-def sankey_svg(descriptor: dict, style: str) -> str:
+def sankey_svg(descriptor: dict, style: str, source: str) -> str:
     """The Sankey descriptor's static drawing as a standalone SVG document styled by ``style``."""
     data = descriptor["data"]
-    graph, nodes = _sankey_graph(data["sankey"])
+    graph, nodes = _sankey_graph(data["sankey"], source)
     return _render_sankey(graph, nodes, "", descriptor["id"], "", descriptor["id"],
                           count_labels=COUNT_LABELS | data.get("countLabels", {}),
                           standalone_style=style)
 
 
-def _plot(descriptor: dict) -> dict:
+def _plot(descriptor: dict, source: str) -> dict:
     """Plotly data and layout: one x/y axis pair per panel, placed by the panel grid."""
     panels = descriptor["panels"]
     rows = max(panel["grid"]["row"] + panel["grid"]["rowSpan"] for panel in panels)
@@ -330,7 +344,7 @@ def _plot(descriptor: dict) -> dict:
     layout: dict[str, object] = {}
     axes: dict[str, tuple[str, str]] = {}
     for index, panel in enumerate(panels, start=1):
-        panel_axes(descriptor, panel)
+        panel_axes(descriptor, panel, source)
         suffix = "" if index == 1 else str(index)
         grid = panel["grid"]
         domains = {
@@ -349,7 +363,7 @@ def _plot(descriptor: dict) -> dict:
             }
         axes[panel["id"]] = (f"x{suffix}", f"y{suffix}")
     data = []
-    for trace in checked_traces(descriptor):
+    for trace in checked_traces(descriptor, source):
         panel, x, y = trace.get("panel", panels[0]["id"]), trace["x"], trace["y"]
         data.append({
             "x": x, "y": y, "type": "scatter", "mode": trace.get("mode", "lines"),
@@ -361,31 +375,41 @@ def _plot(descriptor: dict) -> dict:
     return {"data": data, "layout": layout}
 
 
-def panel_axes(descriptor: dict, panel: dict) -> tuple[dict, dict]:
+def panel_field(descriptor: dict, panel: dict) -> str:
+    return f"panels[{descriptor['panels'].index(panel)}]"
+
+
+def panel_axes(descriptor: dict, panel: dict, source: str) -> tuple[dict, dict]:
     """A trace panel's x and y axis, checked as this adapter draws them."""
+    field = panel_field(descriptor, panel)
     if len(panel["axes"]) != 2:
-        raise FigureError(f"Figure {descriptor['id']}: panel {panel['id']} needs an x and a y axis.")
-    for axis in panel["axes"]:
+        raise figure_error(source, f"{field}.axes", f"has {len(panel['axes'])} axes, but a trace panel has "
+                           "an x and a y axis", "Give the panel exactly two axes, x first")
+    for index, axis in enumerate(panel["axes"]):
         limits = axis["limits"]
         if axis["scale"] == "log" and (limits["minimum"] <= 0 or limits["maximum"] <= 0):
-            raise FigureError(f"Figure {descriptor['id']}: log axis {axis['id']} needs positive limits.")
+            raise figure_error(source, f"{field}.axes[{index}].limits", "are not both positive, but the axis "
+                               "is logarithmic", "Give a log axis positive limits")
     return panel["axes"][0], panel["axes"][1]
 
 
-def checked_traces(descriptor: dict) -> list[dict]:
+def checked_traces(descriptor: dict, source: str) -> list[dict]:
     """The descriptor's ``data.traces``, each on a known panel with equally long finite x and y."""
     traces = descriptor["data"]["traces"]
     if not isinstance(traces, list) or not 1 <= len(traces) <= 64:
-        raise FigureError(f"Figure {descriptor['id']}: traces must be a list of 1–64 series.")
+        raise figure_error(source, "data.traces", "is not a list of 1 to 64 series",
+                           "Give the figure 1 to 64 traces")
     panels = {panel["id"] for panel in descriptor["panels"]}
-    for trace in traces:
+    for index, trace in enumerate(traces):
         panel = trace.get("panel", descriptor["panels"][0]["id"])
         if panel not in panels:
-            raise FigureError(f"Figure {descriptor['id']}: trace names unknown panel {panel!r}.")
+            raise figure_error(source, f"data.traces[{index}].panel", f"is {panel!r}, which is no panel of the "
+                               "descriptor", "Name one of its panels")
         x, y = trace.get("x"), trace.get("y")
         if (not isinstance(x, list) or not isinstance(y, list) or len(x) != len(y) or not x
                 or not all(_finite(value) for value in x + y)):
-            raise FigureError(f"Figure {descriptor['id']}: each trace needs equally long finite x and y lists.")
+            raise figure_error(source, f"data.traces[{index}]", "needs x and y lists of equal, nonzero length "
+                               "with finite numbers", "Give the trace such x and y lists")
     return traces
 
 

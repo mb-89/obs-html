@@ -7,6 +7,7 @@ import pytest
 from conftest import FIXTURE
 from obs_html import cli, exposure
 from obs_html.artifact_data import decode_artifact_data, encode_artifact_data
+from obs_html.errors import InputError
 
 
 def _with_command(tmp_path: Path, attrs: dict[str, object]) -> Path:
@@ -44,8 +45,8 @@ def test_a_command_node_without_output_fails_naming_the_node_and_the_remedy(tmp_
 
     assert exit_info.value.code == 2
     error = capsys.readouterr().err
-    assert "command-fences node" in error and "attrs.output" in error
-    assert "obs-document --execute-commands" in error
+    assert re.search(r"^Document of manifest\.md: chapters\[\d+\]\.content\[\d+\]\.attrs\.output: ", error, re.M), error
+    assert "--execute-commands" in error  # The option of the core's command that captures it.
     assert not destination.exists()
 
 
@@ -65,16 +66,17 @@ def test_a_artifact_exposing_the_build_machine_fails_naming_where_and_the_remedy
         cli.main([str(source), str(destination)])
     assert exit_info.value.code == 2
     error = capsys.readouterr().err
-    assert f"the build machine's home folder '{home}'" in error
-    assert re.search(r"in artifact-data notes\[\d+\]\.title\. Remedy: ", error)
+    assert re.search(r"^obs-html artifact: artifact-data notes\[\d+\]\.title: ", error, re.M), error
+    assert f"'{home}'" in error  # The exposed folder itself.
     assert not destination.exists()
 
 
 def test_the_exposure_check_finds_the_user_name(monkeypatch) -> None:
     monkeypatch.setattr(exposure, "_user_name", lambda: "builder")
     artifact = encode_artifact_data({"notes": [{"html": "<p>/mnt/builder/a.md</p>"}]})
-    with pytest.raises(exposure.ExposureError, match=r"user name 'builder' .* artifact-data notes\[0\]\.html"):
-        exposure.check_artifact(artifact)
-    with pytest.raises(exposure.ExposureError, match=r"user name 'builder' .* HTML line 1"):
-        exposure.check_artifact("<p>/mnt/builder/x</p>")
+    for exposing, field in [(artifact, "artifact-data notes[0].html"), ("<p>/mnt/builder/x</p>", "HTML line 1")]:
+        with pytest.raises(InputError) as failure:
+            exposure.check_artifact(exposing)
+        assert (failure.value.source, failure.value.field) == ("obs-html artifact", field)
+        assert "'builder'" in failure.value.problem  # The exposed user name itself.
     exposure.check_artifact("<p>builder https://example.com/builder/x</p>")

@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "manifest": {
     "title": "Registers",
+    "path": "manifest.md",
     "metadata": {
       "title": "Registers",
       "status": "draft",

@@ -12,6 +12,8 @@ import pypdfium2 as pdfium
 import pypdfium2.raw as pdfium_c
 from PIL import Image, ImageColor, ImageDraw, ImageFont, UnidentifiedImageError
 
+from obs_html.errors import InputError, Parser
+
 PROG = "obs-html-inspect"
 
 EPILOG = """Every input and output is a path you name: nothing is written anywhere else, no folder
@@ -32,19 +34,15 @@ two control points and the end point, close). Paths inside form XObjects are inc
 """
 
 
-class InspectError(RuntimeError):
-    """An inspection that cannot run; the message names the input and the remedy."""
-
-
 def _open_page(pdf: Path, number: int) -> pdfium.PdfPage:
     try:
         document = pdfium.PdfDocument(pdf)
     except pdfium.PdfiumError as error:
-        raise InspectError(f"cannot read {pdf} as a PDF ({str(error).rstrip('.')}). "
-                           f"Remedy: pass a PDF file.") from error
+        raise InputError(pdf, "PDF", f"cannot be read as a PDF ({str(error).rstrip('.')})",
+                         "Pass a PDF file") from error
     if not 1 <= number <= len(document):
-        raise InspectError(f"{pdf} has {len(document)} pages, no page {number}. "
-                           f"Remedy: pass --page from 1 to {len(document)}.")
+        raise InputError(pdf, "--page", f"is {number}, but the PDF has {len(document)} pages",
+                         f"Pass --page from 1 to {len(document)}")
     return document[number - 1]
 
 
@@ -63,10 +61,10 @@ def parse_box(text: str, option: str) -> Box:
     try:
         x0, y0, x1, y1 = (float(part) for part in text.split(","))
     except ValueError:
-        raise InspectError(f"{option} {text!r}: expected X0,Y0,X1,Y1. "
-                           f"Remedy: pass four comma-separated numbers, for example 72,72,300,200.") from None
+        raise InputError(PROG, option, f"is {text!r}, not X0,Y0,X1,Y1", "Pass four comma-separated "
+                         "numbers, for example 72,72,300,200") from None
     if not (x0 < x1 and y0 < y1):
-        raise InspectError(f"{option} {text}: the box is empty. Remedy: pass X0 < X1 and Y0 < Y1.")
+        raise InputError(PROG, option, f"is {text}, an empty box", "Pass X0 < X1 and Y0 < Y1")
     return x0, y0, x1, y1
 
 
@@ -76,8 +74,8 @@ def crop_page(pdf: Path, number: int, box: Box, scale: float, output: Path) -> t
     width, height = page.get_size()
     x0, y0, x1, y1 = box
     if x0 < 0 or y0 < 0 or x1 > width or y1 > height:
-        raise InspectError(f"--box {_number_list(box)} is not inside the page (0,0,{width:g},{height:g} pt). "
-                           f"Remedy: pass a box within the page.")
+        raise InputError(pdf, "--box", f"is {_number_list(box)}, not inside page {number} "
+                         f"(0,0,{width:g},{height:g} pt)", "Pass a box within the page")
     image = page.render(scale=scale, crop=(x0, height - y1, width - x1, y0)).to_pil()
     image.save(output)
     return image.size
@@ -159,8 +157,8 @@ def page_paths(pdf: Path, number: int) -> dict:
     page = _open_page(pdf, number)
     width, height = page.get_size()
     if page.get_rotation():
-        raise InspectError(f"{pdf} page {number} is rotated by {page.get_rotation()} degrees; "
-                           f"paths reads unrotated pages only. Remedy: inspect it with render.")
+        raise InputError(pdf, "--page", f"is {number}, a page rotated by {page.get_rotation()} degrees, and "
+                         "paths reads unrotated pages only", "Inspect it with render")
     left, bottom, _, top = page.get_cropbox()
     paths: list[dict] = []
 
@@ -196,21 +194,21 @@ def annotate(raster: Path, marks: Sequence[tuple[Box, str]], scale: float, colou
     try:
         ink = ImageColor.getrgb(colour)
     except ValueError:
-        raise InspectError(f"--colour {colour!r} is not a colour. "
-                           f"Remedy: pass a CSS colour name or #rrggbb, for example red.") from None
+        raise InputError(PROG, "--colour", f"is {colour!r}, not a colour",
+                         "Pass a CSS colour name or #rrggbb, for example red") from None
     try:
         image = Image.open(raster).convert("RGB")
     except (OSError, UnidentifiedImageError) as error:
-        raise InspectError(f"cannot read {raster} as a raster image ({str(error).rstrip('.')}). "
-                           f"Remedy: pass a PNG written by render or crop.") from None
+        raise InputError(raster, "IMAGE", f"cannot be read as a raster image ({str(error).rstrip('.')})",
+                         "Pass a PNG written by render or crop") from None
     draw = ImageDraw.Draw(image)
     font = ImageFont.load_default(size=max(12, 8 * scale))
     for box, label in marks:
         x0, y0, x1, y1 = (round(value * scale) for value in box)
         if x0 < 0 or y0 < 0 or x1 > image.width or y1 > image.height:
-            raise InspectError(f"--box {_number_list(box)} at scale {scale:g} is not inside the raster "
-                               f"(0,0,{image.width},{image.height} px). "
-                               f"Remedy: pass boxes within the raster, in pixels divided by --scale.")
+            raise InputError(raster, "--box", f"is {_number_list(box)}, which at scale {scale:g} is not inside "
+                             f"the raster (0,0,{image.width},{image.height} px)",
+                             "Pass boxes within the raster, in pixels divided by --scale")
         draw.rectangle((x0, y0, x1 - 1, y1 - 1), outline=ink, width=line_width)
         if label:  # Above the box, or below it where the raster's top edge leaves no room.
             above = y0 - 2 >= font.size
@@ -225,21 +223,22 @@ def parse_mark(text: str) -> tuple[Box, str]:
     return parse_box(box, "--box"), label
 
 
-def check_paths(source: Path, output: Path | None, raster: bool) -> None:
-    """Refuse before any work when SOURCE or OUTPUT is not a path this command may use."""
+def check_paths(source: Path, field: str, output: Path | None, raster: bool) -> None:
+    """Refuse before any work when SOURCE (the argument FIELD) or OUTPUT is not a path this
+    command may use."""
     if not source.is_file():
-        raise InspectError(f"input {source} does not exist or is not a file. Remedy: pass an existing file.")
+        raise InputError(source, field, "does not exist or is not a file", "Pass an existing file")
     if output is None:
         return
     if not output.parent.is_dir():
-        raise InspectError(f"the folder of output {output} does not exist; nothing creates it. "
-                           f"Remedy: create {output.parent} or name an output in an existing folder.")
+        raise InputError(output, "--output", "is in a folder that does not exist, and nothing creates it",
+                         f"Create {output.parent} or name an output in an existing folder")
     if output.resolve() == source.resolve():
-        raise InspectError(f"output {output} is the input. Remedy: name a different output file.")
+        raise InputError(output, "--output", f"is the input {field}", "Name a different output file")
     Image.init()
     if raster and output.suffix.lower() not in Image.registered_extensions():
-        raise InspectError(f"output {output} has no image suffix Pillow writes. "
-                           f"Remedy: name a .png output (or another image suffix such as .jpg).")
+        raise InputError(output, "--output", "has no image suffix Pillow writes",
+                         "Name a .png output (or another image suffix such as .jpg)")
 
 
 def _number_list(values: Sequence[float]) -> str:
@@ -247,7 +246,7 @@ def _number_list(values: Sequence[float]) -> str:
 
 
 def _parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
+    parser = Parser(
         prog=PROG, description="Inspect a PDF without a viewer.", epilog=EPILOG,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
@@ -300,7 +299,8 @@ def _deliver_text(content: str, output: Path | None, what: str) -> None:
 def main(argv: Sequence[str] | None = None) -> None:
     arguments = _parser().parse_args(argv)
     try:
-        check_paths(arguments.raster if arguments.command == "annotate" else arguments.pdf,
+        annotating = arguments.command == "annotate"
+        check_paths(arguments.raster if annotating else arguments.pdf, "IMAGE" if annotating else "PDF",
                     arguments.output, raster=arguments.command in {"render", "crop", "annotate"})
         if arguments.command == "render":
             width, height = render_page(arguments.pdf, arguments.page, arguments.scale, arguments.output)
@@ -323,6 +323,6 @@ def main(argv: Sequence[str] | None = None) -> None:
             annotate(arguments.raster, marks, arguments.scale, arguments.colour, arguments.line_width,
                      arguments.output)
             print(f"Wrote {arguments.output} ({len(marks)} marks on {arguments.raster}).")
-    except InspectError as error:
-        print(f"{PROG} {arguments.command}: {error}", file=sys.stderr)
+    except InputError as error:
+        print(error, file=sys.stderr)
         raise SystemExit(2) from None

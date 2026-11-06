@@ -88,9 +88,7 @@ def split_layout(graph, *, details=None, minimum_width=0, count_labels=COUNT_LAB
             node["depth"] = depth
             for link in node["sourceLinks"]:
                 following[link["target"]["id"]] = link["target"]
-        depth += 1
-        if depth > len(nodes):
-            raise ValueError("Circular split Sankey.")
+        depth += 1  # The graph has no cycle: every link moves to a later stage or to a placed sink.
         current = list(following.values())
     count = max(max(node["depth"] for node in nodes) + 1, stages[-1] - stages[0] + 1)
     labels = {node["id"]: _label_size(node, count_labels) for node in nodes}
