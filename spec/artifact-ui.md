@@ -702,7 +702,9 @@ verdict shows as sent until its chapter's version changes.
 A chapter whose answer the build carries (`obs-document --answers`) shows it read-only under
 its heading: the verdict, the picked option, the comment and the reader's changes, rulings and
 tripwires; its pill reads "· recorded" and it has no keys. An outdated answer shows the same way,
-marked outdated, and the chapter asks again. At 390 px the band's squares shrink so the row fits.
+marked outdated, and the chapter asks again. At 390 px the band's squares shrink so the row fits;
+at 360 px they shrink again and the pill narrows, so Home, the breadcrumbs and the frontmatter
+chevron a bless chapter has still fit beside the bless controls.
 
 ## Internal-link previews
 

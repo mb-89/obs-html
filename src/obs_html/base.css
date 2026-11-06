@@ -2012,6 +2012,19 @@ math {
     }
 }
 
+/* At 360 px, with the frontmatter chevron a bless chapter always has, the squares shrink once more
+   so the row still fits. */
+@media (max-width: 23rem) {
+    .top-band:has(.bless-controls:not([hidden])) {
+        --top-band-gap: 0.25rem;
+        --top-control-size: 1.8rem;
+    }
+
+    .bless-pill {
+        max-width: 2.6rem;
+    }
+}
+
 .notice-group[hidden] { display: none; }
 
 .notice-group[data-notice-group="error"] {
