@@ -31,6 +31,7 @@ Data-only card groups compose the existing `content-card` primitive in responsiv
 with headings, authored Markdown, and optional artifact-filtered metrics. Metrics use compact,
 wrapping label/value rows; at ordinary desktop widths each metric should remain one compact
 label/value line, with wrapping reserved for narrow layouts or genuinely long labels.
+A card group extends within the reader and clear of the chapter controls, as a figure does.
 
 Within a metric block, labels share one aligned column and values share another;
 do not position every label/value pair independently.
@@ -654,6 +655,9 @@ its name.
   page.
 
   The current Home crumb offers top-level chapters.
+
+  A click anywhere outside the breadcrumbs, the menu and a docked bar included, closes an open
+  chooser.
 
   A node has no child chooser; ancestor
   crumbs continue to navigate.
@@ -1442,7 +1446,8 @@ separate from artifact presentation.
   Every derived paragraph, list item, table data row,
   standalone code block, and figure review item gains a left gutter with
   Accept, Reject, and Comment controls. A figure is one item: what it draws inside, such as a
-  decision figure's rows, is none.
+  decision figure's rows, is none. Cards stand one below the other in the prose column, so no
+  two items share a gutter line.
 
   Waiting items use teal, accepted items green, and
   rejected items red.

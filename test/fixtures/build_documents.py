@@ -687,6 +687,15 @@ FEATURE_PROSE = "\n\n".join(f"Paragraph {index} of the closing text, which reads
 """Text after a chapter's interactive content, as a real document's chapters have."""
 
 
+FEATURE_CARDS = {"version": 1, "cards": [
+    {"title": "Items", "body": "The table holds [[itemCount]] items.", "metrics": [
+        {"label": "Items", "where": [{"field": "kind", "equals": "item"}], "link": "#tables"}]},
+    {"title": "Ranks", "body": "Each item has its own rank.", "metrics": [
+        {"label": "Ranks", "from": "counts/items", "where": [], "distinct": "rank", "link": "#tables"}]}]}
+"""The card group that ends the feature fixture: two cards side by side, each a metric with a link,
+the first a quantity link in its body."""
+
+
 def features(root: Path) -> None:
     """The browser tier's feature fixture (obs quality.md, Testing boundaries): a few chapters in
     which every feature of the registry (features.py, FEATURES, with every part) appears, read in
@@ -697,9 +706,11 @@ def features(root: Path) -> None:
     equations and the decision figure pugh; the prose chapter, with the decision figure, asks for a
     bless, which needs answers and bless. Its chapters also hold what those checks read in obs's spec: prose with
     links, marks, an image, a callout and nested headings; a paged table of notes outside the contents;
-    a figure reference across chapters; a register and a property editor. As in obs's spec, the
+    a figure reference across chapters; a register and a property editor; a card group with metrics
+    and a quantity link (FEATURE_CARDS). As in obs's spec, the
     chapters the reading script walks are nested three deep, with headings. Each chapter's
-    interactive content is followed by text, as in a real document. test_features.py fails where
+    interactive content is followed by text, as in a real document, but the card group, which ends
+    the document, as a summary may. test_features.py fails where
     a registered feature is missing. Not a moved interim vault."""
     (root / "manifest.md").write_text(
         "---\ntitle: Feature fixture\nobsHtml: {layout: screens, figures: {numbering: chapter}}\n---\n"
@@ -739,8 +750,12 @@ def features(root: Path) -> None:
         f"content: {json.dumps(DECISION)}\n```\n^decision-figure\n\n{FEATURE_PROSE}\n", encoding="utf-8")
     (root / "references.md").write_text(
         "---\nstatus: draft\n---\n# References\n\n![[sources.base]]\n\n"
-        f"```property-editor\nversion: 1\nfield: status\nlabel: Status\n```\n\n{FEATURE_PROSE}\n",
-        encoding="utf-8")
+        f"```property-editor\nversion: 1\nfield: status\nlabel: Status\n```\n\n{FEATURE_PROSE}\n\n"
+        f"## Summary\n\n```cards\n{json.dumps(FEATURE_CARDS)}\n```\n", encoding="utf-8")
+    (root / "counts").mkdir()
+    (root / "counts" / "items.md").write_text(
+        "---\nkind: quantity\naliases: [itemCount]\nsource: '[[tables]]'\n"
+        "query: {where: [{field: kind, equals: item}]}\n---\n", encoding="utf-8")
     (root / "sources.base").write_text(
         "filters: 'kind == \"reference\"'\n"
         "properties:\n  obsHtml.label:\n    displayName: No.\n"

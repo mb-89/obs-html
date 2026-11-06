@@ -352,8 +352,10 @@ a:focus-visible {
     text-align: center;
 }
 
+/* A card group extends within the reader (the chapter scroll's width, 100cqw, which a docked bar
+   narrows), clear of the chapter controls, as a figure does (figures.css, .obs-figure). */
 .record-cards {
-    --record-cards-max-width: min(72rem, calc(100vw - 3rem));
+    --record-cards-max-width: min(72rem, calc(100cqw - 2 * max(1.5rem, var(--chapter-clearance-end))));
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 28rem), 1fr));
     gap: 1.5rem;
@@ -362,8 +364,11 @@ a:focus-visible {
     width: var(--record-cards-max-width);
 }
 
+/* Cards stand in the prose column, one below the other: on paper, and in review mode, whose one
+   review gutter left of that column holds every item's controls, so no two share a line. */
 .paged-mode .record-cards,
-.print-book .record-cards {
+.print-book .record-cards,
+.review-mode .record-cards {
     grid-template-columns: minmax(0, 1fr);
     margin-inline: 0;
     width: 100%;
