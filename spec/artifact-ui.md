@@ -314,7 +314,8 @@ failures have their form in [[input-model#Chapter content]].
   (`Figure 2.4`), and an unlabelled reference to a figure without a number is an input error
   that names the Document node and the remedy. Adjacent unlabelled references merge as obs's
   input-model ("Figure captions and references") says, with the manifest's `labelPlural` and the
-  conjunctions in `cfg.json` (`artifact.figureReferences.conjunctions`):
+  conjunctions in `cfg.json` (`artifact.figureReferences.conjunctions`, words or phrases such as
+  `as well as`, at most 64; a phrase's words stand one space or one line break apart in the prose):
   `Figures 2.4 and 2.5`, `Figures 2.4–2.6`.
 - Use the expand affordance as the common artifact-level figure control. Remove persistent
   custom inspection/reset/zoom button rows from the normal reading view; keep necessary
