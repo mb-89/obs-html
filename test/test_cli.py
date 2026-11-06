@@ -32,9 +32,11 @@ def test_installed_command_renders_through_the_adapter_contract(tmp_path) -> Non
         cwd=ROOT, capture_output=True, text=True, check=False,
     )
     assert completed.returncode == 0, completed.stderr
-    diagnostics = json.loads(FIXTURE.read_text(encoding="utf-8"))["diagnostics"]
-    assert diagnostics and all(f"{item['level'].title()}: {item['message']}" in completed.stderr
-                               for item in diagnostics)
+    fixture = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    source = f"Document of {fixture['manifest']['path']}"
+    assert fixture["diagnostics"] and all(
+        f"{item['level'].title()}: {source}: diagnostics[{index}]: {item['message']}" in completed.stderr
+        for index, item in enumerate(fixture["diagnostics"]))
     assert completed.stdout == f"Generated {destination.resolve()}.\n"
     notes = decode_artifact_data(destination.read_text(encoding="utf-8"))["notes"]
     assert any('<pre class="command-output"><code>derived' in note["html"] for note in notes)

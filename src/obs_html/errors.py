@@ -10,7 +10,9 @@ error by its ``source`` and ``field``, never by its wording. Where the core pass
 (``--vault-root``), a vault-relative source is named below it (``in_vault``), in a raised error
 and in a warning alike: a warning is printed only through ``warn``, which names its source as the
 render's ``vault_naming`` says. test_errors.py fails on an InputError built and neither raised,
-returned nor warned.
+returned nor warned, and on a warning printed anywhere but here. The Document's diagnostics
+belong to the core, which prints them when it calls the adapter; only a direct run on a Document
+prints them, through ``diagnostics``.
 """
 from __future__ import annotations
 
@@ -64,6 +66,16 @@ def vault_naming(root: str | None, paths: set[str]) -> Iterator[None]:
 def warn(error: InputError) -> None:
     """Print ``error`` to stderr as a warning, its source named below the vault root (``vault_naming``)."""
     print(f"Warning: {in_vault(error, *_NAMING.get())}", file=sys.stderr)
+
+
+def diagnostics(document: dict) -> None:
+    """Print the core's ``diagnostics`` of a Document run directly, each with its level, the Document
+    (``Document of <manifest>``) and its field path, then the core's message as the core wrote it.
+    The core owns them: when it calls the adapter (``--vault-root``) it printed them already."""
+    source = f"{DOCUMENT_OF}{document['manifest']['path']}"
+    for index, diagnostic in enumerate(document["diagnostics"]):
+        print(f"{diagnostic['level'].title()}: {source}: diagnostics[{index}]: {diagnostic['message']}",
+              file=sys.stderr)
 
 
 class Parser(argparse.ArgumentParser):

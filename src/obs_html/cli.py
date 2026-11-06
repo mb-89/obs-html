@@ -12,7 +12,7 @@ from typing import Sequence
 
 from obs_html.comments import extract_comments
 from obs_html.config import load_config
-from obs_html.errors import InputError, Parser, in_vault, vault_naming
+from obs_html.errors import InputError, Parser, diagnostics, in_vault, vault_naming
 from obs_html.exposure import check_artifact
 from obs_html.figure_svg import document_figures, figure_svg
 from obs_html.render import render
@@ -33,7 +33,8 @@ EPILOG = """Rendering:
   An artifact that names the build machine's home folder or user name fails before writing
   (README, "Command fences").
   --check renders without writing output.
-  Document diagnostics are printed to stderr, never into the HTML.
+  The Document's diagnostics are printed to stderr, never into the HTML, only when obs-html runs
+  directly on a Document (no --vault-root): the core that calls it printed them already.
   --style FOLDER selects an external style module: a folder with style.css, laid over the
   packaged base stylesheet, and an optional assets.json semantic asset index. It must not
   declare page geometry (@page, size, --paper-*, --sheet-*); the Document's profile owns it.
@@ -209,8 +210,8 @@ def _render(options: argparse.Namespace, config) -> None:
     except InputError as error:
         raise in_vault(error, options.vault_root, paths) from error
     check_artifact(artifact)
-    for diagnostic in document["diagnostics"]:
-        print(f"{diagnostic['level'].title()}: {diagnostic['message']}", file=sys.stderr)
+    if options.vault_root is None:  # The core, which passes it, printed its diagnostics already.
+        diagnostics(document)
     if options.check:
         print(f"Checked {options.document.resolve()}; no output written.")
         return
