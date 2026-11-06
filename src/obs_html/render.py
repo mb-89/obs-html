@@ -889,10 +889,9 @@ def _model(document: dict[str, object], config: Config, context: Context) -> dic
     settings = config.artifact
     context.bordered_tags = tuple(settings["borderedTags"])
     title = manifest["title"]
-    metadata = {key: value for key, value in manifest["metadata"].items() if key not in {"obs", "obsHtml"}}
+    metadata = _filled({key: value for key, value in manifest["metadata"].items() if key not in {"obs", "obsHtml"}})
     abstract = _note_body(manifest.get("abstract", []), "", ["manifest", "abstract"], context)  # It holds the metadata's field nodes.
-    # The display HTML of each value that shows: an empty value leaves its cover and header line out.
-    metadata_html = _frontmatter_html({key: value for key, value in metadata.items() if value}, HOME, context)
+    metadata_html = _frontmatter_html(metadata, HOME, context)  # The display HTML of each value that shows.
     home_html = _cover(title, metadata, metadata_html, profile["heading"] == "compact") + abstract
     notes = [_note(0, title, HOME, HOME, {}, home_html, context)]
     notes.extend(_chapter_notes(document["chapters"], context, 0, ["chapters"]))
@@ -1016,6 +1015,21 @@ def _attach_records(records: list[dict[str, object]], notes: list[dict[str, obje
         })
 
 
+def _filled(value: object) -> object:
+    """``value`` without its empty members: blank text, null, and lists and mappings left empty;
+    false and zero stay (input-model, heading). The core keeps them in the Document."""
+    if isinstance(value, dict):
+        value = {key: item for key, item in ((key, _filled(item)) for key, item in value.items())
+                 if not _empty(item)}
+    elif isinstance(value, list):
+        value = [item for item in map(_filled, value) if not _empty(item)]
+    return value
+
+
+def _empty(value: object) -> bool:
+    return value is None or value in ("", [], {}) or isinstance(value, str) and not value.strip()
+
+
 def _cover(title: str, metadata: dict[str, object], html: dict[str, str], compact: bool) -> str:
     """The cover or compact heading: each metadata value as its display HTML (_frontmatter_html)."""
     def value(key: str) -> str:
@@ -1034,8 +1048,8 @@ def _cover(title: str, metadata: dict[str, object], html: dict[str, str], compac
         return ('<header class="document-heading document-heading--compact">'
                 f'<div class="compact-heading">{line}</div></header>\n')
     product_html = "".join(f"<div>{item}</div>" for item in products)
-    band = (f'<span class="cover-template">{value("template")}</span>'
-            f'<span class="cover-organization">{value("organization")}</span>')
+    band = "".join(f'<span class="cover-{key}">{value(key)}</span>'
+                   for key in ("template", "organization") if metadata.get(key))
     facts = "".join(f"<dt>{escape(key.title())}</dt><dd>{value(key)}</dd>"
                     for key in COVER_FIELDS if metadata.get(key))
     legal = "".join(f'<p class="cover-{key}">{value(key)}</p>'
