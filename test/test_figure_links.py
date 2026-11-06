@@ -16,9 +16,11 @@ from documents import chapter, document as build, heading, paragraph
 
 
 CONFIG = load_config()
+AUTHORED = "rect{fill:red}svg{--figure-frame-border-block:9px solid red}"
+"""The drawing's own style: its rects, and a frame token set inside it."""
 SVG = ('<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" '
        'viewBox="0 0 300 60" width="300" height="60" onload="alert(1)">'
-       '<style>text{fill:#333}</style><script>alert(2)</script><foreignObject><p>html</p></foreignObject>'
+       f'<style>text{{fill:#333}}{AUTHORED}</style><script>alert(2)</script><foreignObject><p>html</p></foreignObject>'
        '<text x="4" y="16">See [[target]] or [[missing]].</text>'
        '<a xlink:href="drawn.md" target="_top" onclick="alert(3)"><rect class="drawn" x="4" y="30" width="60" height="24"/></a>'
        '<a href="javascript:alert(4)"><rect x="80" y="30" width="20" height="20"/></a>'
@@ -87,6 +89,58 @@ def test_a_block_link_inside_a_figure_links_the_figure_s_anchor() -> None:
     assert '<a href="#target/block-plan" class="internal-link">plan</a>' in _chapter_html(_document(_figure(svg, block)))
 
 
+def _figure_warnings(capsys) -> list[str]:
+    return [line for line in capsys.readouterr().err.splitlines() if line.startswith("Warning: chapter.md: figure.style:")]
+
+
+def test_an_inline_figure_s_style_applies_only_inside_its_own_figure() -> None:
+    html = _chapter_html(LINKED)
+
+    assert ("<style>:where(#chapter--figure-1) text{fill:#333}:where(#chapter--figure-1) rect{fill:red}"
+            ":where(#chapter--figure-1) svg{--figure-frame-border-block:9px solid red}</style>") in html
+
+
+def test_every_selector_and_nested_rule_is_scoped_and_keyframes_are_renamed() -> None:
+    style = ("a:hover, :is(g, .x) > rect{fill:blue}@media (min-width: 1px){@supports (fill: red){circle{fill:red}}}"
+             "@keyframes pulse{from{opacity:0}to{opacity:1}}rect{animation:pulse 1s;animation-name:pulse}")
+    html = _chapter_html(_document(_figure(SVG.replace(AUTHORED, style), _link("target", "target", "[[target]]"))))
+    scope = ":where(#chapter--figure-1)"
+
+    assert (f"{scope} a:hover,{scope} :is(g, .x) &gt; rect{{fill:blue}}"
+            f"@media (min-width: 1px){{@supports (fill: red){{{scope} circle{{fill:red}}}}}}"
+            f"@keyframes chapter--figure-1--pulse{{from{{opacity:0}}to{{opacity:1}}}}"
+            f"{scope} rect{{animation:chapter--figure-1--pulse 1s;animation-name:chapter--figure-1--pulse}}") in html
+
+
+def test_global_at_rules_are_dropped_with_a_warning_naming_the_figure(capsys) -> None:
+    style = ("@import url(https://example.org/a.css);@font-face{font-family:x;src:url(x.woff)}"
+             "@property --figure-frame-border-block{syntax:'*';inherits:false}rect, {fill:red}")
+    html = _chapter_html(_document(_figure(SVG.replace(AUTHORED, style), _link("target", "target", "[[target]]"))))
+    warnings = _figure_warnings(capsys)
+
+    assert "<style>:where(#chapter--figure-1) text{fill:#333}</style>" in html
+    assert len(warnings) == 3 and all("chapter--figure-1" in warning for warning in warnings)
+
+
+def test_page_selectors_are_dropped_and_frame_tokens_set_inside_stay_inside(capsys) -> None:
+    style = (":root, html rect, body > g, :is(:root) rect, svg{--figure-frame-border-block:4px solid red}"
+             "html{--figure-frame-background:red}")
+    html = _chapter_html(_document(_figure(SVG.replace(AUTHORED, style), _link("target", "target", "[[target]]"))))
+    warnings = _figure_warnings(capsys)
+
+    assert ("<style>:where(#chapter--figure-1) text{fill:#333}:where(#chapter--figure-1) :is(:root) rect,"
+            ":where(#chapter--figure-1) svg{--figure-frame-border-block:4px solid red}</style>") in html
+    assert len(warnings) == 2 and all("chapter--figure-1" in warning for warning in warnings)
+
+
+def test_a_diagram_s_own_style_is_left_as_drawn() -> None:
+    style = "#mermaid-1 rect{fill:red}@keyframes dash{to{stroke-dashoffset:0}}"
+    figure = _figure(SVG.replace("text{fill:#333}" + AUTHORED, style), _link("target", "target", "[[target]]"))
+    figure["attrs"]["kind"] = "mermaid"
+
+    assert f"<style>{style}</style>" in _chapter_html(_document(figure))
+
+
 def test_a_figure_without_links_stays_an_image() -> None:
     html = _chapter_html(_document(_figure(SVG.replace("[[target]] or [[missing]]", ""))))
 
@@ -120,6 +174,19 @@ def test_a_link_inside_a_figure_shows_its_hover_card_and_navigates_in_the_frame_
         figure.locator(".figure-expand").click()
         expanded = page.locator("dialog.figure-overlay .obs-figure")
         expect(expanded.locator("svg.figure-visual")).to_be_visible()
+        # The figure's style reaches its own rects only, never one elsewhere on the page, and the
+        # frame tokens it sets inside the drawing leave the frame's border as the page sets it.
+        assert page.evaluate("""() => {
+            const outside = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+            outside.innerHTML = '<rect width="4" height="4"/>';
+            document.querySelector("[data-chapter-body]").append(outside);
+            const fill = element => getComputedStyle(element).fill;
+            const frame = document.querySelector("dialog.figure-overlay .obs-figure");
+            const result = [fill(outside.firstChild), fill(frame.querySelector("rect.drawn")),
+                            getComputedStyle(frame).borderTopWidth !== "9px"];
+            outside.remove();
+            return result;
+        }""") == ["rgb(0, 0, 0)", "rgb(255, 0, 0)", True]
         expanded.locator("a[href='#drawn'] rect").click()
         expect(page.locator("dialog.figure-overlay")).to_have_count(0)
         expect(page.locator("[data-chapter-body] h1")).to_have_text("Drawn")

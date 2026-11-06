@@ -32,6 +32,7 @@ from jsonschema import Draft202012Validator
 
 from .errors import InputError, schema_error
 from .figure_links import FigureLink, inline_svg
+from .figure_styles import scope_styles
 from .sankey import COUNT_LABELS
 from .timings import stage as timed
 
@@ -71,6 +72,9 @@ class FigureKind:
     changes are session-only view state. A kind without options shows no menu."""
     features: tuple[str, ...] = ()
     """The keys of the reader features (features.py) a figure of this kind needs."""
+    authored: bool = False
+    """Its inline drawing is authored content, whose ``<style>`` figure_styles.py scopes to its own
+    figure. A diagram's SVG is the core's output, which scopes its styles itself, and is left as drawn."""
 
 
 def _image_body(attrs: dict, alt: str, _source: str, links: dict[str, FigureLink]) -> Body:
@@ -126,8 +130,8 @@ def _equations_body(attrs: dict, alt: str, _source: str, _links: dict[str, Figur
 
 
 FIGURE_KINDS: dict[str, FigureKind] = {
-    "image": FigureKind(_image_body),
-    "svg": FigureKind(_svg_body),
+    "image": FigureKind(_image_body, authored=True),
+    "svg": FigureKind(_svg_body, authored=True),
     "sankey": FigureKind(_sankey_body),
     "plot": FigureKind(_plot_body, options=("legend",), features=("plotting",)),
     # A diagram's body is the SVG the core drew at build time: no diagram library ships.
@@ -185,6 +189,8 @@ def render_figure(node: dict, chapter: str, position: int, caption: list[str], c
         anchor = f"{chapter}--block-{attrs['block']}"
     else:
         anchor = f"{chapter}--figure-{body.name or position}"
+    if kind.authored:
+        body = Body(scope_styles(body.html, anchor, source), body.spec, body.name, body.presents)
     return frame(attrs["kind"], body, anchor, caption, number, kind.options)
 
 
