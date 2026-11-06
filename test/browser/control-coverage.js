@@ -80,13 +80,59 @@ async (_, {views, layouts, firstChapterLayouts}) => {
             else if (rect.right > view.right) parent.scrollLeft += Math.min(rect.right - view.right, rect.left - view.left);
         }
     };
-    const offsets = (elements) => elements.map((element) => `${element.scrollLeft},${element.scrollTop}`).join(";");
+    const offsets = (elements) => elements.map((element) => [element.scrollLeft, element.scrollTop]);
+    // The scrollers among the elements that scrolled between the two offsets, with how far.
+    const moved = (elements, before, after) => elements.flatMap((element, index) =>
+        after[index][0] !== before[index][0] || after[index][1] !== before[index][1]
+            ? [[element, after[index][0] - before[index][0], after[index][1] - before[index][1]]] : []);
+
+    // Each control's boxes when `seen` last looked at it, and how far the scrolls since have moved
+    // it: {rects, dx, dy}.
+    const boxes = new Map();
+    // Whether an element moves exactly with every scroller around it, and only with them: neither
+    // it nor an ancestor is fixed or sticky (which move otherwise or not at all), transformed or
+    // zoomed (which scale a scroll), or laid out by its distance to the viewport
+    // (content-visibility: auto), and no absolutely positioned one has a scroller between itself
+    // and its positioned ancestor (which it would not scroll with).
+    const linear = memo((element) => {
+        const {position, transform, scale, rotate, zoom, contentVisibility, offsetPath} = style(element);
+        if (!["static", "relative", "absolute"].includes(position) || transform !== "none" || scale !== "none" ||
+            rotate !== "none" || zoom !== "1" || contentVisibility === "auto" || offsetPath !== "none") return false;
+        if (position === "absolute") {
+            for (let parent = element.parentElement; parent && parent !== document.documentElement &&
+                style(parent).position === "static"; parent = parent.parentElement) {
+                if (style(parent).overflowX !== "visible" || style(parent).overflowY !== "visible") return false;
+            }
+        }
+        return !element.parentElement || linear(element.parentElement);
+    });
+    // Whether the scrolls since the control was last looked at cannot have brought any of its
+    // boxes into the viewport, so `seen` would still find no part of it: the control moves exactly
+    // with the scrollers around it (`linear`), and its last boxes, moved as far as those scrollers
+    // scrolled, stay further than CLEARANCE outside the viewport. Layout places a box to a fraction
+    // of a pixel; the clearance is far wider.
+    const CLEARANCE = 4;
+    const outOfView = (control, scrolled) => {
+        const known = boxes.get(control);
+        if (!known || !linear(control)) return false;
+        for (const [scroller, dx, dy] of scrolled) {
+            if (scroller !== control && scroller.contains(control)) {
+                known.dx += dx;
+                known.dy += dy;
+            }
+        }
+        return known.rects.every((rect) =>
+            rect.right - known.dx < -CLEARANCE || rect.left - known.dx > innerWidth + CLEARANCE ||
+            rect.bottom - known.dy < -CLEARANCE || rect.top - known.dy > innerHeight + CLEARANCE);
+    };
 
     // The visible parts of a control, largest first: each of its boxes (a wrapped link has one
     // per line) cut by the viewport and by every ancestor that clips its overflow. Their centres
     // are where a reader points. A box outside the viewport has no visible part.
     const seen = (element) => {
-        const rects = [...element.getClientRects()].filter((rect) => rect.width >= 2 && rect.height >= 2 &&
+        const all = lines(element);
+        boxes.set(element, {rects: all, dx: 0, dy: 0});
+        const rects = all.filter((rect) =>
             Math.min(rect.right, innerWidth) - Math.max(rect.left, 0) >= 1 &&
             Math.min(rect.bottom, innerHeight) - Math.max(rect.top, 0) >= 1);
         if (!rects.length) return [];
@@ -130,14 +176,18 @@ async (_, {views, layouts, firstChapterLayouts}) => {
 
     // A control is reachable when the reader can point at one of its visible parts. A control
     // not reachable where it stands is scrolled to the middle of its scroller; once anything
-    // scrolled, every control still pending is looked at again where it now stands.
+    // scrolled, every control still pending is looked at again where it now stands, unless that
+    // scroll cannot have brought it into the viewport (`outOfView`): then it still has no visible
+    // part, and looking again would find what the last look found.
     const check = () => {
         memos.forEach((known) => known.clear());
+        boxes.clear();
         bars = null;
         const controls = [...document.querySelectorAll(CONTROLS)].filter(shown);
         const pending = new Set(controls);
-        const sweep = () => {
+        const sweep = (scrolled = []) => {
             for (const control of pending) {
+                if (scrolled.length && outOfView(control, scrolled)) continue;
                 if (seen(control).some((part) => part.whole && !covering(control, part))) pending.delete(control);
             }
         };
@@ -155,7 +205,8 @@ async (_, {views, layouts, firstChapterLayouts}) => {
             const over = parts.length ? parts.map((part) => covering(control, part)) : ["nothing: it cannot be scrolled into view"];
             pending.delete(control);
             if (over.every(Boolean)) faults.push({control: name(control), covering: over[0]});
-            if (offsets(scrollers(control)) !== before) sweep();
+            const scrolled = moved(scrollers(control), before, offsets(scrollers(control)));
+            if (scrolled.length) sweep(scrolled);
         }
         return {controls: controls.length, faults};
     };
