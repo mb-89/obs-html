@@ -8,15 +8,13 @@ from urllib.parse import quote
 
 import pytest
 
+from artifacts import artifact_html
 from conftest import ROOT
-from obs_html.config import load_config
-from obs_html.render import render
 
 from documents import card_document, chapter, document as build, heading, node, paragraph, text
 
 
 pytestmark = pytest.mark.browser
-CONFIG = load_config()
 SERVICES = [("one", "a", "yes", "yes", "north"), ("two", "b", "no", "no", "south"),
             ("three", "a", "yes", "yes", "north")]
 
@@ -63,7 +61,7 @@ def _link(target: str, chapter_id: str, label: str = "") -> dict:
 
 def _open(tmp_path, reader_browser, source: dict):
     artifact = tmp_path / "artifact.html"
-    artifact.write_text(render(source, CONFIG), encoding="utf-8")
+    artifact.write_text(artifact_html(source), encoding="utf-8")
     page = reader_browser.new_page(viewport={"width": 1440, "height": 900})
     errors: list[str] = []
     page.on("pageerror", lambda error: errors.append(str(error)))

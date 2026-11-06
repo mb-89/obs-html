@@ -15,3 +15,7 @@ uv run pytest
 
 Integrations also run the parity gate against the interim reference; its module docstring is
 its reference: `uv run pytest test/test_parity_browser.py`.
+
+## Browser tests
+
+A browser test takes its page and its artifact from the shared fixtures, adds no init script and reads timings only from the artifact's own performance marks; [test/structure/test_quality.py](test/structure/test_quality.py) refuses one that does not.

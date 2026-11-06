@@ -8,17 +8,19 @@ from pathlib import Path
 
 import pytest
 
-from obs_html.config import load_config
-from obs_html.render import render
+from artifacts import artifact_html
+from browser.viewer import with_stand_in
 
 from documents import chapter, document as build, heading, node, paragraph
 
 
 pytestmark = pytest.mark.browser
-CONFIG = load_config()
 EDITOR = node("property-editors", source="version: 1\nfield: explanation\nlabel: Explanation\n",
               spec={"version": 1, "field": "explanation", "label": "Explanation"}, writes=["explanation"])
 TABLE = {"obs": {"records": "note"}, "views": [{"type": "table", "order": ["identifier", "explanation"]}]}
+
+# Chromium offers the save picker on a file page; without it the artifact's save is a download.
+NO_SAVE_PICKER = "delete window.showSaveFilePicker"
 
 
 def _artifact(path: Path) -> Path:
@@ -28,7 +30,7 @@ def _artifact(path: Path) -> Path:
         chapters.append(chapter(name, name.title(), heading(1, name.title()), paragraph("Source text."), EDITOR,
                                 node("bases", source="", spec=TABLE), metadata=fields))
         records.append({"id": name, "type": "note", "path": f"{name}.md", "fields": fields})
-    path.write_text(render(build("Edits", *chapters, records=tuple(records)), CONFIG), encoding="utf-8")
+    path.write_text(artifact_html(build("Edits", *chapters, records=tuple(records))), encoding="utf-8")
     return path
 
 
@@ -37,15 +39,16 @@ def test_native_property_edits_survive_actual_reviewed_download_and_reopen(tmp_p
 
     artifact = _artifact(tmp_path / "artifact.html")
     malicious = 'Accepted α 中 </script><script>window.editExecuted=true</script> **literal**'
-    context = reader_browser.new_context(accept_downloads=True)
-    context.add_init_script("delete window.showSaveFilePicker")
-    page = context.new_page()
+    page = reader_browser.new_page()
     page.set_default_timeout(5000)
     errors = []
     page.on("pageerror", lambda error: errors.append(str(error)))
 
     def open_chapter(path: Path, slug: str) -> None:
-        page.goto(path.as_uri() + f"#{slug}")
+        """Open the artifact, or a copy it saved, without the save picker, so a save downloads."""
+        opened = path.with_name(f"opened-{path.name}")
+        opened.write_text(with_stand_in(path.read_text(encoding="utf-8"), NO_SAVE_PICKER), encoding="utf-8")
+        page.goto(opened.as_uri() + f"#{slug}")
         page.wait_for_function("document.documentElement.dataset.artifactStatus === 'ready'")
         page.evaluate(f"obsPages.setPaged(false); obsArtifact.activateChapter('{slug}')")
 
@@ -57,51 +60,48 @@ def test_native_property_edits_survive_actual_reviewed_download_and_reopen(tmp_p
         download.value.save_as(saved)
         return saved
 
-    try:
-        open_chapter(artifact, "one")
-        editor = page.locator("[data-active-chapter] [data-property-editor]")
-        expect(editor).to_have_value("Original one")
-        editor.fill(malicious)
-        editor.press("Tab")
-        explanation = "name => obsArtifact.records.find(note => note.slug === name).frontmatter.explanation"
-        assert page.evaluate(f"({explanation})('one')") == malicious
-        assert malicious in page.locator("[data-active-chapter] .data-table-shell table").inner_text()
-        assert page.evaluate(f"({explanation})('two')") == "Original two"
-        assert page.evaluate("""() => {
-            try { obsArtifact.commitProperty('one', 'identifier', 'changed'); return false; }
-            catch (_) { return true; }
-        }""")
-        assert page.evaluate("""obsQuery.compile('explanation:"Accepted"').match(
-            obsArtifact.records.find(note => note.slug === 'one'))""")
-        assert not page.evaluate("Boolean(window.editExecuted)")
-        page.evaluate("""() => {
-            obsComments.data.reviewers.push('Reader');
-            obsComments.data.annotations.push({id:'kept-comment', author:'Reader', text:'Keep this comment',
-              status:'open', replies:[], target:{chapter:'one',quote:'Source text.',start:0,end:12}});
-            obsComments.data.reviews.push({chapter:'one',item:'item-1',reviewer:'Reader',state:'accepted'});
-        }""")
-        open_chapter(save("reviewed.html"), "one")
-        expect(page.locator("[data-active-chapter] [data-property-editor]")).to_have_value(malicious)
-        assert page.evaluate("obsComments.data.annotations[0].text") == "Keep this comment"
-        assert page.evaluate("obsComments.data.reviews[0].state") == "accepted"
-        assert not page.evaluate("Boolean(window.editExecuted)")
-        page.evaluate("obsArtifact.activateChapter('two')")
-        editor = page.locator("[data-active-chapter] [data-property-editor]")
-        expect(editor).to_have_value("Original two")
-        editor.fill("")
-        editor.press("Tab")
-        open_chapter(save("reviewed-twice.html"), "two")
-        expect(page.locator("[data-active-chapter] [data-property-editor]")).to_have_value("")
-        assert page.evaluate(f"({explanation})('one')") == malicious
-        assert page.evaluate("obsArtifact.records.find(note => note.slug === 'one').frontmatter.identifier") == "one"
-        assert page.evaluate("obsComments.data.annotations.length") == 1
-        open_chapter(save("reviewed-no-new-edits.html"), "two")
-        expect(page.locator("[data-active-chapter] [data-property-editor]")).to_have_value("")
-        assert page.evaluate(f"({explanation})('one')") == malicious
-        assert page.evaluate("obsComments.data.reviews[0].state") == "accepted"
-        assert errors == []
-    finally:
-        context.close()
+    open_chapter(artifact, "one")
+    editor = page.locator("[data-active-chapter] [data-property-editor]")
+    expect(editor).to_have_value("Original one")
+    editor.fill(malicious)
+    editor.press("Tab")
+    explanation = "name => obsArtifact.records.find(note => note.slug === name).frontmatter.explanation"
+    assert page.evaluate(f"({explanation})('one')") == malicious
+    assert malicious in page.locator("[data-active-chapter] .data-table-shell table").inner_text()
+    assert page.evaluate(f"({explanation})('two')") == "Original two"
+    assert page.evaluate("""() => {
+        try { obsArtifact.commitProperty('one', 'identifier', 'changed'); return false; }
+        catch (_) { return true; }
+    }""")
+    assert page.evaluate("""obsQuery.compile('explanation:"Accepted"').match(
+        obsArtifact.records.find(note => note.slug === 'one'))""")
+    assert not page.evaluate("Boolean(window.editExecuted)")
+    page.evaluate("""() => {
+        obsComments.data.reviewers.push('Reader');
+        obsComments.data.annotations.push({id:'kept-comment', author:'Reader', text:'Keep this comment',
+          status:'open', replies:[], target:{chapter:'one',quote:'Source text.',start:0,end:12}});
+        obsComments.data.reviews.push({chapter:'one',item:'item-1',reviewer:'Reader',state:'accepted'});
+    }""")
+    open_chapter(save("reviewed.html"), "one")
+    expect(page.locator("[data-active-chapter] [data-property-editor]")).to_have_value(malicious)
+    assert page.evaluate("obsComments.data.annotations[0].text") == "Keep this comment"
+    assert page.evaluate("obsComments.data.reviews[0].state") == "accepted"
+    assert not page.evaluate("Boolean(window.editExecuted)")
+    page.evaluate("obsArtifact.activateChapter('two')")
+    editor = page.locator("[data-active-chapter] [data-property-editor]")
+    expect(editor).to_have_value("Original two")
+    editor.fill("")
+    editor.press("Tab")
+    open_chapter(save("reviewed-twice.html"), "two")
+    expect(page.locator("[data-active-chapter] [data-property-editor]")).to_have_value("")
+    assert page.evaluate(f"({explanation})('one')") == malicious
+    assert page.evaluate("obsArtifact.records.find(note => note.slug === 'one').frontmatter.identifier") == "one"
+    assert page.evaluate("obsComments.data.annotations.length") == 1
+    open_chapter(save("reviewed-no-new-edits.html"), "two")
+    expect(page.locator("[data-active-chapter] [data-property-editor]")).to_have_value("")
+    assert page.evaluate(f"({explanation})('one')") == malicious
+    assert page.evaluate("obsComments.data.reviews[0].state") == "accepted"
+    assert errors == []
 
 
 def test_the_runtime_commits_only_the_fields_the_notes_editors_declare(tmp_path, reader_browser) -> None:
@@ -117,7 +117,7 @@ def test_the_runtime_commits_only_the_fields_the_notes_editors_declare(tmp_path,
                    records=({"id": "one", "type": "note", "path": "one.md", "fields": fields},
                             {"id": "two", "type": "note", "path": "two.md", "fields": dict(fields)}))
     artifact = tmp_path / "artifact.html"
-    artifact.write_text(render(source, CONFIG), encoding="utf-8")
+    artifact.write_text(artifact_html(source), encoding="utf-8")
     page = reader_browser.new_page()
     errors: list[str] = []
     page.on("pageerror", lambda error: errors.append(str(error)))

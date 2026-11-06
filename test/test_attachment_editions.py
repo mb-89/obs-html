@@ -76,8 +76,7 @@ def test_the_light_edition_shows_label_and_vault_path_and_does_not_embed_the_byt
 
 @pytest.mark.browser
 def test_clicking_the_evidence_download_saves_the_asset_bytes(editions, reader_browser, tmp_path) -> None:
-    context = reader_browser.new_context(accept_downloads=True)
-    page = context.new_page()
+    page = reader_browser.new_page()
     page.set_default_timeout(5000)
     errors: list[str] = []
     page.on("pageerror", lambda error: errors.append(str(error)))

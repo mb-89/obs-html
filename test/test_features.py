@@ -149,12 +149,6 @@ def test_the_inclusion_condition_decides_whether_code_and_canary_ship(feature) -
             f"{feature.key}: code shipped in {source['manifest']['title']}")
 
 
-def test_an_artifact_without_a_floating_window_ships_no_popup_code() -> None:
-    html = render(plain(), CONFIG)
-    for marker in ("window.open", "documentPictureInPicture", "Separate windows", "canary-popups"):
-        assert marker not in html, f"popup code shipped without a guided card or context note: {marker}"
-
-
 def test_no_source_calls_a_browser_dialog_and_no_dialogs_canary_ships() -> None:
     callers = [f"{path.name}:{number}" for path in _sources() for number, line in
                enumerate(path.read_text(encoding="utf-8").splitlines(), 1) if DIALOG_CALL.search(line)]

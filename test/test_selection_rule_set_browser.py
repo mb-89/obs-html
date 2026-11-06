@@ -8,14 +8,12 @@ import json
 
 import pytest
 
-from obs_html.config import load_config
-from obs_html.render import render
+from artifacts import artifact_html
 
 from documents import card_document, chapter, document as build, heading, node
 
 
 pytestmark = pytest.mark.browser
-CONFIG = load_config()
 # Values and property names that differ only in case.
 FLOW = (("a", "flow-record", "target", "approved"), ("b", "flow-record", "target", "Approved"),
         ("c", "Flow-Record", "Target", "APPROVED"), ("d", "flow-record", "target", "rejected"),
@@ -55,7 +53,7 @@ def _sankey(graph: dict) -> dict:
 
 def _open(tmp_path, reader_browser, source: dict, start: str = "flow"):
     artifact = tmp_path / "artifact.html"
-    artifact.write_text(render(source, CONFIG), encoding="utf-8")
+    artifact.write_text(artifact_html(source), encoding="utf-8")
     page = reader_browser.new_page(viewport={"width": 1440, "height": 1000})
     errors: list[str] = []
     page.on("pageerror", lambda error: errors.append(str(error)))

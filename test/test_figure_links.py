@@ -8,6 +8,7 @@ import re
 
 import pytest
 
+from artifacts import artifact_html
 from obs_html.artifact_data import decode_artifact_data, html_text
 from obs_html.config import load_config
 from obs_html.render import render
@@ -153,45 +154,42 @@ def test_a_link_inside_a_figure_shows_its_hover_card_and_navigates_in_the_frame_
     from playwright.sync_api import expect
 
     artifact = tmp_path / "figure-links.html"
-    artifact.write_text(render(LINKED, CONFIG), encoding="utf-8")
+    artifact.write_text(artifact_html(LINKED), encoding="utf-8")
     page = reader_browser.new_page(viewport={"width": 1200, "height": 900})
     errors: list[str] = []
     page.on("pageerror", lambda error: errors.append(str(error)))
     page.on("dialog", lambda dialog: errors.append(f"dialog {dialog.message}"))
-    try:
-        page.goto(artifact.as_uri() + "#chapter")
-        page.wait_for_function("document.documentElement.dataset.artifactStatus === 'ready'")
-        page.evaluate("obsPages.setPaged(false); obsArtifact.activateChapter('chapter')")
-        figure = page.locator("[data-chapter-body] .obs-figure")
-        # Playwright's own pointing misses a link inside SVG text, so the mouse goes to its box.
-        box = figure.locator("a[href='#target']").bounding_box()
-        page.mouse.move(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
-        expect(page.locator("#hover-card .hover-card-title")).to_have_text("Target")
-        page.mouse.click(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
-        expect(page.locator("[data-chapter-body] h1")).to_have_text("Target")
+    page.goto(artifact.as_uri() + "#chapter")
+    page.wait_for_function("document.documentElement.dataset.artifactStatus === 'ready'")
+    page.evaluate("obsPages.setPaged(false); obsArtifact.activateChapter('chapter')")
+    figure = page.locator("[data-chapter-body] .obs-figure")
+    # Playwright's own pointing misses a link inside SVG text, so the mouse goes to its box.
+    box = figure.locator("a[href='#target']").bounding_box()
+    page.mouse.move(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
+    expect(page.locator("#hover-card .hover-card-title")).to_have_text("Target")
+    page.mouse.click(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
+    expect(page.locator("[data-chapter-body] h1")).to_have_text("Target")
 
-        page.evaluate("obsArtifact.activateChapter('chapter')")
-        figure.locator(".figure-expand").click()
-        expanded = page.locator("dialog.figure-overlay .obs-figure")
-        expect(expanded.locator("svg.figure-visual")).to_be_visible()
-        # The figure's style reaches its own rects only, never one elsewhere on the page, and the
-        # frame tokens it sets inside the drawing leave the frame's border as the page sets it.
-        assert page.evaluate("""() => {
-            const outside = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-            outside.innerHTML = '<rect width="4" height="4"/>';
-            document.querySelector("[data-chapter-body]").append(outside);
-            const fill = element => getComputedStyle(element).fill;
-            const frame = document.querySelector("dialog.figure-overlay .obs-figure");
-            const result = [fill(outside.firstChild), fill(frame.querySelector("rect.drawn")),
-                            getComputedStyle(frame).borderTopWidth !== "9px"];
-            outside.remove();
-            return result;
-        }""") == ["rgb(0, 0, 0)", "rgb(255, 0, 0)", True]
-        expanded.locator("a[href='#drawn'] rect").click()
-        expect(page.locator("dialog.figure-overlay")).to_have_count(0)
-        expect(page.locator("[data-chapter-body] h1")).to_have_text("Drawn")
-        assert page.evaluate("obsArtifact.records.find(record => record.slug === 'chapter').text") == (
-            "Chapter See target or missing.")
-        assert errors == []
-    finally:
-        page.close()
+    page.evaluate("obsArtifact.activateChapter('chapter')")
+    figure.locator(".figure-expand").click()
+    expanded = page.locator("dialog.figure-overlay .obs-figure")
+    expect(expanded.locator("svg.figure-visual")).to_be_visible()
+    # The figure's style reaches its own rects only, never one elsewhere on the page, and the
+    # frame tokens it sets inside the drawing leave the frame's border as the page sets it.
+    assert page.evaluate("""() => {
+        const outside = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        outside.innerHTML = '<rect width="4" height="4"/>';
+        document.querySelector("[data-chapter-body]").append(outside);
+        const fill = element => getComputedStyle(element).fill;
+        const frame = document.querySelector("dialog.figure-overlay .obs-figure");
+        const result = [fill(outside.firstChild), fill(frame.querySelector("rect.drawn")),
+                        getComputedStyle(frame).borderTopWidth !== "9px"];
+        outside.remove();
+        return result;
+    }""") == ["rgb(0, 0, 0)", "rgb(255, 0, 0)", True]
+    expanded.locator("a[href='#drawn'] rect").click()
+    expect(page.locator("dialog.figure-overlay")).to_have_count(0)
+    expect(page.locator("[data-chapter-body] h1")).to_have_text("Drawn")
+    assert page.evaluate("obsArtifact.records.find(record => record.slug === 'chapter').text") == (
+        "Chapter See target or missing.")
+    assert errors == []

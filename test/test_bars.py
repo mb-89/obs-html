@@ -5,15 +5,14 @@ from pathlib import Path
 
 import pytest
 
+from artifacts import artifact_html
 from documents import chapter, document, heading, paragraph
 from obs_html.errors import InputError
 from obs_html.bars import discover_bars
-from obs_html.config import load_config
-from obs_html.render import render
 
 
 def _artifact(*chapters) -> str:
-    return render(document("Bars", *chapters), load_config())
+    return artifact_html(document("Bars", *chapters))
 
 
 def _one_chapter() -> str:
@@ -209,49 +208,46 @@ def test_native_splitter_anchors_and_neighbor_only_geometry(tmp_path, reader_bro
     page = reader_browser.new_page(viewport={"width": 1800, "height": 1200})
     horizontal = edge in ("top", "bottom")
     axis, size = ("x", "width") if horizontal else ("y", "height")
-    try:
-        page.goto(artifact.as_uri())
-        page.wait_for_function("document.documentElement.dataset.artifactStatus === 'ready'")
-        page.evaluate("edge => ['toc','filter','search'].forEach(bar => obsArtifact.openBar(bar,edge))", edge)
-        region = page.locator(f"[data-dock-region='{edge}']")
-        dividers = region.locator(":scope > [data-bar-resize]")
-        panes = region.locator(":scope > .dock-bar")
-        page.wait_for_timeout(100)
-        initial = [pane.bounding_box()[size] for pane in panes.all()]
-        assert max(initial) - min(initial) < 1
-        before = [divider.bounding_box()[axis] for divider in dividers.all()]
-        bounds = dividers.first.bounding_box()
-        x, y = bounds["x"] + bounds["width"] / 2, bounds["y"] + bounds["height"] / 2
-        page.mouse.move(x, y)
-        page.mouse.down()
-        page.mouse.move(x + (36 if horizontal else 0), y + (0 if horizontal else 36), steps=3)
-        page.mouse.up()
-        moved = [divider.bounding_box()[axis] for divider in dividers.all()]
-        assert moved[0] - before[0] == pytest.approx(36, abs=1)
-        assert moved[1] == pytest.approx(before[1], abs=1)
-        page.evaluate("edge => obsArtifact.openBar('settings',edge)", edge)
-        page.wait_for_timeout(100)
-        added = [divider.bounding_box()[axis] for divider in dividers.all()]
-        assert added[0] == pytest.approx(moved[0], abs=1)
-        tail = [pane.bounding_box()[size] for pane in panes.all()[1:]]
-        assert max(tail) - min(tail) < 1
-        dividers.nth(1).press("ArrowRight" if horizontal else "ArrowDown")
-        keyed = [divider.bounding_box()[axis] for divider in dividers.all()]
-        assert keyed[0] == pytest.approx(added[0], abs=1)
-        assert keyed[1] - added[1] == pytest.approx(16, abs=1)
-        assert keyed[2] == pytest.approx(added[2], abs=1)
-        dividers.nth(1).dblclick()
-        reset = [divider.bounding_box()[axis] for divider in dividers.all()]
-        assert reset[0] == pytest.approx(keyed[0], abs=1)
-        tail = [pane.bounding_box()[size] for pane in panes.all()[1:]]
-        assert max(tail) - min(tail) < 1
-        dividers.first.dblclick()
-        all_sizes = [pane.bounding_box()[size] for pane in panes.all()]
-        assert max(all_sizes) - min(all_sizes) < 1
-        page.screenshot(path=str(tmp_path / f"dock-{edge}.png"))
-        (tmp_path / f"dock-{edge}.json").write_text(json.dumps({
-            "edge": edge, "initialSizes": initial, "before": before, "pointer": moved,
-            "added": added, "keyboard": keyed, "localReset": reset, "allReset": all_sizes,
-        }, indent=2), encoding="utf-8")
-    finally:
-        page.close()
+    page.goto(artifact.as_uri())
+    page.wait_for_function("document.documentElement.dataset.artifactStatus === 'ready'")
+    page.evaluate("edge => ['toc','filter','search'].forEach(bar => obsArtifact.openBar(bar,edge))", edge)
+    region = page.locator(f"[data-dock-region='{edge}']")
+    dividers = region.locator(":scope > [data-bar-resize]")
+    panes = region.locator(":scope > .dock-bar")
+    page.wait_for_timeout(100)
+    initial = [pane.bounding_box()[size] for pane in panes.all()]
+    assert max(initial) - min(initial) < 1
+    before = [divider.bounding_box()[axis] for divider in dividers.all()]
+    bounds = dividers.first.bounding_box()
+    x, y = bounds["x"] + bounds["width"] / 2, bounds["y"] + bounds["height"] / 2
+    page.mouse.move(x, y)
+    page.mouse.down()
+    page.mouse.move(x + (36 if horizontal else 0), y + (0 if horizontal else 36), steps=3)
+    page.mouse.up()
+    moved = [divider.bounding_box()[axis] for divider in dividers.all()]
+    assert moved[0] - before[0] == pytest.approx(36, abs=1)
+    assert moved[1] == pytest.approx(before[1], abs=1)
+    page.evaluate("edge => obsArtifact.openBar('settings',edge)", edge)
+    page.wait_for_timeout(100)
+    added = [divider.bounding_box()[axis] for divider in dividers.all()]
+    assert added[0] == pytest.approx(moved[0], abs=1)
+    tail = [pane.bounding_box()[size] for pane in panes.all()[1:]]
+    assert max(tail) - min(tail) < 1
+    dividers.nth(1).press("ArrowRight" if horizontal else "ArrowDown")
+    keyed = [divider.bounding_box()[axis] for divider in dividers.all()]
+    assert keyed[0] == pytest.approx(added[0], abs=1)
+    assert keyed[1] - added[1] == pytest.approx(16, abs=1)
+    assert keyed[2] == pytest.approx(added[2], abs=1)
+    dividers.nth(1).dblclick()
+    reset = [divider.bounding_box()[axis] for divider in dividers.all()]
+    assert reset[0] == pytest.approx(keyed[0], abs=1)
+    tail = [pane.bounding_box()[size] for pane in panes.all()[1:]]
+    assert max(tail) - min(tail) < 1
+    dividers.first.dblclick()
+    all_sizes = [pane.bounding_box()[size] for pane in panes.all()]
+    assert max(all_sizes) - min(all_sizes) < 1
+    page.screenshot(path=str(tmp_path / f"dock-{edge}.png"))
+    (tmp_path / f"dock-{edge}.json").write_text(json.dumps({
+        "edge": edge, "initialSizes": initial, "before": before, "pointer": moved,
+        "added": added, "keyboard": keyed, "localReset": reset, "allReset": all_sizes,
+    }, indent=2), encoding="utf-8")

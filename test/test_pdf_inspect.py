@@ -17,7 +17,7 @@ LETTER = (612, 792)  # The fixture's paper, in PDF points.
 
 
 @pytest.fixture(scope="module")
-def printed(tmp_path_factory) -> Path:
+def printed(pdf_browser, tmp_path_factory) -> Path:
     """The fixture Document printed once by this repository's own PDF path."""
     folder = tmp_path_factory.mktemp("printed")
     (folder / "images").mkdir()

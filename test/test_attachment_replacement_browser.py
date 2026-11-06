@@ -3,9 +3,8 @@ from pathlib import Path
 
 import pytest
 
+from artifacts import artifact_html
 from documents import chapter, document, heading, paragraph
-from obs_html.config import load_config
-from obs_html.render import render
 
 
 BUNDLE = """globalThis.obsArtifact.registerApplication({id: "fixture-v1", actions: [
@@ -69,7 +68,7 @@ def _artifact(tmp_path: Path, trusted: bool) -> Path:
         records=tuple({"id": slug, "type": "note", "path": f"{slug}.md", "fields": {"title": slug}} for slug in ("test", "summary", "other")),
     )
     path = tmp_path / ("trusted.html" if trusted else "plain.html")
-    path.write_text(render(source, load_config(), trusted_runtime=("fixture-v1", BUNDLE) if trusted else None),
+    path.write_text(artifact_html(source, trusted_runtime=("fixture-v1", BUNDLE) if trusted else None),
                     encoding="utf-8")
     return path
 

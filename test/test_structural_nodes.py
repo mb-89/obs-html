@@ -10,6 +10,7 @@ from pathlib import Path
 
 import pytest
 
+from artifacts import artifact_html
 from conftest import CORE_ROOT, ROOT
 from documents import chapter, document as build, paragraph, text
 from obs_html.artifact_data import decode_artifact_data
@@ -139,7 +140,7 @@ def test_the_notice_center_shows_one_limited_function_warning_per_unknown_type(t
     document = build("Doc", chapter("one", "One", paragraph(invented("first")), paragraph(invented("second"))))
     document["capabilities"].remove("sparkle")
     path = tmp_path / "artifact.html"
-    path.write_text(render(document, CONFIG), encoding="utf-8")
+    path.write_text(artifact_html(document), encoding="utf-8")
     errors: list[str] = []
     page = open_page(reader_browser, path, errors)
     expect(page.locator("html")).to_have_attribute("data-artifact-status", "ready")

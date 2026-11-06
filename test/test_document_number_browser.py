@@ -1,7 +1,7 @@
 """The manifest's `document number` in the page frame's running footer and the copied comments.
 
 The design owner is obs input-model.md (Cover metadata and history): the field names no
-application or vendor. The test builds the Document with the core, renders it, and opens the
+application or vendor. The test builds the Document with the core and renders it once per run, and opens the
 artifact file directly, where the clipboard is not limited (Claude's viewer blocks it).
 """
 import re
@@ -11,7 +11,8 @@ from importlib.resources import files
 from pathlib import Path
 
 import pytest
-from conftest import CORE_ROOT
+from browser.viewer import with_stand_in
+from conftest import CORE_ROOT, built_once
 
 from obs_html.cli import main as obs_html
 
@@ -24,33 +25,37 @@ CLIPBOARD = """Object.defineProperty(navigator, "clipboard", {configurable: true
 }});"""
 
 
-def _artifact(tmp_path: Path) -> Path:
-    vault = tmp_path / "vault"
-    vault.mkdir()
-    (vault / "manifest.md").write_text(
-        "---\ntitle: Numbered\ndocument number: X-1\ntemplate: T-7\n---\n- [[one]]\n", encoding="utf-8")
-    (vault / "one.md").write_text("# One\n\nText.\n", encoding="utf-8")
-    built, capabilities = tmp_path / "document.json", tmp_path / "capabilities.json"
-    subprocess.run([sys.executable, "-m", "obs.capabilities", "--notes",
-                    str(CORE_ROOT / "spec" / "capabilities"), "--output", str(capabilities)], check=True)
-    subprocess.run([sys.executable, "-m", "obs.document", "--source", str(vault / "manifest.md"),
-                    "--document", str(built), "--capability-reference", str(capabilities)], check=True)
-    destination = tmp_path / "artifact.html"
-    assert obs_html([str(built), str(destination)]) == 0
-    return destination
+@pytest.fixture(scope="module")
+def numbered_artifact(tmp_path_factory) -> Path:
+    """The vault's Document built by the core and rendered by this adapter's CLI, once per run."""
+    def build(folder: Path) -> None:
+        vault = folder / "vault"
+        vault.mkdir()
+        (vault / "manifest.md").write_text(
+            "---\ntitle: Numbered\ndocument number: X-1\ntemplate: T-7\n---\n- [[one]]\n", encoding="utf-8")
+        (vault / "one.md").write_text("# One\n\nText.\n", encoding="utf-8")
+        built, capabilities = folder / "document.json", folder / "capabilities.json"
+        subprocess.run([sys.executable, "-m", "obs.capabilities", "--notes",
+                        str(CORE_ROOT / "spec" / "capabilities"), "--output", str(capabilities)], check=True)
+        subprocess.run([sys.executable, "-m", "obs.document", "--source", str(vault / "manifest.md"),
+                        "--document", str(built), "--capability-reference", str(capabilities)], check=True)
+        assert obs_html([str(built), str(folder / "artifact.html")]) == 0
+
+    return built_once(tmp_path_factory, "numbered-artifact", build) / "artifact.html"
 
 
 @pytest.mark.browser
 def test_the_document_number_shows_in_the_running_footer_and_the_copied_comments(
-        tmp_path: Path, reader_browser) -> None:
+        numbered_artifact: Path, reader_browser, tmp_path: Path) -> None:
     from playwright.sync_api import expect
 
     errors: list[str] = []
     page = reader_browser.new_page()
     page.on("pageerror", lambda error: errors.append(str(error)))
     page.on("console", lambda message: errors.append(message.text) if message.type == "error" else None)
-    page.add_init_script(CLIPBOARD)
-    page.goto(_artifact(tmp_path).as_uri())
+    artifact = tmp_path / "artifact.html"
+    artifact.write_text(with_stand_in(numbered_artifact.read_text(encoding="utf-8"), CLIPBOARD), encoding="utf-8")
+    page.goto(artifact.as_uri())
     expect(page.locator("html")).to_have_attribute("data-artifact-status", "ready")
     page.evaluate("globalThis.obsPages.setPaged(true)")
     page.evaluate("location.hash = '#one'")
