@@ -5,8 +5,9 @@
    matrix with the reader's weights, a Checklist criterion where failed checklist items name
    options, and the reader's changed marks as the engine's own cell overrides.
 
-   Three tabs: Matrix (the bottom line, the Raised list, the options one at a time, the table),
-   Checklist and What if. The reader's weights, marks, rulings and tripwires, the option shown
+   Three tabs: Matrix (the bottom line, the Raised list, the options one at a time, the table, or
+   below ROWS_BELOW of the figure's width its rows), Checklist and What if, then one tab for each
+   section of the chapter the page rendered into the figure (render.py, decision tabs). The reader's weights, marks, rulings and tripwires, the option shown
    and the tab are session-only view state, kept per figure anchor; readerState() gives the
    first four by figure anchor, options by letter. Print shows the Matrix tab as the reader left
    it, with a caption note where weights or marks changed.
@@ -25,6 +26,12 @@ globalThis.obsPugh = (() => {
   const signed = value => (value > 0 ? `+${number(value)}` : value < 0 ? `−${number(-value)}` : "0");
   const symbol = mark => (mark === null || mark === undefined ? "?" : engine().SYMBOL[Math.round(mark)]);
   const letterOf = index => String.fromCharCode(65 + index);
+  const SHORT_WORDS = 5;  // The most words of a label that serves as a short name (the core checks short's).
+  /** An option's short name: its short, else its label where that has at most SHORT_WORDS words,
+      else "" and its letter stands alone (obs input-model, Pugh decision figures; bless_record.py, short_name). */
+  const shortName = (candidate, label) => candidate.short || (label.trim().split(/\s+/).length <= SHORT_WORDS ? label : "");
+  /** An option where there is room: its letter and short name, "B · Close". */
+  const tag = option => (option.short ? `${option.letter} · ${option.short}` : option.letter);
 
   function element(tag, properties = {}, ...children) {
     const node = Object.assign(document.createElement(tag), properties);
@@ -47,9 +54,11 @@ globalThis.obsPugh = (() => {
 
   /** The options with their letters, the failed checklist items and the matrix the engine decides. */
   function model(spec) {
-    const options = spec.matrix.candidates.map((candidate, index) => ({
-      key: candidate.key, letter: letterOf(index), name: String(candidate.label ?? candidate.key), what: candidate.what || "",
-      wins: texts(candidate.wins), losses: texts(candidate.losses)}));
+    const options = spec.matrix.candidates.map((candidate, index) => {
+      const name = String(candidate.label ?? candidate.key);
+      return {key: candidate.key, letter: letterOf(index), name, short: shortName(candidate, name), what: candidate.what || "",
+        wins: texts(candidate.wins), losses: texts(candidate.losses)};
+    });
     const byLetter = Object.fromEntries(options.map(option => [option.letter, option]));
     const byKey = Object.fromEntries(options.map(option => [option.key, option]));
     const checklist = spec.matrix.checklist || [];
@@ -126,7 +135,7 @@ globalThis.obsPugh = (() => {
   }
   function named(option) {
     return element("span", {className: "pugh-named"}, element("span", {className: "pugh-letter", textContent: option.letter}),
-      ` ${option.name}`);
+      option.short ? ` · ${option.short}` : "");
   }
 
   function bottomLine(spec, result, figureModel) {
@@ -160,7 +169,7 @@ globalThis.obsPugh = (() => {
     for (const entry of worlds) {
       const ruling = view.rulings[figureModel.byKey[entry.key].letter];
       if (ruling?.ruling !== "could") continue;
-      const option = figureModel.byKey[entry.key], said = world(result, entry, option.letter);
+      const option = figureModel.byKey[entry.key], said = world(result, entry, tag(option));
       const item = element("li", {}, element("strong", {textContent: "Could happen: "}), `${said.single} ${said.all}`,
         ruling.tripwire ? ` Watch for: ${ruling.tripwire}` : " No sign to watch for yet.");
       item.dataset.pughRaised = `world-${option.letter}`;
@@ -170,9 +179,9 @@ globalThis.obsPugh = (() => {
     if (chosen && result.suggestion && chosen.key !== result.suggestion.key) {
       const entry = worlds.find(item => item.key === chosen.key), candidate = result.candidates.find(c => c.key === chosen.key);
       const why = !candidate.fits ? `it does not fit (${candidate.whyNot}).`
-        : entry ? (({single, all}) => `${single} ${all}`)(world(result, entry, chosen.letter))
+        : entry ? (({single, all}) => `${single} ${all}`)(world(result, entry, tag(chosen)))
           : "it may be ranked but not suggested.";
-      const item = element("li", {}, element("strong", {textContent: `You chose ${chosen.letter}, but ${figureModel.byKey[result.suggestion.key].letter} wins: `}), why);
+      const item = element("li", {}, element("strong", {textContent: `You chose ${tag(chosen)}, but ${tag(figureModel.byKey[result.suggestion.key])} wins: `}), why);
       item.dataset.pughRaised = "chosen";
       items.push(item);
     }
@@ -187,6 +196,7 @@ globalThis.obsPugh = (() => {
     const card = element("div", {className: "pugh-option", tabIndex: 0},
       element("p", {className: "pugh-option-count", textContent: `Option ${option.letter} of ${count}`}),
       element("p", {className: "pugh-option-name"}, named(option)),
+      option.name !== option.short ? element("p", {className: "pugh-option-label", textContent: option.name}) : null,
       option.what ? element("p", {className: "pugh-option-what", textContent: option.what}) : null);
     card.dataset.pughOption = option.letter;
     card.setAttribute("aria-roledescription", "options, one at a time");
@@ -215,7 +225,7 @@ globalThis.obsPugh = (() => {
   }
   function optionsList(figureModel) {
     return element("dl", {className: "pugh-option-list"}, ...figureModel.options.flatMap(option => [
-      element("dt", {}, named(option)), element("dd", {textContent: option.what})]));
+      element("dt", {}, named(option), option.name !== option.short ? ` (${option.name})` : ""), element("dd", {textContent: option.what})]));
   }
   function markChooser(figure, spec, view, letter, criterion, current, cell) {
     figure.querySelectorAll(".pugh-chooser").forEach(open => open.remove());
@@ -242,6 +252,7 @@ globalThis.obsPugh = (() => {
   function table(figure, spec, result, figureModel, view, {print: shown}) {
     const print = shown || view.locked;
     const scroll = element("div", {className: "pugh-scroll", tabIndex: 0});
+    scroll.dataset.pughForm = "table";
     scroll.setAttribute("role", "region");
     scroll.setAttribute("aria-label", "Decision matrix");
     const order = [result.candidates.find(c => c.datum), ...result.candidates.filter(c => !c.datum)];
@@ -249,8 +260,9 @@ globalThis.obsPugh = (() => {
       element("th", {scope: "col", className: "pugh-weight", textContent: "Weight"}));
     for (const candidate of order) {
       const option = figureModel.byKey[candidate.key];
-      const cell = element("th", {scope: "col"}, element("span", {className: "pugh-letter", textContent: option.letter}),
-        element("span", {className: "pugh-column-name", textContent: option.name}));
+      const cell = element("th", {scope: "col", title: `${option.letter}: ${option.name}`},
+        element("span", {className: "pugh-letter", textContent: option.letter}),
+        option.short ? element("span", {className: "pugh-column-name", textContent: option.short}) : null);
       cell.dataset.pughOption = option.letter;
       if (candidate.datum) cell.classList.add("pugh-datum"), cell.append(element("span", {className: "pugh-tag", textContent: "datum"}));
       if (result.suggestion?.key === candidate.key) cell.classList.add("pugh-winner"), cell.append(element("span", {className: "pugh-tag", textContent: "winner"}));
@@ -316,6 +328,155 @@ globalThis.obsPugh = (() => {
     scroll.append(element("table", {className: "pugh-matrix"}, element("thead", {}, head), body));
     return scroll;
   }
+  /** A letter in the rows is a control: hovering it, focusing it or tapping it shows its option's
+      letter, label and sentence in a small popover under its line; a second tap, or a tap
+      elsewhere, closes it. One shows at a time. */
+  let about = null;
+  function closeAbout() {
+    if (!about) return;
+    about.pop.hidden = true;
+    about.head.setAttribute("aria-expanded", "false");
+    about = null;
+  }
+  function openAbout(head, pop) {
+    if (about?.head === head) return;
+    closeAbout();
+    head.closest(".pugh-row")?.append(pop);
+    pop.hidden = false;
+    head.setAttribute("aria-expanded", "true");
+    about = {head, pop};
+  }
+  document.addEventListener("pointerdown", event => {
+    if (about && !about.head.contains(event.target) && !about.pop.contains(event.target)) closeAbout();
+  }, true);
+  function aboutControl(head, pop) {
+    let wasOpen = false;
+    head.addEventListener("pointerdown", () => { wasOpen = about?.head === head; });
+    head.addEventListener("click", event => {
+      // A tap focuses (which opens) before it clicks: what decides is whether it was open before the tap.
+      const open = event.detail === 0 ? about?.head === head : wasOpen;
+      if (open) closeAbout(); else openAbout(head, pop);
+      wasOpen = about?.head === head;
+    });
+    head.addEventListener("focus", () => openAbout(head, pop));
+    head.addEventListener("blur", () => { if (about?.head === head) closeAbout(); });
+    head.addEventListener("pointerenter", event => { if (event.pointerType === "mouse") openAbout(head, pop); });
+    head.addEventListener("pointerleave", event => { if (event.pointerType === "mouse" && about?.head === head) closeAbout(); });
+    head.addEventListener("keydown", event => { if (event.key === "Escape" && about?.head === head) { event.stopPropagation(); closeAbout(); } });
+  }
+  /** The weight a step key sets: half a step up or down, never below 0. */
+  function stepped(weight, direction) {
+    return Math.max(0, Math.round((weight + direction * 0.5) * 2) / 2);
+  }
+  /** The matrix at a narrow width: one line per criterion, its name over the full width, then its
+      weight stepper and one cell per option headed by its letter; the total and the wins and
+      losses the same way. The table's data, the table's keys; options by letter, named in tooltips. */
+  function rows(figure, spec, result, figureModel, view) {
+    const locked = Boolean(view.locked);
+    const box = element("div", {className: "pugh-rows"});
+    box.dataset.pughForm = "rows";
+    box.setAttribute("role", "group");
+    box.setAttribute("aria-label", "Decision matrix");
+    const order = [result.candidates.find(c => c.datum), ...result.candidates.filter(c => !c.datum)];
+    const winner = result.suggestion?.key;
+    const abouts = Object.fromEntries(order.map(candidate => {
+      const option = figureModel.byKey[candidate.key];
+      const about = element("div", {className: "pugh-about", id: `${figure.id}--pugh-about-${option.letter}`, hidden: true},
+        element("p", {}, element("strong", {}, named(option)),
+          `${candidate.datum ? " (the datum)" : ""}${candidate.key === winner ? " (the winner)" : ""}`),
+        option.name !== option.short ? element("p", {textContent: option.name}) : null,
+        option.what ? element("p", {textContent: option.what}) : null);
+      about.setAttribute("role", "tooltip");
+      box.append(about);
+      return [option.letter, about];
+    }));
+    const head = candidate => {
+      const option = figureModel.byKey[candidate.key];
+      const letter = element("button", {type: "button", className: "pugh-cell-head", textContent: option.letter});
+      letter.dataset.pughHead = option.letter;
+      letter.setAttribute("aria-label", `Option ${option.letter}`);
+      letter.setAttribute("aria-describedby", abouts[option.letter].id);
+      letter.setAttribute("aria-expanded", "false");
+      aboutControl(letter, abouts[option.letter]);
+      return letter;
+    };
+    const cell = (candidate, className = "") => {
+      const node = element("div", {className: `pugh-cell${className}${candidate.key === winner ? " pugh-winner" : ""}`
+        + `${candidate.datum ? " pugh-datum" : ""}${candidate.fits ? "" : " pugh-out"}`});
+      if (!candidate.fits) node.title = candidate.whyNot;
+      return node;
+    };
+    const line = (name, className = "") => {
+      const row = element("div", {className: `pugh-row${className}`}, element("p", {className: "pugh-row-name", textContent: name}));
+      const cells = element("div", {className: "pugh-row-cells"});
+      row.append(cells);
+      return {row, cells};
+    };
+    result.criteria.forEach((criterion, index) => {
+      const {row, cells} = line(criterion.label);
+      row.dataset.pughCriterion = criterion.key;
+      const weight = result.weights[index], weightChanged = criterion.key in view.weights;
+      const value = element("span", {className: `pugh-weight-value${weightChanged ? " pugh-changed" : ""}`, textContent: number(weight)});
+      value.dataset.pughWeight = criterion.key;
+      value.setAttribute("aria-label", `Weight of ${criterion.label}: ${number(weight)}${weightChanged ? ", changed" : ""}`);
+      const step = (sign, direction, label) => {
+        const key = element("button", {type: "button", className: "pugh-step", textContent: label});
+        key.dataset.pughStep = `${criterion.key}:${sign}`;
+        key.setAttribute("aria-label", `${direction < 0 ? "Lower" : "Raise"} the weight of ${criterion.label}`);
+        key.disabled = direction < 0 && weight <= 0;
+        key.addEventListener("click", () => {
+          view.weights[criterion.key] = stepped(weight, direction);
+          draw(figure, spec);
+          figure.querySelector(`[data-pugh-step="${CSS.escape(key.dataset.pughStep)}"]`)?.focus();
+        });
+        return key;
+      };
+      cells.append(element("span", {className: "pugh-stepper"},
+        ...(locked ? [value] : [step("-", -1, "−"), value, step("+", 1, "+")])));
+      for (const candidate of order) {
+        const option = figureModel.byKey[candidate.key], mark = candidate.marks[criterion.key];
+        const markChanged = criterion.key in (view.marks[option.letter] || {}) && !candidate.datum;
+        const node = cell(candidate, markChanged ? " pugh-changed" : "");
+        node.dataset.pughMark = `${option.letter}:${criterion.key}`;
+        node.append(head(candidate));
+        if (locked || candidate.datum) node.append(element("span", {className: "pugh-cell-value", textContent: candidate.datum ? "S" : symbol(mark)}));
+        else {
+          const button = element("button", {type: "button", className: "pugh-mark-button", textContent: symbol(mark)});
+          button.setAttribute("aria-label", `${option.letter} ${option.name}, ${criterion.label}: ${symbol(mark)}${markChanged ? ", changed" : ""}; change it`);
+          button.addEventListener("click", () => markChooser(figure, spec, view, option.letter, criterion.key, mark, node));
+          node.append(button);
+        }
+        cells.append(node);
+      }
+      box.append(row);
+    });
+    const total = line("Weighted total", " pugh-total");
+    total.cells.append(element("span", {className: "pugh-stepper pugh-stepper-space"}));
+    for (const candidate of order) {
+      const node = cell(candidate);
+      node.dataset.pughTotal = figureModel.byKey[candidate.key].letter;
+      node.append(head(candidate), element("span", {className: "pugh-cell-value",
+        textContent: candidate.fits ? signed(candidate.total) : `× ${signed(candidate.total)}`}));
+      total.cells.append(node);
+    }
+    box.append(total.row);
+    const picks = locked ? [] : order.filter(c => c.key !== winner)
+      .map(c => globalThis.obsBless?.columnKey(figure.id, figureModel.byKey[c.key].letter)).filter(Boolean);
+    if (picks.length) box.append(element("div", {className: "pugh-picks"}, ...picks));
+    for (const [part, label] of [["wins", "Wins"], ["losses", "Losses"]]) {
+      const listed = order.map(c => figureModel.byKey[c.key]).filter(option => option[part].length);
+      if (!listed.length) continue;
+      const row = element("div", {className: "pugh-row pugh-texts"}, element("p", {className: "pugh-row-name", textContent: label}),
+        element("ul", {className: "pugh-row-texts"}, ...listed.map(option => {
+          const letter = element("span", {className: "pugh-letter", textContent: option.letter, title: option.name});
+          letter.dataset.pughHead = option.letter;
+          return element("li", {}, letter, `${option.short ? ` · ${option.short}` : ""}: ${option[part].join("; ")}`);
+        })));
+      row.dataset.pughTexts = part;
+      box.append(row);
+    }
+    return box;
+  }
   function checklistPanel(figureModel) {
     if (!figureModel.checklist.length) return element("p", {textContent: "No checklist items."});
     return element("ul", {className: "pugh-checklist"}, ...figureModel.checklist.map(item => {
@@ -332,11 +493,11 @@ globalThis.obsPugh = (() => {
     if (!result.suggestion) return panel.append(element("p", {textContent: "No option fits."})), panel;
     const winner = figureModel.byKey[result.suggestion.key];
     const entries = result.sensitivity?.all ?? [];
-    const worlds = entries.map(entry => ({entry, option: figureModel.byKey[entry.key], said: world(result, entry, figureModel.byKey[entry.key].letter)}));
+    const worlds = entries.map(entry => ({entry, option: figureModel.byKey[entry.key], said: world(result, entry, tag(figureModel.byKey[entry.key]))}));
     const closest = worlds.filter(item => Number.isFinite(item.said.closeness)).sort((a, b) => a.said.closeness - b.said.closeness)[0];
     const top = element("p", {className: "pugh-whatif-top"});
     top.dataset.pughUnless = closest ? closest.option.letter : "";
-    if (closest) top.append(element("strong", {textContent: `${winner.letter} wins unless: `}), `${closest.said.single} ${closest.said.all}`);
+    if (closest) top.append(element("strong", {textContent: `${tag(winner)} wins unless: `}), `${closest.said.single} ${closest.said.all}`);
     else top.append(element("strong", {textContent: "No change of weights makes another option win."}));
     panel.append(top);
     const list = element("ul", {className: "pugh-worlds"});
@@ -373,17 +534,21 @@ globalThis.obsPugh = (() => {
       list.append(item);
     }
     for (const candidate of result.candidates.filter(c => !c.fits)) {
-      list.append(element("li", {}, element("p", {textContent: `${figureModel.byKey[candidate.key].letter} does not fit: ${candidate.whyNot}.`})));
+      list.append(element("li", {}, element("p", {textContent: `${tag(figureModel.byKey[candidate.key])} does not fit: ${candidate.whyNot}.`})));
     }
     panel.append(list);
     return panel;
   }
   const TABS = [["matrix", "Matrix"], ["checklist", "Checklist"], ["whatif", "What if"]];
-  function tabs(figure, spec, view, panels, figureModel) {
+  /** The chapter's sections after the figure, which the page renders into the figure as one more
+      tab each (render.py, decision tabs): wherever a draw left them, so each keeps its nodes. */
+  const extras = figure => [...figure.querySelectorAll(".pugh-extra")];
+  const tabsOf = figure => [...TABS, ...extras(figure).map((node, index) => [`extra-${index + 1}`, node.dataset.pughExtra])];
+  function tabs(figure, spec, view, panels, figureModel, all) {
     const list = element("div", {className: "data-table-detail-tabs pugh-tabs"});
     list.setAttribute("role", "tablist");
     list.setAttribute("aria-label", "Decision views");
-    const buttons = TABS.map(([key, label], index) => {
+    const buttons = all.map(([key, label], index) => {
       const button = element("button", {type: "button", textContent: label, id: `${figure.id}--pugh-tab-${key}`});
       button.setAttribute("role", "tab");
       button.setAttribute("aria-controls", panels[index].id);
@@ -397,7 +562,7 @@ globalThis.obsPugh = (() => {
         if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
         event.preventDefault();
         event.stopPropagation();
-        const enabled = TABS.map(([name]) => name).filter(name => name !== "checklist" || figureModel.checklist.length);
+        const enabled = all.map(([name]) => name).filter(name => name !== "checklist" || figureModel.checklist.length);
         const position = enabled.indexOf(view.tab);
         view.tab = enabled[(position + (event.key === "ArrowRight" ? 1 : enabled.length - 1)) % enabled.length];
         draw(figure, spec);
@@ -419,17 +584,29 @@ globalThis.obsPugh = (() => {
     view.style.marginInline = `${Math.max(0, left - frame.left)}px ${Math.max(0, frame.right - right)}px`;
     if (fitted.has(figure) || typeof ResizeObserver !== "function") return;
     fitted.add(figure);
-    const observer = new ResizeObserver(() => (figure.isConnected ? fit(figure) : observer.disconnect()));
+    const observer = new ResizeObserver(() => {
+      if (!figure.isConnected) return observer.disconnect();
+      const shown = figure.querySelector("[data-pugh-form]")?.dataset.pughForm;
+      if (shown && shown !== (narrow(figure) ? "rows" : "table")) draw(figure, JSON.parse(figure.dataset.figureSpec));
+      else fit(figure);
+    });
     observer.observe(figure);
     observer.observe(parent);
+  }
+  /** Below ROWS_BELOW (in rem) of the figure's own width, the matrix is rows (artifact-ui.md, Decision figures). */
+  const ROWS_BELOW = 36;
+  function narrow(figure) {
+    const width = figure.clientWidth;
+    return width > 0 && width < ROWS_BELOW * parseFloat(getComputedStyle(document.documentElement).fontSize);
   }
   function draw(figure, spec, host = figure.querySelector(".figure-live"), {print = false} = {}) {
     const view = state(figure.id, spec.answered);
     const {result, figureModel} = decide(spec, view);
+    const sections = extras(figure), all = tabsOf(figure);
     const matrix = element("div", {className: "pugh-view"}, bottomLine(spec, result, figureModel),
       raised(spec, result, figureModel, view),
       print ? optionsList(figureModel) : optionsView(figure, spec, figureModel, view),
-      table(figure, spec, result, figureModel, view, {print}));
+      !print && narrow(figure) ? rows(figure, spec, result, figureModel, view) : table(figure, spec, result, figureModel, view, {print}));
     view.winner = result.suggestion ? figureModel.byKey[result.suggestion.key].letter : "";
     if (!print && !view.locked && changed(figure.id)) {
       const reset = element("button", {type: "button", className: "filter-pill pugh-reset", textContent: "Reset"});
@@ -437,16 +614,19 @@ globalThis.obsPugh = (() => {
       reset.addEventListener("click", () => reset_(figure, spec));
       matrix.append(reset);
     }
-    if (print) host.replaceChildren(matrix);
-    else {
+    if (print) {
+      sections.forEach(section => { section.hidden = false; section.removeAttribute("role"); });
+      host.replaceChildren(matrix, ...sections);
+    } else {
+      if (!all.some(([key]) => key === view.tab)) view.tab = "matrix";
       const panels = [matrix, element("div", {className: "pugh-view"}, checklistPanel(figureModel)),
-        element("div", {className: "pugh-view"}, whatIfPanel(figure, spec, result, figureModel, view))];
+        element("div", {className: "pugh-view"}, whatIfPanel(figure, spec, result, figureModel, view)), ...sections];
       panels.forEach((panel, index) => {
-        panel.id = `${figure.id}--pugh-panel-${TABS[index][0]}`;
+        if (index < TABS.length) panel.id = `${figure.id}--pugh-panel-${TABS[index][0]}`;
         panel.setAttribute("role", "tabpanel");
-        panel.hidden = view.tab !== TABS[index][0];
+        panel.hidden = view.tab !== all[index][0];
       });
-      host.replaceChildren(element("div", {className: "pugh-figure-view"}, tabs(figure, spec, view, panels, figureModel), ...panels));
+      host.replaceChildren(element("div", {className: "pugh-figure-view"}, tabs(figure, spec, view, panels, figureModel, all), ...panels));
     }
     const menuReset = figure.querySelector(":scope > .figure-options .pugh-reset");
     if (menuReset) menuReset.disabled = view.locked || !changed(figure.id);

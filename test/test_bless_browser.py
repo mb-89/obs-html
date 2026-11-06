@@ -215,10 +215,18 @@ def test_a_swipe_walks_the_chapters_and_does_not_decide(deck, reader_browser) ->
     assert page.evaluate("obsBless.verdicts()") == {}
     expect(page.locator("[data-bless-pill]")).to_have_text("Bless pending")
 
-    # A swipe that starts in the figure's table, which scrolls sideways at this width, stays with it.
-    page.wait_for_selector(f"#{FIGURE}.figure-pugh-ready .pugh-scroll")
-    assert page.evaluate("(box => box.scrollWidth > box.clientWidth)(document.querySelector('.pugh-scroll'))")
-    page.evaluate(SWIPE, [".pugh-scroll td", -120])
+    # A swipe that starts in a box that scrolls sideways stays with it. At this width the figure's
+    # matrix is rows and scrolls no more (artifact-ui.md, Decision figures), so the box is built here.
+    page.wait_for_selector(f"#{FIGURE}.figure-pugh-ready [data-pugh-form='rows']")
+    assert page.evaluate("""() => {
+        const box = Object.assign(document.createElement('div'), {className: 'swipe-box'});
+        box.style.overflowX = 'auto';
+        box.append(Object.assign(document.createElement('p'), {textContent: 'wide'}));
+        box.firstChild.style.width = '200vw';
+        document.querySelector('[data-active-chapter] [data-chapter-body], [data-chapter-body]').append(box);
+        return box.scrollWidth > box.clientWidth;
+    }""")
+    page.evaluate(SWIPE, [".swipe-box p", -120])
     assert _active(page) == "record"
     # The decision figure's options take their own swipe.
     page.evaluate(SWIPE, [".pugh-option", -120])
@@ -265,7 +273,7 @@ def test_the_answered_deck_shows_each_verdict_read_only(built, reader_browser) -
     page, errors = _open(reader_browser, (built / "answered.html").as_uri())
     record = page.locator("[data-bless-record]")
     expect(record).to_have_attribute("data-bless-record", "answer")
-    expect(record.locator("[data-bless-record-verdict]")).to_have_text("Picked C (Answers file alone)")
+    expect(record.locator("[data-bless-record-verdict]")).to_have_text("Picked C · Answers file alone")
     expect(record.locator("[data-bless-record-comment]")).to_have_text("C needs no second place.")
     expect(record).to_contain_text("Weight of Places that hold it: 1 (was 3)")
     expect(page.locator("[data-bless-pill]")).to_have_text("Picked C · recorded")

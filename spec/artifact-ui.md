@@ -487,8 +487,12 @@ only in an artifact that holds a decision figure: it is the reader feature `pugh
 (`features.py`), whose canary reports a host that does not run it.
 
 Every option carries its letter, A, B, C and on in the order the fence lists them, wherever the
-figure names it, and one name, its label. The figure has three tabs in the adapter's tab control
-(the look of a table's detail tabs), Matrix first and shown at the start:
+figure names it, its label and its short name (obs input-model, Pugh decision figures). Where
+there is room, an option reads as its letter and short name, "B · Close": in the option view, the
+table's column heads, the bottom line, the Raised list, the What if lines and an answer's record.
+Without a short name the letter stands alone. The figure has three tabs in the adapter's tab control
+(the look of a table's detail tabs), Matrix first and shown at the start, then one tab for each
+of its chapter's sections after it ([[#Decision tabs from the chapter]]):
 
 - **Matrix:** the bottom line (the winner, its total against the datum, and whether the choice
   holds or depends on the weights, with the winner's share of the weight draws); under it the
@@ -497,7 +501,7 @@ figure names it, and one name, its label. The figure has three tabs in the adapt
   letters of the options it fails. Without items the tab is disabled.
 - **What if:** the worlds in which another option wins, which the reader rules.
 
-The options view shows one option, "Option A of 5", with its letter, name and `what` sentence.
+The options view shows one option, "Option A of 5", with its letter and short name, its label in full and its `what` sentence.
 Previous and next keys, the arrow keys while it has focus, and a horizontal swipe move between
 the options; none of them walks the chapters.
 
@@ -541,9 +545,51 @@ and marks as text; where weights or marks changed, the caption ends with the not
 by the reader.*
 
 Inside its frame the view keeps to the prose around the figure, clear of the chapter controls. A
-page layout draws a decision figure when it places it, so its page holds the whole view. At a
-phone's width, 390 px, the page needs no sideways scrolling: the table scrolls in its own box,
-the criterion names held at its left.
+page layout draws a decision figure when it places it, so its page holds the whole view. Where
+the table is wider than the view, it scrolls in its own box, the criterion names held at its left.
+
+#### Decision figures on a phone
+
+Decided by the user, 6 Nov 2026 (work issue `feature/decision-figure-on-phones-20261106`): on a
+phone a reader scrolls up and down, never sideways, so the matrix prefers rows over columns.
+
+Below 36 rem of the figure's own width (`ROWS_BELOW` in `pugh-figure.js`; the figure measures
+its frame, not the device), the table becomes rows. Each criterion is two lines:
+
+- its name over the full width;
+- its weight stepper (−, the weight, +, half a step a tap), then one cell per option, headed by
+  the option's letter, the winner's cell marked.
+
+The weighted total follows the same pattern. Wins and Losses list one line per option, letter
+first. The Pick keys sit in one line under the total.
+
+A cell takes up to 2.5 rem and gives way to 1.7 rem before its line wraps: five options fit
+beside the stepper in the narrowest figure, at a 360 px phone, and more wrap to a further line.
+Nothing in the figure scrolls sideways.
+
+In the rows only the letter fits, and the letter is a control. Hovering it, focusing it or
+tapping it shows the option's letter and short name, its label and its `what` sentence in a small
+popover under the line; a second tap or a tap elsewhere closes it, with no browser dialog. The
+popover is the control's description for a screen reader.
+
+A mark, a weight step and a Pick are one tap each, as in the table.
+
+The table and the rows are drawn from one decision and one reader state: a resize across the
+width draws the other form with the reader's changes kept. Print shows the table.
+
+#### Decision tabs from the chapter
+
+Decided by the user, 6 Nov 2026 (work issue `feature/decision-figure-on-phones-20261106`): a
+decision chapter's long material sits in its own tab, not under the one-pager.
+
+In a chapter whose main content is a decision figure, its one decision figure at the top level,
+each second-level section after the figure, up to a first-level one, becomes one more tab of the
+figure, named by its heading; "## The record" becomes a tab "The record". `render.py` moves the
+section into the figure when it renders the chapter, so its text no longer runs below.
+
+The tab's panel carries the heading's anchor, and its deeper headings stay in it. Without such
+sections the figure has its three tabs. Print shows each section under the Matrix tab, headed by
+its name.
 
 ## Reading shell
 

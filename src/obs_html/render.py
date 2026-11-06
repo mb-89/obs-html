@@ -988,9 +988,45 @@ def _note_body(nodes: list[dict[str, object]], chapter: str, where: list[object]
     context.chapter, context.tables, context.marks, context.editable = chapter, [], [], {}
     context.figure_position = 0
     context.where = where[:-1]
-    body = _nodes(nodes, context, where[-1])
+    html = []
+    for index, node in enumerate(nodes):
+        with _at(context, where[-1], index):
+            html.append(_node(node, context))
+    _decision_tabs(nodes, html, context)
     context.chapter, context.where = "", []
-    return body
+    return "".join(html)
+
+
+FIGURE_END = "</figure>\n"
+
+
+def _decision_tabs(nodes: list[dict[str, object]], html: list[str], context: Context) -> None:
+    """A chapter whose main content is a decision figure, its one decision figure at the top level:
+    each second-level section after the figure, up to a first-level one, moves into the figure as
+    one more tab, named by its heading (pugh-figure.js; obs input-model, Pugh decision figures).
+    ``html`` holds each node's rendering; the moved ones are emptied."""
+    figures = [index for index, node in enumerate(nodes)
+               if node["type"] == "figures" and node["attrs"].get("kind") == "pugh"]
+    if len(figures) != 1:
+        return
+    def level(node: dict[str, object]) -> int:
+        return int(node["attrs"].get("level", 1)) if node["type"] == "section" else 0
+
+    end = next((index for index in range(figures[0] + 1, len(nodes)) if level(nodes[index]) == 1), len(nodes))
+    starts = [index for index in range(figures[0] + 1, end) if level(nodes[index]) == 2]
+    if not starts:
+        return
+    sections = []
+    for start, stop in zip(starts, [*starts[1:], end]):
+        heading = nodes[start]
+        anchor = context.headings.get(f"{context.chapter or HOME}#{_identifier(_plain(heading))}", "")
+        title = re.fullmatch(r"<h2[^>]*>(.*)</h2>\n", html[start], re.S).group(1)
+        identifier = f' id="{anchor}"' if anchor else ""
+        sections.append(f'<section class="pugh-extra"{identifier} data-pugh-extra="{escape(_plain(heading), quote=True)}">'
+                        f'<p class="pugh-extra-title">{title}</p>{"".join(html[start + 1:stop])}</section>')
+        html[start:stop] = [""] * (stop - start)
+    figure = html[figures[0]]
+    html[figures[0]] = figure[:-len(FIGURE_END)] + "".join(sections) + FIGURE_END
 
 
 def _note(depth: int, title: str, slug: str, generated: str, frontmatter: dict[str, object],

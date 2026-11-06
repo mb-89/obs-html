@@ -18,6 +18,17 @@ SYMBOLS = {2: "++", 1: "+", 0: "S", -1: "−", -2: "−−"}
 """ctrl's mark symbols, as the decision figure shows them (vendor/pugh.js, SYMBOL)."""
 
 
+SHORT_WORDS = 5
+"""The most words of a label that serves as an option's short name (obs input-model, Pugh decision figures)."""
+
+
+def short_name(candidate: dict) -> str:
+    """An option's short name, after its letter where there is room: its ``short``, else its label
+    where that has at most SHORT_WORDS words, else "" and the letter stands alone (pugh-figure.js, shortName)."""
+    label = str(candidate.get("label", candidate["key"]))
+    return candidate.get("short") or (label if len(label.split()) <= SHORT_WORDS else "")
+
+
 def _matrices(nodes: list[dict]) -> list[dict]:
     """The chapter's decision matrices, in document order."""
     found = []
@@ -46,7 +57,7 @@ def _changes(figure: dict, criteria: dict[str, dict], names: dict[str, str]) -> 
             lines.append(f"{letter} winning is nonsense")
     if figure.get("winner"):
         winner = figure["winner"]
-        lines.append(f"Winner with these changes: {winner}{f' ({names[winner]})' if winner in names else ''}")
+        lines.append(f"Winner with these changes: {winner}{f' · {names[winner]}' if names.get(winner) else ''}")
     return lines
 
 
@@ -61,11 +72,11 @@ def record_html(chapter: dict) -> str:
     names: dict[str, str] = {}
     for matrix in matrices:
         for index, candidate in enumerate(matrix["candidates"]):
-            names.setdefault(chr(65 + index), str(candidate.get("label", candidate["key"])))
+            names.setdefault(chr(65 + index), short_name(candidate))
     state = STATES[verdict["verdict"]]
     if verdict.get("pick"):
         letter = verdict["pick"]["option"]
-        state += f" {letter}" + (f" ({names[letter]})" if letter in names else "")
+        state += f" {letter}" + (f" · {names[letter]}" if names.get(letter) else "")
     outdated = "outdated" in request
     title = ("Outdated answer: the chapter changed after it was answered, so it asks again"
              if outdated else "Answer")
