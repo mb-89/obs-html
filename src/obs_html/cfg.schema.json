@@ -22,7 +22,8 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "renderedCheckTimeoutSeconds"
+        "renderedCheckTimeoutSeconds",
+        "serveAnswersMaxBytes"
       ],
       "properties": {
         "renderedCheckTimeoutSeconds": {
@@ -30,6 +31,12 @@
           "minimum": 1,
           "maximum": 600,
           "description": "Maximum time --check-rendered waits for the opened HTML to report ready or error."
+        },
+        "serveAnswersMaxBytes": {
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 16777216,
+          "description": "Largest answers payload obs-html serve accepts in one POST, in bytes."
         }
       }
     },
