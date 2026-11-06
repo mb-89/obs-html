@@ -12,13 +12,14 @@ import json
 import math
 import re
 import sys
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from html import escape, unescape
 from importlib.metadata import version
 from importlib.resources import files
 from pathlib import Path, PurePosixPath
-from typing import Callable
+from typing import Callable, Iterator
 from urllib.parse import unquote
 
 from jsonschema import Draft202012Validator
@@ -28,9 +29,9 @@ from markdown_it import MarkdownIt
 
 from obs_html.bars import BarDefinition, discover_bars
 from obs_html.config import Config, paper
-from obs_html.errors import InputError, schema_error
+from obs_html.errors import InputError, field_path, schema_error
 from obs_html.features import included as included_features
-from obs_html.figures import FigureError, render_descriptor
+from obs_html.figures import render_descriptor
 from obs_html.artifact_data import encode_artifact_data, prepare_artifact_scripts, serialize_artifact_data
 from obs_html.semantic_assets import SemanticAssets, markup
 from obs_html.styles import load_style
@@ -58,10 +59,6 @@ DOCK_DIRECTIONS = (
 )
 
 
-class RenderError(ValueError):
-    """Raised when a Document cannot be rendered."""
-
-
 @dataclass
 class Context:
     document: dict[str, object]
@@ -87,6 +84,36 @@ class Context:
     phrasing: bool = False
     """Whether the node being rendered sits where HTML allows only phrasing content (inside a
     paragraph or a heading), so it may write no block element."""
+    where: list[object] = field(default_factory=list)
+    """The path of the node being rendered in the Document, as an error names it."""
+
+
+def _source(document: dict[str, object]) -> str:
+    """The Document as a message names it: by the manifest note it was built from."""
+    return f"Document of {document['manifest']['path']}"
+
+
+def _rebuild(document: dict[str, object], option: str = "") -> str:
+    """Build the Document again from its manifest note, whose path is vault-relative."""
+    return (f"Rebuild the Document from the vault's {document['manifest']['path']} with the current obs core "
+            f"(obs-document --source{option})")
+
+
+def _stale(context: Context, parts: list[object], problem: str, remedy: str = "") -> InputError:
+    """A Document the current core does not write, at the node being rendered: it is stale or not
+    the core's (the core validates what it writes, obs-document)."""
+    return InputError(_source(context.document), field_path(parts, field_path(context.where)), problem,
+                      remedy or _rebuild(context.document))
+
+
+@contextmanager
+def _at(context: Context, *parts: object) -> Iterator[None]:
+    """Render below ``parts`` of the current node path."""
+    context.where.extend(parts)
+    try:
+        yield
+    finally:
+        del context.where[len(context.where) - len(parts):]
 
 
 Renderer = Callable[[dict[str, object], Context], str]
@@ -103,8 +130,11 @@ def _frontmatter(node: dict[str, object], context: Context) -> str:
     title page and running header (the manifest's abstract renders with no chapter)."""
     if context.chapter:
         context.frontmatter.update(node["attrs"]["metadata"])
-    context.fields[context.chapter or HOME] = {child["attrs"]["name"]: _nodes(child["children"], context)
-                                               for child in node["children"] if child["type"] == "field"}
+    fields = context.fields[context.chapter or HOME] = {}
+    for index, child in enumerate(node["children"]):
+        if child["type"] == "field":
+            with _at(context, "children", index):
+                fields[child["attrs"]["name"]] = _nodes(child["children"], context)
     return ""
 
 
@@ -157,14 +187,12 @@ def _cards(node: dict[str, object], context: Context) -> str:
     globally filtered records; only the metric declarations enter the browser. Each card's body is
     its ``document`` child node, rendered like chapter content (nested cards included). The core
     validated the fence (obs capabilities/cards-metrics); one body follows each card."""
-    place = f"Chapter {context.chapter or HOME}"
     cards, bodies = node["attrs"]["spec"]["cards"], node["children"]
     rendered = []
-    for card, body in zip(cards, bodies):
-        what = f"{place}: card {card['title']!r}"
+    for index, (card, body) in enumerate(zip(cards, bodies)):
         series = (card.get("obs") or {}).get("metricsFrom")
         if series:
-            _check_series(series, what, context)
+            _check_series(series, context)
         metrics = [dict(metric) for metric in card.get("metrics", [])]
         for metric in metrics:
             if "secondary" in metric:
@@ -178,26 +206,37 @@ def _cards(node: dict[str, object], context: Context) -> str:
             f'<section class="content-card record-card" data-record-card="{payload}"{series_data}>'
             f'<header class="content-card-title">{escape(card["title"])}</header>'
             + (f'<div class="record-metrics {style}">{slots}</div>' if metrics or series else "")
-            + _nodes(body["children"], context) + "</section>")
+            + _body(body, index, context) + "</section>")
     return '<div class="record-cards" data-record-cards>' + "".join(rendered) + "</div>\n"
 
 
-def _check_series(series: dict[str, object], what: str, context: Context) -> None:
-    """A metric series reads a list from a note's frontmatter: one metric per uniquely labelled item."""
-    name = f"{what} metric series {series.get('sourceNote')}/{series.get('property')}"
+def _body(body: dict[str, object], index: int, context: Context) -> str:
+    with _at(context, "children", index):
+        return _nodes(body["children"], context)
+
+
+def _check_series(series: dict[str, object], context: Context) -> None:
+    """A metric series reads a list from a note's frontmatter: one metric per uniquely labelled item.
+    The cards fence's ``obs.metricsFrom`` names the note and its property."""
     record = context.records.get(context.paths.get(str(series.get("sourceNote")), ""))
+    source, prefix = (record["path"], "") if record else (_note_source(context), "cards.obs.metricsFrom")
     value: object = record["fields"] if record else None
     for part in str(series.get("property")).split("."):
         value = value.get(part) if isinstance(value, dict) else None
     if not isinstance(value, list):
-        raise RenderError(f"{name} is not a list. Remedy: name a note path and a frontmatter list property.")
+        raise InputError(source, field_path(["sourceNote" if not record else series.get("property")], prefix),
+                         f"is no list a cards fence's metric series can read (obs.metricsFrom names "
+                         f"{series.get('sourceNote')}/{series.get('property')})",
+                         "Name a note path and a frontmatter list property in obs.metricsFrom")
     labels: set[object] = set()
-    for item in value:
+    for index, item in enumerate(value):
         fields = [item.get(str(series.get(key))) if isinstance(item, dict) else None
                   for key in ("labelProperty", "distinctProperty")]
         if any(not isinstance(field, str) or not field.strip() for field in fields) or fields[0] in labels:
-            raise RenderError(f"{name} needs unique labels and non-empty distinct names. Remedy: give every "
-                              "list item its own label and a distinct property value.")
+            raise InputError(source, field_path([index], str(series.get("property"))),
+                             "needs a label no other item has and a non-empty distinct name for the cards "
+                             "fence's metric series", "Give every list item its own label and a distinct "
+                             "property value")
         labels.add(fields[0])
 
 
@@ -207,8 +246,7 @@ def _embed(node: dict[str, object], context: Context) -> str:
     target, chapter = node["attrs"]["target"], node["attrs"]["chapter"]
     if "asset" in node["attrs"]:
         identifier = node["attrs"]["asset"]
-        return _file(_document_asset(identifier, f"embed {target!r} names asset {identifier!r}, which", context), "",
-                     context)
+        return _file(_document_asset(identifier, context), "", context)
     if chapter is None:
         return f'<span class="unresolved embed" title="{escape(target, quote=True)}">{escape(target)}</span>'
     return f'<a class="internal-link embed" href="#{chapter}">{escape(_chapter_title(chapter, context))}</a>'
@@ -218,15 +256,15 @@ def _attachment(node: dict[str, object], context: Context) -> str:
     """An attachment names a Document asset: an image is document content, any other file is a
     download in the evidence edition and provenance text (its label and path) in the light one."""
     identifier, label = node["attrs"]["asset"], node["attrs"]["label"]
-    return _file(_document_asset(identifier, f"attachment names asset {identifier!r}, which", context), label,
-                 context)
+    return _file(_document_asset(identifier, context), label, context)
 
 
-def _document_asset(identifier: str, what: str, context: Context) -> dict[str, str]:
+def _document_asset(identifier: str, context: Context) -> dict[str, str]:
+    """The asset a node's ``attrs.asset`` names."""
     asset = context.files.get(identifier)
     if asset is None:
-        raise RenderError(f"Chapter {context.chapter or HOME}: {what} the Document's assets do not contain; "
-                          "regenerate the Document with the obs core.")
+        raise _stale(context, ["attrs", "asset"], f"names asset {identifier!r}, which the Document's assets do "
+                     "not contain")
     return asset
 
 
@@ -289,8 +327,8 @@ def _callout(node: dict[str, object], context: Context) -> str:
     untitled callout's title); ``important`` is the emphasis box."""
     kind, title = node["attrs"]["kind"], node["attrs"]["title"]
     if kind not in CALLOUT_TONES:
-        raise RenderError(f"Chapter {context.chapter or HOME}: callout kind {kind!r} is not one of "
-                          f"{', '.join(sorted(CALLOUT_TONES))}; regenerate the Document with the obs core.")
+        raise _stale(context, ["attrs", "kind"], f"is {kind!r}, not one of the callout kinds "
+                     f"{', '.join(sorted(CALLOUT_TONES))}")
     name = kind.capitalize()
     if kind == "important":
         opening = f'<aside class="content-card content-emphasis" aria-label="{name}">\n'
@@ -302,9 +340,10 @@ def _callout(node: dict[str, object], context: Context) -> str:
 
 
 def _chapter_title(chapter: str, context: Context) -> str:
+    """The title of the chapter a link node's ``attrs.chapter`` names."""
     if chapter not in context.chapters:
-        raise RenderError(f"Chapter {context.chapter or HOME}: a link names chapter {chapter!r}, which the "
-                          "Document does not contain; regenerate the Document with the obs core.")
+        raise _stale(context, ["attrs", "chapter"], f"names chapter {chapter!r}, which the Document does not "
+                     "contain")
     return context.chapters[chapter]
 
 
@@ -319,9 +358,8 @@ def _command(node: dict[str, object], context: Context) -> str:
         return ""
     output = node["attrs"].get("output")
     if not isinstance(output, str):
-        raise RenderError(f"Chapter {context.chapter!r}: a command-fences node has no attrs.output, "
-                          "the output the core captures; build the Document with "
-                          "obs-document --execute-commands.")
+        raise _stale(context, ["attrs", "output"], "is missing: the core captures a command fence's output only "
+                     "when it runs the fences", _rebuild(context.document, " ... --execute-commands"))
     return f'<pre class="command-output">{escape(output)}</pre>\n'
 
 
@@ -331,10 +369,9 @@ def _base(node: dict[str, object], context: Context) -> str:
     definition = node["attrs"]["spec"]
     for index, view in enumerate(definition.get("views", [])):
         if "members" in (view.get("obs") or {}):
-            raise RenderError(
-                f"Base in chapter {context.chapter or HOME}: views.{index}.obs.members: obs-html shows "
-                "members only in a register, whose rows the obs core selects. Remedy: move the Base into a "
-                ".base file and embed it with ![[<file>.base]].")
+            raise InputError(_note_source(context), f"base.views[{index}].obs.members", "is in a Base fence, "
+                             "but obs-html shows members only in a register, whose rows the obs core selects",
+                             "Move the Base into a .base file and embed it with ![[<file>.base]]")
     return _data_table(definition, None, context, _note_source(context))
 
 
@@ -343,13 +380,12 @@ def _register(node: dict[str, object], context: Context) -> str:
     records it selects (obs capabilities/registers, Document node). The adapter selects nothing; a
     heading embeds its one view, no heading every view with the selector."""
     attrs = node["attrs"]
-    place = f"Register {attrs['target']}{'#' + attrs['heading'] if attrs['heading'] else ''} in chapter {context.chapter or HOME}"
     rows = []
     for index, identifiers in enumerate(attrs["rows"]):
         missing = next((identifier for identifier in identifiers if identifier not in context.row_keys), None)
         if missing is not None:
-            raise RenderError(f"{place}: rows.{index} names record {missing!r}, which the Document's records do "
-                              "not contain. Remedy: regenerate the Document with the obs core.")
+            raise _stale(context, ["attrs", "rows", index], f"names record {missing!r}, which the Document's "
+                         f"records do not contain (register {attrs['target']})")
         rows.append([context.row_keys[identifier] for identifier in identifiers])
     definition, view = attrs["base"], attrs["view"]
     if view is not None:
@@ -375,25 +411,32 @@ def _row_keys(records: list[dict[str, object]]) -> dict[str, str]:
 
 def _note_source(context: Context) -> str:
     """The note the current chapter's content comes from, as messages name it."""
-    record = context.records.get(context.chapter or "")
-    return str(record["path"]) if record else context.document["manifest"]["path"] if not context.chapter \
-        else f"chapter {context.chapter}"
+    return _slug_source(context.chapter or HOME, context)
+
+
+def _slug_source(slug: str, context: Context) -> str:
+    """The note of a chapter, or of the home page, as messages name it: its vault-relative path."""
+    record = context.records.get(slug)
+    return str(record["path"]) if record else context.document["manifest"]["path"] if slug == HOME \
+        else f"chapter {slug}"
 
 
 def _data_table(definition: dict[str, object], rows: list[list[str]] | None, context: Context,
                 source: str) -> str:
     context.assets.normalize_definition(definition, source)
     key = f"{context.chapter or HOME}-base-{len(context.tables) + 1}"
-    for filters in [definition.get("filters"), *(view.get("filters") for view in definition.get("views", []))]:
+    places = [("filters", definition.get("filters")),
+              *((f"views[{index}].filters", view.get("filters")) for index, view in enumerate(definition.get("views", [])))]
+    for place, filters in places:
         unsupported = _unsupported_filter(filters)
         if unsupported is not None:
-            names = ", ".join(str(view.get("name", "")) for view in definition.get("views", []))
-            raise RenderError(
-                f'Base "{names}" ({key}) in chapter {context.chapter or HOME}: obs-html cannot evaluate '
-                f"the filter: {unsupported}. Supported: comparisons PROPERTY == LITERAL or PROPERTY != LITERAL, "
-                "where PROPERTY is a frontmatter property (dotted, or note[\"name with spaces\"]) or one of "
-                f"{', '.join(FILE_PROPERTIES)}, and LITERAL is quoted text, a number, true, false or null; "
-                "combined with and, or and not. Remedy: rewrite the filter in this subset.")
+            raise InputError(
+                source, place if source.endswith(".base") else f"base.{place}",
+                f"holds {unsupported}, which obs-html cannot evaluate. It evaluates comparisons PROPERTY == "
+                "LITERAL or PROPERTY != LITERAL, where PROPERTY is a frontmatter property (dotted, or "
+                f"note[\"name with spaces\"]) or one of {', '.join(FILE_PROPERTIES)}, and LITERAL is quoted "
+                "text, a number, true, false or null; combined with and, or and not",
+                "Rewrite the filter in this subset")
     context.tables.append({"key": key, "definition": definition, **({"rows": rows} if rows is not None else {})})
     return f'<div class="data-table-placeholder" data-base-table="{escape(key, quote=True)}"></div>\n'
 
@@ -428,11 +471,10 @@ def _unsupported_filter(filters: object) -> str | None:
 
 
 def _figure(node: dict[str, object], context: Context) -> str:
+    """A figure fence's descriptor; an error names the note and the descriptor's field."""
     descriptor = node["attrs"]["descriptor"]
-    try:
-        return render_descriptor(descriptor, f"{context.chapter or HOME}--figure-{descriptor['id']}")
-    except FigureError as error:
-        raise RenderError(f"Chapter {context.chapter or HOME}: {error}") from error
+    return render_descriptor(descriptor, f"{context.chapter or HOME}--figure-{descriptor['id']}",
+                             _note_source(context))
 
 
 def _references(node: dict[str, object], context: Context) -> str:
@@ -440,14 +482,13 @@ def _references(node: dict[str, object], context: Context) -> str:
     hover cards and the glossary register read the definition (``definitionHtml``, see
     _definition_html) and a reference's ``url`` (obs references.md, input-model Reference notes)."""
     metadata = node["attrs"]["metadata"]
-    place = f"Chapter {context.chapter or HOME}"
     if metadata.get("kind") == "glossary" and not isinstance(metadata.get("definition"), str):
-        raise RenderError(f"{place}: glossary note has no text definition. Remedy: add "
-                          "'definition: <text>' to the note's frontmatter.")
+        raise InputError(_note_source(context), "definition", "is missing or not text, and a glossary note "
+                         "needs one", "Add 'definition: <text>' to the note's frontmatter")
     url = metadata.get("url")
     if url is not None and not (isinstance(url, str) and re.match(r"https?://\S+$", url, re.IGNORECASE)):
-        raise RenderError(f"{place}: reference url {url!r} is not an http(s) URL. Remedy: give the "
-                          "reference note's url field the external address, such as https://example.org.")
+        raise InputError(_note_source(context), "url", f"is {url!r}, not an http(s) URL",
+                         "Give the reference note's url the external address, such as https://example.org")
     return ""
 
 
@@ -462,10 +503,9 @@ def _extension(node: dict[str, object], context: Context) -> str:
     """An Obsidian syntax extension the source used (obs extensions.md). None has an input-model
     contract yet, so the core emits none and obs-html renders none; a callout is a ``callouts``
     node. Trusted runtime extensions are another thing: artifact.js's ``obsArtifact.trustedExtension``."""
-    raise RenderError(f"Chapter {context.chapter or HOME}: syntax extension {node['attrs'].get('syntax')!r} is "
-                      "not one obs-html (src/obs_html/render.py) renders: no syntax extension has an input-model "
-                      "contract yet (obs spec/capabilities/extensions.md), and a callout is a callouts node. "
-                      "Remedy: regenerate the Document with the obs core.")
+    raise _stale(context, ["attrs", "syntax"], f"is {node['attrs'].get('syntax')!r}, a syntax extension obs-html "
+                 "(src/obs_html/render.py) does not render: no syntax extension has an input-model contract yet "
+                 "(obs spec/capabilities/extensions.md), and a callout is a callouts node")
 
 
 PROPERTY_EDITOR_SCHEMA = json.loads(files("obs_html").joinpath("property-editor.schema.json")
@@ -478,24 +518,26 @@ def _property_editor(node: dict[str, object], context: Context) -> str:
     """A ``property-editors`` node: a text editor for one existing string field of an authored
     note; properties.js commits edits through artifact.js (``obsArtifact.commitProperty``), which
     checks the same declaration. ``attrs.spec`` is the fence's mapping (obs property-editors)."""
-    place = f"Chapter {context.chapter or HOME}: property editor"
+    source, fence = _note_source(context), "property-editor"
     spec = node["attrs"]["spec"]
     field = spec.get("field") if isinstance(spec, dict) else None
     if isinstance(field, str) and field.lower() in PROTECTED_FIELDS:
-        raise RenderError(f"{place} cannot change the protected field {field!r}. Remedy: edit another field.")
-    error = next(PROPERTY_EDITOR.iter_errors(spec), None)
+        raise InputError(source, f"{fence}.field", f"is {field!r}, a protected field a property editor cannot "
+                         "change", "Edit another field")
+    error = schema_error(list(PROPERTY_EDITOR.iter_errors(spec)), source, "obs-html's "
+                         "property-editor.schema.json and obs capabilities/property-editors", prefix=fence)
     if error is not None:
-        raise RenderError(f"{place}: {error.message[:180]}. Remedy: declare version: 1, field and label as "
-                          "property-editor.schema.json says.")
+        raise error
     limit = spec.get("maxLength", PROPERTY_EDITOR_SCHEMA["properties"]["maxLength"]["default"])
     if not context.chapter or not isinstance(context.frontmatter.get(field), str):
-        raise RenderError(f"{place} needs an existing text field {field!r} on an authored note. Remedy: add "
-                          f"'{field}: <text>' to the note's frontmatter.")
+        raise InputError(source, f"{fence}.field", f"names {field!r}, which is no text field of an authored "
+                         "note", f"Add '{field}: <text>' to the note's frontmatter")
     if len(context.frontmatter[field]) > limit:
-        raise RenderError(f"{place}: the text of {field!r} is longer than maxLength {limit}. Remedy: shorten "
-                          "it or raise maxLength.")
+        raise InputError(source, field, f"is longer than the property editor's maxLength {limit}",
+                         "Shorten it or raise maxLength")
     if field in context.editable:
-        raise RenderError(f"{place} declares {field!r} more than once. Remedy: keep one editor per field.")
+        raise InputError(source, f"{fence}.field", f"names {field!r}, which another property editor of the "
+                         "note edits", "Keep one editor per field")
     definition: dict[str, object] = {"label": spec["label"], "maxLength": limit}
     projection = spec.get("projection")
     if projection is not None:
@@ -503,8 +545,8 @@ def _property_editor(node: dict[str, object], context: Context) -> str:
             for name, value in projection[branch].items():
                 if name == field or name.lower() in PROTECTED_FIELDS or name not in context.frontmatter \
                         or not _projection_matches(context.frontmatter[name], value):
-                    raise RenderError(f"{place}: projection field {name!r} must be another existing, unprotected "
-                                      "field of the same type. Remedy: project onto such a field.")
+                    raise InputError(source, f"{fence}.projection.{branch}.{name}", "must be another existing, "
+                                     "unprotected field of the same type", "Project onto such a field")
         definition["projection"] = projection
     context.editable[field] = definition
     label = escape(spec["label"])
@@ -573,11 +615,16 @@ def render(document: dict[str, object], config: Config,
            trusted_runtime: tuple[str, str] | None = None,
            embed_attachments: bool = False) -> str:
     if document.get("schemaVersion") != 1:
-        raise RenderError(f"Unsupported Document schema version: {document.get('schemaVersion')!r}.")
+        raise InputError("Document", "schemaVersion", f"is {document.get('schemaVersion')!r}, not 1, the "
+                         "version obs-html renders", "Build the Document with an obs core of schema version 1")
+    if "path" not in document["manifest"]:
+        raise InputError("Document", "manifest.path", "is missing, so the Document is older than this adapter",
+                         "Rebuild the Document with the current obs core (obs-document)")
     unsupported = sorted(set(document["capabilities"]) - set(CAPABILITIES))
     if unsupported:
-        raise RenderError(f"Document uses capabilities this adapter does not render: "
-                          f"{', '.join(unsupported)}.")
+        raise InputError(_source(document), "capabilities", f"lists {', '.join(unsupported)}, which obs-html "
+                         "does not render", "Build the Document for an adapter that declares them, or drop "
+                         "their syntax from the notes")
     style = load_style(style_folder)
     assets = SemanticAssets(style.asset_index)
     context = Context(
@@ -598,8 +645,6 @@ def render(document: dict[str, object], config: Config,
                 context.aliases[key] = record["id"] if key not in context.aliases else None
     _index(document["chapters"], context)
     _index_headings(HOME, document["manifest"].get("abstract", []), context)
-    if HOME in context.chapters:
-        raise RenderError(f"Chapter id {HOME!r} is reserved for the artifact's home page.")
     context.chapters[HOME] = document["manifest"]["title"]  # The core links the manifest as home.
     model = _resolve_icons(_model(document, config, context), assets)
     return prepare_artifact_scripts(assets.resolve_markup(
@@ -639,12 +684,12 @@ def _model(document: dict[str, object], config: Config, context: Context) -> dic
     settings = config.artifact
     title = manifest["title"]
     metadata = {key: value for key, value in manifest["metadata"].items() if key not in {"obs", "obsHtml"}}
-    abstract = _note_body(manifest.get("abstract", []), "", context)  # It holds the metadata's field nodes.
+    abstract = _note_body(manifest.get("abstract", []), "", ["manifest", "abstract"], context)  # It holds the metadata's field nodes.
     # The display HTML of each value that shows: an empty value leaves its cover and header line out.
     metadata_html = _frontmatter_html({key: value for key, value in metadata.items() if value}, HOME, context)
     home_html = _cover(title, metadata, metadata_html, profile["heading"] == "compact") + abstract
     notes = [_note(0, title, HOME, HOME, {}, home_html, context)]
-    notes.extend(_chapter_notes(document["chapters"], context, 0))
+    notes.extend(_chapter_notes(document["chapters"], context, 0, ["chapters"]))
     _attach_records(document["records"], notes, context)
     for note in notes:
         if note["frontmatter"].get("kind") == "quantity" and "value" in note["frontmatter"]:
@@ -693,20 +738,23 @@ def _listed(chapters: list[dict[str, object]]) -> list[str]:
             for slug in (chapter["id"], *_listed(chapter["children"]))]
 
 
-def _chapter_notes(chapters: list[dict[str, object]], context: Context, depth: int) -> list[dict]:
+def _chapter_notes(chapters: list[dict[str, object]], context: Context, depth: int,
+                   where: list[object]) -> list[dict]:
     notes = []
-    for chapter in chapters:
+    for index, chapter in enumerate(chapters):
         context.frontmatter = dict(chapter.get("metadata") or {})
-        body = _note_body(chapter["content"], chapter["id"], context)
+        body = _note_body(chapter["content"], chapter["id"], [*where, index, "content"], context)
         notes.append(_note(depth, chapter["title"], chapter["id"], "", context.frontmatter, body, context))
-        notes.extend(_chapter_notes(chapter["children"], context, depth + 1))
+        notes.extend(_chapter_notes(chapter["children"], context, depth + 1, [*where, index, "children"]))
     return notes
 
 
-def _note_body(nodes: list[dict[str, object]], chapter: str, context: Context) -> str:
+def _note_body(nodes: list[dict[str, object]], chapter: str, where: list[object], context: Context) -> str:
+    """A note's nodes, which sit at ``where`` in the Document."""
     context.chapter, context.tables, context.marks, context.editable = chapter, [], [], {}
-    body = _nodes(nodes, context)
-    context.chapter = ""
+    context.where = where[:-1]
+    body = _nodes(nodes, context, where[-1])
+    context.chapter, context.where = "", []
     return body
 
 
@@ -714,7 +762,7 @@ def _note(depth: int, title: str, slug: str, generated: str, frontmatter: dict[s
           html: str, context: Context) -> dict[str, object]:
     return {
         "depth": depth, "title": title, "slug": slug, "sourcePath": f"{slug}.md",
-        "generated": generated, "cssClasses": _css_classes(frontmatter, slug),
+        "generated": generated, "cssClasses": _css_classes(frontmatter, slug, context),
         "frontmatter": frontmatter, "editableProperties": context.editable,
         "frontmatterHtml": _frontmatter_html(frontmatter, slug, context),
         "definitionHtml": _definition_html(frontmatter, slug, context), "marks": context.marks, "tables": context.tables, "html": html,
@@ -727,15 +775,16 @@ def _attach_records(records: list[dict[str, object]], notes: list[dict[str, obje
     any other note record becomes a record-only note outside the reading order. A note record's
     path is its note's source path, which Bases read file.* properties from (obs bases.md)."""
     by_slug = {note["slug"]: note for note in notes}
-    for record in records:
+    for position, record in enumerate(records):
         if record["type"] != "note":
             continue  # A projected row reaches a register through its rows (_register), not as a note.
         fields = dict(record["fields"])
         note = by_slug.get(record["id"])
         rendered = context.fields.setdefault(record["id"], {})  # A chapter's frontmatter node rendered first.
-        for child in record.get("fieldNodes", []):
+        for index, child in enumerate(record.get("fieldNodes", [])):
             if child["attrs"]["name"] not in rendered:
-                rendered[child["attrs"]["name"]] = _nodes(child["children"], context)
+                with _at(context, "records", position, "fieldNodes", index):
+                    rendered[child["attrs"]["name"]] = _nodes(child["children"], context)
         source_path = record.get("path") or f"{record['id']}.md"
         if note is not None and record.get("ignored"):
             note["ignored"] = True  # Runtime selections skip it (artifact.js, selectable).
@@ -746,7 +795,9 @@ def _attach_records(records: list[dict[str, object]], notes: list[dict[str, obje
             note["sourcePath"] = source_path
             continue
         if note is not None:
-            raise RenderError(f"Record id {record['id']!r} is reserved for the artifact's home page.")
+            raise InputError(_source(context.document), f"records[{position}].id", f"is {record['id']!r}, which "
+                             "obs-html reserves for the artifact's home page", "Rename the note, so the core "
+                             "gives its record another id")
         fields["obs"] = {**(fields.get("obs") or {}), "document": False}
         notes.append({
             "depth": 0, "title": str(fields.get("title") or record["id"]), "slug": record["id"],
@@ -794,8 +845,13 @@ def _cover(title: str, metadata: dict[str, object], html: dict[str, str], compac
     )
 
 
-def _nodes(nodes: list[dict[str, object]], context: Context) -> str:
-    return "".join(_node(node, context) for node in nodes)
+def _nodes(nodes: list[dict[str, object]], context: Context, key: str = "children") -> str:
+    """The nodes of the current node's ``key`` list."""
+    html = []
+    for index, node in enumerate(nodes):
+        with _at(context, key, index):
+            html.append(_node(node, context))
+    return "".join(html)
 
 
 def _node(node: dict[str, object], context: Context) -> str:
@@ -815,10 +871,17 @@ def _phrasing(nodes: list[dict[str, object]], context: Context) -> str:
 def _list(node: dict[str, object], context: Context) -> str:
     tag = "ol" if node["attrs"].get("ordered") else "ul"
     if node["attrs"]["tight"]:
-        items = "".join(f"<li>{_tight_item(item, context)}</li>\n" if item["type"] == "list-item"
-                        else _node(item, context) for item in node["children"])
+        items = "".join(_child(context, index, lambda: f"<li>{_tight_item(item, context)}</li>\n"
+                                       if item["type"] == "list-item" else _node(item, context))
+                        for index, item in enumerate(node["children"]))
         return f"<{tag}>\n{items}</{tag}>\n"
     return f"<{tag}>\n{_nodes(node['children'], context)}</{tag}>\n"
+
+
+def _child(context: Context, index: int, rendered: Callable[[], str]) -> str:
+    """What ``rendered`` writes for the current node's child at ``index``."""
+    with _at(context, "children", index):
+        return rendered()
 
 
 def _section(node: dict[str, object], context: Context) -> str:
@@ -838,10 +901,13 @@ def _table(node: dict[str, object], context: Context) -> str:
     def header(row: dict[str, object]) -> bool:
         return bool(row["children"]) and all(cell["attrs"].get("header") for cell in row["children"])
 
-    head = [row for row in node["children"] if header(row)]
-    body = [row for row in node["children"] if not header(row)]
-    return ("<table>\n" + (f"<thead>\n{_nodes(head, context)}</thead>\n" if head else "")
-            + (f"<tbody>\n{_nodes(body, context)}</tbody>\n" if body else "") + "</table>\n")
+    def rows(head: bool) -> str:
+        return "".join(_child(context, index, lambda: _node(row, context))
+                       for index, row in enumerate(node["children"]) if header(row) == head)
+
+    head, body = rows(True), rows(False)
+    return ("<table>\n" + (f"<thead>\n{head}</thead>\n" if head else "")
+            + (f"<tbody>\n{body}</tbody>\n" if body else "") + "</table>\n")
 
 
 def _table_cell(node: dict[str, object], context: Context) -> str:
@@ -863,8 +929,8 @@ def _math(node: dict[str, object], context: Context) -> str:
     try:
         markup = mathml(formula, display="block" if display else "inline")
     except MATH_ERRORS as error:
-        raise RenderError(f"Chapter {context.chapter or HOME}: math formula {formula!r} is not valid TeX "
-                          f"({type(error).__name__}). Remedy: correct the formula in its note.") from error
+        raise InputError(_note_source(context), "body", f"has the math formula {formula!r}, which is not valid "
+                         f"TeX ({type(error).__name__})", "Correct the formula in the note") from error
     if not display:
         return f'<span class="math inline">{markup}</span>'
     return f'<span class="math block">{markup}</span>' if context.phrasing else f'<div class="math block">{markup}</div>\n'
@@ -917,18 +983,20 @@ def _code(node: dict[str, object]) -> str:
 
 def _tight_item(item: dict[str, object], context: Context) -> str:
     parts = []
-    for child in item["children"]:
-        if child["type"] == "paragraph" and not any(c["type"] == "marks" for c in child["children"]):
-            parts.append(_nodes(child["children"], context))
-        else:
-            parts.append(("\n" if parts else "") + _node(child, context))
+    for index, child in enumerate(item["children"]):
+        with _at(context, "children", index):
+            if child["type"] == "paragraph" and not any(c["type"] == "marks" for c in child["children"]):
+                parts.append(_nodes(child["children"], context))
+            else:
+                parts.append(("\n" if parts else "") + _node(child, context))
     return "".join(parts)
 
 
 def _paragraph(node: dict[str, object], context: Context) -> str:
     """A paragraph; the core places no block node inside one (obs capabilities/markdown)."""
     inner = _phrasing(node["children"], context)
-    marks = [child["attrs"] for child in node["children"] if child["type"] == "marks"]
+    positions = [index for index, child in enumerate(node["children"]) if child["type"] == "marks"]
+    marks = [node["children"][index]["attrs"] for index in positions]
     if not marks:
         return f"<p>{inner}</p>\n"
     slug = context.chapter or HOME
@@ -942,8 +1010,8 @@ def _paragraph(node: dict[str, object], context: Context) -> str:
     rail = "".join(
         f'<a class="semantic-mark-icon semantic-mark-icon--{kind.replace("_", "-")}" href="#tags" '
         f'data-tag-kind="{escape(kind, quote=True)}" data-tag-label="{escape(mark["id"], quote=True)}" '
-        f'aria-label="{escape(_mark_description(mark), quote=True)}">{_mark_icon(kind, context)}</a>'
-        for kind, mark in zip(kinds, marks)
+        f'aria-label="{escape(_mark_description(mark), quote=True)}">{_mark_icon(kind, index, context)}</a>'
+        for kind, mark, index in zip(kinds, marks, positions)
     )
     return (f'<p class="semantic-mark {classes}" data-mark-kind="{escape(" ".join(kinds), quote=True)}" '
             f'data-mark-label="{escape(" ".join(mark["id"] for mark in marks), quote=True)}" id="{anchor}">'
@@ -951,11 +1019,13 @@ def _paragraph(node: dict[str, object], context: Context) -> str:
             f'<span class="semantic-mark-rail" aria-label="Paragraph marks">{rail}</span></p>\n')
 
 
-def _mark_icon(kind: str, context: Context) -> str:
+def _mark_icon(kind: str, index: int, context: Context) -> str:
+    """The icon of the paragraph's mark node at ``index``."""
     try:
         context.assets.icon(f"mark.{kind}")
-    except ValueError as error:
-        raise RenderError(f"Unknown paragraph mark kind {kind!r}: {error}") from error
+    except InputError as error:
+        raise _stale(context, ["children", index, "attrs", "category"], f"is {kind!r}, a mark kind the style's "
+                     f"semantic assets have no icon for ({error.problem})") from error
     return markup(f"mark.{kind}")
 
 
@@ -973,13 +1043,14 @@ def _text_node(node: dict[str, object], context: Context) -> str:
     if "link" in attrs:
         link = context.links.get(attrs["link"])
         if link is None:
-            raise RenderError(f"Text links to an unknown link: {attrs['link']}.")
+            raise _stale(context, ["attrs", "link"], f"names link {attrs['link']!r}, which the Document's links do "
+                         "not contain")
         chapter = _note_target(link["href"], context)
         if chapter is not None:
             return f'<a class="internal-link" href="#{chapter}">{text}</a>'
         return f'<a href="{escape(link["href"], quote=True)}">{text}</a>'
     if "asset" in attrs:
-        asset = _document_asset(attrs["asset"], f"an image names asset {attrs['asset']!r}, which", context)
+        asset = _document_asset(attrs["asset"], context)
         return _image(asset, node.get("text", ""))
     return text
 
@@ -1243,12 +1314,16 @@ def _dock_region(direction: str) -> str:
     )
 
 
-def _index(chapters: list[dict[str, object]], context: Context) -> None:
+def _index(chapters: list[dict[str, object]], context: Context, where: str = "chapters") -> None:
     """Record every chapter and heading anchor before rendering, so links can point forward."""
-    for chapter in chapters:
+    for index, chapter in enumerate(chapters):
+        if chapter["id"] == HOME:
+            raise InputError(_source(context.document), f"{where}[{index}].id", f"is {HOME!r}, which obs-html "
+                             "reserves for the artifact's home page", "Rename the note, so the core gives "
+                             "its chapter another id")
         context.chapters[chapter["id"]] = chapter["title"]
         _index_headings(chapter["id"], chapter["content"], context)
-        _index(chapter["children"], context)
+        _index(chapter["children"], context, f"{where}[{index}].children")
 
 
 def _index_headings(chapter: str, nodes: list[dict[str, object]], context: Context) -> None:
@@ -1266,13 +1341,14 @@ def _index_headings(chapter: str, nodes: list[dict[str, object]], context: Conte
 CSS_CLASS = re.compile(r"-?[_A-Za-z][_A-Za-z0-9-]*")
 
 
-def _css_classes(frontmatter: dict[str, object], slug: str) -> list[str]:
+def _css_classes(frontmatter: dict[str, object], slug: str, context: Context) -> list[str]:
     """The note's Obsidian ``cssclasses``: one class name or a list of them."""
     value = frontmatter.get("cssclasses", [])
     classes = [value] if isinstance(value, str) else value
     if not isinstance(classes, list) or not all(
             isinstance(name, str) and CSS_CLASS.fullmatch(name) for name in classes):
-        raise RenderError(f"cssclasses must be one CSS class name or a list of them in {slug}: {value!r}")
+        raise InputError(_slug_source(slug, context), "cssclasses", f"is {value!r}, not one CSS class name or "
+                         "a list of them", "Write class names of letters, digits, hyphens and underscores")
     return list(dict.fromkeys(classes))
 
 

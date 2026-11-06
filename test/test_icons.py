@@ -8,7 +8,7 @@ import pytest
 from obs_html.cli import main
 from obs_html.config import load_config
 from obs_html.errors import InputError
-from obs_html.render import RenderError, render
+from obs_html.render import render
 from obs_html.artifact_data import decode_artifact_data
 from obs_html.semantic_assets import SemanticAssets
 
@@ -76,16 +76,21 @@ def test_unknown_base_icons_name_the_note_and_the_obshtml_key(document) -> None:
     assert (failure.value.source, failure.value.field) == ("intro.md", "properties.evidence.obsHtml.icon.name")
 
 
-@pytest.mark.parametrize("case,expected", [
-    ("invalid-json", "Invalid semantic asset index"),
-    ("invalid-entry", "does not match"),
-    ("missing-asset", "Missing icon resource"),
-    ("escape", "escapes its boundary"),
-    ("remote", "does not match"),
-    ("script", "Unsupported icon SVG element"),
-    ("malformed-svg", "Invalid icon SVG"),
+EVIDENCE = "assets.project.children.evidence.value"
+"""The field of the icon value write_index writes for project.evidence."""
+
+
+@pytest.mark.parametrize("case,field", [
+    ("invalid-json", "top level"),
+    ("invalid-entry", f"{EVIDENCE}.glyph"),
+    ("missing-asset", f"{EVIDENCE}.asset"),
+    ("escape", f"{EVIDENCE}.asset"),
+    ("remote", f"{EVIDENCE}.asset"),
+    ("script", f"{EVIDENCE}.asset"),
+    ("malformed-svg", f"{EVIDENCE}.asset"),
 ])
-def test_invalid_style_catalogs_fail_the_cli(document, tmp_path, capsys, case, expected) -> None:
+def test_invalid_style_catalogs_fail_the_cli_naming_the_index_and_the_field(document, tmp_path, capsys, case,
+                                                                            field) -> None:
     style = style_with_icons(tmp_path, {})
     catalog = style / "assets.json"
     if case == "invalid-json":
@@ -111,7 +116,7 @@ def test_invalid_style_catalogs_fail_the_cli(document, tmp_path, capsys, case, e
     with pytest.raises(SystemExit) as failure:
         main([str(source), str(output), "--style", str(style)])
     assert failure.value.code == 2
-    assert expected in capsys.readouterr().err
+    assert capsys.readouterr().err.splitlines()[-1].startswith(f"{catalog}: {field}: ")
     assert not output.exists()
 
 
@@ -153,6 +158,7 @@ def test_semantic_hierarchy_alias_and_state_merge(tmp_path) -> None:
     # The packaged filter icon comes from the package, not from the style module's folder.
     packaged = assets.icon("filter")["asset"].split(":")[1]
     assert assets.embedded_assets[packaged].startswith("data:image/svg+xml;")
-    with pytest.raises(ValueError, match="state=unknown"):
+    with pytest.raises(InputError) as failure:
         assets.icon("snapshotAlias", "unknown")
+    assert (failure.value.source, failure.value.field) == (str(tmp_path / "assets.json"), "assets.snapshotAlias")
     assert "#123456" in assets.css()

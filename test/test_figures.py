@@ -7,7 +7,8 @@ import re
 import pytest
 
 from obs_html.config import load_config
-from obs_html.render import RenderError, render
+from obs_html.errors import InputError
+from obs_html.render import render
 from obs_html.artifact_data import decode_artifact_data
 
 
@@ -76,24 +77,27 @@ def test_sankey_descriptors_render_a_static_svg_and_the_runtime_spec(document) -
     assert [link["value"] for link in spec["links"]] == [8, 2]
 
 
-@pytest.mark.parametrize("change, message", [
-    (lambda data: data.clear(), "must carry 'sankey' or 'traces'"),
-    (lambda data: data["traces"].append({"x": [1], "y": []}), "equally long finite"),
-    (lambda data: data["traces"][0].update(panel="nowhere"), "unknown panel"),
+@pytest.mark.parametrize("change, field", [
+    (lambda data: data.clear(), "figure.data"),
+    (lambda data: data["traces"].append({"x": [1], "y": []}), "figure.data.traces[2]"),  # After its two traces.
+    (lambda data: data["traces"][0].update(panel="nowhere"), "figure.data.traces[0].panel"),
 ])
-def test_invalid_plot_data_fails(document, change, message) -> None:
+def test_invalid_plot_data_fails_naming_the_note_and_the_descriptor_field(document, change, field) -> None:
     change(_descriptors(document)["response"]["data"])
-    with pytest.raises(RenderError, match=message):
+    with pytest.raises(InputError) as failure:
         render(document, CONFIG)
+    assert (failure.value.source, failure.value.field) == ("appendix.md", field)
 
 
 def test_invalid_sankey_graphs_fail(document) -> None:
     _descriptors(document)["flow"]["data"]["sankey"]["links"][0]["target"] = "missing"
-    with pytest.raises(RenderError, match="every link endpoint"):
+    with pytest.raises(InputError) as failure:
         render(document, CONFIG)
+    assert (failure.value.source, failure.value.field) == ("appendix.md", "figure.data.sankey.links[0].target")
 
 
 def test_log_axes_need_positive_limits(document) -> None:
     _descriptors(document)["response"]["panels"][0]["axes"][1]["limits"]["minimum"] = 0
-    with pytest.raises(RenderError, match="positive limits"):
+    with pytest.raises(InputError) as failure:
         render(document, CONFIG)
+    assert (failure.value.source, failure.value.field) == ("appendix.md", "figure.panels[0].axes[1].limits")

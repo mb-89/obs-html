@@ -10,13 +10,12 @@ from pathlib import Path
 from time import perf_counter
 from typing import Sequence
 
-from obs_html.comments import CommentError, extract_comments
+from obs_html.comments import extract_comments
 from obs_html.config import load_config
-from obs_html.errors import InputError
+from obs_html.errors import InputError, Parser
 from obs_html.exposure import check_artifact
 from obs_html.figure_svg import document_figures, figure_svg
-from obs_html.figures import FigureError
-from obs_html.render import RenderError, render
+from obs_html.render import render
 from obs_html.artifact_data import same_artifact_content
 from obs_html.timings import recording, stage
 
@@ -89,16 +88,8 @@ Exit status:
 """
 
 
-class _Parser(argparse.ArgumentParser):
-    """argparse's own refusals (an unknown or malformed argument) in the one message form."""
-
-    def error(self, message: str):
-        self.print_usage(sys.stderr)
-        self.exit(2, f"{self.prog}: arguments: {message}. Run {self.prog} --help for the accepted arguments.\n")
-
-
 def build_parser() -> argparse.ArgumentParser:
-    parser = _Parser(
+    parser = Parser(
         prog="obs-html",
         description="Render a JSON Document as portable HTML or PDF.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -147,9 +138,6 @@ def main(argv: Sequence[str] | None = None) -> int:
     except InputError as error:
         parser.print_usage(sys.stderr)
         parser.exit(2, f"{error}\n")
-    except (CommentError, RenderError, OSError, RuntimeError, ValueError) as error:
-        parser.print_usage(sys.stderr)
-        parser.exit(2, f"{parser.prog}: error: {error}\n")
     if options.timings:
         for name, seconds in {**recorded.durations, "total": perf_counter() - started}.items():
             print(f"Timing: {name} {seconds:.3f} s")
@@ -227,7 +215,8 @@ def _browser_operation(options: argparse.Namespace, config) -> None:
         failures = [f"status {result.status}"] if result.status != "ready" else []
         if result.console_errors:
             failures.append(f"{len(result.console_errors)} console errors")
-        raise RenderError(f"Rendered check failed: {', '.join(failures)}.")
+        raise InputError(options.check_rendered, "--check-rendered", f"fails: {', '.join(failures)}",
+                         "Fix what the console errors above name, then render the HTML again")
 
 
 RUNTIME_ID = re.compile(r"[a-z][a-z0-9-]{0,63}")
@@ -256,12 +245,8 @@ def _export_figures(options: argparse.Namespace) -> None:
     document = _read_document(options.document)
     folder = options.export_figures.resolve()
     exported = 0
-    for name, descriptor in document_figures(document):
-        try:
-            svg = figure_svg(descriptor)
-        except FigureError as error:
-            raise RenderError(f"{options.document} ({name}): {error}") from error
-        _write_if_changed(folder / f"{name}.svg", svg.encode("utf-8"))
+    for name, descriptor, source in document_figures(document):
+        _write_if_changed(folder / f"{name}.svg", figure_svg(descriptor, source).encode("utf-8"))
         exported += 1
     if not exported:
         raise InputError(options.document, "", "has no figure-descriptor node, so there is nothing to export",
@@ -295,6 +280,9 @@ def _read_document(path: Path) -> dict[str, object]:
     except json.JSONDecodeError as error:
         raise InputError(path, "", f"is not JSON ({error.msg} at line {error.lineno}, column {error.colno})",
                          "Build the Document with obs-document") from error
+    except (OSError, UnicodeError) as error:
+        raise InputError(path, "DOCUMENT", f"cannot be read ({error})",
+                         "Name an existing JSON Document, built with obs-document") from error
 
 
 def _read_existing(path: Path) -> str | None:
@@ -315,9 +303,9 @@ def _write_if_changed(output_path: Path, data: bytes) -> bool:
             return False
     except OSError:
         pass
-    output_path.parent.mkdir(parents=True, exist_ok=True)
     temporary_path: Path | None = None
     try:
+        output_path.parent.mkdir(parents=True, exist_ok=True)
         with tempfile.NamedTemporaryFile(
             mode="wb", dir=output_path.parent, prefix=f".{output_path.name}.", suffix=".tmp",
             delete=False,
@@ -325,6 +313,9 @@ def _write_if_changed(output_path: Path, data: bytes) -> bool:
             temporary.write(data)
             temporary_path = Path(temporary.name)
         temporary_path.replace(output_path)
+    except OSError as error:
+        raise InputError(output_path, "", f"cannot be written ({error.strerror or error})",
+                         "Name an output in a folder you can write") from error
     finally:
         if temporary_path and temporary_path.exists():
             temporary_path.unlink()

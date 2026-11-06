@@ -12,11 +12,8 @@ from playwright.sync_api import (
 )
 from pypdf import PdfReader
 
+from obs_html.errors import InputError
 from obs_html.timings import stage
-
-
-class BrowserFailure(RuntimeError):
-    """Raised when no browser can open the HTML."""
 
 
 class RenderedCheck(NamedTuple):
@@ -40,7 +37,8 @@ def _executable() -> str | None:
 
 
 @contextmanager
-def _browser_page(operation: str) -> Iterator[Page]:
+def _browser_page(operation: str, html: Path) -> Iterator[Page]:
+    """A headless page for ``operation`` (the obs-html option) on ``html``."""
     try:
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch(executable_path=_executable())
@@ -49,10 +47,9 @@ def _browser_page(operation: str) -> Iterator[Page]:
             finally:
                 browser.close()
     except BrowserError as error:
-        raise BrowserFailure(
-            f"{operation} failed. Use installed Chrome/Edge/Chromium or install the Playwright "
-            f"browser with 'uv run playwright install chromium'. Details: {error}"
-        ) from error
+        raise InputError(html, operation, f"failed in the browser ({error})", "Use an installed "
+                         "Chrome, Edge or Chromium, or install the Playwright browser with 'uv run "
+                         "playwright install chromium'") from error
 
 
 def _print(page: Page) -> bytes:
@@ -64,7 +61,7 @@ def _print(page: Page) -> bytes:
 
 @stage("print")
 def export_pdf(html: Path) -> bytes:
-    with _browser_page("PDF export") as page:
+    with _browser_page("--export-pdf", html) as page:
         page.goto(html.resolve().as_uri(), wait_until="load")
         page.wait_for_function("!!globalThis.obsPages")
         return _print(page)
@@ -80,7 +77,7 @@ def check_rendered(html: Path, timeout_seconds: int) -> RenderedCheck:
             where = f" ({location['url']}:{location['lineNumber']})" if location.get("url") else ""
             errors.append(message.text + where)
 
-    with _browser_page("Rendered check") as page:
+    with _browser_page("--check-rendered", html) as page:
         page.on("console", console)
         page.on("pageerror", lambda error: errors.append(f"Uncaught {error}"))
         with stage("open"):

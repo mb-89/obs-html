@@ -7,6 +7,8 @@ from pkgutil import iter_modules
 from types import ModuleType
 from typing import Callable
 
+from obs_html.errors import InputError
+
 
 @dataclass(frozen=True)
 class BarDefinition:
@@ -30,18 +32,22 @@ def discover_bars(package_name: str = __name__) -> tuple[BarDefinition, ...]:
     ordered = tuple(sorted(definitions, key=lambda item: (item.order, item.key)))
     keys = [definition.key for definition in ordered]
     if len(keys) != len(set(keys)):
-        raise ValueError(f"Dock bar keys must be unique: {keys}")
+        raise InputError(package_name, "BAR.key", f"repeats a key among {keys}", "Give every dock bar its own key")
     return ordered
 
 
 def _load_definition(module: ModuleType) -> BarDefinition:
     definition = getattr(module, "BAR", None)
     if not isinstance(definition, BarDefinition):
-        raise TypeError(f"{module.__name__} must export one BarDefinition named BAR.")
-    if not all((definition.key, definition.label, definition.icon, definition.help)):
-        raise ValueError(f"{module.__name__} has incomplete dock bar metadata.")
+        raise InputError(module.__name__, "BAR", "is missing or no BarDefinition",
+                         "Export one BarDefinition named BAR")
+    missing = next((name for name in ("key", "label", "icon", "help") if not getattr(definition, name)), None)
+    if missing is not None:
+        raise InputError(module.__name__, f"BAR.{missing}", "is empty", "Give the dock bar a key, label, "
+                         "icon and help")
     package, _, name = module.__name__.rpartition(".")
     runtime = files(package).joinpath(f"{name}.js")
     if definition.script:
-        raise TypeError(f"{module.__name__} must keep its browser runtime in {name}.js, not a Python string.")
+        raise InputError(module.__name__, "BAR.script", "is set, but a dock bar's browser runtime is a file",
+                         f"Move it into {name}.js beside the module")
     return replace(definition, script=runtime.read_text(encoding="utf-8")) if runtime.is_file() else definition

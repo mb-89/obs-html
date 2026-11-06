@@ -3,6 +3,7 @@
 The core embeds each referenced vault file's bytes and each fetched remote image's bytes in its
 asset (obs architecture, Asset bytes); an image whose asset has no bytes shows its alt text.
 """
+import re
 import base64
 import shutil
 import subprocess
@@ -15,7 +16,8 @@ from conftest import PIXEL, built_once
 from documents import chapter, document as build, node, paragraph
 from obs_html.artifact_data import decode_artifact_data
 from obs_html.config import load_config
-from obs_html.render import RenderError, render
+from obs_html.errors import InputError
+from obs_html.render import render
 
 
 CONFIG = load_config()
@@ -66,13 +68,16 @@ def test_a_document_whose_vault_was_deleted_renders_every_image_and_attachment(t
     assert 'src="media/' not in json.dumps(notes)
 
 
-@pytest.mark.parametrize("image, what", [
-    (node("embeds", target="x.png", chapter=None, asset="gone"), "embed 'x.png' names asset 'gone'"),
-    ({"type": "text", "attrs": {"asset": "gone"}, "children": [], "text": "X"}, "image names asset 'gone'"),
+@pytest.mark.parametrize("image", [
+    node("embeds", target="x.png", chapter=None, asset="gone"),
+    {"type": "text", "attrs": {"asset": "gone"}, "children": [], "text": "X"},
 ])
-def test_an_image_naming_an_unknown_asset_names_the_chapter_and_the_remedy(image, what) -> None:
-    with pytest.raises(RenderError, match=rf"^Chapter one: .*{what}.*regenerate the Document with the obs core"):
+def test_an_image_naming_an_unknown_asset_names_the_document_the_node_and_the_remedy(image) -> None:
+    with pytest.raises(InputError) as failure:
         render(build("Doc", chapter("one", "One", paragraph(image))), CONFIG)
+    assert failure.value.source == "Document of manifest.md"
+    assert re.fullmatch(r"chapters\[0\]\.content\[0\]\.children\[0\]\.attrs\.asset", failure.value.field), failure.value.field
+    assert "obs-document" in failure.value.remedy
 
 
 def _remote_document() -> dict:

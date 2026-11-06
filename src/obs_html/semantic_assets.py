@@ -10,9 +10,9 @@ from html import escape
 from pathlib import Path
 from xml.etree import ElementTree
 
-from jsonschema import Draft202012Validator, ValidationError, validate
+from jsonschema import Draft202012Validator
 
-from obs_html.errors import InputError
+from obs_html.errors import InputError, schema_error
 
 
 ROOT = Path(__file__).parent
@@ -24,17 +24,28 @@ PLACEHOLDER = re.compile(
 )
 
 
+REFERENCE = "obs-html's assets.schema.json and obs semantic-assets"
+REMEDY = f"Correct the asset in its index; see {REFERENCE}"
+
+
+def asset_field(name: str) -> str:
+    """A semantic ID as its field path in an index: ``mark.risk`` is ``assets.mark.children.risk``."""
+    return "assets." + ".children.".join(name.split("."))
+
+
 def markup(name: str) -> str:
     if not NAME_VALIDATOR.is_valid(name):
-        raise ValueError(f"Invalid icon name: {name}")
+        raise InputError("obs-html (src/obs_html/semantic_assets.py)", "name", f"is {name!r}, not a semantic ID",
+                         f"Name an icon by its semantic ID; see {REFERENCE}")
     return f'<span class="resource-icon" data-icon="{name}" aria-hidden="true"></span>'
 
 
-def _local_file(name: str, owner: Path, boundary: Path) -> Path:
+def _local_file(name: str, owner: Path, boundary: Path, field: str) -> Path:
+    """The icon file the index ``owner`` names at ``field``, inside ``boundary``."""
     relative = Path(name)
     if relative.is_absolute() or relative.drive or ":" in name or "\\" in name:
-        raise ValueError(f"Icon resource must use a local relative path: {name}")
-    candidate = owner / relative
+        raise InputError(owner, field, f"is {name!r}, not a local relative path", "Name a file beside the index")
+    candidate = owner.parent / relative
     for part in (candidate, *candidate.parents):
         if not part.is_relative_to(boundary):
             continue
@@ -43,16 +54,22 @@ def _local_file(name: str, owner: Path, boundary: Path) -> Path:
         except FileNotFoundError:
             continue
         if part.is_symlink() or attributes & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0):
-            raise ValueError(f"Icon resource cannot use a symlink: {name}")
+            raise InputError(owner, field, f"is {name!r}, which passes a symbolic link",
+                             "Name the file itself, not a link")
     path = candidate.resolve()
     if not path.is_relative_to(boundary.resolve()):
-        raise ValueError(f"Icon resource escapes its boundary: {name}")
+        raise InputError(owner, field, f"is {name!r}, outside the folder of the index", "Name a file in that folder")
     if not path.is_file():
-        raise ValueError(f"Missing icon resource: {name}")
+        raise InputError(owner, field, f"is {name!r}, which does not exist", "Add the file or name an existing one")
     return path
 
 
-def _image(path: Path) -> tuple[str, bytes]:
+def _image(path: Path, owner: Path, field: str) -> tuple[str, bytes]:
+    """The media type and bytes of an icon file the index (``owner``) names at ``field``."""
+    def refused(problem: str) -> InputError:
+        return InputError(owner, field, f"names {path.name}, {problem}",
+                          "Use a static SVG of shapes, or a PNG, JPEG, GIF or WebP image")
+
     raw = path.read_bytes()
     mime = {
         ".svg": "image/svg+xml", ".png": "image/png", ".jpg": "image/jpeg",
@@ -61,11 +78,11 @@ def _image(path: Path) -> tuple[str, bytes]:
     valid = False
     if mime == "image/svg+xml":
         if b"<!" in raw:
-            raise ValueError(f"Invalid icon SVG declaration: {path.name}")
+            raise refused("an SVG with a declaration (<!...>)")
         try:
             root = ElementTree.fromstring(raw)
         except ElementTree.ParseError as error:
-            raise ValueError(f"Invalid icon SVG: {path.name}") from error
+            raise refused(f"which is no well-formed SVG ({error})") from error
         tags = {"svg", "g", "path", "polygon", "polyline", "rect", "circle", "ellipse", "line"}
         attributes = {
             "viewBox", "width", "height", "x", "y", "x1", "y1", "x2", "y2", "cx", "cy",
@@ -74,12 +91,12 @@ def _image(path: Path) -> tuple[str, bytes]:
         }
         for node in root.iter():
             if node.tag.removeprefix("{http://www.w3.org/2000/svg}") not in tags:
-                raise ValueError(f"Unsupported icon SVG element: {path.name}")
+                raise refused(f"an SVG with the element {node.tag!r}, which an icon may not use")
             if node.text and node.text.strip():
-                raise ValueError(f"Icon SVG must contain only static geometry: {path.name}")
+                raise refused("an SVG with text, but an icon holds only static geometry")
             for key, value in node.attrib.items():
                 if key not in attributes or re.search(r"url\s*\(|[<>]", value, re.I):
-                    raise ValueError(f"Unsupported icon SVG attribute: {path.name}")
+                    raise refused(f"an SVG with the attribute {key!r} or its value, which an icon may not use")
         valid = root.tag == "{http://www.w3.org/2000/svg}svg"
     elif mime == "image/png":
         valid = raw.startswith(b"\x89PNG\r\n\x1a\n")
@@ -90,15 +107,15 @@ def _image(path: Path) -> tuple[str, bytes]:
     elif mime == "image/webp":
         valid = raw.startswith(b"RIFF") and raw[8:12] == b"WEBP"
     if not valid:
-        raise ValueError(f"Invalid or unsupported icon image: {path.name}")
+        raise refused("which is no image of its suffix's type")
     return mime, raw
 
 
-def _unique(pairs):
+def _unique(pairs, path: Path):
     result = {}
     for key, value in pairs:
         if key in result:
-            raise ValueError(f"Duplicate semantic definition: {key}")
+            raise InputError(path, "assets", f"repeats the key {key!r} in one object", "Keep one definition per key")
         result[key] = value
     return result
 
@@ -116,6 +133,17 @@ def color_variable(name: str) -> str:
     return "--asset-" + name.encode("utf-8").hex()
 
 
+def _read_index(path: Path) -> dict:
+    """An index file as JSON, refusing a key it repeats."""
+    try:
+        return json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=lambda pairs: _unique(pairs, path))
+    except InputError:
+        raise
+    except (ValueError, UnicodeError, OSError) as error:
+        raise InputError(path, "", f"is no UTF-8 JSON file ({error})", f"Write the index as JSON; see {REFERENCE}") \
+            from error
+
+
 class SemanticAssets:
     def __init__(self, selected: Path | None = None):
         """The packaged index, overlaid by a style module's assets.json when one is selected."""
@@ -127,19 +155,21 @@ class SemanticAssets:
         self.nodes, self.origins, self.value_origins = {}, {}, {}
         self.resources, self.embedded_assets = {}, {}
         for path, boundary in indexes:
-            try:
-                data = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=_unique)
-                validate(data, schema)
-            except (ValueError, UnicodeError, ValidationError) as error:
-                raise ValueError(f"Invalid semantic asset index {path}: {error}") from error
+            data = _read_index(path)
+            error = schema_error(list(Draft202012Validator(schema).iter_errors(data)), path, REFERENCE)
+            if error is not None:
+                raise error
             def overlay(nodes, prefix=""):
                 for segment, node in nodes.items():
                     name = f"{prefix}.{segment}" if prefix else segment
                     if not NAME_VALIDATOR.is_valid(name):
-                        raise ValueError(f"{path}: invalid semantic ID: {name}")
+                        raise InputError(path, asset_field(name), f"has the key {segment!r}, which makes "
+                                         f"{name!r} no semantic ID", f"Rename it; see {REFERENCE}")
                     previous = self.nodes.get(name, {})
                     if "type" in node and "type" in previous and node["type"] != previous["type"]:
-                        raise ValueError(f"{path}: incompatible type override for {name}")
+                        raise InputError(path, f"{asset_field(name)}.type", f"is {node['type']!r}, but the "
+                                         f"index it overlays declares {previous['type']!r}",
+                                         "Keep the overlaid type or name another semantic ID")
                     local = {key: value for key, value in node.items() if key != "children"}
                     self.nodes[name] = _merge(previous, local)
                     self.origins[name] = path
@@ -171,10 +201,13 @@ class SemanticAssets:
                 self._compile(name, [])
 
     def error(self, name, message, chain=()):
-        location = self.origins.get(name) or next(
-            (self.origins[item] for item in reversed(chain) if item in self.origins), "semantic index")
+        """Refuse semantic asset ``name``, reached through ``chain``, naming its index and field."""
+        known = name if name in self.origins else next((item for item in reversed(chain) if item in self.origins),
+                                                       None)
+        location = self.origins[known] if known else "obs-html's semantic assets (the packaged index and the style's)"
         route = " -> ".join([*chain, name])
-        raise ValueError(f"{location}: semantic asset {name} [{route}]: {message}")
+        raise InputError(location, asset_field(known) if known else "assets",
+                         f"{message} (semantic asset {name}, reached as {route})", REMEDY)
 
     def _lineage(self, name):
         parts = name.split(".")
@@ -234,13 +267,16 @@ class SemanticAssets:
                     resolved = value
                 else:
                     path, boundary = self.value_origins[name]
+                    field = f"{asset_field(name)}.value.asset"
+                    image = _local_file(value["asset"], path, boundary, field)
                     try:
-                        image = _local_file(value["asset"], path.parent, boundary)
-                        mime, raw = _image(image)
-                        if value.get("monochrome") and mime != "image/svg+xml":
-                            raise ValueError("Monochrome icon resources require a local SVG image")
-                    except (ValueError, OSError) as error:
-                        self.error(name, str(error), chain)
+                        mime, raw = _image(image, path, field)
+                    except OSError as error:
+                        raise InputError(path, field, f"names {image.name}, which cannot be read ({error})",
+                                         "Make the file readable") from error
+                    if value.get("monochrome") and mime != "image/svg+xml":
+                        raise InputError(path, f"{asset_field(name)}.value.monochrome", "is true, but the "
+                                         "icon is no SVG", "Use an SVG or drop monochrome")
                     uri = f"data:{mime};base64,{base64.b64encode(raw).decode('ascii')}"
                     key = hashlib.sha256(uri.encode("ascii")).hexdigest()
                     self.embedded_assets[key] = uri
@@ -343,7 +379,7 @@ class SemanticAssets:
                 try:
                     for state in ("active", "inactive"):
                         self.icon(icon["name"], state)
-                except ValueError as error:
+                except InputError as error:
                     field = f"properties.{property_name}.obsHtml.{'icon' if single else f'icons[{index}]'}.name"
                     raise InputError(source, field, f"names {icon['name']!r}, which is no icon of the style's "
                                      "semantic assets", "Name a packaged icon or one the style module's "
