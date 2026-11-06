@@ -28,6 +28,7 @@ from markdown_it import MarkdownIt
 
 from obs_html.bars import BarDefinition, discover_bars
 from obs_html.config import Config, paper
+from obs_html.errors import InputError, schema_error
 from obs_html.features import included as included_features
 from obs_html.figures import FigureError, render_descriptor
 from obs_html.artifact_data import encode_artifact_data, prepare_artifact_scripts, serialize_artifact_data
@@ -49,6 +50,8 @@ PROFILE_DEFAULTS = {
 }
 COVER_FIELDS = ("authors", "reviewers", "approvers", "sap number", "legal entity")
 HOME = "home"
+MANIFEST = "manifest note"
+"""Where a manifest field comes from: a Document does not carry its manifest note's path."""
 DOCK_DIRECTIONS = (
     ("left", "left", "vertical"),
     ("right", "right", "vertical"),
@@ -307,7 +310,7 @@ def _base(node: dict[str, object], context: Context) -> str:
                 f"Base in chapter {context.chapter or HOME}: views.{index}.obs.members: obs-html shows "
                 "members only in a register, whose rows the obs core selects. Remedy: move the Base into a "
                 ".base file and embed it with ![[<file>.base]].")
-    return _data_table(definition, None, context)
+    return _data_table(definition, None, context, _note_source(context))
 
 
 def _register(node: dict[str, object], context: Context) -> str:
@@ -326,7 +329,7 @@ def _register(node: dict[str, object], context: Context) -> str:
     definition, view = attrs["base"], attrs["view"]
     if view is not None:
         definition, rows = {**definition, "views": [definition["views"][view]]}, [rows[view]]
-    return _data_table(definition, rows, context)
+    return _data_table(definition, rows, context, attrs["target"])
 
 
 def _row_keys(records: list[dict[str, object]]) -> dict[str, str]:
@@ -345,11 +348,15 @@ def _row_keys(records: list[dict[str, object]]) -> dict[str, str]:
     return {record["id"]: keys[record["type"]](record) for record in records}
 
 
-def _data_table(definition: dict[str, object], rows: list[list[str]] | None, context: Context) -> str:
-    try:
-        context.assets.normalize_definition(definition)
-    except ValueError as error:
-        raise RenderError(f"Base in chapter {context.chapter or HOME}: {error}") from error
+def _note_source(context: Context) -> str:
+    """The note the current chapter's content comes from, as messages name it."""
+    record = context.records.get(context.chapter or "")
+    return str(record["path"]) if record else MANIFEST if not context.chapter else f"chapter {context.chapter}"
+
+
+def _data_table(definition: dict[str, object], rows: list[list[str]] | None, context: Context,
+                source: str) -> str:
+    context.assets.normalize_definition(definition, source)
     key = f"{context.chapter or HOME}-base-{len(context.tables) + 1}"
     for filters in [definition.get("filters"), *(view.get("filters") for view in definition.get("views", []))]:
         unsupported = _unsupported_filter(filters)
@@ -587,12 +594,10 @@ def _profile(manifest: dict[str, object]) -> dict[str, object]:
     passes on without reading (obs input-model#Core and adapter namespaces); this adapter checks it."""
     declared = manifest["metadata"].get("obsHtml", {})
     schema = json.loads(files("obs_html").joinpath("profile.schema.json").read_text(encoding="utf-8"))
-    error = next(Draft202012Validator(schema).iter_errors(declared), None)
+    error = schema_error(list(Draft202012Validator(schema).iter_errors(declared)), MANIFEST, "obs-html's "
+                         "profile.schema.json and obs capabilities/artifact-presentation", prefix="obsHtml")
     if error is not None:
-        location = "".join(f"[{part}]" if isinstance(part, int) else f".{part}" for part in error.absolute_path)
-        raise RenderError(f"Manifest frontmatter obsHtml{location}: {error.message}. Remedy: write a value "
-                          "obs-html's presentation profile allows (src/obs_html/profile.schema.json, obs "
-                          "capabilities/artifact-presentation).")
+        raise error
     resolved = {key: declared.get(key, value) for key, value in PROFILE_DEFAULTS.items()}
     resolved["figures"] = PROFILE_DEFAULTS["figures"] | resolved["figures"]
     resolved["print"] = declared.get("print") or {}
@@ -627,7 +632,9 @@ def _model(document: dict[str, object], config: Config, context: Context) -> dic
                 "target": {"name": title, "version": "unknown", "commit": "unknown"},
             },
         },
-        "paper": paper({**config.print_default, **profile["print"]}, config),
+        "paper": paper({**config.print_default, **profile["print"]}, config, lambda key: (
+            (MANIFEST, f"obsHtml.print.{key}") if key in profile["print"]
+            else (config.source("artifact", "print", "default", key), f"artifact.print.default.{key}"))),
         "reading": {"theme": "light", "paged": profile["layout"] == "paged", **settings["reading"]},
         "figures": settings["figures"],
         "printReadyTimeoutMilliseconds": settings["printReadyTimeoutMilliseconds"],

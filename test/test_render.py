@@ -3,6 +3,7 @@ import re
 import pytest
 
 from obs_html.config import load_config
+from obs_html.errors import InputError
 from obs_html.render import RenderError, render
 from obs_html.artifact_data import decode_artifact_data
 
@@ -66,10 +67,19 @@ def test_defaults_apply_without_a_profile(document) -> None:
 def test_an_invalid_presentation_profile_names_the_manifest_field_and_the_remedy(document, profile, field) -> None:
     """The adapter checks its own namespace; the obs core does not read it."""
     document["manifest"]["metadata"]["obsHtml"] = profile
-    with pytest.raises(RenderError) as failure:
+    with pytest.raises(InputError) as failure:
         _model(document)
-    assert str(failure.value).startswith(f"Manifest frontmatter {field}: ")
-    assert "Remedy:" in str(failure.value) and "profile.schema.json" in str(failure.value)
+    assert (failure.value.source, failure.value.field) == ("manifest note", field)
+    assert str(failure.value).startswith(f"manifest note: {field}: ")
+
+
+@pytest.mark.parametrize(("choice", "field"), [({"paper": "B5"}, "obsHtml.print.paper"),
+                                               ({"margin": "2mm"}, "obsHtml.print.margin")])
+def test_an_invalid_print_choice_names_the_manifest_field(document, choice, field) -> None:
+    document["manifest"]["metadata"]["obsHtml"]["print"] = choice
+    with pytest.raises(InputError) as failure:
+        _model(document)
+    assert (failure.value.source, failure.value.field) == ("manifest note", field)
 
 
 def test_profile_print_choice_sets_the_paper(document) -> None:

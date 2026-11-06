@@ -12,6 +12,8 @@ from xml.etree import ElementTree
 
 from jsonschema import Draft202012Validator, ValidationError, validate
 
+from obs_html.errors import InputError
+
 
 ROOT = Path(__file__).parent
 SCHEMA = json.loads((ROOT / "assets.schema.json").read_text(encoding="utf-8"))
@@ -331,11 +333,20 @@ class SemanticAssets:
             return opening.replace("</span>", f"{body}</span>")
         return PLACEHOLDER.sub(replace, text)
 
-    def normalize_definition(self, definition):
-        for declaration in definition.get("properties", {}).values():
+    def normalize_definition(self, definition, source):
+        """Check each property's obsHtml icon against this catalogue; ``source`` names the note or
+        .base file the Base definition comes from."""
+        for property_name, declaration in definition.get("properties", {}).items():
             options = declaration.get("obsHtml", {})
-            for icon in ([options["icon"]] if "icon" in options else options.get("icons", [])):
-                for state in ("active", "inactive"):
-                    self.icon(icon["name"], state)
+            single = "icon" in options
+            for index, icon in enumerate([options["icon"]] if single else options.get("icons", [])):
+                try:
+                    for state in ("active", "inactive"):
+                        self.icon(icon["name"], state)
+                except ValueError as error:
+                    field = f"properties.{property_name}.obsHtml.{'icon' if single else f'icons[{index}]'}.name"
+                    raise InputError(source, field, f"names {icon['name']!r}, which is no icon of the style's "
+                                     "semantic assets", "Name a packaged icon or one the style module's "
+                                     "assets.json defines") from error
                 if "linkProperty" in icon:
                     icon.setdefault("download", icon["name"] == "snapshot")

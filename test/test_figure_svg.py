@@ -120,7 +120,7 @@ def test_cli_reports_a_document_without_figures(document, tmp_path, capsys) -> N
     source.write_text(json.dumps(document), encoding="utf-8")
     with pytest.raises(SystemExit):
         main([str(source), "--export-figures", str(tmp_path / "figures")])
-    assert "has no figure-descriptor node" in capsys.readouterr().err
+    assert f"\n{source}: top level: " in f"\n{capsys.readouterr().err}"
 
 
 def test_cli_refuses_export_figures_with_a_destination(document, tmp_path, capsys) -> None:
@@ -128,4 +128,4 @@ def test_cli_refuses_export_figures_with_a_destination(document, tmp_path, capsy
     source.write_text(json.dumps(document), encoding="utf-8")
     with pytest.raises(SystemExit):
         main([str(source), str(tmp_path / "out.html"), "--export-figures", str(tmp_path / "f")])
-    assert "--export-figures" in capsys.readouterr().err
+    assert "\nobs-html: DESTINATION: " in f"\n{capsys.readouterr().err}"

@@ -11,7 +11,8 @@ from time import perf_counter
 from typing import Sequence
 
 from obs_html.comments import CommentError, extract_comments
-from obs_html.config import ConfigError, load_config
+from obs_html.config import load_config
+from obs_html.errors import InputError
 from obs_html.exposure import check_artifact
 from obs_html.figure_svg import document_figures, figure_svg
 from obs_html.figures import FigureError
@@ -80,8 +81,16 @@ Exit status:
 """
 
 
+class _Parser(argparse.ArgumentParser):
+    """argparse's own refusals (an unknown or malformed argument) in the one message form."""
+
+    def error(self, message: str):
+        self.print_usage(sys.stderr)
+        self.exit(2, f"{self.prog}: arguments: {message}. Run {self.prog} --help for the accepted arguments.\n")
+
+
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
+    parser = _Parser(
         prog="obs-html",
         description="Render a JSON Document as portable HTML or PDF.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -118,38 +127,41 @@ def main(argv: Sequence[str] | None = None) -> int:
         config = load_config(options.config)
         with recording() as recorded:
             if options.extract_comments:
-                _extract(parser, options)
+                _extract(options)
             elif options.export_figures:
-                _export_figures(parser, options)
+                _export_figures(options)
             elif options.check_rendered or options.export_pdf:
-                _browser_operation(parser, options, config)
+                _browser_operation(options, config)
             else:
-                _render(parser, options, config)
-    except (CommentError, ConfigError, RenderError, OSError, RuntimeError, ValueError) as error:
-        parser.error(str(error))
+                _render(options, config)
+    except InputError as error:
+        parser.print_usage(sys.stderr)
+        parser.exit(2, f"{error}\n")
+    except (CommentError, RenderError, OSError, RuntimeError, ValueError) as error:
+        parser.print_usage(sys.stderr)
+        parser.exit(2, f"{parser.prog}: error: {error}\n")
     if options.timings:
         for name, seconds in {**recorded.durations, "total": perf_counter() - started}.items():
             print(f"Timing: {name} {seconds:.3f} s")
     return 0
 
 
-def _render(parser: argparse.ArgumentParser, options: argparse.Namespace, config) -> None:
+def _render(options: argparse.Namespace, config) -> None:
     if options.output:
-        parser.error("--output is only used with --export-pdf; give DESTINATION instead.")
+        raise InputError(PROG, "--output", "is only used with --export-pdf", "Give DESTINATION instead")
     if options.document is None:
-        parser.error("DOCUMENT is required.")
+        raise InputError(PROG, "DOCUMENT", "is missing", "Name the JSON Document to render")
     if options.check and options.destination:
-        parser.error("--check cannot be combined with DESTINATION.")
+        raise InputError(PROG, "--check", "cannot be combined with DESTINATION",
+                         "Drop DESTINATION to render without output, or drop --check to write it")
     if not options.check and options.destination is None:
-        parser.error("DESTINATION is required unless --check is given.")
+        raise InputError(PROG, "DESTINATION", "is missing",
+                         "Name the output file, or pass --check to render without output")
     if options.destination and options.destination.resolve() == options.document.resolve():
-        parser.error("DESTINATION must not overwrite DOCUMENT.")
-    try:
-        document = json.loads(options.document.read_text(encoding="utf-8"))
-    except json.JSONDecodeError as error:
-        raise RenderError(f"Invalid Document {options.document}: {error}") from error
+        raise InputError(PROG, "DESTINATION", "names DOCUMENT itself", "Name another output file")
+    document = _read_document(options.document)
     artifact = render(document, config, style_folder=options.style,
-                    trusted_runtime=_trusted_runtime(parser, options.trusted_runtime_bundle))
+                    trusted_runtime=_trusted_runtime(options.trusted_runtime_bundle))
     check_artifact(artifact)
     for diagnostic in document["diagnostics"]:
         print(f"{diagnostic['level'].title()}: {diagnostic['message']}", file=sys.stderr)
@@ -178,22 +190,23 @@ def _render(parser: argparse.ArgumentParser, options: argparse.Namespace, config
     print(f"Generated {destination}.")
 
 
-def _browser_operation(parser: argparse.ArgumentParser, options: argparse.Namespace, config) -> None:
-    if (options.document or options.destination or options.check or options.style
-            or options.trusted_runtime_bundle or options.check_rendered and options.export_pdf):
-        parser.error("--export-pdf and --check-rendered are separate operations without DOCUMENT.")
+def _browser_operation(options: argparse.Namespace, config) -> None:
+    operation = "--export-pdf" if options.export_pdf else "--check-rendered"
+    _alone(operation, options, "document", "destination", "check", "style", "trusted_runtime_bundle",
+           *(["check_rendered"] if options.export_pdf else []))
     from obs_html.pdf import check_rendered, export_pdf
     if options.export_pdf:
         output = options.output
         if output is None or output.suffix.lower() != ".pdf":
-            parser.error("--export-pdf requires --output file.pdf.")
+            raise InputError(PROG, "--output", "is missing or names no .pdf file",
+                             "Give --export-pdf an --output file ending in .pdf")
         if output.resolve() == options.export_pdf.resolve():
-            parser.error("PDF output must not overwrite the source HTML.")
+            raise InputError(PROG, "--output", "names the source HTML", "Name another .pdf file")
         _write_if_changed(output.resolve(), export_pdf(options.export_pdf))
         print(f"Generated PDF {output.resolve()}.")
         return
     if options.output:
-        parser.error("--output is only used with --export-pdf.")
+        raise InputError(PROG, "--output", "is only used with --export-pdf", "Drop it from --check-rendered")
     result = check_rendered(options.check_rendered, config.rendered_check_timeout_seconds)
     for error in result.console_errors:
         print(f"Console error: {error}", file=sys.stderr)
@@ -209,27 +222,27 @@ def _browser_operation(parser: argparse.ArgumentParser, options: argparse.Namesp
 RUNTIME_ID = re.compile(r"[a-z][a-z0-9-]{0,63}")
 
 
-def _trusted_runtime(parser: argparse.ArgumentParser, bundle: str | None) -> tuple[str, str] | None:
+def _trusted_runtime(bundle: str | None) -> tuple[str, str] | None:
     if bundle is None:
         return None
     runtime_id, separator, runtime_path = bundle.partition("=")
     if not separator or not RUNTIME_ID.fullmatch(runtime_id) or not runtime_path:
-        parser.error("--trusted-runtime-bundle must use the form ID=PATH.")
+        raise InputError(PROG, "--trusted-runtime-bundle", f"is {bundle!r}, not the form ID=PATH",
+                         "Give an ID of lowercase letters, digits and hyphens, then =, then the bundle's path")
     path = Path(runtime_path)
     if path.is_symlink() or not path.is_file() or path.suffix.lower() != ".js":
-        raise RenderError("Trusted application runtime must be a regular .js file.")
+        raise InputError(PROG, "--trusted-runtime-bundle", f"names {runtime_path}, which is no regular .js file",
+                         "Name the bundle's JavaScript file itself, not a link or another kind of file")
     return runtime_id, path.read_text(encoding="utf-8")
 
 
-def _export_figures(parser: argparse.ArgumentParser, options: argparse.Namespace) -> None:
-    if (options.document is None or options.destination or options.check
-            or options.style or options.trusted_runtime_bundle
-            or options.export_pdf or options.check_rendered or options.output):
-        parser.error("--export-figures takes only DOCUMENT: obs-html DOCUMENT --export-figures FOLDER.")
-    try:
-        document = json.loads(options.document.read_text(encoding="utf-8"))
-    except json.JSONDecodeError as error:
-        raise RenderError(f"Invalid Document {options.document}: {error}") from error
+def _export_figures(options: argparse.Namespace) -> None:
+    _alone("--export-figures", options, "destination", "check", "style", "trusted_runtime_bundle",
+           "export_pdf", "check_rendered", "output")
+    if options.document is None:
+        raise InputError(PROG, "DOCUMENT", "is missing",
+                         "Name the Document whose figures to export: obs-html DOCUMENT --export-figures FOLDER")
+    document = _read_document(options.document)
     folder = options.export_figures.resolve()
     exported = 0
     for name, descriptor in document_figures(document):
@@ -240,17 +253,36 @@ def _export_figures(parser: argparse.ArgumentParser, options: argparse.Namespace
         _write_if_changed(folder / f"{name}.svg", svg.encode("utf-8"))
         exported += 1
     if not exported:
-        raise RenderError(f"Document {options.document} has no figure-descriptor node, so there is "
-                          "nothing to export; author a figure fence with a FigureDescriptor.")
+        raise InputError(options.document, "", "has no figure-descriptor node, so there is nothing to export",
+                         "Author a figure fence with a FigureDescriptor")
     print(f"Exported {exported} figure{'' if exported == 1 else 's'} to {folder}.")
 
 
-def _extract(parser: argparse.ArgumentParser, options: argparse.Namespace) -> None:
-    if any((options.document, options.destination, options.check,
-            options.style, options.trusted_runtime_bundle,
-            options.export_pdf, options.check_rendered, options.output, options.export_figures)):
-        parser.error("--extract-comments is a separate operation without DOCUMENT.")
+def _extract(options: argparse.Namespace) -> None:
+    _alone("--extract-comments", options, "document", "destination", "check", "style",
+           "trusted_runtime_bundle", "export_pdf", "check_rendered", "output", "export_figures")
     print(extract_comments(options.extract_comments.resolve()), end="")
+
+
+PROG = "obs-html"
+ARGUMENTS = {"document": "DOCUMENT", "destination": "DESTINATION"}
+
+
+def _alone(operation: str, options: argparse.Namespace, *names: str) -> None:
+    """Refuse the first of ``names`` given with ``operation``, which runs without it."""
+    given = next((name for name in names if getattr(options, name)), None)
+    if given is not None:
+        argument = ARGUMENTS.get(given, f"--{given.replace('_', '-')}")
+        raise InputError(PROG, argument, f"cannot be combined with {operation}",
+                         f"Run {operation} on its own; see {PROG} --help")
+
+
+def _read_document(path: Path) -> dict[str, object]:
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as error:
+        raise InputError(path, "", f"is not JSON ({error.msg} at line {error.lineno}, column {error.colno})",
+                         "Build the Document with obs-document") from error
 
 
 def _read_existing(path: Path) -> str | None:
