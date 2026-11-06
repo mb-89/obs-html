@@ -10,6 +10,7 @@ the viewer does. Whatever the artifact leaves transparent or uncoloured shows th
 `errors` collects page errors and console errors, including CSP violations.
 """
 import html
+import re
 from pathlib import Path
 
 
@@ -21,6 +22,18 @@ CONTENT_SECURITY_POLICY = (
     "img-src data: blob:; font-src data:; media-src data: blob:; frame-src data: blob:; "
     "connect-src 'none'"
 )
+
+
+def with_stand_in(artifact: str, stand_in: str) -> str:
+    """The artifact with `stand_in` as the first script of its head, so it runs before the artifact's own.
+
+    The viewer's frame is sandboxed, so Chromium runs it out of process, and Playwright's init scripts
+    reach such a frame on their own schedule: under load they ran after the artifact's canaries. A script
+    in the document itself runs in parse order."""
+    head = re.search(r"<head[^>]*>", artifact)
+    assert head, "test/browser/viewer.py: the artifact has no <head> to put the init_script in; render a whole HTML document"
+    assert "</script" not in stand_in.lower(), "test/browser/viewer.py: init_script contains </script; it must be plain JavaScript"
+    return f"{artifact[:head.end()]}<script>{stand_in}</script>{artifact[head.end():]}"
 
 
 def viewer_page(artifact: str, width: int = 1100, height: int = 700) -> str:
@@ -37,17 +50,17 @@ def viewer_page(artifact: str, width: int = 1100, height: int = 700) -> str:
 def open_viewer(tmp_path: Path, reader_browser, errors: list[str], artifact: str, host_scheme: str,
                 width: int = 1100, init_script: str = ""):
     """Open an artifact in a viewer `width` pixels wide with the host in `host_scheme`; return (page, frame).
-    `init_script`, where given, runs in every frame before its own scripts, to stand in for a host's APIs."""
+    `init_script`, where given, runs in the artifact's frame before the artifact's own scripts, to stand in
+    for a host's APIs (see with_stand_in)."""
     from playwright.sync_api import expect
 
     assert host_scheme in HOST_SCHEMES, f"test/browser/viewer.py: host_scheme {host_scheme!r} is not one of {HOST_SCHEMES}"
     host = tmp_path / f"viewer-{host_scheme}.html"
-    host.write_text(viewer_page(artifact, width), encoding="utf-8")
+    host.write_text(viewer_page(with_stand_in(artifact, init_script) if init_script else artifact, width),
+                    encoding="utf-8")
     page = reader_browser.new_page(viewport={"width": width + 100, "height": 800}, color_scheme=host_scheme)
     page.on("pageerror", lambda error: errors.append(str(error)))
     page.on("console", lambda message: errors.append(message.text) if message.type == "error" else None)
-    if init_script:
-        page.add_init_script(init_script)
     page.goto(host.as_uri())
     frame = page.locator("#artifact").element_handle().content_frame()
     expect(frame.locator("html")).to_have_attribute("data-artifact-status", "ready")

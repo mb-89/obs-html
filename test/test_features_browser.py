@@ -95,6 +95,14 @@ UNDECIDED_CLIPBOARD = """
 """
 
 
+def test_a_host_stand_in_is_in_place_before_the_artifacts_first_script(tmp_path, reader_browser) -> None:
+    errors: list[str] = []
+    _page, frame = open_viewer(tmp_path, reader_browser, errors, render(plain(), CONFIG), "light",
+                               init_script="globalThis.standInFirst = !document.getElementById('reader-startup-script');")
+    assert frame.locator("html").evaluate("() => globalThis.standInFirst") is True
+    assert errors == []
+
+
 def test_a_refused_copy_shows_the_reason_inline_and_warns_once(tmp_path, reader_browser) -> None:
     from playwright.sync_api import expect
 
