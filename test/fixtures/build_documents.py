@@ -500,9 +500,10 @@ VAULTS = {"figures": figures, "document": document, "complete": complete, "artif
           "figure-references": figure_references}
 RUNS_COMMANDS = {"document"}
 """The vaults whose cmd fences the build runs (obs-document --execute-commands): ``echo`` only."""
-DIAGNOSED = {"document"}
+DIAGNOSED = {"document", "complete", "artifact-change"}
 """The vaults whose Document keeps its diagnostics: those name vault notes only, never the build
-machine's folders, which the build checks."""
+machine's folders, which the build checks. complete and artifact-change keep the interim vaults'
+images alone in their paragraphs, which the core's figure lint warns about."""
 
 
 # Runs obs-document in the core's environment with the core's one network read refused.
