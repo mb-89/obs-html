@@ -4,7 +4,8 @@ Until obs removes its interim adapter, obs's spec is built both ways: the Docume
 core of this repository rendered by this adapter, and the same spec sources rendered by the
 interim adapter in the same tree (`obs-html-interim`). One interaction script then runs against both
 artifacts in both preview-like frames (test/preview.py): Home, previous/next by pointer and
-keyboard, the contents menu, the filter, and icon counts per region in every chapter. Any
+keyboard, the contents menu, the filter, a figure reference (its figure's block anchor in view
+once activated), and icon counts per region in every chapter. Any
 difference fails and names the step and both observations.
 
 KNOWN_DIFFERENCES lists the differences that are accepted for now, each with its reason. It only
@@ -145,6 +146,31 @@ POINTER = """(element) => {
         ? (top.closest("[data-step], [data-bar], button, a, summary") || top) : null;
     return {x, y, covered: owner ? (owner.getAttribute("aria-label") || owner.className || owner.tagName) : ""};
 }"""
+# As POINTER, at the centre of the element's first line box: a link that wraps has no text at the
+# centre of its bounding box.
+FIRST_LINE_POINTER = POINTER.replace("element.getBoundingClientRect()", "element.getClientRects()[0]")
+
+# A figure reference in obs's spec and its figure's block anchor (obs input-model, Figure captions
+# and references): the reference is in the wikilinks chapter, the figure in the figures chapter.
+FIGURE_REFERENCE = ("capabilities-wikilinks", "#capabilities-figures/block-generic-figure",
+                    "capabilities-figures--block-generic-figure")
+# Opens a chapter the contents do not list by a click event on a link to it, which the
+# artifact's own link handling routes as a reader's link; the link is removed again. Settles.
+OPEN_CHAPTER = "async (_root, slug) => {" + HELPERS + """
+    const link = document.body.appendChild(Object.assign(document.createElement("a"), {href: `#${slug}`}));
+    link.dispatchEvent(new MouseEvent("click", {bubbles: true, cancelable: true, composed: true}));
+    link.remove();
+    await settle();
+    return chapter();
+}"""
+# Whether the element with this id starts within the visible part of the chapter's scroll area.
+IN_VIEW = """(_root, id) => {
+    const element = document.getElementById(id);
+    if (!element) return "missing";
+    const box = element.getBoundingClientRect();
+    const area = element.closest("[data-chapter-scroll]")?.getBoundingClientRect() ?? {top: 0, bottom: innerHeight};
+    return box.height > 0 && box.top >= Math.max(0, area.top) - 1 && box.top < Math.min(innerHeight, area.bottom);
+}"""
 
 
 def require_reference(core: Path) -> Path:
@@ -192,9 +218,9 @@ def interact(page, frame) -> tuple[list[tuple[str, object]], list[str]]:
     # The preview frame stays where open_preview put it: the wrapper page neither scrolls nor reflows.
     box = page.evaluate("document.getElementById('artifact').getBoundingClientRect().toJSON()")
 
-    def pointer(selector: str) -> str:
+    def pointer(selector: str, where: str = POINTER) -> str:
         """Click where the element is shown; report what covers it, if anything."""
-        spot = frame.locator(selector).first.evaluate(POINTER)
+        spot = frame.locator(selector).first.evaluate(where)
         page.mouse.click(box["x"] + spot["x"], box["y"] + spot["y"])
         then = settle()
         return f"covered by {spot['covered']}, then {then}" if spot["covered"] else then
@@ -265,6 +291,15 @@ def interact(page, frame) -> tuple[list[tuple[str, object]], list[str]]:
     steps.append(("a view selection marks the HTML changed", changed()))
     root.evaluate("() => globalThis.obsArtifact.setViewSelection('parity', [], ['a', 'b'])")
     settle()
+
+    source, href, anchor = FIGURE_REFERENCE
+    root.evaluate(OPEN_CHAPTER, source)
+    reference = pointer(f'[data-chapter-body] a[href="{href}"]', FIRST_LINE_POINTER)
+    shown = root.evaluate(IN_VIEW, anchor)
+    steps.append(("figure reference by pointer", (reference, shown)))
+    if shown is not True:
+        violations.append(f"the figure reference {href} in {source}: {reference}, and its anchor {anchor} "
+                          f"is {'missing' if shown == 'missing' else 'not in view'}")
 
     steps += [(f"icons in {slug}", icons) for slug, icons in root.evaluate(CHAPTER_ICONS)]
     return steps, violations
