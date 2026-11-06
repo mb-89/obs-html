@@ -11,7 +11,8 @@
    added, the second axis's side, swapped axes, a family of curves, the parallel plot's axis order
    and ranges, zoom) is session-only state, kept per figure anchor so print shows it. */
 globalThis.obsEquations = (() => {
-  const IMAGINARY = 1e-9;  // A result is real where |im| <= IMAGINARY * max(1, |re|).
+  const IMAGINARY = 1e-9;  // A result is real where |im| <= IMAGINARY * max(1, |re|); a piecewise
+  // condition's eq holds where |a - b| <= IMAGINARY * max(|a|, |b|).
   const SAMPLES = 240;  // Points per curve across the visible range of the swept variable.
   const SLICE_MILLISECONDS = 12;  // Longest computation between two yields to the page.
   const VIEW_NOTE = "View changed by the reader.";
@@ -53,6 +54,33 @@ globalThis.obsEquations = (() => {
     heaviside: realArguments((value, atZero = 0.5) => value > 0 ? 1 : value < 0 ? 0 : atZero),
   };
   const derivativeKey = (name, order) => `${name}'${order}`;
+  const equal = (a, b) => Math.abs(a - b) <= IMAGINARY * Math.max(Math.abs(a), Math.abs(b));
+  const RELATIONS = {eq: equal, ne: (a, b) => !equal(a, b), lt: (a, b) => a < b, le: (a, b) => a <= b,
+    gt: (a, b) => a > b, ge: (a, b) => a >= b};
+
+  /* A piecewise case's condition ($defs/condition) as a function of a scope: true, false, or null
+     where a relation compares a value that is not real. */
+  function condition(tree) {
+    if ("relation" in tree) {
+      const [left, right] = tree.args.map(compile);
+      const relation = RELATIONS[tree.relation];
+      return scope => {
+        const a = real(left(scope)), b = real(right(scope));
+        return a === null || b === null ? null : relation(a, b);
+      };
+    }
+    if ("not" in tree) {
+      const inner = condition(tree.not);
+      return scope => { const holds = inner(scope); return holds === null ? null : !holds; };
+    }
+    const every = "all" in tree;
+    const items = (every ? tree.all : tree.any).map(condition);
+    return scope => {
+      const found = items.map(item => item(scope));
+      if (found.includes(null)) return null;
+      return every ? found.every(Boolean) : found.some(Boolean);
+    };
+  }
 
   /* An expression tree ($defs/expression) as a function of a scope {values, derivatives}. */
   function compile(tree) {
@@ -70,6 +98,18 @@ globalThis.obsEquations = (() => {
       return scope => {
         const value = scope.derivatives[key];
         return value === undefined || value === null ? none() : complex(value);
+      };
+    }
+    if ("piecewise" in tree) {
+      const cases = tree.piecewise.map(item => ({when: item.when ? condition(item.when) : () => true,
+        value: compile(item.value)}));
+      return scope => {
+        for (const item of cases) {
+          const holds = item.when(scope);
+          if (holds === null) return none();
+          if (holds) return item.value(scope);
+        }
+        return none();
       };
     }
     const operator = OPERATORS[tree.op];
@@ -257,7 +297,13 @@ globalThis.obsEquations = (() => {
       .map(name => [name, variables[name].quantity.siValue]));
     const movable = names.filter(name => variables[name].quantity.siRange && !unknowns.includes(name)
       && !functions.includes(name) && name !== spec.plot.sweep);
-    const solution = spec.solution;
+    const compiled = compileSolution(spec.solution);
+    // Where the exact solution's numeric condition holds for a curve, its numeric system solves it.
+    const numeric = spec.solution.numeric && {when: condition(spec.solution.numeric.when),
+      solution: spec.solution.numeric.system, compiled: compileSolution(spec.solution.numeric.system)};
+    return {spec, variables, unknowns, functions, names, defaults, movable, compiled, numeric};
+  }
+  function compileSolution(solution) {
     const compiled = {};
     if (solution.method === "exact") {
       compiled.branches = solution.branches.map(branch => Object.entries(branch)
@@ -267,7 +313,7 @@ globalThis.obsEquations = (() => {
     } else {
       compiled.derivatives = solution.derivatives.map(tree => realValue(compile(tree)));
     }
-    return {spec, variables, unknowns, functions, names, defaults, movable, compiled};
+    return compiled;
   }
 
   function siUnit(dimension) {
@@ -344,9 +390,11 @@ globalThis.obsEquations = (() => {
 
   /* One curve's points: the sweep values and each y expression's SI values (null: no point). */
   async function sample(model, curve, sweeps, tick) {
-    const {spec, compiled} = model;
+    const {spec} = model;
     const scope = {values: {...model.defaults}, derivatives: {}};
     if (curve.member) Object.assign(scope.values, curve.member.values);
+    let {solution, compiled} = {solution: spec.solution, compiled: model.compiled};
+    if (model.numeric && model.numeric.when(scope)) ({solution, compiled} = model.numeric);
     const x = realValue(compile(spec.plot.x.tree));
     const ys = (curve.sampled || curve.ys).map(item => realValue(item.compiled || (item.compiled = compile(item.tree))));
     const points = {sweep: [], x: [], ys: ys.map(() => [])};
@@ -355,7 +403,8 @@ globalThis.obsEquations = (() => {
       points.x.push(x(scope));
       ys.forEach((y, index) => points.ys[index].push(y(scope)));
     };
-    const method = spec.solution.method;
+    const method = solution.method;
+    if (solution !== spec.solution && curve.branch > 0) return points;  // The numeric system has one.
     if (method === "exact") {
       const branch = compiled.branches[curve.branch];
       for (const sweep of sweeps) {
@@ -367,7 +416,7 @@ globalThis.obsEquations = (() => {
       }
     } else if (method === "algebraic") {
       const unknowns = model.unknowns;
-      const seed = unknowns.map(name => spec.solution.guess[name] ?? 0);
+      const seed = unknowns.map(name => solution.guess[name] ?? 0);
       let previous = seed;
       for (const sweep of sweeps) {
         scope.values[spec.plot.sweep] = sweep;
@@ -380,7 +429,7 @@ globalThis.obsEquations = (() => {
         await tick();
       }
     } else {
-      const {state: stateForm, start, initial, independent} = spec.solution;
+      const {state: stateForm, start, initial, independent} = solution;
       const place = (time, values) => {
         scope.values[independent] = time;
         stateForm.forEach((item, index) => {
@@ -1091,6 +1140,10 @@ globalThis.obsEquations = (() => {
     return table ? table.rows.map(({label: name, values, selected}) => ({label: name, values, selected})) : null;
   }
 
-  return {evaluate, parseExpression, render, option: (key, figure) => OPTIONS[key](figure),
+  /* One curve's points at the SI values of its variables, as a figure draws it (Node tests). */
+  const curvePoints = (spec, values, sweeps) => sample(model(spec), {member: {values}, branch: 0,
+    ys: spec.plot.y}, sweeps, async () => {});
+
+  return {evaluate, parseExpression, render, curvePoints, option: (key, figure) => OPTIONS[key](figure),
     printImage, VIEW_NOTE, state: figure => states.get(figure.id), parallelTable};
 })();

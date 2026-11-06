@@ -21,7 +21,8 @@ def _node() -> str:
 
 def test_node_unit_tests_are_present():
     assert {path.name for path in NODE_TESTS} == {
-        "attachment-replacement.test.js", "bases-filter-conformance.test.js", "canonical-transaction.test.js", "zip-rewrite.test.js"}
+        "attachment-replacement.test.js", "bases-filter-conformance.test.js", "canonical-transaction.test.js",
+        "equations.test.js", "zip-rewrite.test.js"}
 
 
 def test_runtime_scripts_include_bar_and_storage_runtimes():

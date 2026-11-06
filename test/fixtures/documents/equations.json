@@ -1119,247 +1119,340 @@
                   "branches": [
                     {
                       "y": {
-                        "op": "add",
-                        "args": [
+                        "piecewise": [
                           {
-                            "symbol": "u"
+                            "when": {
+                              "relation": "eq",
+                              "args": [
+                                {
+                                  "symbol": "zeta"
+                                },
+                                {
+                                  "number": 1
+                                }
+                              ]
+                            },
+                            "value": {
+                              "op": "add",
+                              "args": [
+                                {
+                                  "symbol": "u"
+                                },
+                                {
+                                  "op": "mul",
+                                  "args": [
+                                    {
+                                      "number": -1
+                                    },
+                                    {
+                                      "symbol": "u"
+                                    },
+                                    {
+                                      "op": "exp",
+                                      "args": [
+                                        {
+                                          "op": "mul",
+                                          "args": [
+                                            {
+                                              "number": -1
+                                            },
+                                            {
+                                              "symbol": "t"
+                                            },
+                                            {
+                                              "symbol": "w"
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                },
+                                {
+                                  "op": "mul",
+                                  "args": [
+                                    {
+                                      "number": -1
+                                    },
+                                    {
+                                      "symbol": "t"
+                                    },
+                                    {
+                                      "symbol": "u"
+                                    },
+                                    {
+                                      "symbol": "w"
+                                    },
+                                    {
+                                      "op": "exp",
+                                      "args": [
+                                        {
+                                          "op": "mul",
+                                          "args": [
+                                            {
+                                              "number": -1
+                                            },
+                                            {
+                                              "symbol": "t"
+                                            },
+                                            {
+                                              "symbol": "w"
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
                           },
                           {
-                            "op": "mul",
-                            "args": [
-                              {
-                                "op": "add",
-                                "args": [
-                                  {
-                                    "op": "mul",
-                                    "args": [
-                                      {
-                                        "number": -0.5
-                                      },
-                                      {
-                                        "symbol": "u"
-                                      }
-                                    ]
-                                  },
-                                  {
-                                    "op": "mul",
-                                    "args": [
-                                      {
-                                        "number": 0.5
-                                      },
-                                      {
-                                        "symbol": "u"
-                                      },
-                                      {
-                                        "symbol": "zeta"
-                                      },
-                                      {
-                                        "op": "pow",
-                                        "args": [
-                                          {
-                                            "op": "add",
-                                            "args": [
-                                              {
-                                                "number": -1
-                                              },
-                                              {
-                                                "op": "pow",
-                                                "args": [
-                                                  {
-                                                    "symbol": "zeta"
-                                                  },
-                                                  {
-                                                    "number": 2
-                                                  }
-                                                ]
-                                              }
-                                            ]
-                                          },
-                                          {
-                                            "number": -0.5
-                                          }
-                                        ]
-                                      }
-                                    ]
-                                  }
-                                ]
-                              },
-                              {
-                                "op": "exp",
-                                "args": [
-                                  {
-                                    "op": "mul",
-                                    "args": [
-                                      {
-                                        "number": -1
-                                      },
-                                      {
-                                        "symbol": "t"
-                                      },
-                                      {
-                                        "symbol": "w"
-                                      },
-                                      {
-                                        "op": "add",
-                                        "args": [
-                                          {
-                                            "symbol": "zeta"
-                                          },
-                                          {
-                                            "op": "pow",
-                                            "args": [
-                                              {
-                                                "op": "add",
-                                                "args": [
-                                                  {
-                                                    "number": -1
-                                                  },
-                                                  {
-                                                    "op": "pow",
-                                                    "args": [
-                                                      {
-                                                        "symbol": "zeta"
-                                                      },
-                                                      {
-                                                        "number": 2
-                                                      }
-                                                    ]
-                                                  }
-                                                ]
-                                              },
-                                              {
-                                                "number": 0.5
-                                              }
-                                            ]
-                                          }
-                                        ]
-                                      }
-                                    ]
-                                  }
-                                ]
-                              }
-                            ]
-                          },
-                          {
-                            "op": "mul",
-                            "args": [
-                              {
-                                "op": "add",
-                                "args": [
-                                  {
-                                    "op": "mul",
-                                    "args": [
-                                      {
-                                        "number": -0.5
-                                      },
-                                      {
-                                        "symbol": "u"
-                                      }
-                                    ]
-                                  },
-                                  {
-                                    "op": "mul",
-                                    "args": [
-                                      {
-                                        "number": -0.5
-                                      },
-                                      {
-                                        "symbol": "u"
-                                      },
-                                      {
-                                        "symbol": "zeta"
-                                      },
-                                      {
-                                        "op": "pow",
-                                        "args": [
-                                          {
-                                            "op": "add",
-                                            "args": [
-                                              {
-                                                "number": -1
-                                              },
-                                              {
-                                                "op": "pow",
-                                                "args": [
-                                                  {
-                                                    "symbol": "zeta"
-                                                  },
-                                                  {
-                                                    "number": 2
-                                                  }
-                                                ]
-                                              }
-                                            ]
-                                          },
-                                          {
-                                            "number": -0.5
-                                          }
-                                        ]
-                                      }
-                                    ]
-                                  }
-                                ]
-                              },
-                              {
-                                "op": "exp",
-                                "args": [
-                                  {
-                                    "op": "mul",
-                                    "args": [
-                                      {
-                                        "symbol": "t"
-                                      },
-                                      {
-                                        "symbol": "w"
-                                      },
-                                      {
-                                        "op": "add",
-                                        "args": [
-                                          {
-                                            "op": "pow",
-                                            "args": [
-                                              {
-                                                "op": "add",
-                                                "args": [
-                                                  {
-                                                    "number": -1
-                                                  },
-                                                  {
-                                                    "op": "pow",
-                                                    "args": [
-                                                      {
-                                                        "symbol": "zeta"
-                                                      },
-                                                      {
-                                                        "number": 2
-                                                      }
-                                                    ]
-                                                  }
-                                                ]
-                                              },
-                                              {
-                                                "number": 0.5
-                                              }
-                                            ]
-                                          },
-                                          {
-                                            "op": "mul",
-                                            "args": [
-                                              {
-                                                "number": -1
-                                              },
-                                              {
-                                                "symbol": "zeta"
-                                              }
-                                            ]
-                                          }
-                                        ]
-                                      }
-                                    ]
-                                  }
-                                ]
-                              }
-                            ]
+                            "value": {
+                              "op": "add",
+                              "args": [
+                                {
+                                  "symbol": "u"
+                                },
+                                {
+                                  "op": "mul",
+                                  "args": [
+                                    {
+                                      "op": "add",
+                                      "args": [
+                                        {
+                                          "op": "mul",
+                                          "args": [
+                                            {
+                                              "number": -0.5
+                                            },
+                                            {
+                                              "symbol": "u"
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "op": "mul",
+                                          "args": [
+                                            {
+                                              "number": 0.5
+                                            },
+                                            {
+                                              "symbol": "u"
+                                            },
+                                            {
+                                              "symbol": "zeta"
+                                            },
+                                            {
+                                              "op": "pow",
+                                              "args": [
+                                                {
+                                                  "op": "add",
+                                                  "args": [
+                                                    {
+                                                      "number": -1
+                                                    },
+                                                    {
+                                                      "op": "pow",
+                                                      "args": [
+                                                        {
+                                                          "symbol": "zeta"
+                                                        },
+                                                        {
+                                                          "number": 2
+                                                        }
+                                                      ]
+                                                    }
+                                                  ]
+                                                },
+                                                {
+                                                  "number": -0.5
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "op": "exp",
+                                      "args": [
+                                        {
+                                          "op": "mul",
+                                          "args": [
+                                            {
+                                              "number": -1
+                                            },
+                                            {
+                                              "symbol": "t"
+                                            },
+                                            {
+                                              "symbol": "w"
+                                            },
+                                            {
+                                              "op": "add",
+                                              "args": [
+                                                {
+                                                  "symbol": "zeta"
+                                                },
+                                                {
+                                                  "op": "pow",
+                                                  "args": [
+                                                    {
+                                                      "op": "add",
+                                                      "args": [
+                                                        {
+                                                          "number": -1
+                                                        },
+                                                        {
+                                                          "op": "pow",
+                                                          "args": [
+                                                            {
+                                                              "symbol": "zeta"
+                                                            },
+                                                            {
+                                                              "number": 2
+                                                            }
+                                                          ]
+                                                        }
+                                                      ]
+                                                    },
+                                                    {
+                                                      "number": 0.5
+                                                    }
+                                                  ]
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                },
+                                {
+                                  "op": "mul",
+                                  "args": [
+                                    {
+                                      "op": "add",
+                                      "args": [
+                                        {
+                                          "op": "mul",
+                                          "args": [
+                                            {
+                                              "number": -0.5
+                                            },
+                                            {
+                                              "symbol": "u"
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "op": "mul",
+                                          "args": [
+                                            {
+                                              "number": -0.5
+                                            },
+                                            {
+                                              "symbol": "u"
+                                            },
+                                            {
+                                              "symbol": "zeta"
+                                            },
+                                            {
+                                              "op": "pow",
+                                              "args": [
+                                                {
+                                                  "op": "add",
+                                                  "args": [
+                                                    {
+                                                      "number": -1
+                                                    },
+                                                    {
+                                                      "op": "pow",
+                                                      "args": [
+                                                        {
+                                                          "symbol": "zeta"
+                                                        },
+                                                        {
+                                                          "number": 2
+                                                        }
+                                                      ]
+                                                    }
+                                                  ]
+                                                },
+                                                {
+                                                  "number": -0.5
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "op": "exp",
+                                      "args": [
+                                        {
+                                          "op": "mul",
+                                          "args": [
+                                            {
+                                              "symbol": "t"
+                                            },
+                                            {
+                                              "symbol": "w"
+                                            },
+                                            {
+                                              "op": "add",
+                                              "args": [
+                                                {
+                                                  "op": "pow",
+                                                  "args": [
+                                                    {
+                                                      "op": "add",
+                                                      "args": [
+                                                        {
+                                                          "number": -1
+                                                        },
+                                                        {
+                                                          "op": "pow",
+                                                          "args": [
+                                                            {
+                                                              "symbol": "zeta"
+                                                            },
+                                                            {
+                                                              "number": 2
+                                                            }
+                                                          ]
+                                                        }
+                                                      ]
+                                                    },
+                                                    {
+                                                      "number": 0.5
+                                                    }
+                                                  ]
+                                                },
+                                                {
+                                                  "op": "mul",
+                                                  "args": [
+                                                    {
+                                                      "number": -1
+                                                    },
+                                                    {
+                                                      "symbol": "zeta"
+                                                    }
+                                                  ]
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
                           }
                         ]
                       }
