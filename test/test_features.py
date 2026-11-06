@@ -164,3 +164,17 @@ def _sources():
     root = SOURCE.joinpath("")
     return [path for path in sorted(root.rglob("*")) if path.suffix in {".js", ".py"}
             and "vendor" not in path.relative_to(root).parts and "__pycache__" not in path.parts]
+
+
+def test_an_equation_figure_without_the_installed_maths_library_names_its_lockfile(monkeypatch, tmp_path) -> None:
+    from obs_html import features
+    from obs_html.errors import InputError
+
+    monkeypatch.setattr(features, "MATHS_LIBRARY", tmp_path / "math.js")
+
+    with pytest.raises(InputError) as failure:
+        render(with_figure("equations", EQUATIONS), CONFIG)
+
+    assert failure.value.field == "mathjs"
+    assert str(failure.value.source) == str(ROOT / "maths" / "package-lock.json")
+    assert f"npm --prefix {ROOT / 'maths'} ci" in failure.value.remedy
