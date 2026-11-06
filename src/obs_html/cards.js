@@ -8,10 +8,8 @@
   let owners;
   let pending = false;
   let initialized = !globalThis.obsStartup;
-  const values = (record, field) => {
-    const value = record.fields[field.toLocaleLowerCase()];
-    return (Array.isArray(value) ? value : [value]).filter(item => item !== undefined && item !== null);
-  };
+  // A distinct count reads the property its conditions read (obs capabilities/queries#Conditions).
+  const values = (record, field) => globalThis.obsQuery.propertyTexts(record, field);
   function owner(path) {
     owners ||= new Map(artifact.records.map(record => [record.sourcePath, record]));
     return owners.get(path);
@@ -29,15 +27,11 @@
       upstream = select(source, projectionKey, new Set([...visiting, query.from]));
     }
     const projection = projections.get(projectionKey);
-    // Conditions match as every other artifact selection does (query.js, compileConditions),
-    // which reads a record's lower-cased fields.
+    // Conditions match as every other artifact selection does (query.js, compileConditions).
     const conditions = globalThis.obsQuery.compileConditions(query.where);
     const result = upstream.filter(record => {
       const fields = projection?.[record.sourcePath];
-      return conditions.match(fields ? {
-        ...record, frontmatter: {...record.frontmatter, ...fields}, fields: {...record.fields,
-          ...Object.fromEntries(Object.entries(fields).map(([name, value]) => [name.toLocaleLowerCase(), value]))},
-      } : record);
+      return conditions.match(fields ? {...record, frontmatter: {...record.frontmatter, ...fields}} : record);
     });
     selections.set(cacheKey, result);
     return result;

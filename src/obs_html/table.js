@@ -699,7 +699,7 @@
                 if (values.length) filterSelections.set(field, values);
                 else filterSelections.delete(field);
                 input.value = [selectionBase, ...[...filterSelections].map(([key, items]) => {
-                    const clauses = items.map(item => globalThis.obsQuery.exactClause(key, item));
+                    const clauses = items.map(item => globalThis.obsQuery.exactClause(key, item, true));
                     return clauses.length > 1 ? `(${clauses.join(" OR ")})` : clauses[0];
                 })].filter(Boolean).join(" AND ");
                 apply();
