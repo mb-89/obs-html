@@ -1,7 +1,8 @@
 """Every error obs-html raises goes through its one formatter, errors.py (InputError).
 
-Reader: whoever adds a raise to the adapter. A raise names an InputError (or a subclass), a
-function that returns one, a caught error it re-raises, or SystemExit for an exit status.
+Reader: whoever adds a raise or a warning to the adapter. A raise names an InputError (or a
+subclass), a function that returns one, a caught error it re-raises, or SystemExit for an exit
+status; an InputError built is raised, returned or printed with errors.warn.
 """
 from __future__ import annotations
 
@@ -14,7 +15,7 @@ from pathlib import Path
 
 import pytest
 
-from obs_html import cli
+from obs_html import cli, errors
 from obs_html.errors import InputError
 from obs_html.render import render
 
@@ -74,6 +75,34 @@ def test_every_raise_in_the_adapter_goes_through_the_formatter(path: Path) -> No
                if isinstance(statement, ast.Raise) and statement.exc is not None
                for reason in [_refused(module, returns, statement.exc)] if reason]
     assert refused == [], "raise errors.InputError(source, field, problem, remedy) instead"
+
+
+def _unsent(module: object, tree: ast.Module) -> list[int]:
+    """The lines where an InputError (or a subclass) is built and neither raised, returned nor
+    passed to errors.warn: a message that would bypass the formatter's vault-root naming."""
+    parents = {child: parent for parent in ast.walk(tree) for child in ast.iter_child_nodes(parent)}
+    lines = []
+    for call in ast.walk(tree):
+        if not isinstance(call, ast.Call):
+            continue
+        callee = _callee(module, call.func)
+        if not (inspect.isclass(callee) and issubclass(callee, InputError)):
+            continue
+        parent = parents[call]
+        if isinstance(parent, (ast.Raise, ast.Return)) or (
+                isinstance(parent, ast.Call) and _callee(module, parent.func) is errors.warn):
+            continue
+        lines.append(call.lineno)
+    return lines
+
+
+@pytest.mark.parametrize("path", [path for path in MODULES if path.name != "errors.py"],
+                         ids=lambda path: path.relative_to(PACKAGE).as_posix())
+def test_every_message_the_adapter_builds_is_raised_or_warned_through_the_formatter(path: Path) -> None:
+    """A warning names its note below the vault root only through errors.warn, as a raised error does."""
+    name = ".".join(("obs_html", *path.relative_to(PACKAGE).with_suffix("").parts)).removesuffix(".__init__")
+    unsent = _unsent(importlib.import_module(name), ast.parse(path.read_text(encoding="utf-8")))
+    assert unsent == [], f"{path.name} lines {unsent}: raise the InputError or pass it to errors.warn"
 
 
 def test_every_adapter_error_class_is_an_input_error() -> None:

@@ -9,7 +9,8 @@ Document the current core does not write, or a command for its arguments. A test
 error by its ``source`` and ``field``, never by its wording. Where the core passes the vault root
 (``--vault-root``), a vault-relative source is named below it (``in_vault``), in a raised error
 and in a warning alike: a warning is printed only through ``warn``, which names its source as the
-render's ``vault_naming`` says.
+render's ``vault_naming`` says. test_errors.py fails on an InputError built and neither raised,
+returned nor warned.
 """
 from __future__ import annotations
 
