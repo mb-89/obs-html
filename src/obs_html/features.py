@@ -57,7 +57,7 @@ def _floating_window(model: dict, trusted_runtime: bool) -> bool:
     return trusted_runtime or any(
         any("card" in icon for table in note["tables"] for icon in _icons(table["definition"]))
         or note["slug"] not in toc
-        or (note["frontmatter"].get("obsHtml") or {}).get("document") is False
+        or (note["frontmatter"].get("obs") or {}).get("document") is False
         for note in model["notes"])
 
 

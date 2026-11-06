@@ -38,6 +38,15 @@ def with_context_note() -> dict:
     return source
 
 
+def with_non_document_note() -> dict:
+    """A listed note marked as no document (obs.document: false), which a link opens as context."""
+    return document(
+        "Non-document",
+        chapter("one", "One", heading(1, "One"), paragraph("See ", _link("term", "the term"), ".")),
+        chapter("term", "Term", heading(1, "Term"), metadata={"obs": {"document": False}}),
+    )
+
+
 def with_guided_card() -> dict:
     """A table icon whose action opens a guided card in the floating window."""
     icon = {"name": "help", "label": "Collect evidence", "action": "collect",
@@ -56,7 +65,7 @@ CASES = {
     "printing": ([plain()], []),
     "downloads": ([plain()], []),
     "clipboard": ([plain()], []),
-    "popups": ([with_context_note(), with_guided_card()], [plain()]),
+    "popups": ([with_context_note(), with_non_document_note(), with_guided_card()], [plain()]),
 }
 
 
