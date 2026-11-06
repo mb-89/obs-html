@@ -23,8 +23,9 @@ CORE_ROOT = ROOT.parents[1]
 
 
 def _core_module(name: str) -> types.ModuleType:
-    """A module of the core's tests: test/suite.py, which owns the Node test packages' setup, or
-    test/spec_build.py, which owns the run's one build of obs's spec."""
+    """A module of the core's tests: test/suite.py, which owns the Node test packages' setup,
+    test/spec_build.py, which owns the run's one build of obs's spec, or test/bounds.py, which
+    owns each test's timeout."""
     import importlib.util
 
     spec = importlib.util.spec_from_file_location(name, CORE_ROOT / "test" / f"{name}.py")
@@ -35,6 +36,7 @@ def _core_module(name: str) -> types.ModuleType:
 
 suite = _core_module("suite")
 spec_build = _core_module("spec_build")
+bounds = _core_module("bounds")
 
 
 def pytest_sessionstart(session):
@@ -129,7 +131,7 @@ def document() -> dict[str, object]:
 
 @pytest.hookimpl(wrapper=True)
 def pytest_runtest_protocol(item, nextitem):
-    with network_guard.running(item.nodeid):
+    with network_guard.running(item.nodeid), bounds.running(item, os.environ.get(spec_build.RUN_FOLDER)):
         return (yield)
 
 
@@ -137,13 +139,16 @@ def pytest_runtest_protocol(item, nextitem):
 def pytest_runtest_makereport(item, call):
     report = yield
     network_guard.fail(report)
+    bounds.explain(item, report)
     return report
 
 
 def pytest_collection_modifyitems(config, items):
     """Keep a module's tests on one xdist worker (`--dist loadgroup`), so its module fixtures are
     built once per run. A test with its own ``xdist_group`` mark is a long one that runs on a
-    worker of its own; those run first, so no worker is left with one at the end."""
+    worker of its own; those run first, so no worker is left with one at the end. Each test gets
+    its tier's timeout (test/bounds.py in the core)."""
+    bounds.mark(items)
     own = [item for item in items if item.get_closest_marker("xdist_group")]
     rest = [item for item in items if not item.get_closest_marker("xdist_group")]
     for item in rest:
