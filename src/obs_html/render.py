@@ -15,7 +15,6 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from html import escape, unescape
 from importlib.metadata import version
-from itertools import groupby
 from importlib.resources import files
 from pathlib import Path, PurePosixPath
 from typing import Callable
@@ -922,16 +921,8 @@ def _tight_item(item: dict[str, object], context: Context) -> str:
     return "".join(parts)
 
 
-BLOCK_IN_PARAGRAPH = frozenset({"registers"})
-"""Node types the core may place inside a paragraph (an embed on its own line) that render as a
-block, which HTML allows in no paragraph."""
-
-
 def _paragraph(node: dict[str, object], context: Context) -> str:
-    """A paragraph; a block node inside it renders between the paragraphs of the text around it."""
-    if any(child["type"] in BLOCK_IN_PARAGRAPH for child in node["children"]):
-        return "".join(_nodes(list(run), context) if block else _paragraph({**node, "children": list(run)}, context)
-                       for block, run in groupby(node["children"], lambda child: child["type"] in BLOCK_IN_PARAGRAPH))
+    """A paragraph; the core places no block node inside one (obs capabilities/markdown)."""
     inner = _phrasing(node["children"], context)
     marks = [child["attrs"] for child in node["children"] if child["type"] == "marks"]
     if not marks:
