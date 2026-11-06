@@ -8,7 +8,7 @@ import re
 
 import pytest
 
-from obs_html.artifact_data import decode_artifact_data
+from obs_html.artifact_data import decode_artifact_data, html_text
 from obs_html.config import load_config
 from obs_html.render import render
 
@@ -18,7 +18,7 @@ from documents import chapter, document as build, heading, paragraph
 CONFIG = load_config()
 SVG = ('<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" '
        'viewBox="0 0 300 60" width="300" height="60" onload="alert(1)">'
-       '<script>alert(2)</script><foreignObject><p>html</p></foreignObject>'
+       '<style>text{fill:#333}</style><script>alert(2)</script><foreignObject><p>html</p></foreignObject>'
        '<text x="4" y="16">See [[target]] or [[missing]].</text>'
        '<a xlink:href="drawn.md" target="_top" onclick="alert(3)"><rect class="drawn" x="4" y="30" width="60" height="24"/></a>'
        '<a href="javascript:alert(4)"><rect x="80" y="30" width="20" height="20"/></a>'
@@ -74,6 +74,10 @@ def test_the_inline_svg_keeps_nothing_executable() -> None:
     assert not re.search(r"<script|<foreignObject|<set|\son\w+=|javascript:|target=", svg)
 
 
+def test_the_chapter_text_shows_the_drawing_s_text_with_link_labels_and_no_style() -> None:
+    assert html_text(_chapter_html(LINKED)).splitlines()[1:] == ["See target or missing."]
+
+
 def test_a_figure_without_links_stays_an_image() -> None:
     html = _chapter_html(_document(_figure(SVG.replace("[[target]] or [[missing]]", ""))))
 
@@ -110,6 +114,8 @@ def test_a_link_inside_a_figure_shows_its_hover_card_and_navigates_in_the_frame_
         expanded.locator("a[href='#drawn'] rect").click()
         expect(page.locator("dialog.figure-overlay")).to_have_count(0)
         expect(page.locator("[data-chapter-body] h1")).to_have_text("Drawn")
+        assert page.evaluate("obsArtifact.records.find(record => record.slug === 'chapter').text") == (
+            "Chapter See target or missing.")
         assert errors == []
     finally:
         page.close()
