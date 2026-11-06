@@ -28,6 +28,7 @@ from markdown_it import MarkdownIt
 
 from obs_html.bars import BarDefinition, discover_bars
 from obs_html.config import Config, paper
+from obs_html.errors import InputError, schema_error
 from obs_html.features import included as included_features
 from obs_html.figures import FigureError, render_descriptor
 from obs_html.artifact_data import encode_artifact_data, prepare_artifact_scripts, serialize_artifact_data
@@ -49,6 +50,8 @@ PROFILE_DEFAULTS = {
 }
 COVER_FIELDS = ("authors", "reviewers", "approvers", "sap number", "legal entity")
 HOME = "home"
+MANIFEST = "manifest note"
+"""Where a manifest field comes from: a Document does not carry its manifest note's path."""
 DOCK_DIRECTIONS = (
     ("left", "left", "vertical"),
     ("right", "right", "vertical"),
@@ -150,62 +153,13 @@ def _quantity_label(metadata: dict[str, object]) -> str:
     return f"{number} {unit.strip()}" if isinstance(unit, str) else number
 
 
-QUANTITY_ALIAS = re.compile(r"[A-Za-z][A-Za-z0-9_]{0,39}")
-NOTE_LINK = re.compile(r"!?\[\[[^\[\]]+\]\]")
-
-
-def _quantity(node: dict[str, object], context: Context) -> str:
-    """A quantity note's metadata, checked as the interim adapter checked it; its value shows
-    where the note is linked (see _quantity_link), not in its own body."""
-    metadata = node["attrs"]["metadata"]
-    where = f"Chapter {context.chapter or HOME}: quantity"
-    value, unit, aliases, source = (metadata.get(key) for key in ("value", "unit", "aliases", "source"))
-    if ("value" in metadata) == ("query" in metadata):
-        raise RenderError(f"{where} needs exactly one of value or query. Remedy: give the quantity note "
-                          "either a numeric value or a count query, not both.")
-    if "value" in metadata and (isinstance(value, bool) or not isinstance(value, (int, float))
-                                or not math.isfinite(value)):
-        raise RenderError(f"{where} value must be a finite number, not {value!r}. Remedy: write the value "
-                          "as a number; put its unit into unit.")
-    if "unit" in metadata and (not isinstance(unit, str) or not unit.strip()):
-        raise RenderError(f"{where} unit must be a non-empty string when supplied. Remedy: write the unit "
-                          "as text or remove unit.")
-    aliases = [aliases] if isinstance(aliases, str) else aliases
-    if not isinstance(aliases, list) or len(aliases) != 1 or not isinstance(aliases[0], str) \
-            or not QUANTITY_ALIAS.fullmatch(aliases[0].strip()):
-        raise RenderError(f"{where} needs one short variable-style alias, not {aliases!r}. Remedy: give the "
-                          "note one alias of letters, digits and underscores, starting with a letter.")
-    sources = [source] if isinstance(source, str) else source
-    if not isinstance(sources, list) or not sources or not all(
-            isinstance(item, str) and item.strip() for item in sources) \
-            or not any(NOTE_LINK.search(item) for item in sources):
-        raise RenderError(f"{where} source must be a non-empty string or list of them with a note link. "
-                          "Remedy: cite the supporting note as a wikilink in source.")
-    return ""
-
-
-def _count_query(node: dict[str, object], context: Context) -> str:
-    """A count query is data the runtime evaluates (cards.js) from the note's frontmatter."""
-    if not isinstance(node["attrs"]["query"].get("where"), list):
-        raise RenderError(f"Chapter {context.chapter or HOME}: count query has no where list; "
-                          "regenerate the Document with the obs core.")
-    return ""
-
-
 def _cards(node: dict[str, object], context: Context) -> str:
     """Data-only cards: titled sections whose metric slots the runtime (cards.js) counts from the
     globally filtered records; only the metric declarations enter the browser. Each card's body is
-    its ``document`` child node, rendered like chapter content (nested cards included)."""
+    its ``document`` child node, rendered like chapter content (nested cards included). The core
+    validated the fence (obs capabilities/cards-metrics); one body follows each card."""
     place = f"Chapter {context.chapter or HOME}"
-    cards, bodies = node["attrs"]["spec"].get("cards"), node["children"]
-    if not isinstance(cards, list) or not all(
-            isinstance(card, dict) and isinstance(card.get("title"), str)
-            and isinstance(card.get("metrics", []), list) for card in cards):
-        raise RenderError(f"{place}: cards fence is not a list of cards with a title and metrics; "
-                          "regenerate the Document with the obs core.")
-    if len(bodies) != len(cards) or any(body["type"] != "document" for body in bodies):
-        raise RenderError(f"{place}: cards fence has {len(bodies)} card body for {len(cards)} cards; each card's "
-                          "body is one document node. Remedy: regenerate the Document with the obs core.")
+    cards, bodies = node["attrs"]["spec"]["cards"], node["children"]
     rendered = []
     for card, body in zip(cards, bodies):
         what = f"{place}: card {card['title']!r}"
@@ -382,7 +336,7 @@ def _base(node: dict[str, object], context: Context) -> str:
                 f"Base in chapter {context.chapter or HOME}: views.{index}.obs.members: obs-html shows "
                 "members only in a register, whose rows the obs core selects. Remedy: move the Base into a "
                 ".base file and embed it with ![[<file>.base]].")
-    return _data_table(definition, None, context)
+    return _data_table(definition, None, context, _note_source(context))
 
 
 def _register(node: dict[str, object], context: Context) -> str:
@@ -401,7 +355,7 @@ def _register(node: dict[str, object], context: Context) -> str:
     definition, view = attrs["base"], attrs["view"]
     if view is not None:
         definition, rows = {**definition, "views": [definition["views"][view]]}, [rows[view]]
-    return _data_table(definition, rows, context)
+    return _data_table(definition, rows, context, attrs["target"])
 
 
 def _row_keys(records: list[dict[str, object]]) -> dict[str, str]:
@@ -420,11 +374,15 @@ def _row_keys(records: list[dict[str, object]]) -> dict[str, str]:
     return {record["id"]: keys[record["type"]](record) for record in records}
 
 
-def _data_table(definition: dict[str, object], rows: list[list[str]] | None, context: Context) -> str:
-    try:
-        context.assets.normalize_definition(definition)
-    except ValueError as error:
-        raise RenderError(f"Base in chapter {context.chapter or HOME}: {error}") from error
+def _note_source(context: Context) -> str:
+    """The note the current chapter's content comes from, as messages name it."""
+    record = context.records.get(context.chapter or "")
+    return str(record["path"]) if record else MANIFEST if not context.chapter else f"chapter {context.chapter}"
+
+
+def _data_table(definition: dict[str, object], rows: list[list[str]] | None, context: Context,
+                source: str) -> str:
+    context.assets.normalize_definition(definition, source)
     key = f"{context.chapter or HOME}-base-{len(context.tables) + 1}"
     for filters in [definition.get("filters"), *(view.get("filters") for view in definition.get("views", []))]:
         unsupported = _unsupported_filter(filters)
@@ -590,7 +548,7 @@ CAPABILITIES: dict[str, Renderer] = {
     "cards-metrics": _cards,
     "chapter-inclusion": _nothing,
     "command-fences": _command,
-    "count-query": _count_query,
+    "count-query": _nothing,
     "embeds": _embed,
     "extensions": _extension,
     "figure-descriptor": _figure,
@@ -601,7 +559,7 @@ CAPABILITIES: dict[str, Renderer] = {
     "named-icons": _nothing,
     "profiles": _nothing,
     "property-editors": _property_editor,
-    "quantities": _quantity,
+    "quantities": _nothing,
     "queries": _nothing,
     "references": _references,
     "registers": _register,
@@ -664,12 +622,10 @@ def _profile(manifest: dict[str, object]) -> dict[str, object]:
     passes on without reading (obs input-model#Core and adapter namespaces); this adapter checks it."""
     declared = manifest["metadata"].get("obsHtml", {})
     schema = json.loads(files("obs_html").joinpath("profile.schema.json").read_text(encoding="utf-8"))
-    error = next(Draft202012Validator(schema).iter_errors(declared), None)
+    error = schema_error(list(Draft202012Validator(schema).iter_errors(declared)), MANIFEST, "obs-html's "
+                         "profile.schema.json and obs capabilities/artifact-presentation", prefix="obsHtml")
     if error is not None:
-        location = "".join(f"[{part}]" if isinstance(part, int) else f".{part}" for part in error.absolute_path)
-        raise RenderError(f"Manifest frontmatter obsHtml{location}: {error.message}. Remedy: write a value "
-                          "obs-html's presentation profile allows (src/obs_html/profile.schema.json, obs "
-                          "capabilities/artifact-presentation).")
+        raise error
     resolved = {key: declared.get(key, value) for key, value in PROFILE_DEFAULTS.items()}
     resolved["figures"] = PROFILE_DEFAULTS["figures"] | resolved["figures"]
     resolved["print"] = declared.get("print") or {}
@@ -704,7 +660,9 @@ def _model(document: dict[str, object], config: Config, context: Context) -> dic
                 "target": {"name": title, "version": "unknown", "commit": "unknown"},
             },
         },
-        "paper": paper({**config.print_default, **profile["print"]}, config),
+        "paper": paper({**config.print_default, **profile["print"]}, config, lambda key: (
+            (MANIFEST, f"obsHtml.print.{key}") if key in profile["print"]
+            else (config.source("artifact", "print", "default", key), f"artifact.print.default.{key}"))),
         "reading": {"theme": "light", "paged": profile["layout"] == "paged", **settings["reading"]},
         "figures": settings["figures"],
         "printReadyTimeoutMilliseconds": settings["printReadyTimeoutMilliseconds"],

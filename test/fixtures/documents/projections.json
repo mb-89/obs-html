@@ -633,7 +633,65 @@
         "term": "Draft",
         "definition": "Not yet.",
         "status": "draft"
-      }
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "kind"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "glossary"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "term"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Draft"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "definition"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Not yet."
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "status"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "draft"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "extra-elsewhere",
@@ -641,7 +699,23 @@
       "path": "extra/elsewhere.md",
       "fields": {
         "kind": "other"
-      }
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "kind"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "other"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "extra-located",
@@ -649,7 +723,23 @@
       "path": "extra/located.md",
       "fields": {
         "kind": "other"
-      }
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "kind"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "other"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "glossary",
@@ -660,13 +750,72 @@
         "term": "Datum",
         "definition": "A reference.",
         "status": "approved"
-      }
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "kind"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "glossary"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "term"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Datum"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "definition"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "A reference."
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "status"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "approved"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "manifest",
       "type": "note",
       "path": "manifest.md",
-      "fields": {}
+      "fields": {},
+      "fieldNodes": []
     },
     {
       "id": "marked",
@@ -674,13 +823,30 @@
       "path": "marked.md",
       "fields": {
         "type": "risk"
-      }
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "type"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "risk"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "registers",
       "type": "note",
       "path": "registers.md",
-      "fields": {}
+      "fields": {},
+      "fieldNodes": []
     },
     {
       "id": "slugged",
@@ -706,7 +872,107 @@
             "name": "y"
           }
         ]
-      }
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "kind"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "evidence"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "slug"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "custom"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "tags.0"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "a"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "tags.1"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "b"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "nested.owner"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Ann"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "items.0.name"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "x"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "items.1.name"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "y"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "chapter-registers",

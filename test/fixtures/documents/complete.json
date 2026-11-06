@@ -1933,7 +1933,81 @@
           "Conclusion upfront"
         ],
         "definition": "The principle of presenting the [[bottom line]] first."
-      }
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "kind"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "glossary"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "term"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "BLUF"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "aliases.0"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Conclusion upfront"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "definition"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "The principle of presenting the "
+            },
+            {
+              "type": "wikilinks",
+              "attrs": {
+                "target": "bottom line",
+                "chapter": "conclusion",
+                "heading": "",
+                "label": "bottom line"
+              },
+              "children": []
+            },
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": " first."
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "child",
@@ -1941,7 +2015,23 @@
       "path": "child.md",
       "fields": {
         "bottom line": "Child result."
-      }
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "bottom line"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Child result."
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "conclusion",
@@ -1956,13 +2046,134 @@
         "definition": "The conclusion.",
         "table": "abbreviations",
         "citation": "See [[details]] **source note**."
-      }
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "kind"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "glossary"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "term"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Conclusion"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "aliases.0"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "bottom line"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "definition"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "The conclusion."
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "table"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "abbreviations"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "citation"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "See "
+            },
+            {
+              "type": "wikilinks",
+              "attrs": {
+                "target": "details",
+                "chapter": "details",
+                "heading": "",
+                "label": "details"
+              },
+              "children": []
+            },
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": " "
+            },
+            {
+              "type": "strong",
+              "attrs": {},
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "source note"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "."
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "details",
       "type": "note",
       "path": "details.md",
-      "fields": {}
+      "fields": {},
+      "fieldNodes": []
     },
     {
       "id": "flatness",
@@ -1977,13 +2188,138 @@
         ],
         "source": "[[details]]",
         "citation": "See [[details]] **sheet 2** and $x$."
-      }
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "kind"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "quantity"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "unit"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "\u00b5m"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "aliases.0"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "flatness_A"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "source"
+          },
+          "children": [
+            {
+              "type": "wikilinks",
+              "attrs": {
+                "target": "details",
+                "chapter": "details",
+                "heading": "",
+                "label": "details"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "citation"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "See "
+            },
+            {
+              "type": "wikilinks",
+              "attrs": {
+                "target": "details",
+                "chapter": "details",
+                "heading": "",
+                "label": "details"
+              },
+              "children": []
+            },
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": " "
+            },
+            {
+              "type": "strong",
+              "attrs": {},
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "sheet 2"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": " and "
+            },
+            {
+              "type": "math",
+              "attrs": {
+                "display": false
+              },
+              "children": [],
+              "text": "x"
+            },
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "."
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "glossary",
       "type": "note",
       "path": "glossary.md",
-      "fields": {}
+      "fields": {},
+      "fieldNodes": []
     },
     {
       "id": "manifest",
@@ -1999,7 +2335,119 @@
             "Lin"
           ]
         }
-      }
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "title"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Test document"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "subtitle"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Bridge "
+            },
+            {
+              "type": "strong",
+              "attrs": {},
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "subtitle"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": " "
+            },
+            {
+              "type": "attachments",
+              "attrs": {
+                "asset": "obsidian",
+                "label": "Obsidian"
+              },
+              "children": []
+            },
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": " "
+            },
+            {
+              "type": "attachments",
+              "attrs": {
+                "asset": "html",
+                "label": "HTML"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "status"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "active"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "owners.team.0"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Ada"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "owners.team.1"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Lin"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "metadata-only",
@@ -2008,7 +2456,59 @@
       "fields": {
         "owner": "Ada",
         "citation": "**Canonical** [[details]]"
-      }
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "owner"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Ada"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "citation"
+          },
+          "children": [
+            {
+              "type": "strong",
+              "attrs": {},
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "Canonical"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": " "
+            },
+            {
+              "type": "wikilinks",
+              "attrs": {
+                "target": "details",
+                "chapter": "details",
+                "heading": "",
+                "label": "details"
+              },
+              "children": []
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "node",
@@ -2025,13 +2525,100 @@
         "description": "Long metadata Long metadata Long metadata Long metadata Long metadata Long metadata Long metadata Long metadata Long metadata Long metadata Long metadata Long metadata Long metadata Long metadata Long metadata Long metadata Long metadata Long metadata Long metadata Long metadata",
         "status": "draft",
         "extra": "omitted"
-      }
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "bottom line"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Node result."
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "owner.team.0"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Ada"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "owner.team.1"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Lin"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "description"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Long metadata Long metadata Long metadata Long metadata Long metadata Long metadata Long metadata Long metadata Long metadata Long metadata Long metadata Long metadata Long metadata Long metadata Long metadata Long metadata Long metadata Long metadata Long metadata Long metadata"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "status"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "draft"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "extra"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "omitted"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "parent",
       "type": "note",
       "path": "parent.md",
-      "fields": {}
+      "fields": {},
+      "fieldNodes": []
     },
     {
       "id": "quiet-reference",
@@ -2041,7 +2628,51 @@
         "document": "Unlinked source",
         "description": "Selected only by a Bases query.",
         "kind": "reference"
-      }
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "document"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Unlinked source"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "description"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Selected only by a Bases query."
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "kind"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "reference"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "reference",
@@ -2051,25 +2682,74 @@
         "document": "[Source document](details.md)",
         "description": "A source whose metadata is its complete content.",
         "kind": "reference"
-      }
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "document"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {
+                "link": "source-document"
+              },
+              "children": [],
+              "text": "Source document"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "description"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "A source whose metadata is its complete content."
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "kind"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "reference"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "references",
       "type": "note",
       "path": "references.md",
-      "fields": {}
+      "fields": {},
+      "fieldNodes": []
     },
     {
       "id": "tags",
       "type": "note",
       "path": "tags.md",
-      "fields": {}
+      "fields": {},
+      "fieldNodes": []
     },
     {
       "id": "unreferenced",
       "type": "note",
       "path": "unreferenced.md",
-      "fields": {}
+      "fields": {},
+      "fieldNodes": []
     },
     {
       "id": "chapter-parent",

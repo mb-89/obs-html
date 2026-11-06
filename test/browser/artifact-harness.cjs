@@ -4,7 +4,7 @@
 // As a module: `open(artifactPath, linkedomPath)` returns the opened artifact; artifact-ui.cjs and
 // the steps below build on it. As a command:
 //
-//   node artifact-harness.cjs <artifact.html> <linkedom module> <steps.json>
+//   node ./artifact-harness.cjs <artifact.html> <linkedom module> <steps.json>
 //
 // runs the JSON list of steps (each {"step": <name>, ...arguments}) and prints one JSON result
 // per step as a JSON list. A failed step exits 1 with a message naming the harness, the step and

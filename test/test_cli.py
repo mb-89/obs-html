@@ -32,7 +32,9 @@ def test_installed_command_renders_through_the_adapter_contract(tmp_path) -> Non
         cwd=ROOT, capture_output=True, text=True, check=False,
     )
     assert completed.returncode == 0, completed.stderr
-    assert "Warning: Fixture diagnostic." in completed.stderr
+    diagnostics = json.loads(FIXTURE.read_text(encoding="utf-8"))["diagnostics"]
+    assert diagnostics and all(f"{item['level'].title()}: {item['message']}" in completed.stderr
+                               for item in diagnostics)
     assert completed.stdout == f"Generated {destination.resolve()}.\n"
     notes = decode_artifact_data(destination.read_text(encoding="utf-8"))["notes"]
     assert any('<pre class="command-output">derived' in note["html"] for note in notes)
@@ -45,23 +47,37 @@ def test_check_renders_without_output(tmp_path, capsys) -> None:
     assert list(tmp_path.iterdir()) == []
 
 
-@pytest.mark.parametrize("arguments, message", [
-    ([FIXTURE, "x.html", "--check"], "--check cannot be combined"),
-    ([FIXTURE], "DESTINATION is required"),
-    ([FIXTURE, "x.html", "--execute-commands"], "unrecognized arguments: --execute-commands"),
-    ([FIXTURE, "x.html", "--output", "x.pdf"], "--output is only used with --export-pdf"),
-    (["--export-pdf", "a.html"], "requires --output file.pdf"),
-    (["--export-pdf", "a.html", "--output", "a.html"], "requires --output file.pdf"),
-    (["--check-rendered", "a.html", FIXTURE], "separate operations"),
-    (["--check-rendered", "a.html", "--embed-attachments"], "separate operations"),
-    (["--extract-comments", "a.html", "--embed-attachments"], "separate operation"),
-    ([FIXTURE, FIXTURE], "must not overwrite"),
+def _input_error(capsys, source: object, field: str) -> None:
+    """An input error names where it comes from: its message starts with the source and the field."""
+    error = capsys.readouterr().err
+    assert f"\n{source}: {field}: " in f"\n{error}", error
+
+
+@pytest.mark.parametrize("arguments, field", [
+    ([FIXTURE, "x.html", "--check"], "--check"),
+    ([FIXTURE], "DESTINATION"),
+    ([FIXTURE, "x.html", "--execute-commands"], "arguments"),
+    ([FIXTURE, "x.html", "--output", "x.pdf"], "--output"),
+    (["--export-pdf", "a.html"], "--output"),
+    (["--export-pdf", "a.html", "--output", "a.html"], "--output"),
+    (["--check-rendered", "a.html", FIXTURE], "DOCUMENT"),
+    (["--check-rendered", "a.html", "--embed-attachments"], "--embed-attachments"),
+    (["--extract-comments", "a.html", "--embed-attachments"], "--embed-attachments"),
+    ([FIXTURE, FIXTURE], "DESTINATION"),
 ])
-def test_invalid_option_combinations_fail(arguments, message, capsys) -> None:
+def test_invalid_option_combinations_fail(arguments, field, capsys) -> None:
     with pytest.raises(SystemExit) as exit_info:
         _run(*arguments)
     assert exit_info.value.code == 2
-    assert message in capsys.readouterr().err
+    _input_error(capsys, "obs-html", field)
+
+
+def test_a_document_that_is_not_json_names_the_file(tmp_path, capsys) -> None:
+    source = tmp_path / "document.json"
+    source.write_text("{", encoding="utf-8")
+    with pytest.raises(SystemExit):
+        _run(source, "--check")
+    _input_error(capsys, source, "top level")
 
 
 def test_settings_override_merges_over_the_packaged_settings(tmp_path, capsys) -> None:
@@ -74,35 +90,35 @@ def test_settings_override_merges_over_the_packaged_settings(tmp_path, capsys) -
     assert paper == {"widthMillimeters": 200, "heightMillimeters": 250, "marginMillimeters": 15.0}
 
 
-@pytest.mark.parametrize("override, message", [
+@pytest.mark.parametrize("override, field", [
     ({"execution": {"renderedCheckTimeoutSeconds": 0}}, "execution.renderedCheckTimeoutSeconds"),
-    ({"artifact": {"theme": "dark"}}, "Additional properties"),
-    ({"artifact": {"print": {"default": {"paper": "A4", "margin": "2mm"}}}}, "out of range"),
-    ({"artifact": {"print": {"default": {"paper": "B5", "margin": "20mm"}}}}, "must be one of"),
+    ({"artifact": {"theme": "dark"}}, "artifact.theme"),
+    ({"artifact": {"print": {"default": {"paper": "A4", "margin": "2mm"}}}}, "artifact.print.default.margin"),
+    ({"artifact": {"print": {"default": {"paper": "B5", "margin": "20mm"}}}}, "artifact.print.default.paper"),
+    ({"report": {"tablePageSize": 5}}, "report"),
+    ([], "top level"),
 ])
-def test_invalid_settings_fail(tmp_path, override, message, capsys) -> None:
+def test_invalid_settings_name_the_settings_file_and_the_field(tmp_path, override, field, capsys) -> None:
     settings = tmp_path / "settings.json"
     settings.write_text(json.dumps(override), encoding="utf-8")
     document = json.loads(FIXTURE.read_text(encoding="utf-8"))
     del document["manifest"]["metadata"]["obsHtml"]  # The fixture's profile would choose its own paper.
     source = tmp_path / "document.json"
     source.write_text(json.dumps(document), encoding="utf-8")
-    with pytest.raises(SystemExit):
-        _run(source, "--check", "--config", settings)
-    assert message in capsys.readouterr().err
-
-
-def test_an_old_report_settings_key_names_the_new_key_and_the_file(tmp_path, capsys) -> None:
-    settings = tmp_path / "settings.json"
-    settings.write_text(json.dumps({"report": {"tablePageSize": 5}}), encoding="utf-8")
     destination = tmp_path / "artifact.html"
     with pytest.raises(SystemExit) as exit_info:
-        _run(FIXTURE, destination, "--config", settings)
+        _run(source, destination, "--config", settings)
     assert exit_info.value.code == 2
-    error = capsys.readouterr().err
-    assert f"{settings}: settings key 'report' was renamed to 'artifact'" in error
-    assert "rename the key in that file" in error
+    _input_error(capsys, settings, field)
     assert not destination.exists()
+
+
+def test_unreadable_settings_name_the_settings_file(tmp_path, capsys) -> None:
+    settings = tmp_path / "settings.json"
+    settings.write_text("{", encoding="utf-8")
+    with pytest.raises(SystemExit):
+        _run(FIXTURE, "--check", "--config", settings)
+    _input_error(capsys, settings, "top level")
 
 
 def test_identical_output_is_not_rewritten(tmp_path, monkeypatch) -> None:
@@ -149,17 +165,15 @@ def test_trusted_runtime_is_embedded_only_when_named(tmp_path) -> None:
     assert "globalThis.trustedFixture = '<\\/script>';" in html
 
 
-@pytest.mark.parametrize("bundle, message", [
-    ("no-separator", "ID=PATH"), ("Bad=runtime.js", "ID=PATH"),
-    ("fixture-v1=runtime.txt", "regular .js file"), ("fixture-v1=missing.js", "regular .js file"),
-])
-def test_trusted_runtime_bundles_are_validated(tmp_path, monkeypatch, capsys, bundle, message) -> None:
+@pytest.mark.parametrize("bundle", ["no-separator", "Bad=runtime.js", "fixture-v1=runtime.txt",
+                                    "fixture-v1=missing.js"])
+def test_trusted_runtime_bundles_are_validated(tmp_path, monkeypatch, capsys, bundle) -> None:
     monkeypatch.chdir(tmp_path)
     (tmp_path / "runtime.txt").write_text("x", encoding="utf-8")
     with pytest.raises(SystemExit):
         _run(FIXTURE, tmp_path / "out.html",
              "--trusted-runtime-bundle", bundle)
-    assert message in capsys.readouterr().err
+    _input_error(capsys, "obs-html", "--trusted-runtime-bundle")
 
 
 def test_extract_comments_reads_a_returned_artifact(tmp_path, capsys) -> None:

@@ -328,7 +328,23 @@
       "path": "manifest.md",
       "fields": {
         "title": "Design notes"
-      }
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "title"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Design notes"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "one",
@@ -337,7 +353,37 @@
       "fields": {
         "explanation": "Original",
         "status": "draft"
-      }
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "explanation"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Original"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "status"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "draft"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "two",
@@ -346,7 +392,37 @@
       "fields": {
         "explanation": "Original",
         "status": "draft"
-      }
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "explanation"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Original"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "status"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "draft"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "chapter-one",

@@ -34,7 +34,7 @@ def test_base_tables_evaluate_document_records_and_marks_show_their_icon(artifac
     artifact_page.evaluate("obsArtifact.activateChapter('intro')")
     rows = artifact_page.locator('[data-data-table="intro-base-1"] tbody tr[data-row-key]')
     rows.first.wait_for()
-    assert [row.locator("td").first.inner_text() for row in rows.all()] == ["beta", "alpha"]
+    assert [row.get_attribute("data-row-key") for row in rows.all()] == ["note:beta", "note:alpha"]
     assert artifact_page.locator(".semantic-mark-icon--risk .resource-icon").inner_text() == "!"
 
 

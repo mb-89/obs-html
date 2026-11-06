@@ -358,7 +358,8 @@
       "id": "chapter",
       "type": "note",
       "path": "chapter.md",
-      "fields": {}
+      "fields": {},
+      "fieldNodes": []
     },
     {
       "id": "evidence",
@@ -367,19 +368,173 @@
       "fields": {
         "kind": "evidence",
         "instructions": "Keep the **original evidence**.\n\n- Read [[target|the canonical instructions]].\n- Open [the official export](https://example.org/export).\n- Download [the source archive](obs-source:archive).\n\n<script>window.helpInjected = true</script>"
-      }
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "kind"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "evidence"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "instructions"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Keep the "
+            },
+            {
+              "type": "strong",
+              "attrs": {},
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "original evidence"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "."
+            },
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "\n"
+            },
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "\n"
+            },
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "- Read "
+            },
+            {
+              "type": "wikilinks",
+              "attrs": {
+                "target": "target",
+                "chapter": "target",
+                "heading": "",
+                "label": "the canonical instructions"
+              },
+              "children": []
+            },
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "."
+            },
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "\n"
+            },
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "- Open "
+            },
+            {
+              "type": "text",
+              "attrs": {
+                "link": "the-official-export"
+              },
+              "children": [],
+              "text": "the official export"
+            },
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "."
+            },
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "\n"
+            },
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "- Download "
+            },
+            {
+              "type": "text",
+              "attrs": {
+                "link": "the-source-archive"
+              },
+              "children": [],
+              "text": "the source archive"
+            },
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "."
+            },
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "\n"
+            },
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "\n"
+            },
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "<script>window.helpInjected = true</script>"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "manifest",
       "type": "note",
       "path": "manifest.md",
-      "fields": {}
+      "fields": {},
+      "fieldNodes": []
     },
     {
       "id": "target",
       "type": "note",
       "path": "target.md",
-      "fields": {}
+      "fields": {},
+      "fieldNodes": []
     },
     {
       "id": "chapter-chapter",

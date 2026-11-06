@@ -186,14 +186,6 @@ def test_the_metric_contract_reaches_the_runtime_as_the_interim_adapter_ships_it
     assert [card for card in shipped if card[0] or card[1]] == [card for card in reference_cards if card[0] or card[1]]
 
 
-def test_card_bodies_not_matching_the_cards_name_the_chapter_and_the_remedy() -> None:
-    fence = _cards({"title": "One", "body": ""}, {"title": "Two", "body": ""})
-    fence["children"].pop()
-    with pytest.raises(RenderError, match=r"Chapter one: cards fence has 1 card body for 2 cards.*"
-                                          r"Remedy: regenerate the Document with the obs core"):
-        _html(fence)
-
-
 def test_a_compound_metric_value_is_the_primary_and_secondary_quantity_links() -> None:
     metric = {"label": "Findings (unexplained)", "from": "counts/total", "where": [],
               "secondary": "counts/subset", "secondaryLink": "#one?tableFilter=explained%3Afalse",
@@ -220,11 +212,6 @@ def test_a_metric_series_names_its_source_list_and_checks_its_labels() -> None:
         _notes(source)
 
 
-def test_a_malformed_cards_spec_names_the_chapter_and_the_remedy() -> None:
-    with pytest.raises(RenderError, match=r"Chapter one: cards fence .*regenerate the Document"):
-        _html(node("cards-metrics", source="", spec={"version": 1, "cards": [{"body": ""}]}))
-
-
 def test_unaliased_quantity_links_render_their_value_or_a_pending_count() -> None:
     html = _html(paragraph("Total ", _link("serviceCount", "counts-total"), ", limit ",
                            _link("staticLimit", "limit"), ", explicit ",
@@ -242,26 +229,19 @@ def test_a_static_quantity_note_carries_its_value_label_for_its_hover_card() -> 
     assert notes["counts-total"]["frontmatter"]["query"] == TOTAL["query"]
 
 
-@pytest.mark.parametrize(("change", "message"), [
-    ({"value": None}, "needs exactly one of value or query"),
-    ({"query": {"where": []}}, "needs exactly one of value or query"),
-    ({"value": "20"}, "value must be a finite number"),
-    ({"unit": " "}, "unit must be a non-empty string"),
-    ({"aliases": ["two", "names"]}, "needs one short variable-style alias"),
-    ({"source": "plain text"}, "source must .*note link"),
-])
-def test_invalid_quantity_metadata_names_the_chapter_and_the_remedy(change, message) -> None:
+@pytest.mark.parametrize("change", [{"aliases": ["two", "names"]}, {"source": "plain text"}])
+def test_the_core_owns_the_quantity_contract_so_the_adapter_renders_what_it_receives(change) -> None:
+    """The core refuses an invalid quantity note (obs capabilities/quantities, input.py
+    validate_quantity) before a Document exists; the adapter trusts a contract-valid Document."""
     source = _document(paragraph("Text."))
-    metadata = {key: value for key, value in {**LIMIT, **change}.items() if value is not None}
     limit = next(item for item in source["chapters"] if item["id"] == "limit")
-    limit["content"][1] = node("quantities", metadata=metadata)
-    with pytest.raises(RenderError, match=rf"Chapter limit: quantity {message}.*Remedy"):
-        render(source, CONFIG)
+    limit["content"][1] = node("quantities", metadata={**LIMIT, **change})
+    assert "limit" in _notes(source)
 
 
-def test_a_count_query_without_conditions_names_the_chapter_and_the_remedy() -> None:
+def test_the_core_owns_the_count_query_contract_so_the_adapter_renders_what_it_receives() -> None:
+    """The core refuses a count query without conditions (input.py validate_count_query)."""
     source = _document(paragraph("Text."))
     total = next(item for item in source["chapters"] if item["id"] == "counts-total")
     total["content"][3] = node("count-query", query={"distinct": "identity"})
-    with pytest.raises(RenderError, match=r"Chapter counts-total: count query has no where list.*regenerate"):
-        render(source, CONFIG)
+    assert "counts-total" in _notes(source)
