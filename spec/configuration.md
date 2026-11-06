@@ -44,7 +44,9 @@ configuration design principles.
 ## Vault settings
 
 A vault sets obs-html's settings for every build in its project configuration, `cfg.json` in the
-manifest's folder, as the interim's vault override did. The core reads that file on every build,
+manifest's folder, as the interim's vault override did.
+
+The core reads that file on every build,
 applies its own keys (`input`, `execution`) and carries every other top-level key unread in the
 Document's `projectConfig` (obs's architecture, Project configuration), so the settings reach the
 artifact through the Document alone, in a one-call build as in `obs-html` on a Document.
@@ -59,11 +61,15 @@ merge, arrays and scalar values replace):
 The interim's `--config` named the complete configuration the vault override merged over, so the
 vault's file won over it; obs-html's `--config` is itself an override of the packaged file, and the
 vault's file still wins. A project-specific `artifact.filterPresets` array therefore replaces the
-packaged presets and those of `--config`. The merged settings are validated against
+packaged presets and those of `--config`.
+
+The merged settings are validated against
 `cfg.schema.json`: a key it does not know, or a value outside its limits, fails the build naming
 the vault's file below the vault root (`spec/cfg.json`), the field path and the remedy, as a
 failure in the `--config` file names that file. A renamed key (`report`) is refused there as in
-`--config`. The vault's file travels in the source archive, so a rebuild from the archive applies
+`--config`.
+
+The vault's file travels in the source archive, so a rebuild from the archive applies
 it; `--config` does not.
 
 ## Declared style

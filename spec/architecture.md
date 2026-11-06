@@ -32,17 +32,22 @@ sum to at most its total.
 Per-stage baselines live in one tracked data file, `src/obs_html/timing-baselines.json`, package
 data read through `importlib.resources` and validated by its adjacent
 `timing-baselines.schema.json`: an object of stage name to baseline seconds. A stage without a
-baseline is not compared. Each baseline is the median of five runs, on the machine of the
+baseline is not compared.
+
+Each baseline is the median of five runs, on the machine of the
 change that sets it, on the adapter's own specification, each run into a new file:
 `uv run obs-html --build-own-spec spec.html --timings` for render and write, the same with
-`spec.pdf` for print, and `uv run obs-html --check-rendered spec.html --timings` for open. The
-specification has no figure, so figures has no baseline. Whoever changes a stage's cost measures
+`spec.pdf` for print, and `uv run obs-html --check-rendered spec.html --timings` for open.
+
+The specification has no figure, so figures has no baseline. Whoever changes a stage's cost measures
 it so and writes the new median there; there is no command for it, as the interim had none.
 
 With `--timings`, a stage that exceeds its baseline by both the relative and the absolute
 threshold of the [[configuration]] `timings` section prints a warning to stderr through the
 adapter's one message form: the baseline file, `stages.<stage>`, the stage's time and baseline,
-and the remedy. It never fails the call. Either threshold alone stays silent, so small stages
+and the remedy. It never fails the call.
+
+Either threshold alone stays silent, so small stages
 and small absolute changes do not cause noise. The interim adapter keeps its own registry and
 baselines in `src/obs_html_interim` until the cutover.
 
