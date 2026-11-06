@@ -375,12 +375,16 @@ input error that names the lockfile and the install command.
 - Evaluation: a tree evaluates with the variables' SI values in complex arithmetic with
   principal branches; a result is a point of the plot where its imaginary part vanishes
   (`|im| <= 1e-9 * max(1, |re|)`), elsewhere the curve has a gap. Real-only operators (`atan2`,
-  `sign`, `min`, `max`, `heaviside`) take real arguments only; `heaviside(0)` is 1/2 and
-  `sign(0)` is 0. The shared test vectors of the core pass with this evaluator.
+  `sign`, `min`, `max`, `heaviside`) take real arguments only; `heaviside(0)` is its second
+  argument, 1/2 without one, and `sign(0)` is 0. A piecewise tree takes its first case whose
+  condition holds; a relation compares real values, `eq` within `1e-9` of the larger magnitude.
+  The shared test vectors of the core pass with this evaluator.
 - Sampling: each curve has 241 points spread over the swept variable's visible range. At every
   zoom and pan the visible range of the swept variable's axis is sampled again, so detail grows
   as the reader zooms in; the range never leaves the variable's range.
-- Solving: exact branches are evaluated; each branch is a curve. Algebraic residuals are
+- Solving: exact branches are evaluated; each branch is a curve. Where the exact solution's
+  numeric condition holds for a curve's values, its numeric system solves that curve instead,
+  as one branch. Algebraic residuals are
   solved at each point by Newton's method with a halving line search, seeded from the defaults
   (the Document's guess) and continued from the previous point. A differential system is
   integrated from its start with an adaptive Runge–Kutta method (Dormand–Prince 5(4), relative
