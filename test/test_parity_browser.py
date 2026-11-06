@@ -13,8 +13,8 @@ nothing disables both arrows, reader state is never a change, and every icon is 
 expectations were the interim adapter's observations on the same spec until obs#3 deleted it.
 
 A second check sweeps the artifact in the same frames for covered controls
-(test/browser/control-coverage.js) at four widths, in both views and with the bars open and
-closed: a covered control fails.
+(test/browser/control-coverage.js) at four widths, one test per frame and width, in both views and
+with the bars open and closed: a covered control fails.
 
 Each test opens the artifact once, in one page its checks reuse. Pointer and keyboard steps are
 real input, one round trip each; every other observation is computed in the page and returned as
@@ -26,7 +26,7 @@ chapter as the artifact stores it, and the text form is its blocks without marku
 Run it alone with `uv run pytest test/test_parity_browser.py`; it builds the artifact once per
 run, without the network: the core's Document through the core's test/offline_obs_document.py.
 Each test runs on its own worker in the complete suite: one per frame for the interaction
-script and one per frame and pair of widths for the sweep.
+script and one per frame and width for the sweep.
 """
 import json
 import re
@@ -359,8 +359,8 @@ def test_the_step_check_names_a_step_that_went_elsewhere() -> None:
 
 
 COVERAGE = Path(__file__).parent / "browser" / "control-coverage.js"
-# Swept in pairs, each pair in one opened artifact: opening the spec artifact takes seconds.
-WIDTHS = ((360, 700), (1100, 1600))
+# Each width is swept in its own opened artifact, so the widths run on parallel workers.
+WIDTHS = (360, 700, 1100, 1600)
 VIEWS = ("pages", "continuous")
 
 
@@ -369,8 +369,8 @@ def layout_name(layout: list[str] | None) -> str:
 
 
 def covered_controls(tmp_path: Path, browser, artifact: str, frame_kind: str, name: str,
-                     widths: tuple[int, ...]) -> dict[tuple[str, str], dict[str, list[str]]]:
-    """Every covered control at the widths, in every view and bar layout, in one preview frame.
+                     width: int) -> dict[tuple[str, str], dict[str, list[str]]]:
+    """Every covered control at the width, in every view and bar layout, in one preview frame.
 
     Maps each fault, (control, "at <width>px in the <view> view with <layout>"), to what covers
     it and the chapters where it does; a page error is a fault too.
@@ -382,8 +382,7 @@ def covered_controls(tmp_path: Path, browser, artifact: str, frame_kind: str, na
     with http_origin(folder) as origin:
         page, frame = open_preview(folder, browser, errors, artifact, frame_kind,
                                    origin if frame_kind == "same-origin" else None)
-        page.set_viewport_size({"width": max(width for pair in WIDTHS for width in pair) + 100,
-                                "height": 800})
+        page.set_viewport_size({"width": max(WIDTHS) + 100, "height": 800})
         root = frame.locator("html")
         bars = root.evaluate("""() => [...new Set([...document.querySelectorAll("[data-dock-bar]")]
             .map((button) => button.dataset.dockBar))]""")
@@ -394,30 +393,28 @@ def covered_controls(tmp_path: Path, browser, artifact: str, frame_kind: str, na
         layouts = [None, *([docked, side] for side in ("right", "left", "top", "bottom")),
                    *([bar, "right"] for bar in bars if bar == "comments")]
         first = [[bar, "right"] for bar in bars if [bar, "right"] not in layouts]
-        for width in widths:
-            page.evaluate("width => document.getElementById('artifact').style.width = width", f"{width}px")
-            results = root.evaluate(COVERAGE.read_text(encoding="utf-8"),
-                                    {"views": list(VIEWS), "layouts": layouts, "firstChapterLayouts": first})
-            for result in results:
-                for fault in result["faults"]:
-                    where = f"at {width}px in the {result['view']} view with {layout_name(result['layout'])}"
-                    faults.setdefault((fault["control"], where), {}).setdefault(
-                        fault["covering"], []).append(result["chapter"])
+        page.evaluate("width => document.getElementById('artifact').style.width = width", f"{width}px")
+        results = root.evaluate(COVERAGE.read_text(encoding="utf-8"),
+                                {"views": list(VIEWS), "layouts": layouts, "firstChapterLayouts": first})
+        for result in results:
+            for fault in result["faults"]:
+                where = f"at {width}px in the {result['view']} view with {layout_name(result['layout'])}"
+                faults.setdefault((fault["control"], where), {}).setdefault(
+                    fault["covering"], []).append(result["chapter"])
     for error in errors:
         faults.setdefault(("page error", error), {})
     return faults
 
 
 @pytest.mark.browser
-@pytest.mark.parametrize(("frame_kind", "widths"), [
-    pytest.param(frame_kind, widths, id=f"{frame_kind}-{'-'.join(map(str, widths))}",
-                 marks=pytest.mark.xdist_group(f"coverage-{frame_kind}-{widths[0]}"))
-    for frame_kind in SANDBOXES for widths in WIDTHS])
+@pytest.mark.parametrize(("frame_kind", "width"), [
+    pytest.param(frame_kind, width, id=f"{frame_kind}-{width}",
+                 marks=pytest.mark.xdist_group(f"coverage-{frame_kind}-{width}"))
+    for frame_kind in SANDBOXES for width in WIDTHS])
 def test_no_control_is_covered_in_preview_frames(
-        tmp_path: Path, overlay_scrollbar_browser, spec_html: str, frame_kind: str,
-        widths: tuple[int, ...]) -> None:
+        tmp_path: Path, overlay_scrollbar_browser, spec_html: str, frame_kind: str, width: int) -> None:
     """No visible control lies under another element's pointer area (test/browser/control-coverage.js)."""
-    ours = covered_controls(tmp_path, overlay_scrollbar_browser, spec_html, frame_kind, "adapter", widths)
+    ours = covered_controls(tmp_path, overlay_scrollbar_browser, spec_html, frame_kind, "adapter", width)
     problems = [
         f"page error: {where}" if control == "page error" else f"{control} is covered {where} by "
         + "; ".join(f"{covering} (in {', '.join(chapters)})" for covering, chapters in coverings.items())
@@ -427,6 +424,19 @@ def test_no_control_is_covered_in_preview_frames(
         f"test/test_parity_browser.py: controls covered by another element's pointer area, {frame_kind} "
         "frame. Remedy: give the control clearance from what covers it (obs artifact-ui.md, chapter "
         "controls):\n" + "\n".join(problems))
+
+
+def test_the_sweep_runs_one_test_per_frame_and_width_each_in_its_own_group() -> None:
+    """Every frame and width is its own case with its own xdist group, so the workers sweep them
+    side by side; none is left out."""
+    params = next(mark for mark in test_no_control_is_covered_in_preview_frames.pytestmark
+                  if mark.name == "parametrize").args[1]
+    cases = [tuple(param.values) for param in params]
+    groups = [mark.kwargs.get("name", mark.args[0] if mark.args else None)
+              for param in params for mark in param.marks if mark.name == "xdist_group"]
+    assert cases == [(frame_kind, width) for frame_kind in SANDBOXES for width in WIDTHS]
+    assert all(isinstance(width, int) for _, width in cases), "one width per case, not a group of widths"
+    assert len(groups) == len(cases) == len(set(groups))
 
 
 @pytest.mark.browser
