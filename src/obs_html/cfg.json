@@ -20,6 +20,9 @@
       "pingCount": 4,
       "pingScale": 6
     },
+    "figureReferences": {
+      "conjunctions": ["and", "or", "&", "und", "oder", "sowie"]
+    },
     "figures": {
       "proseWidthMultiplier": 1.5,
       "viewportGutterRem": 1,

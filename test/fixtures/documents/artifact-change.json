@@ -465,7 +465,16 @@
     }
   ],
   "semanticResources": [],
-  "diagnostics": [],
+  "diagnostics": [
+    {
+      "level": "warning",
+      "message": "one.md:9: image without caption. Use a figure fence with kind: image, source: sample.svg and a caption; see input-model#Figure captions and references."
+    },
+    {
+      "level": "warning",
+      "message": "two.md:9: image without caption. Use a figure fence with kind: image, source: sample.svg and a caption; see input-model#Figure captions and references."
+    }
+  ],
   "capabilities": [
     "attachments",
     "bases",
