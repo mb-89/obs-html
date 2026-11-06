@@ -233,8 +233,8 @@ Document's `schemaVersion`, obs's `repository` and `commit`, the recorded `lockf
 the adapter's own options (`adapterOptions`), the exact `command`: `obs-document --source
 vault/<manifest path>` followed by the recorded arguments, and, where the manifest declares one,
 the `style` the build record names (obs's architecture, Declared style). A style module obs-html
-is given for one build with `--style FOLDER` is not recorded: the rebuild applies the declared
-style, or the default without one. `python reproduce.py`, which needs git
+is given for one build with `--style FOLDER` is not recorded, so a rebuild from the archive never
+uses it. `python reproduce.py`, which needs git
 and uv only, clones obs from that repository (`--repository URL` names another, such as a local
 clone), checks out the commit, installs it with that commit's `uv.lock` (`uv sync --frozen`) and
 runs the command from the extracted folder. A failed clone, checkout or install names the commit,
