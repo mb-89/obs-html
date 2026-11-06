@@ -142,7 +142,10 @@
               "version": 1,
               "field": "explanation",
               "label": "Explanation"
-            }
+            },
+            "writes": [
+              "explanation"
+            ]
           },
           "children": []
         },
@@ -278,7 +281,10 @@
               "version": 1,
               "field": "explanation",
               "label": "Explanation"
-            }
+            },
+            "writes": [
+              "explanation"
+            ]
           },
           "children": []
         },

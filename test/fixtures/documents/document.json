@@ -1319,7 +1319,10 @@
               "version": 1,
               "field": "status",
               "label": "Status"
-            }
+            },
+            "writes": [
+              "status"
+            ]
           },
           "children": []
         },

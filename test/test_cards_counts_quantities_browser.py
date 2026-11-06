@@ -176,7 +176,13 @@ def test_quantities_count_through_their_selection_chain_and_refresh(tmp_path, re
     expect(summary).to_have_text("Items 1 (0 active).")
     assert page.evaluate("JSON.stringify(obsArtifact.canonicalNotes())") == before_filter
     assert page.evaluate("obsArtifact.revision") == before_revision
-    page.evaluate("obsArtifact.commitCanonicalProjection([{slug:'two', fields:{active:'yes'}}])")
+    page.evaluate("""async () => {  // A canonical change no property editor declares: a transaction.
+        const artifact = globalThis.obsArtifact;
+        const notes = artifact.canonicalNotes().map(note => note.slug === 'two'
+            ? {...note, frontmatter: {...note.frontmatter, active: 'yes'}} : note);
+        (await artifact.stageCanonicalTransaction({expectedRevision: artifact.revision, notes,
+            assetChanges: []})).commit();
+    }""")
     expect(summary).to_have_text("Items 1 (1 active).")
     page.evaluate("obsArtifact.setFilter(obsQuery.compile('identity:missing'))")
     expect(summary).to_have_text("Items 0 (0 active).")
