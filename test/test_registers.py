@@ -119,6 +119,16 @@ def test_views_with_different_members_show_the_core_rows_in_member_order_with_th
 
 
 @pytest.mark.dom
+def test_members_label_the_core_rows_in_the_order_received_without_sorting_them(tmp_path: Path) -> None:
+    """The core emits a members view's rows in member order (obs generic-tables); the adapter keeps
+    the order it receives, so rows the core sent in another order stay in it."""
+    document = copy.deepcopy(REGISTERS)
+    _register(document, "points")["attrs"]["rows"][0] = ["a-point", "c-point"]
+    [views] = _inspect(document, tmp_path, ["points"])["points"]["views"]
+    assert views[0] == {"name": "Labelled", "rows": ["note:a-point", "note:c-point"], "labels": ["A", "C"]}
+
+
+@pytest.mark.dom
 def test_the_adapter_shows_the_core_rows_and_evaluates_no_selection(tmp_path: Path) -> None:
     """Rows the filter and members would not select show when the core names them, in its order, and
     no others."""
@@ -130,7 +140,7 @@ def test_the_adapter_shows_the_core_rows_and_evaluates_no_selection(tmp_path: Pa
 
 def test_no_members_evaluation_remains_in_the_adapter() -> None:
     runtime = (ROOT / "src" / "obs_html" / "artifact.js").read_text(encoding="utf-8")
-    assert "definition.obsHtml?.members" not in runtime
+    assert "definition.obs?.members" not in runtime
     assert "Missing Bases member note" not in runtime
 
 
@@ -146,17 +156,19 @@ def test_a_register_row_the_records_do_not_hold_fails_naming_the_register_and_th
 
 def test_a_base_fence_with_members_fails_naming_the_field_and_the_remedy() -> None:
     spec = {"views": [{"type": "table", "order": ["file.name"],
-                       "obsHtml": {"members": [{"path": "a.md", "label": "A"}]}}]}
+                       "obs": {"members": [{"path": "a.md", "label": "A"}]}}]}
     with pytest.raises(RenderError) as error:
         render(build("Doc", chapter("one", "One", node("bases", source="", spec=spec))), CONFIG)
     assert "Base in chapter one" in str(error.value)
-    assert "views.0.obsHtml.members" in str(error.value)
+    assert "views.0.obs.members" in str(error.value)
     assert "Remedy:" in str(error.value)
 
 
-def test_the_base_schema_accepts_members_only_in_a_view() -> None:
-    """The core refuses Base-level members (generic-tables); the adapter's schema has no place for them."""
+def test_the_base_schema_leaves_the_cores_keys_to_the_core() -> None:
+    """records and members are the core's (obs input-model#Core and adapter namespaces): the core's
+    schema owns them, and the adapter's own namespace has no place for them."""
     schema = json.loads((ROOT / "src" / "obs_html" / "base.schema.json").read_text(encoding="utf-8"))
-    assert "members" not in schema["properties"]["obsHtml"]["properties"]
-    assert schema["properties"]["views"]["items"]["properties"]["obsHtml"]["properties"]["members"] == {
-        "$ref": "#/$defs/members"}
+    view = schema["properties"]["views"]["items"]["properties"]
+    for namespace in (schema["properties"]["obsHtml"], view["obsHtml"]):
+        assert not {"records", "members"} & set(namespace["properties"])
+    assert schema["properties"]["obs"] == view["obs"] == {"$ref": "#/$defs/core"}

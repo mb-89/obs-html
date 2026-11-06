@@ -18,7 +18,7 @@ pytestmark = pytest.mark.browser
 CONFIG = load_config()
 EDITOR = node("property-editors", source="version: 1\nfield: explanation\nlabel: Explanation\n",
               spec={"version": 1, "field": "explanation", "label": "Explanation"})
-TABLE = {"obsHtml": {"records": "note"}, "views": [{"type": "table", "order": ["identifier", "explanation"]}]}
+TABLE = {"obs": {"records": "note"}, "views": [{"type": "table", "order": ["identifier", "explanation"]}]}
 
 
 def _artifact(path: Path) -> Path:

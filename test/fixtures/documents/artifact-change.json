@@ -148,9 +148,9 @@
         {
           "type": "bases",
           "attrs": {
-            "source": "obsHtml: {records: note}\nviews:\n  - type: table\n    order: [title, status, explanation]\n",
+            "source": "obs: {records: note}\nviews:\n  - type: table\n    order: [title, status, explanation]\n",
             "spec": {
-              "obsHtml": {
+              "obs": {
                 "records": "note"
               },
               "views": [
@@ -284,9 +284,9 @@
         {
           "type": "bases",
           "attrs": {
-            "source": "obsHtml: {records: note}\nviews:\n  - type: table\n    order: [title, status, explanation]\n",
+            "source": "obs: {records: note}\nviews:\n  - type: table\n    order: [title, status, explanation]\n",
             "spec": {
-              "obsHtml": {
+              "obs": {
                 "records": "note"
               },
               "views": [

@@ -158,9 +158,10 @@ def test_the_metric_contract_reaches_the_runtime_as_the_interim_adapter_ships_it
                  ["content"] if item["type"] == "cards-metrics")
     groups = next(record for record in document["records"] if record["id"] == "groups")["fields"]
     # The interim refuses a nested cards fence, so it renders the cards with metrics alone.
-    metric_cards = [card for card in fence["attrs"]["spec"]["cards"] if card.get("metrics") or card.get("obsHtml")]
-    reference = render_cards(json.dumps({"version": 1, "cards": metric_cards}), lambda source: "", "overview.md",
-                             lambda note: groups)
+    # The interim reads the core's card keys in its own namespace (obs input-model#Core and adapter namespaces).
+    metric_cards = [card for card in fence["attrs"]["spec"]["cards"] if card.get("metrics") or card.get("obs")]
+    reference = render_cards(json.dumps({"version": 1, "cards": metric_cards}).replace('"obs":', '"obsHtml":'),
+                             lambda source: "", "overview.md", lambda note: groups)
     html = next(note for note in decode_artifact_data(render(document, CONFIG))["notes"]
                 if note["slug"] == "overview")["html"]
 
@@ -176,11 +177,12 @@ def test_the_metric_contract_reaches_the_runtime_as_the_interim_adapter_ships_it
     shipped = cards(html)
     assert [payload for payload, _ in shipped if payload] == [
         [*card["metrics"]] for card in fence["attrs"]["spec"]["cards"] if card.get("metrics")]
-    assert {"key", "denominator", "link", "tone", "toneRules", "secondaryLink", "obsHtml"} <= {
+    assert {"key", "denominator", "link", "tone", "toneRules", "secondaryLink", "obs"} <= {
         field for payload, _ in shipped for metric in payload for field in metric}
     assert shipped[-1][1] is not None and json.loads(unescape(shipped[-1][1])) == \
-        fence["attrs"]["spec"]["cards"][2]["obsHtml"]["metricsFrom"]
-    reference_cards = cards(reference)
+        fence["attrs"]["spec"]["cards"][2]["obs"]["metricsFrom"]
+    reference_cards = [([{"obs" if key == "obsHtml" else key: value for key, value in metric.items()}
+                         for metric in payload], series) for payload, series in cards(reference)]
     assert [card for card in shipped if card[0] or card[1]] == [card for card in reference_cards if card[0] or card[1]]
 
 
@@ -208,7 +210,7 @@ def test_a_compound_metric_value_is_the_primary_and_secondary_quantity_links() -
 def test_a_metric_series_names_its_source_list_and_checks_its_labels() -> None:
     series = {"sourceNote": "one", "property": "groups.list", "labelProperty": "name",
               "distinctProperty": "key", "where": []}
-    source = _document(_cards({"title": "Series", "body": "", "obsHtml": {"metricsFrom": series}}))
+    source = _document(_cards({"title": "Series", "body": "", "obs": {"metricsFrom": series}}))
     source["records"][0]["fields"] = {"groups": {"list": [{"name": "A", "key": "a"}, {"name": "B", "key": "b"}]}}
     html = _notes(source)["one"]["html"]
     assert f'data-record-series="{escape(json.dumps(series), quote=True)}"' in html
