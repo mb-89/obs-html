@@ -107,6 +107,23 @@ def test_build_config_records_what_rebuilds_the_artifact() -> None:
     assert b"python reproduce.py" in files["REPRODUCE.txt"]
 
 
+DECLARED = {"url": "https://example.invalid/house-style.git", "ref": "89abcdef0123456789abcdef0123456789abcdef",
+            "path": "styles/house"}
+
+
+def test_build_config_records_the_declared_style_the_rebuild_resolves() -> None:
+    """The archived build configuration names the style the manifest declares (obs's architecture,
+    Declared style), so a rebuild from the archive resolves the same pinned style."""
+    source = archived()
+    source["style"] = DECLARED
+    source["sourceArchive"]["build"]["style"] = DECLARED
+
+    config = json.loads(members(render(source, CONFIG))["build-config.json"])
+
+    assert config["style"] == DECLARED
+    assert "style" not in json.loads(members(render(archived(), CONFIG))["build-config.json"])
+
+
 def test_an_archive_without_a_recorded_adapter_fails_naming_its_field() -> None:
     source = archived()
     source["sourceArchive"]["build"]["arguments"] = ["--embed-source"]
