@@ -24,12 +24,18 @@ def preview_wrapper(artifact: str, sandbox: str, width: int = 1100, height: int 
     )
 
 
+# How often the origin's server checks whether its block has ended, in seconds.
+SHUTDOWN_POLL = 0.02
+
+
 @contextlib.contextmanager
 def http_origin(folder: Path):
     """Serve a folder from an http origin for as long as the block runs."""
     handler = functools.partial(QuietHandler, directory=str(folder))
     server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    # serve_forever checks for shutdown between polls, so the block's end waits up to one poll;
+    # at the default 0.5 s that was a quarter of each test that opened an origin.
+    thread = threading.Thread(target=server.serve_forever, kwargs={"poll_interval": SHUTDOWN_POLL}, daemon=True)
     thread.start()
     try:
         yield f"http://127.0.0.1:{server.server_address[1]}"
