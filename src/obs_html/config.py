@@ -21,6 +21,8 @@ RENAMED_KEYS = {"report": "artifact"}
 @dataclass(frozen=True)
 class Config:
     rendered_check_timeout_seconds: int
+    timing_relative_threshold: float
+    timing_absolute_threshold_seconds: float
     print_default: dict[str, str]
     paper_sizes: dict[str, dict[str, float]]
     artifact: dict[str, object]
@@ -58,6 +60,8 @@ def load_config(override_path: Path | None = None) -> Config:
     artifact = config["artifact"]
     return Config(
         rendered_check_timeout_seconds=config["execution"]["renderedCheckTimeoutSeconds"],
+        timing_relative_threshold=config["timings"]["relativeThreshold"],
+        timing_absolute_threshold_seconds=config["timings"]["absoluteThresholdSeconds"],
         print_default=artifact["print"]["default"],
         paper_sizes=artifact["print"]["paperSizes"],
         artifact={key: value for key, value in artifact.items() if key != "print"},
