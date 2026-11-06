@@ -453,6 +453,33 @@ def figures(root: Path) -> None:
         f"^{kind}-figure\n\n" for kind, fence in fences.items()), encoding="utf-8")
 
 
+FIGURE_REFERENCES = {
+    # paragraph: its Markdown in the second chapter of the figure-references vault
+    "single": "Single [[#^d]].",
+    "pair": "Pair [[#^d]] and [[#^e]].",
+    "run": "Run [[#^d]], [[#^e]] and [[#^f]].",
+    "mixed": "Mixed [[#^a]], [[#^b]], [[#^c]], and [[#^e]] or [[#^b|the second]] [[#^c]].",
+    "german": "Siehe [[#^a]] und [[#^b]].",
+    "plus": "See [[#^a]] plus [[#^b]] and [[#^c]].",
+    "labelled": "Labelled [[#^a|the first]].",
+}
+
+
+def figure_references(root: Path) -> None:
+    """Two contents chapters, figures numbered by chapter: the second has six captioned figures
+    with block ids and every kind of reference to them (FIGURE_REFERENCES), the first one
+    reference across notes (test_figure_references.py). The interim reference reads the same
+    fence syntax, so its parity test renders this vault with both. Not a moved interim vault."""
+    (root / "manifest.md").write_text(
+        "---\ntitle: Figure references\nobsHtml: {figures: {numbering: chapter}}\n---\n- [[one]]\n- [[two]]\n",
+        encoding="utf-8")
+    (root / "img.svg").write_text('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"/>', encoding="utf-8")
+    (root / "one.md").write_text("# One\n\nAcross [[two#^b]].\n", encoding="utf-8")
+    (root / "two.md").write_text("# Two\n\n" + "".join(
+        f"```figure\nversion: 1\nkind: image\nsource: img.svg\ncaption: Figure {name}.\n```\n^{name}\n\n"
+        for name in "abcdef") + "\n\n".join(FIGURE_REFERENCES.values()) + "\n", encoding="utf-8")
+
+
 def self_link(root: Path) -> None:
     """A whole-note self-link: a note long enough to scroll, whose last paragraph links the note
     itself, and a second chapter. Its code fence has a line too long to wrap, so in review mode
@@ -469,7 +496,8 @@ def self_link(root: Path) -> None:
 VAULTS = {"figures": figures, "document": document, "complete": complete, "artifact-change": artifact_change, "projections": projections,
           "table-help": table_help, "structural": structural, "callouts": callouts,
           "registers": registers, "cards": cards,
-          "property-editor-projection": property_editor_projection, "self-link": self_link}
+          "property-editor-projection": property_editor_projection, "self-link": self_link,
+          "figure-references": figure_references}
 RUNS_COMMANDS = {"document"}
 """The vaults whose cmd fences the build runs (obs-document --execute-commands): ``echo`` only."""
 DIAGNOSED = {"document"}
