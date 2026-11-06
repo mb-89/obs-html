@@ -41,6 +41,17 @@ The artifact verification harness, `test/browser/artifact-harness.cjs`, opens a 
 DOM and drives it step by step (data, chapter, table, page mode, print and presentation geometry);
 its header comment is its reference.
 
+## Input errors
+
+Reader: whoever changes what obs-html refuses, or reads one of its error messages.
+
+obs-html trusts a contract-valid Document: the core validates every input contract (Base
+definitions, note profiles, quantities, count queries, cards) while it builds
+the Document and validates the Document before it calls an adapter
+([input-model, Chapter content](../../spec/design_input/input-model.md#chapter-content)), so the
+adapter does not check them again. It refuses a Document of another schema version and what it
+cannot render, such as a Base filter outside the subset it evaluates.
+
 ## Images and attachments
 
 Reader: whoever puts images in a Document for obs-html or changes how it renders them.

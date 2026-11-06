@@ -147,62 +147,13 @@ def _quantity_label(metadata: dict[str, object]) -> str:
     return f"{number} {unit.strip()}" if isinstance(unit, str) else number
 
 
-QUANTITY_ALIAS = re.compile(r"[A-Za-z][A-Za-z0-9_]{0,39}")
-NOTE_LINK = re.compile(r"!?\[\[[^\[\]]+\]\]")
-
-
-def _quantity(node: dict[str, object], context: Context) -> str:
-    """A quantity note's metadata, checked as the interim adapter checked it; its value shows
-    where the note is linked (see _quantity_link), not in its own body."""
-    metadata = node["attrs"]["metadata"]
-    where = f"Chapter {context.chapter or HOME}: quantity"
-    value, unit, aliases, source = (metadata.get(key) for key in ("value", "unit", "aliases", "source"))
-    if ("value" in metadata) == ("query" in metadata):
-        raise RenderError(f"{where} needs exactly one of value or query. Remedy: give the quantity note "
-                          "either a numeric value or a count query, not both.")
-    if "value" in metadata and (isinstance(value, bool) or not isinstance(value, (int, float))
-                                or not math.isfinite(value)):
-        raise RenderError(f"{where} value must be a finite number, not {value!r}. Remedy: write the value "
-                          "as a number; put its unit into unit.")
-    if "unit" in metadata and (not isinstance(unit, str) or not unit.strip()):
-        raise RenderError(f"{where} unit must be a non-empty string when supplied. Remedy: write the unit "
-                          "as text or remove unit.")
-    aliases = [aliases] if isinstance(aliases, str) else aliases
-    if not isinstance(aliases, list) or len(aliases) != 1 or not isinstance(aliases[0], str) \
-            or not QUANTITY_ALIAS.fullmatch(aliases[0].strip()):
-        raise RenderError(f"{where} needs one short variable-style alias, not {aliases!r}. Remedy: give the "
-                          "note one alias of letters, digits and underscores, starting with a letter.")
-    sources = [source] if isinstance(source, str) else source
-    if not isinstance(sources, list) or not sources or not all(
-            isinstance(item, str) and item.strip() for item in sources) \
-            or not any(NOTE_LINK.search(item) for item in sources):
-        raise RenderError(f"{where} source must be a non-empty string or list of them with a note link. "
-                          "Remedy: cite the supporting note as a wikilink in source.")
-    return ""
-
-
-def _count_query(node: dict[str, object], context: Context) -> str:
-    """A count query is data the runtime evaluates (cards.js) from the note's frontmatter."""
-    if not isinstance(node["attrs"]["query"].get("where"), list):
-        raise RenderError(f"Chapter {context.chapter or HOME}: count query has no where list; "
-                          "regenerate the Document with the obs core.")
-    return ""
-
-
 def _cards(node: dict[str, object], context: Context) -> str:
     """Data-only cards: titled sections whose metric slots the runtime (cards.js) counts from the
     globally filtered records; only the metric declarations enter the browser. Each card's body is
-    its ``document`` child node, rendered like chapter content (nested cards included)."""
+    its ``document`` child node, rendered like chapter content (nested cards included). The core
+    validated the fence (obs capabilities/cards-metrics); one body follows each card."""
     place = f"Chapter {context.chapter or HOME}"
-    cards, bodies = node["attrs"]["spec"].get("cards"), node["children"]
-    if not isinstance(cards, list) or not all(
-            isinstance(card, dict) and isinstance(card.get("title"), str)
-            and isinstance(card.get("metrics", []), list) for card in cards):
-        raise RenderError(f"{place}: cards fence is not a list of cards with a title and metrics; "
-                          "regenerate the Document with the obs core.")
-    if len(bodies) != len(cards) or any(body["type"] != "document" for body in bodies):
-        raise RenderError(f"{place}: cards fence has {len(bodies)} card body for {len(cards)} cards; each card's "
-                          "body is one document node. Remedy: regenerate the Document with the obs core.")
+    cards, bodies = node["attrs"]["spec"]["cards"], node["children"]
     rendered = []
     for card, body in zip(cards, bodies):
         what = f"{place}: card {card['title']!r}"
@@ -564,7 +515,7 @@ CAPABILITIES: dict[str, Renderer] = {
     "cards-metrics": _cards,
     "chapter-inclusion": _nothing,
     "command-fences": _command,
-    "count-query": _count_query,
+    "count-query": _nothing,
     "embeds": _embed,
     "extensions": _extension,
     "figure-descriptor": _figure,
@@ -575,7 +526,7 @@ CAPABILITIES: dict[str, Renderer] = {
     "named-icons": _nothing,
     "profiles": _nothing,
     "property-editors": _property_editor,
-    "quantities": _quantity,
+    "quantities": _nothing,
     "queries": _nothing,
     "references": _references,
     "registers": _register,
