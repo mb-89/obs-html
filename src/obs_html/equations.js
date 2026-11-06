@@ -5,14 +5,17 @@
    sampled again at every zoom and pan; systems the core could not solve exactly are solved here,
    algebraic ones by Newton's method seeded from the defaults, differential ones by an adaptive
    Runge-Kutta (Dormand-Prince) integrator. Curves compute in short slices between which the page
-   keeps running, with a progress status. The reader's view (traces added, the second axis's
-   side, swapped axes, a family of curves, zoom) is session-only state, kept per figure anchor so
-   print shows it. */
+   keeps running, with a progress status. A parallel-coordinates plot above the curves shows the
+   figure's grid of combinations, capped by the build configuration, with a histogram on every
+   axis; the ranges selected on its axes choose the curves drawn below. The reader's view (traces
+   added, the second axis's side, swapped axes, a family of curves, the parallel plot's axis order
+   and ranges, zoom) is session-only state, kept per figure anchor so print shows it. */
 globalThis.obsEquations = (() => {
   const IMAGINARY = 1e-9;  // A result is real where |im| <= IMAGINARY * max(1, |re|).
   const SAMPLES = 240;  // Points per curve across the visible range of the swept variable.
   const SLICE_MILLISECONDS = 12;  // Longest computation between two yields to the page.
   const VIEW_NOTE = "View changed by the reader.";
+  const HISTOGRAM_BINS = 10;  // Bins of each parallel axis's histogram.
   const SI_UNITS = {length: "m", mass: "kg", time: "s", current: "A", temperature: "K",
     substance: "mol", luminosity: "cd"};
   const states = new Map();  // figure anchor -> the reader's view state, for this session only.
@@ -298,6 +301,10 @@ globalThis.obsEquations = (() => {
       family: spec.plot.family ? {variable: spec.plot.family.variable, values: spec.plot.family.values.slice(),
         siValues: spec.plot.family.siValues.slice()} : null,
       range: null,  // The visible range of the swept variable's axis, in its display unit; null: all.
+      // The parallel-coordinates plot: shown, the axes' order (the cap's priority) and each axis's
+      // selected range in its display unit, by the axis's index in the Document.
+      parallel: spec.plot.parallelCoordinates ? {shown: spec.plot.parallelCoordinates.shown,
+        order: spec.plot.parallelCoordinates.axes.map((_, index) => index), ranges: {}} : null,
     };
   }
   const stateKey = state => JSON.stringify({...state, range: null});
@@ -305,21 +312,27 @@ globalThis.obsEquations = (() => {
     return state.range !== null || stateKey(state) !== stateKey(initialState(spec));
   }
 
-  /* Every curve of the view: one per family value, y expression and solution branch. */
-  function curves(model, state) {
+  /* `name = value unit`, a variable's value as its axis shows it. */
+  function valueName(model, name, shown) {
+    const unit = scale(model, {tree: {symbol: name}, dimension: model.variables[name].quantity.dimension}).unit;
+    return `${name} = ${shown}${unit ? ` ${unit}` : ""}`;
+  }
+
+  /* Every curve of the view: one per family value (or selected combination of the parallel
+     plot's `rows`), y expression and solution branch. A member sets variables to SI values. */
+  function curves(model, state, rows = null) {
     const {spec} = model;
     const ys = [...spec.plot.y.map((item, index) => ({...item, axis: state.axes[index]})),
       ...state.added];
-    const family = state.family ? state.family.siValues.map((si, index) => ({si, shown: state.family.values[index]}))
+    const family = rows ? rows.map(row => ({values: row.assign, name: row.label}))
+      : state.family ? state.family.siValues.map((si, index) => ({values: {[state.family.variable]: si},
+        name: valueName(model, state.family.variable, state.family.values[index])}))
       : [null];
     const branches = spec.solution.method === "exact" ? spec.solution.branches.length : 1;
-    const familyUnit = state.family ? scale(model, {tree: {symbol: state.family.variable},
-      dimension: model.variables[state.family.variable].quantity.dimension}).unit : "";
     const result = [];
     family.forEach(member => {
       for (let branch = 0; branch < branches; branch += 1) {
-        result.push({member, branch, ys, name: y => [y.source,
-          member ? `${state.family.variable} = ${member.shown}${familyUnit ? ` ${familyUnit}` : ""}` : "",
+        result.push({member, branch, ys, name: y => [y.source, member ? member.name : "",
           branches > 1 ? `branch ${branch + 1}` : ""].filter(Boolean).join(", ")});
       }
     });
@@ -330,12 +343,12 @@ globalThis.obsEquations = (() => {
   const grid = ([low, high]) => Array.from({length: SAMPLES + 1}, (_, index) => low + (high - low) * index / SAMPLES);
 
   /* One curve's points: the sweep values and each y expression's SI values (null: no point). */
-  async function sample(model, state, curve, sweeps, tick) {
+  async function sample(model, curve, sweeps, tick) {
     const {spec, compiled} = model;
     const scope = {values: {...model.defaults}, derivatives: {}};
-    if (curve.member) scope.values[state.family.variable] = curve.member.si;
+    if (curve.member) Object.assign(scope.values, curve.member.values);
     const x = realValue(compile(spec.plot.x.tree));
-    const ys = curve.ys.map(item => realValue(item.compiled || (item.compiled = compile(item.tree))));
+    const ys = (curve.sampled || curve.ys).map(item => realValue(item.compiled || (item.compiled = compile(item.tree))));
     const points = {sweep: [], x: [], ys: ys.map(() => [])};
     const record = sweep => {
       points.sweep.push(sweep);
@@ -415,17 +428,290 @@ globalThis.obsEquations = (() => {
     return [Math.max(full[0], found[0]), Math.min(full[1], found[1])];
   }
 
+  /* The SI range of the swept variable. */
+  function sweepRange(model) {
+    const sweep = model.spec.plot.sweep;
+    return model.variables[sweep].quantity.siRange || [model.defaults[sweep], model.defaults[sweep]];
+  }
+
+  /* The cap of the parallel plot's combinations: the build configuration's (cfg.json). */
+  function parallelCap() {
+    const data = JSON.parse(document.querySelector("[data-artifact-data]").textContent);
+    return data.figures.parallelCoordinatesCap;
+  }
+
+  /* `count` of `length` indexes spread evenly, both ends kept; one keeps the middle. */
+  function evenly(length, count) {
+    if (count >= length) return Array.from({length}, (_, index) => index);
+    if (count === 1) return [Math.floor((length - 1) / 2)];
+    return Array.from({length: count}, (_, index) => Math.round(index * (length - 1) / (count - 1)));
+  }
+
+  /* The grid under the cap: in the reader's axis order, the rightmost grid axis thins first. */
+  function capped(axes, order, cap) {
+    const grid = order.filter(index => "variable" in axes[index]);
+    const kept = new Map(grid.map(index => [index, axes[index].values.length]));
+    const product = () => [...kept.values()].reduce((total, count) => total * count, 1);
+    const total = product();
+    const thinned = [];
+    for (const index of [...grid].reverse()) {
+      if (product() <= cap) break;
+      kept.set(index, Math.max(1, Math.floor(cap / (product() / kept.get(index)))));
+      thinned.push(index);
+    }
+    return {total, thinned, picks: new Map([...kept].map(([index, count]) =>
+      [index, evenly(axes[index].values.length, count)]))};
+  }
+
+  /* A summary of one curve (document.schema.json, the parallel axes) from its SI samples. */
+  function summarize(axis, xs, ys) {
+    const points = [];
+    xs.forEach((x, index) => { if (x !== null && ys[index] !== null) points.push([x, ys[index], index]); });
+    if (!points.length) return null;
+    const pairs = points.slice(1).map((point, index) => [points[index], point])
+      .filter(([a, b]) => b[2] === a[2] + 1);
+    const extreme = sign => points.reduce((best, point) => sign * point[1] > sign * best[1] ? point : best);
+    const [first, final] = [points[0], points.at(-1)];
+    switch (axis.summary) {
+    case "maximum": return extreme(1)[1];
+    case "minimum": return extreme(-1)[1];
+    case "xAtMaximum": return extreme(1)[0];
+    case "xAtMinimum": return extreme(-1)[0];
+    case "final": return final[1];
+    case "area": return pairs.reduce((sum, [a, b]) => sum + (b[0] - a[0]) * (a[1] + b[1]) / 2, 0);
+    case "absoluteArea": return pairs.reduce((sum, [a, b]) => sum + (b[0] - a[0]) * (a[1] * b[1] < 0
+      ? (a[1] * a[1] + b[1] * b[1]) / (2 * (Math.abs(a[1]) + Math.abs(b[1]))) : Math.abs(a[1] + b[1]) / 2), 0);
+    case "valueAt": {
+      const at = axis.siAt;
+      const pair = pairs.find(([a, b]) => (a[0] - at) * (b[0] - at) <= 0);
+      if (!pair) return null;
+      const [a, b] = pair;
+      return a[0] === b[0] ? a[1] : a[1] + (b[1] - a[1]) * (at - a[0]) / (b[0] - a[0]);
+    }
+    case "settlingTime": {
+      const band = axis.tolerance * Math.abs(final[1] - first[1]);
+      let last = -1;
+      points.forEach((point, index) => { if (Math.abs(point[1] - final[1]) > band) last = index; });
+      return last < 0 ? first[0] : points[last + 1][0];
+    }
+    default: throw new Error(`equations.js: the summary ${axis.summary} has no evaluator`);
+    }
+  }
+  // A summary in x's unit, an area in SI base units, any other in the unit of the curve.
+  const X_SUMMARIES = new Set(["xAtMaximum", "xAtMinimum", "settlingTime"]);
+  const AREA_SUMMARIES = new Set(["area", "absoluteArea"]);
+
+  /* Each combination under the cap: its label, SI values and every axis's value as it shows. */
+  async function tabulate(model, picks, tick, report) {
+    const axes = model.spec.plot.parallelCoordinates.axes;
+    let combinations = [[]];
+    axes.forEach((axis, index) => {
+      if ("variable" in axis) combinations = combinations.flatMap(combination =>
+        picks.get(index).map(pick => [...combination, [index, pick]]));
+    });
+    const summaries = axes.map((axis, index) => ({axis, index})).filter(({axis}) => "summary" in axis);
+    const xScale = scale(model, model.spec.plot.x);
+    const shows = axes.map(axis => "summary" in axis ? (X_SUMMARIES.has(axis.summary) ? xScale.show
+      : AREA_SUMMARIES.has(axis.summary) ? (si => si) : scale(model, axis.of).show)
+      : "tree" in axis ? scale(model, axis).show : null);
+    const sweeps = grid(sweepRange(model));
+    const rows = [];
+    for (const [number, combination] of combinations.entries()) {
+      report(number, combinations.length, "combination");
+      const assign = {}, names = [], values = axes.map(() => null);
+      for (const [index, pick] of combination) {
+        const axis = axes[index];
+        assign[axis.variable] = axis.siValues[pick];
+        values[index] = axis.values[pick];
+        names.push(valueName(model, axis.variable, axis.values[pick]));
+      }
+      axes.forEach((axis, index) => {
+        if (!("tree" in axis)) return;
+        const si = evaluate(axis.tree, {...model.defaults, ...assign});
+        values[index] = si === null ? null : shows[index](si);
+      });
+      if (summaries.length) {
+        const points = await sample(model, {member: {values: assign}, branch: 0,
+          sampled: summaries.map(({axis}) => axis.of)}, sweeps, tick);
+        summaries.forEach(({axis, index}, at) => {
+          const si = summarize(axis, points.x, points.ys[at]);
+          values[index] = si === null ? null : shows[index](si);
+        });
+      } else await tick();
+      rows.push({label: names.join(", "), assign, values, selected: true});
+    }
+    return rows;
+  }
+
+  /* The parallel plot's table under the cap and the reader's order, with its selection. */
+  async function combinationTable(view, tick, report) {
+    const {model, state} = view;
+    const cap = parallelCap();
+    const {total, thinned, picks} = capped(model.spec.plot.parallelCoordinates.axes, state.parallel.order, cap);
+    const key = JSON.stringify([...picks].sort((a, b) => a[0] - b[0]));
+    if (view.table?.key !== key) view.table = {key, rows: await tabulate(model, picks, tick, report)};
+    Object.assign(view.table, {total, thinned, cap});
+    const ranges = Object.entries(state.parallel.ranges);
+    for (const row of view.table.rows) {
+      row.selected = ranges.every(([index, [low, high]]) => row.values[index] !== null
+        && row.values[index] >= low && row.values[index] <= high);
+    }
+    return view.table;
+  }
+
+  const SVG = "http://www.w3.org/2000/svg";
+  function svgElement(tag, attributes = {}, parent = null) {
+    const item = document.createElementNS(SVG, tag);
+    for (const [name, value] of Object.entries(attributes)) item.setAttribute(name, String(value));
+    if (parent) parent.append(item);
+    return item;
+  }
+  const shortNumber = value => Number(value.toPrecision(4)).toString();
+
+  /* Draws the parallel plot: one line per combination, selected ones in front, and every axis
+     with its scale, its histogram, its selected range, a label to drag it by and a strip to
+     select a range along it. */
+  function drawParallel(view, table) {
+    const {model, state, figure} = view;
+    const axes = model.spec.plot.parallelCoordinates.axes;
+    const box = view.host.querySelector(".equation-parallel");
+    box.hidden = false;
+    Object.assign(box.dataset, {combinations: table.rows.length, total: table.total, cap: table.cap});
+    const warning = box.querySelector(".equation-parallel-warning");
+    warning.hidden = table.total <= table.cap;
+    warning.textContent = warning.hidden ? "" : `Capped at ${table.cap} of ${table.total} combinations: `
+      + `${table.thinned.map(index => axes[index].label).join(", then ")} thinned. The rightmost grid axis `
+      + "thins first; drag the axes by their labels to choose.";
+    const width = Math.max(320, view.chart.clientWidth || box.clientWidth || 900), height = 260;  // As wide as the chart.
+    const top = 44, bottom = height - 26, left = 48, right = width - 72;
+    const order = state.parallel.order;
+    const at = position => order.length === 1 ? (left + right) / 2 : left + (right - left) * position / (order.length - 1);
+    const svg = svgElement("svg", {class: "parallel-canvas", viewBox: `0 0 ${width} ${height}`, width, height,
+      role: "img", "aria-label": "Parallel coordinates: one line per combination"});
+    const scales = axes.map((_, index) => {
+      const values = table.rows.map(row => row.values[index]).filter(value => value !== null);
+      const min = values.length ? Math.min(...values) : 0, max = values.length ? Math.max(...values) : 1;
+      const y = value => max === min ? (top + bottom) / 2 : bottom - (value - min) / (max - min) * (bottom - top);
+      const value = pixel => max === min ? min : min + (bottom - pixel) / (bottom - top) * (max - min);
+      return {values, min, max, y, value};
+    });
+    const lines = svgElement("g", {class: "parallel-lines"}, svg);
+    const path = row => {
+      let text = "", pen = "M";
+      order.forEach((index, position) => {
+        const value = row.values[index];
+        if (value === null) { pen = "M"; return; }
+        text += `${pen}${at(position).toFixed(1)},${scales[index].y(value).toFixed(1)}`;
+        pen = "L";
+      });
+      return text;
+    };
+    for (const selected of [false, true]) {
+      for (const row of table.rows.filter(item => item.selected === selected)) {
+        svgElement("path", {d: path(row), class: `parallel-line${selected ? " parallel-line-selected" : ""}`},
+          lines).dataset.combination = row.label;
+      }
+    }
+    order.forEach((index, position) => {
+      const axis = axes[index], scaleOf = scales[index], x = at(position);
+      const group = svgElement("g", {class: "parallel-axis"}, svg);
+      Object.assign(group.dataset, {label: axis.label, min: scaleOf.min, max: scaleOf.max,
+        distinct: new Set(scaleOf.values).size});
+      const histogram = svgElement("g", {class: "parallel-histogram"}, group);
+      const bins = new Array(scaleOf.max === scaleOf.min ? 1 : HISTOGRAM_BINS).fill(0);
+      for (const value of scaleOf.values) {
+        bins[Math.min(bins.length - 1, Math.floor((value - scaleOf.min) / (scaleOf.max - scaleOf.min || 1) * bins.length))] += 1;
+      }
+      const most = Math.max(1, ...bins), step = (bottom - top) / bins.length;
+      bins.forEach((count, bin) => {
+        svgElement("rect", {x: x + 2, y: bottom - (bin + 1) * step + 0.5, width: 28 * count / most,
+          height: Math.max(0, step - 1), class: "parallel-bar"}, histogram).dataset.count = count;
+      });
+      svgElement("line", {x1: x, x2: x, y1: top, y2: bottom, class: "parallel-axis-line"}, group);
+      const ticks = [[scaleOf.max, top - 4], [scaleOf.min, bottom + 14]];
+      for (const [value, y] of ticks) {
+        svgElement("text", {x, y, class: "parallel-tick", "text-anchor": "middle"}, group).textContent = shortNumber(value);
+      }
+      const range = state.parallel.ranges[index];
+      const brush = svgElement("rect", {x: x - 5, width: 10, class: "parallel-brush"}, group);
+      const place = (low, high) => {
+        const [y0, y1] = [scaleOf.y(high), scaleOf.y(low)];
+        brush.setAttribute("y", Math.min(y0, y1));
+        brush.setAttribute("height", Math.abs(y1 - y0));
+      };
+      if (range) place(...range); else brush.setAttribute("visibility", "hidden");
+      // The strip reaches a little beyond the axis's ends, so a drag from an end selects it.
+      const strip = svgElement("rect", {x: x - 10, y: top - 6, width: 20, height: bottom - top + 12,
+        class: "parallel-strip"}, group);
+      const unit = "variable" in axis ? scale(model, {tree: {symbol: axis.variable}, dimension: axis.dimension}).unit
+        : siUnit(axis.dimension);
+      const name = svgElement("text", {x, y: top - 22, class: "parallel-axis-label", "text-anchor": "middle",
+        tabindex: 0, role: "button", "aria-label": `${axis.label}: drag left or right to move the axis`}, group);
+      name.textContent = label(axis.label, unit);
+      // Selecting a range: drag along the strip; a click clears the axis's range.
+      strip.addEventListener("pointerdown", event => {
+        event.preventDefault();
+        strip.setPointerCapture(event.pointerId);
+        const toSvg = pixel => (pixel - svg.getBoundingClientRect().top) * height / svg.getBoundingClientRect().height;
+        const clamp = y => Math.min(bottom, Math.max(top, y));
+        const start = clamp(toSvg(event.clientY));
+        let end = start;
+        const move = moved => {
+          end = clamp(toSvg(moved.clientY));
+          brush.removeAttribute("visibility");
+          brush.setAttribute("y", Math.min(start, end));
+          brush.setAttribute("height", Math.abs(end - start));
+        };
+        strip.addEventListener("pointermove", move);
+        strip.addEventListener("pointerup", () => {
+          strip.removeEventListener("pointermove", move);
+          const values = [scaleOf.value(Math.max(start, end)), scaleOf.value(Math.min(start, end))];
+          change(figure, current => {
+            if (Math.abs(end - start) < 3) delete current.parallel.ranges[index];
+            else current.parallel.ranges[index] = values;
+          });
+        }, {once: true});
+      });
+      // Moving the axis: drag its label, or press the arrow keys on it.
+      const moveTo = target => {
+        if (target === position) return;
+        change(figure, current => {
+          const next = current.parallel.order.filter(item => item !== index);
+          next.splice(target, 0, index);
+          current.parallel.order = next;
+        });
+      };
+      name.addEventListener("keydown", event => {
+        const target = {ArrowLeft: position - 1, ArrowRight: position + 1}[event.key];
+        if (target === undefined || target < 0 || target >= order.length) return;
+        event.preventDefault();
+        moveTo(target);
+      });
+      name.addEventListener("pointerdown", event => {
+        event.preventDefault();
+        name.setPointerCapture(event.pointerId);
+        const scaleX = width / svg.getBoundingClientRect().width, startX = event.clientX;
+        let offset = 0;
+        const move = moved => {
+          offset = (moved.clientX - startX) * scaleX;
+          group.setAttribute("transform", `translate(${offset},0)`);
+        };
+        name.addEventListener("pointermove", move);
+        name.addEventListener("pointerup", () => {
+          name.removeEventListener("pointermove", move);
+          group.removeAttribute("transform");
+          const spot = x + offset;
+          moveTo(order.filter((_, other) => other !== position && at(other) < spot).length);
+        }, {once: true});
+      });
+    });
+    box.querySelector(".parallel-canvas").replaceWith(svg);
+  }
+
   async function compute(view, report) {
     const {model, state} = view;
     const spec = model.spec;
-    const full = model.variables[spec.plot.sweep].quantity.siRange
-      || [model.defaults[spec.plot.sweep], model.defaults[spec.plot.sweep]];
-    const list = curves(model, state);
-    const xScale = scale(model, spec.plot.x);
-    const key = stateKey(state);
-    if (view.overviewKey !== key) { view.overview = null; view.current = []; }
-    const span = interval(full, state.range, {current: view.current || [], overview: view.overview || []},
-      xScale.show);
+    const full = sweepRange(model);
     let sliceStart = performance.now();
     const generation = view.generation;
     const tick = async () => {
@@ -434,19 +720,34 @@ globalThis.obsEquations = (() => {
       if (view.generation !== generation) throw new Error("stale");
       sliceStart = performance.now();
     };
+    let rows = null;
+    if (state.parallel?.shown) {
+      const table = await combinationTable(view, tick, report);
+      if (view.host) drawParallel(view, table);
+      rows = table.rows.filter(row => row.selected);
+    } else if (view.host) {
+      const box = view.host.querySelector(".equation-parallel");
+      if (box) box.hidden = true;
+    }
+    const list = curves(model, state, rows);
+    const xScale = scale(model, spec.plot.x);
+    const key = stateKey(state);
+    if (view.overviewKey !== key) { view.overview = null; view.current = []; }
+    const span = interval(full, state.range, {current: view.current || [], overview: view.overview || []},
+      xScale.show);
     const results = [];
     for (const [index, curve] of list.entries()) {
       report(index, list.length);
-      results.push(await sample(model, state, curve, grid(span), tick));
+      results.push(await sample(model, curve, grid(span), tick));
     }
     report(list.length, list.length);
     if (span === full) { view.overview = results; view.overviewKey = key; }
     view.current = results;
-    return {list, results, xScale};
+    return {list, results, xScale, parallel: rows !== null};
   }
 
   /* Plotly's traces and layout for computed curves under the view state. */
-  function figureData(view, {list, results, xScale}) {
+  function figureData(view, {list, results, xScale, parallel}) {
     const {model, state} = view;
     const spec = model.spec;
     const sweepAxis = state.swap ? "y" : "x", valueAxis = state.swap ? "x" : "y";
@@ -456,6 +757,25 @@ globalThis.obsEquations = (() => {
       return scales.get(item);
     };
     const traces = [];
+    // The parallel plot's combinations: one trace per y expression and branch, whose points
+    // name their combination, so that many curves draw at once.
+    const grouped = new Map();
+    const add = (trace, curve, item) => {
+      if (!parallel) { traces.push(trace); return; }
+      const key = `${item.source}\u0000${curve.branch}`;
+      if (!grouped.has(key)) {
+        const branchName = spec.solution.method === "exact" && spec.solution.branches.length > 1
+          ? `, branch ${curve.branch + 1}` : "";
+        grouped.set(key, {...trace, name: item.source + branchName, [sweepAxis]: [], [valueAxis]: [], text: [],
+          hoverinfo: "x+y+text", count: 0});
+      }
+      const group = grouped.get(key);
+      if (group.count) { group[sweepAxis].push(null); group[valueAxis].push(null); group.text.push(null); }
+      group.count += 1;
+      group[sweepAxis].push(...trace[sweepAxis]);
+      group[valueAxis].push(...trace[valueAxis]);
+      group.text.push(...trace[sweepAxis].map(() => curve.member.name));
+    };
     list.forEach((curve, index) => {
       const points = results[index];
       const along = points.x.map(value => value === null ? null : xScale.show(value));
@@ -463,15 +783,19 @@ globalThis.obsEquations = (() => {
         const yScale = scaleOf(item);
         const values = points.ys[at].map(value => value === null ? null : yScale.show(value));
         const secondary = item.axis === "secondary";
-        traces.push({
+        add({
           type: "scatter", mode: "lines", name: curve.name(item), legendgroup: item.source,
           [sweepAxis]: along, [valueAxis]: values,
           [`${valueAxis}axis`]: secondary ? `${valueAxis}2` : valueAxis,
           connectgaps: false,
-        });
+        }, curve, item);
       });
     });
-    const ys = list[0]?.ys || [];
+    for (const {count, ...trace} of grouped.values()) {
+      traces.push({...trace, name: `${trace.name} (${count} ${count === 1 ? "combination" : "combinations"})`});
+    }
+    const ys = list[0]?.ys || [...spec.plot.y.map((item, index) => ({...item, axis: state.axes[index]})),
+      ...state.added];
     const axisTitle = axis => [...new Set(ys.filter(item => (item.axis === "secondary") === (axis === 2))
       .map(item => label(item.source, scaleOf(item).unit)))].join(", ");
     const near = state.swap ? "bottom" : "left", far = state.swap ? "top" : "right";
@@ -505,9 +829,9 @@ globalThis.obsEquations = (() => {
       status.hidden = true;
       host.append(status);
     }
-    return (done, total) => {
+    return (done, total, what = "curve") => {
       status.hidden = done >= total;
-      status.textContent = done >= total ? "" : `Computing curve ${done + 1} of ${total}…`;
+      status.textContent = done >= total ? "" : `Computing ${what} ${done + 1} of ${total}…`;
     };
   }
 
@@ -547,6 +871,13 @@ globalThis.obsEquations = (() => {
       figure.dataset.figureError = "maths library unavailable";
       globalThis.obsCapabilities?.fail?.("equations", "the maths library did not load");
       return;
+    }
+    if (spec.plot.parallelCoordinates) {
+      const box = element("div", {className: "equation-parallel", hidden: true});
+      const warning = element("p", {className: "equation-parallel-warning", hidden: true});
+      warning.setAttribute("role", "status");
+      box.append(warning, svgElement("svg", {class: "parallel-canvas"}));
+      host.append(box);
     }
     const chart = document.createElement("div");
     chart.className = "figure-chart";
@@ -665,6 +996,18 @@ globalThis.obsEquations = (() => {
       });
       return box;
     },
+    parallel(figure) {
+      const spec = specOf(figure);
+      if (!spec.plot.parallelCoordinates) return null;
+      const shown = () => (states.get(figure.id)?.parallel || spec.plot.parallelCoordinates).shown;
+      const control = buttonOf("Parallel coordinates", () => {
+        change(figure, state => { state.parallel.shown = !state.parallel.shown; }, true);
+        control.setAttribute("aria-pressed", String(shown()));
+      });
+      control.setAttribute("aria-pressed", String(shown()));
+      control.title = "Show the combinations of the figure's variables above its curves";
+      return control;
+    },
     swap(figure) {
       const control = buttonOf("Swap x and y", () => {
         change(figure, state => { state.swap = !state.swap; }, true);
@@ -742,6 +1085,12 @@ globalThis.obsEquations = (() => {
     }
   }
 
+  /* The parallel plot's combinations as it shows them: each one's label, axis values and selection. */
+  function parallelTable(figure) {
+    const table = views.get(figure)?.table;
+    return table ? table.rows.map(({label: name, values, selected}) => ({label: name, values, selected})) : null;
+  }
+
   return {evaluate, parseExpression, render, option: (key, figure) => OPTIONS[key](figure),
-    printImage, VIEW_NOTE, state: figure => states.get(figure.id)};
+    printImage, VIEW_NOTE, state: figure => states.get(figure.id), parallelTable};
 })();

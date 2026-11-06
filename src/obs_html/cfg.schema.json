@@ -120,7 +120,8 @@
           "required": [
             "proseWidthMultiplier",
             "viewportGutterRem",
-            "viewportHeightRatio"
+            "viewportHeightRatio",
+            "parallelCoordinatesCap"
           ]
         },
         "printReadyTimeoutMilliseconds": {
@@ -337,6 +338,12 @@
           "minimum": 0.25,
           "maximum": 4,
           "description": "Minimum space on each side of a figure at the reader viewport edges."
+        },
+        "parallelCoordinatesCap": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20000,
+          "description": "The most combinations an equation figure's parallel-coordinates plot draws (artifact-ui, Equation figures); above it the plot thins its rightmost axes and warns. The reader cannot change it."
         },
         "viewportHeightRatio": {
           "type": "number",

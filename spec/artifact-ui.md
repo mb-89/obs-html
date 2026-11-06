@@ -380,6 +380,23 @@ input error that names the lockfile and the install command.
   over its range, or by values in its unit; None removes it). Every choice, and the zoom, is
   a choice in a figure's options menu as [[artifact-ui#What counts as a change]] classifies
   it, kept per figure anchor while the artifact is open.
+- Parallel coordinates: the figure's grid (obs input-model, Equation figures) shows above its
+  curves where the fence sets `parallelCoordinates: true`, or where the reader presses
+  **Parallel coordinates** in the options menu. Each line is one combination, each axis a grid
+  variable or a computed axis, scaled from its lowest to its highest value; every axis shows a
+  histogram of the combinations' values in ten bins. The runtime computes the computed axes:
+  an expression at the combination's values, a summary from the combination's curve sampled
+  at 241 points over the full x range, on the first solution branch.
+- The cap: a plot draws at most `artifact.figures.parallelCoordinatesCap` combinations
+  (`cfg.json`, 1000 by default), which only the build configuration sets. Above it, the plot
+  warns and thins the rightmost grid axis to as many evenly spaced values as the cap allows
+  (keeping both ends), then the next to its left. The reader drags an axis by its label to the
+  left or right; the order is the cap's priority.
+- Selection: dragging along an axis selects the range it covers, a click on the axis clears it,
+  and ranges on several axes combine. The curves below are exactly the selected combinations,
+  all of them while no range is selected, one trace per plotted expression whose points name
+  their combination; the family option does not apply while the plot shows. Order and ranges
+  are view state like the other options.
 - Print and PDF show the reader's current view of an equation figure, not its initial plot;
   where that view differs from the initial plot, the caption ends with the note *View changed
   by the reader.*

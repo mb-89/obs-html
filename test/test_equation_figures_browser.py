@@ -6,8 +6,11 @@ Reader: whoever changes how an equation figure is evaluated, sampled, solved or 
 One artifact of the equations fixture Document (fixtures/build_documents.py, equations) serves
 every test: the torque family over a quantity note's range with a second axis, the saturated
 oscillator the core leaves as a differential system, and the quintic it leaves for Newton's
-method. Every page runs with every request outside the artifact refused and recorded.
+method; in a second chapter, which computes only where a test opens it, a step response swept
+over a grid with computed axes and a grid of 8000 combinations above the parallel plot's cap.
+Every page runs with every request outside the artifact refused and recorded.
 """
+import cmath
 import json
 import math
 from pathlib import Path
@@ -286,4 +289,127 @@ def test_print_shows_the_readers_view_with_a_note_where_it_changed(artifact, rea
     assert captions == {"changed": True, "initial": True}
     assert reader.page.locator(".print-book [data-figure-kind='equations'] figcaption",
                                has_text="View changed by the reader.").count() == 1
+    reader.clean()
+
+
+STEP, CAP = "sweeps--block-step", "sweeps--block-cap"
+CFG = ROOT / "src" / "obs_html" / "cfg.json"
+
+
+def _step_response(zeta: float, w: float, times: list[float]) -> list[float]:
+    """y'' + 2 zeta w y' + w^2 y = w^2 from rest, in closed form (complex where overdamped)."""
+    root = cmath.sqrt(1 - zeta * zeta)
+    return [(1 - cmath.exp(-zeta * w * t) * (cmath.cos(w * root * t) + zeta / root * cmath.sin(w * root * t))).real
+            for t in times]
+
+
+def _settling(times: list[float], values: list[float], tolerance: float) -> float:
+    """The first sampled time after which the curve stays within tolerance * |final - first| of its final value."""
+    final, band = values[-1], tolerance * abs(values[-1] - values[0])
+    outside = [index for index, value in enumerate(values) if abs(value - final) > band]
+    return times[outside[-1] + 1] if outside else times[0]
+
+
+def _absolute_area(times: list[float], values: list[float]) -> float:
+    area = 0.0
+    for t0, t1, a, b in zip(times, times[1:], values, values[1:]):
+        area += (t1 - t0) * ((a * a + b * b) / (2 * (abs(a) + abs(b))) if a * b < 0 else abs(a + b) / 2)
+    return area
+
+
+def _axis(reader: Reader, anchor: str, label: str) -> dict:
+    return reader.page.evaluate("""([anchor, label]) => {
+        const axis = [...document.querySelectorAll(`#${anchor} .parallel-axis`)].find(item => item.dataset.label === label);
+        const line = axis.querySelector('.parallel-axis-line').getBoundingClientRect();
+        const name = axis.querySelector('.parallel-axis-label').getBoundingClientRect();
+        return {min: Number(axis.dataset.min), max: Number(axis.dataset.max), distinct: Number(axis.dataset.distinct),
+                top: line.top, bottom: line.bottom, x: line.left,
+                label: {x: name.left + name.width / 2, y: name.top + name.height / 2},
+                bins: [...axis.querySelectorAll('.parallel-histogram rect')].map(bar => Number(bar.dataset.count))};
+    }""", [anchor, label])
+
+
+def _plot(reader: Reader, anchor: str) -> dict:
+    return reader.page.evaluate("""anchor => {
+        const plot = document.querySelector(`#${anchor} .equation-parallel`);
+        const warning = plot.querySelector('.equation-parallel-warning');
+        return {hidden: plot.hidden, combinations: Number(plot.dataset.combinations), total: Number(plot.dataset.total),
+                cap: Number(plot.dataset.cap), warning: !warning.hidden && warning.textContent,
+                labels: [...plot.querySelectorAll('.parallel-axis')].map(axis => axis.dataset.label)};
+    }""", anchor)
+
+
+def _drawn(reader: Reader, anchor: str) -> set[str]:
+    """The combinations the curves below draw: the label each curve's points carry."""
+    return {text for trace in reader.page.evaluate("""anchor => document.getElementById(anchor)
+        .querySelector('.figure-chart').data.map(trace => trace.text || [])""", anchor) for text in trace if text}
+
+
+def test_parallel_coordinates_select_curves_by_computed_axes_and_cap_the_grid(artifact, reader_browser) -> None:
+    reader = Reader(reader_browser, artifact)
+    page = reader.page
+    page.evaluate("obsArtifact.activateChapter('sweeps')")
+    page.wait_for_selector(f"#{STEP}.figure-plot-ready")
+    times = [10 * index / 240 for index in range(241)]
+    zetas, ws = (0.2, 0.5, 0.8, 1.3), (1, 1.5, 2, 2.5, 3)
+    combinations = {f"zeta = {zeta:g}, w = {w:g} 1/s": _step_response(zeta, w, times) for zeta in zetas for w in ws}
+    settling = {label: _settling(times, values, 0.02) for label, values in combinations.items()}
+    error = {label: _absolute_area(times, [1 - value for value in values]) for label, values in combinations.items()}
+
+    # The fence shows the plot: the 20 combinations, below the cap, each drawn as a curve.
+    shown = _plot(reader, STEP)
+    rows = page.evaluate(f"obsEquations.parallelTable(document.getElementById('{STEP}'))")
+    assert (shown["hidden"], shown["combinations"], shown["warning"]) == (False, 20, False)
+    assert shown["labels"] == ["zeta", "w", "settling", "error area"]
+    assert _drawn(reader, STEP) == set(combinations)
+    # The computed axes hold each combination's settling time and error area.
+    assert {row["label"]: row["values"][2] for row in rows} == pytest.approx(settling, abs=1e-9)
+    assert {row["label"]: row["values"][3] for row in rows} == pytest.approx(error, rel=1e-6)
+    # Every axis shows a histogram of the combinations' values.
+    for label in shown["labels"]:
+        assert sum(_axis(reader, STEP, label)["bins"]) == 20, label
+
+    # Dragging along the settling axis from its bottom selects the shortest settling times.
+    ordered = sorted(settling.values())
+    gap = max(range(3, 11), key=lambda index: ordered[index] - ordered[index - 1])
+    axis = _axis(reader, STEP, "settling")
+    height = axis["bottom"] - axis["top"]
+    threshold = (ordered[gap] + ordered[gap - 1]) / 2
+    assert (ordered[gap] - ordered[gap - 1]) / (axis["max"] - axis["min"]) * height > 6
+    draws = reader.draws(STEP)
+    page.mouse.move(axis["x"], axis["bottom"] + 4)
+    page.mouse.down()
+    page.mouse.move(axis["x"], axis["bottom"] - (threshold - axis["min"]) / (axis["max"] - axis["min"]) * height,
+                    steps=4)
+    page.mouse.up()
+    reader.wait_for_draw(STEP, draws)
+    shortest = {label for label, value in settling.items() if value < threshold}
+    assert len(shortest) == gap
+    assert _drawn(reader, STEP) == shortest
+
+    # Above the cap: 3 axes of 20 values; the plot opens from the menu and warns, thinning the rightmost axis.
+    cap = json.loads(CFG.read_text(encoding="utf-8"))["artifact"]["figures"]["parallelCoordinatesCap"]
+    assert _plot(reader, CAP)["hidden"] is True
+    draws = reader.draws(CAP)
+    page.evaluate(f"document.getElementById('{CAP}').scrollIntoView({{block: 'start'}})")
+    reader.menu(CAP).get_by_role("button", name="Parallel coordinates").click()
+    reader.wait_for_draw(CAP, draws)
+    capped = _plot(reader, CAP)
+    assert (capped["hidden"], capped["total"], capped["cap"]) == (False, 8000, cap)
+    assert capped["warning"] and capped["combinations"] <= cap
+    assert [_axis(reader, CAP, label)["distinct"] for label in "abc"] == [20, 20, cap // 400]
+    for label in "abc":
+        assert sum(_axis(reader, CAP, label)["bins"]) == capped["combinations"], label
+    # Dragging axis a to the right of c makes a the axis the cap thins.
+    page.keyboard.press("Escape")
+    a, c = _axis(reader, CAP, "a"), _axis(reader, CAP, "c")
+    draws = reader.draws(CAP)
+    page.mouse.move(a["label"]["x"], a["label"]["y"])
+    page.mouse.down()
+    page.mouse.move(c["label"]["x"] + 40, a["label"]["y"], steps=6)
+    page.mouse.up()
+    reader.wait_for_draw(CAP, draws)
+    assert _plot(reader, CAP)["labels"] == ["b", "c", "a"]
+    assert [_axis(reader, CAP, label)["distinct"] for label in "abc"] == [cap // 400, 20, 20]
+    assert reader.page.evaluate("JSON.stringify(Object.entries(localStorage).sort())").count("parallel") == 0
     reader.clean()
