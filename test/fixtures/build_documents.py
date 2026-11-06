@@ -331,8 +331,8 @@ def cards(root: Path) -> None:
              "link": "#overview", "secondaryLink": "#target", "tone": "negative",
              "toneRules": [{"value": "secondary", "when": "zero", "tone": "positive"}]},
             {"label": "Reviewed open", "where": [{"field": "status", "equals": "open"}], "tone": "positive",
-             "obsHtml": {"projection": "review"}}]},
-        {"title": "Series", "body": "", "metricStyle": "pills", "obsHtml": {"metricsFrom": {
+             "obs": {"projection": "review"}}]},
+        {"title": "Series", "body": "", "metricStyle": "pills", "obs": {"metricsFrom": {
             "sourceNote": "groups", "property": "groups.list", "labelProperty": "name",
             "distinctProperty": "field", "where": point, "tone": "positive",
             "toneRules": [{"value": "primary", "when": "zero", "tone": "negative"}],
