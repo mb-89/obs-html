@@ -34,12 +34,15 @@
 }
 
 /* The title shares with the crumbs what the band's squares leave, and truncates first, its full
-   text its tooltip: like the crumbs, it never takes a square's room. */
+   text its tooltip: like the crumbs, it never takes a square's room, nor the band's gap before it,
+   which its margin takes back and its indent keeps for the text. */
 .screens-title {
     color: var(--color-text);
     flex: 1 1 0;
     font: 600 0.8rem/var(--top-control-size) var(--font-interface);
+    margin-inline-start: calc(-1 * var(--top-band-gap));
     min-width: 0;
+    text-indent: var(--top-band-gap);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -66,30 +69,4 @@
 
 .screens-mode .top-band:has(.screens-position:not([hidden])) {
     --top-band-screens: 1;
-}
-
-/* The position is one more square, so the pill becomes a square 2.7rem sooner than base.css's
-   thresholds (base.css, Bless verdicts): (n - 1) * (2.4rem + 0.3rem) + 4.6rem + 1rem. */
-@container top-band (width < 29.9rem) {
-    .screens-mode .top-band:has(.screens-position:not([hidden])) .bless-pill { --bless-pill-text: 0; }
-}
-
-@container top-band (width < 32.6rem) {
-    .screens-mode .top-band:has(.screens-position:not([hidden])):has(.notice-group:not([hidden])) .bless-pill {
-        --bless-pill-text: 0;
-    }
-}
-
-@container top-band (width < 35.3rem) {
-    .screens-mode .top-band:has(.screens-position:not([hidden])):has(
-            .notice-group:not([hidden]) ~ .notice-group:not([hidden])) .bless-pill {
-        --bless-pill-text: 0;
-    }
-}
-
-@container top-band (width < 38rem) {
-    .screens-mode .top-band:has(.screens-position:not([hidden])):has(
-            .notice-group:not([hidden]) ~ .notice-group:not([hidden]) ~ .notice-group:not([hidden])) .bless-pill {
-        --bless-pill-text: 0;
-    }
 }

@@ -23,7 +23,7 @@
     --top-control-full: 2.4rem;
     --top-control-size: var(--top-control-full);
     --top-band-gap: 0.5rem;
-    /* The breadcrumbs' least width beside Home: the chapter chooser's toggle. */
+    /* The breadcrumbs' least width beside Home: the chapter chooser's toggle (one per level, below). */
     --top-band-crumbs: 1rem;
     --top-band-height: calc(1rem + var(--top-control-size) + 0.6rem);
 }
@@ -674,6 +674,13 @@ input[data-property-single-line]:focus {
 
 .top-band-path {
     min-width: calc(var(--top-control-size) + var(--top-band-crumbs));
+}
+
+/* The crumbs' least width is one chooser's toggle for each level of the path: a subchapter's
+   breadcrumbs hold two, Choose chapter and Choose subchapter, and a deeper one more. */
+.top-band:has(.chapter-breadcrumb-chooser ~ .chapter-breadcrumb-chooser) { --top-band-crumbs: 2rem; }
+.top-band:has(.chapter-breadcrumb-chooser ~ .chapter-breadcrumb-chooser ~ .chapter-breadcrumb-chooser) {
+    --top-band-crumbs: 3rem;
 }
 
 .top-band:has(.notice-group:not([hidden])) { --top-band-notices: 1; }
@@ -1935,43 +1942,29 @@ math {
 .bless-controls[hidden],
 .bless-controls [hidden] { display: none; }
 
-/* --bless-pill-text is 1 for the pill with its label and 0 for the square. */
+/* The pill shows its label while the band holds its other squares at full size, the pill
+   truncated to 4.6rem and the crumbs' least width: --bless-pill-room, the band's width less
+   (n - 1) * (full size + gap) + 4.6rem + the crumbs for its n squares (--top-band-squares, which
+   counts the pill), is positive. Below that it is a square of the band's size that shows only its
+   state colour. Each size steps between the two at that point: clamp() of the room, amplified. */
 .bless-pill {
-    --bless-pill-text: 1;
+    --bless-pill-room: calc(100cqw - (var(--top-band-squares) - 1) * (var(--top-control-full) + var(--top-band-gap))
+        - 4.6rem - var(--top-band-crumbs));
+    --bless-pill-step: calc(var(--bless-pill-room) * 1000);
     background: var(--color-warning-soft);
     border: var(--border-width) solid var(--color-warning);
-    border-radius: calc(var(--bless-pill-text) * 999px + var(--radius-small));
+    border-radius: clamp(var(--radius-small), var(--bless-pill-step), 999px);
     box-sizing: border-box;
     color: var(--color-text);
     flex: 0 1 auto;
-    font: calc(var(--bless-pill-text) * 0.72rem)/1 var(--font-interface);
+    font: clamp(0rem, var(--bless-pill-step), 0.72rem)/1 var(--font-interface);
     max-width: 11rem;
-    min-height: calc((1 - var(--bless-pill-text)) * var(--top-control-size));
-    min-width: calc(var(--bless-pill-text) * 4.6rem + (1 - var(--bless-pill-text)) * var(--top-control-size));
+    min-height: clamp(0rem, -1 * var(--bless-pill-step), var(--top-control-size));
+    min-width: max(var(--top-control-size), clamp(0rem, var(--bless-pill-step), 4.6rem));
     overflow: hidden;
-    padding: calc(var(--bless-pill-text) * 0.3rem) calc(var(--bless-pill-text) * 0.55rem);
+    padding: clamp(0rem, var(--bless-pill-step), 0.3rem) clamp(0rem, var(--bless-pill-step), 0.55rem);
     text-overflow: ellipsis;
     white-space: nowrap;
-}
-
-/* The pill is a square below the width that holds the band's other squares at full size, the
-   pill truncated and the crumbs' least width: (n - 1) * (2.4rem + 0.3rem) + 4.6rem + 1rem for the
-   band's n squares, 9 (the bless band with Send) plus one for each shown notice icon. */
-@container top-band (width < 27.2rem) {
-    .bless-pill { --bless-pill-text: 0; }
-}
-
-@container top-band (width < 29.9rem) {
-    .top-band:has(.notice-group:not([hidden])) .bless-pill { --bless-pill-text: 0; }
-}
-
-@container top-band (width < 32.6rem) {
-    .top-band:has(.notice-group:not([hidden]) ~ .notice-group:not([hidden])) .bless-pill { --bless-pill-text: 0; }
-}
-
-@container top-band (width < 35.3rem) {
-    .top-band:has(.notice-group:not([hidden]) ~ .notice-group:not([hidden]) ~ .notice-group:not([hidden]))
-        .bless-pill { --bless-pill-text: 0; }
 }
 
 .bless-pill[data-bless-state="bless"],
@@ -1983,6 +1976,12 @@ math {
 .bless-keys {
     display: flex;
     gap: 0.2rem;
+}
+
+/* The keys and Send are the band's squares: the pill gives way, they do not. */
+.bless-keys,
+.bless-send {
+    flex: none;
 }
 
 .bless-key,

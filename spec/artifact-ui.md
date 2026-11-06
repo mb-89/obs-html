@@ -622,7 +622,8 @@ the criterion names held at its left.
   The bless controls sit directly left of them.
   Every control in the band is a square of one size. No control takes a row of its own.
   Breadcrumbs that do not fit truncate on that row; each keeps its full title as its text and
-  tooltip.
+  tooltip. Their choosers do not truncate: the row keeps room for one toggle per level of the
+  path, so a subchapter's Choose chapter and Choose subchapter both show.
 
   At 360 px and wider the row holds every control the band shows, fully visible, without
   sideways scrolling. Where the squares at full size do not fit, they all shrink to one size
