@@ -926,10 +926,16 @@
             card.append(link);
             heading.prepend(card);
         }
+        // A blocked download cannot be observed, so where the canary could not decide, the help names the remedy.
+        const downloadHint = globalThis.obsCapabilities?.hint("downloads");
         document.querySelectorAll('[data-source-download], a[href="obs-source:archive"]').forEach(control => {
             control.dataset.sourceDownload = "";
             control.setAttribute("aria-disabled", String(!info.available));
             control.title = info.label;
+            if (downloadHint) {
+                control.dataset.sourceHelp ??= control.dataset.hoverHelp || "";
+                control.dataset.hoverHelp = `${control.dataset.sourceHelp} ${downloadHint}`.trim();
+            }
             if (!info.complete || !control.textContent.trim()) control.textContent = info.label;
             if (control.tagName === "BUTTON") control.disabled = !info.available;
         });
@@ -958,7 +964,7 @@
         try {
             await downloadSourceArchive();
             const limited = globalThis.obsCapabilities?.explain("downloads");
-            if (limited) globalThis.obsCapabilities.note(link, limited);
+            if (limited) globalThis.obsCapabilities?.note(link, limited);
         } catch (error) {
             if (globalThis.obsPayload) globalThis.obsPayload.fail(error);
             else showApplicationError(error);
@@ -2611,8 +2617,9 @@
     });
 
     // Artifact-ui.md "Floating window": a note without a place in the contents shows here as context;
-    // the page stays put. Links inside the window follow the same rule.
-    const floatingWindow = globalThis.ObsHtmlGuidedCard.createHost({
+    // the page stays put. Links inside the window follow the same rule. The renderer includes the
+    // window's code only where the Document can open it (features.py, popups).
+    const floatingWindow = globalThis.ObsHtmlGuidedCard?.createHost({
         window, size: artifactData.guidedCard, applyLinkPolicy,
     });
     const contextSources = "[data-chapter-body], [data-frontmatter-panel], #hover-card";
@@ -2758,9 +2765,7 @@
                     );
                 });
             } else {
-                const message = "No table here includes this tag.";
-                if (globalThis.obsCapabilities?.limit("dialogs")) globalThis.obsCapabilities.note(link, message);
-                else globalThis.alert(message);
+                globalThis.obsCapabilities?.note(link, "No table here includes this tag.");
             }
             return;
         }

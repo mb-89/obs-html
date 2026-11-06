@@ -166,9 +166,10 @@
                     owned = null;
                 }
             }
+            // Where the canary could not decide, a window that did not open is the observed refusal.
+            const reason = globalThis.obsCapabilities?.fail("popups", "window.open returned no window");
             showInline("A separate window could not be opened here, so the card is shown in this page." +
-                (globalThis.obsCapabilities?.limit("popups")
-                    ? ` ${globalThis.obsCapabilities.explain("popups")}` : ""));
+                (reason ? ` ${reason}` : ""));
             focusFirst(slot);
         };
         // Must run synchronously inside the reader's activation: both PiP and popups require it.

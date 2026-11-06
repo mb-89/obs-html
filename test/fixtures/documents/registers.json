@@ -189,67 +189,61 @@
           ]
         },
         {
-          "type": "paragraph",
-          "attrs": {},
-          "children": [
-            {
-              "type": "registers",
-              "attrs": {
-                "target": "points.base",
-                "heading": "",
-                "base": {
-                  "filters": "kind == \"point\"",
-                  "views": [
-                    {
-                      "type": "table",
-                      "name": "Labelled",
-                      "order": [
-                        "file.name",
-                        "obsHtml.label"
-                      ],
-                      "obs": {
-                        "members": [
-                          {
-                            "path": "c-point.md",
-                            "label": "C"
-                          },
-                          {
-                            "path": "a-point.md",
-                            "label": "A"
-                          }
-                        ]
-                      }
-                    },
-                    {
-                      "type": "table",
-                      "name": "Second",
-                      "order": [
-                        "file.name"
-                      ],
-                      "obs": {
-                        "members": [
-                          {
-                            "path": "b-point.md"
-                          }
-                        ]
-                      }
-                    }
-                  ]
-                },
-                "view": null,
-                "rows": [
-                  [
-                    "c-point",
-                    "a-point"
+          "type": "registers",
+          "attrs": {
+            "target": "points.base",
+            "heading": "",
+            "base": {
+              "filters": "kind == \"point\"",
+              "views": [
+                {
+                  "type": "table",
+                  "name": "Labelled",
+                  "order": [
+                    "file.name",
+                    "obsHtml.label"
                   ],
-                  [
-                    "b-point"
-                  ]
-                ]
-              },
-              "children": []
-            }
-          ]
+                  "obs": {
+                    "members": [
+                      {
+                        "path": "c-point.md",
+                        "label": "C"
+                      },
+                      {
+                        "path": "a-point.md",
+                        "label": "A"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "type": "table",
+                  "name": "Second",
+                  "order": [
+                    "file.name"
+                  ],
+                  "obs": {
+                    "members": [
+                      {
+                        "path": "b-point.md"
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            "view": null,
+            "rows": [
+              [
+                "c-point",
+                "a-point"
+              ],
+              [
+                "b-point"
+              ]
+            ]
+          },
+          "children": []
         }
       ],
       "children": [],
@@ -306,67 +300,61 @@
           ]
         },
         {
-          "type": "paragraph",
-          "attrs": {},
-          "children": [
-            {
-              "type": "registers",
-              "attrs": {
-                "target": "points.base",
-                "heading": "Second",
-                "base": {
-                  "filters": "kind == \"point\"",
-                  "views": [
-                    {
-                      "type": "table",
-                      "name": "Labelled",
-                      "order": [
-                        "file.name",
-                        "obsHtml.label"
-                      ],
-                      "obs": {
-                        "members": [
-                          {
-                            "path": "c-point.md",
-                            "label": "C"
-                          },
-                          {
-                            "path": "a-point.md",
-                            "label": "A"
-                          }
-                        ]
-                      }
-                    },
-                    {
-                      "type": "table",
-                      "name": "Second",
-                      "order": [
-                        "file.name"
-                      ],
-                      "obs": {
-                        "members": [
-                          {
-                            "path": "b-point.md"
-                          }
-                        ]
-                      }
-                    }
-                  ]
-                },
-                "view": 1,
-                "rows": [
-                  [
-                    "c-point",
-                    "a-point"
+          "type": "registers",
+          "attrs": {
+            "target": "points.base",
+            "heading": "Second",
+            "base": {
+              "filters": "kind == \"point\"",
+              "views": [
+                {
+                  "type": "table",
+                  "name": "Labelled",
+                  "order": [
+                    "file.name",
+                    "obsHtml.label"
                   ],
-                  [
-                    "b-point"
-                  ]
-                ]
-              },
-              "children": []
-            }
-          ]
+                  "obs": {
+                    "members": [
+                      {
+                        "path": "c-point.md",
+                        "label": "C"
+                      },
+                      {
+                        "path": "a-point.md",
+                        "label": "A"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "type": "table",
+                  "name": "Second",
+                  "order": [
+                    "file.name"
+                  ],
+                  "obs": {
+                    "members": [
+                      {
+                        "path": "b-point.md"
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            "view": 1,
+            "rows": [
+              [
+                "c-point",
+                "a-point"
+              ],
+              [
+                "b-point"
+              ]
+            ]
+          },
+          "children": []
         }
       ],
       "children": [],
@@ -439,117 +427,111 @@
           ]
         },
         {
-          "type": "paragraph",
-          "attrs": {},
-          "children": [
-            {
-              "type": "registers",
-              "attrs": {
-                "target": "types.base",
-                "heading": "",
-                "base": {
-                  "views": [
-                    {
-                      "type": "table",
-                      "name": "Notes",
-                      "filters": "kind == \"point\"",
-                      "order": [
-                        "file.name"
-                      ],
-                      "obs": {
-                        "records": "note"
-                      }
-                    },
-                    {
-                      "type": "table",
-                      "name": "Chapters",
-                      "order": [
-                        "chapter"
-                      ],
-                      "obs": {
-                        "records": "chapter"
-                      }
-                    },
-                    {
-                      "type": "table",
-                      "name": "Tags",
-                      "filters": "type == \"risk\"",
-                      "order": [
-                        "label",
-                        "text"
-                      ],
-                      "obs": {
-                        "records": "tag"
-                      }
-                    },
-                    {
-                      "type": "table",
-                      "name": "Glossary",
-                      "order": [
-                        "term",
-                        "definition"
-                      ],
-                      "obs": {
-                        "records": "glossary"
-                      }
-                    },
-                    {
-                      "type": "table",
-                      "name": "Metadata",
-                      "filters": "key != \"title\"",
-                      "order": [
-                        "key",
-                        "value"
-                      ],
-                      "obs": {
-                        "records": "documentMetadata"
-                      }
-                    },
-                    {
-                      "type": "table",
-                      "name": "History",
-                      "order": [
-                        "version",
-                        "date",
-                        "change"
-                      ],
-                      "obs": {
-                        "records": "documentHistory"
-                      }
-                    }
-                  ]
+          "type": "registers",
+          "attrs": {
+            "target": "types.base",
+            "heading": "",
+            "base": {
+              "views": [
+                {
+                  "type": "table",
+                  "name": "Notes",
+                  "filters": "kind == \"point\"",
+                  "order": [
+                    "file.name"
+                  ],
+                  "obs": {
+                    "records": "note"
+                  }
                 },
-                "view": null,
-                "rows": [
-                  [
-                    "a-point",
-                    "b-point",
-                    "c-point",
-                    "d-point"
+                {
+                  "type": "table",
+                  "name": "Chapters",
+                  "order": [
+                    "chapter"
                   ],
-                  [
-                    "chapter-points",
-                    "chapter-second",
-                    "chapter-types"
+                  "obs": {
+                    "records": "chapter"
+                  }
+                },
+                {
+                  "type": "table",
+                  "name": "Tags",
+                  "filters": "type == \"risk\"",
+                  "order": [
+                    "label",
+                    "text"
                   ],
-                  [
-                    "tag-second-risk-second-risk"
+                  "obs": {
+                    "records": "tag"
+                  }
+                },
+                {
+                  "type": "table",
+                  "name": "Glossary",
+                  "order": [
+                    "term",
+                    "definition"
                   ],
-                  [
-                    "glossary-datum"
+                  "obs": {
+                    "records": "glossary"
+                  }
+                },
+                {
+                  "type": "table",
+                  "name": "Metadata",
+                  "filters": "key != \"title\"",
+                  "order": [
+                    "key",
+                    "value"
                   ],
-                  [
-                    "document-metadata-status"
+                  "obs": {
+                    "records": "documentMetadata"
+                  }
+                },
+                {
+                  "type": "table",
+                  "name": "History",
+                  "order": [
+                    "version",
+                    "date",
+                    "change"
                   ],
-                  [
-                    "document-history-1",
-                    "document-history-2"
-                  ]
-                ]
-              },
-              "children": []
-            }
-          ]
+                  "obs": {
+                    "records": "documentHistory"
+                  }
+                }
+              ]
+            },
+            "view": null,
+            "rows": [
+              [
+                "a-point",
+                "b-point",
+                "c-point",
+                "d-point"
+              ],
+              [
+                "chapter-points",
+                "chapter-second",
+                "chapter-types"
+              ],
+              [
+                "tag-second-risk-second-risk"
+              ],
+              [
+                "glossary-datum"
+              ],
+              [
+                "document-metadata-status"
+              ],
+              [
+                "document-history-1",
+                "document-history-2"
+              ]
+            ]
+          },
+          "children": []
         }
       ],
       "children": [],
@@ -919,7 +901,23 @@
       "path": "a-point.md",
       "fields": {
         "kind": "point"
-      }
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "kind"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "point"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "b-point",
@@ -927,7 +925,23 @@
       "path": "b-point.md",
       "fields": {
         "kind": "point"
-      }
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "kind"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "point"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "c-point",
@@ -935,7 +949,23 @@
       "path": "c-point.md",
       "fields": {
         "kind": "point"
-      }
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "kind"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "point"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "d-point",
@@ -943,7 +973,23 @@
       "path": "d-point.md",
       "fields": {
         "kind": "point"
-      }
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "kind"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "point"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "datum",
@@ -953,7 +999,51 @@
         "kind": "glossary",
         "term": "Datum",
         "definition": "A reference."
-      }
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "kind"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "glossary"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "term"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Datum"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "definition"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "A reference."
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "manifest",
@@ -973,25 +1063,128 @@
             "change": "Second"
           }
         ]
-      }
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "title"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Registers"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "status"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "draft"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "history.0.version"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "1"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "history.0.date"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "2026-01-01"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "history.0.change"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "First"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "history.1.version"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "2"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "history.1.change"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Second"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "points",
       "type": "note",
       "path": "points.md",
-      "fields": {}
+      "fields": {},
+      "fieldNodes": []
     },
     {
       "id": "second",
       "type": "note",
       "path": "second.md",
-      "fields": {}
+      "fields": {},
+      "fieldNodes": []
     },
     {
       "id": "types",
       "type": "note",
       "path": "types.md",
-      "fields": {}
+      "fields": {},
+      "fieldNodes": []
     },
     {
       "id": "chapter-points",

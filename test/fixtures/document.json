@@ -224,15 +224,21 @@
                 "label": "gone"
               },
               "children": []
-            },
-            {
-              "type": "embeds",
-              "attrs": {
-                "target": "guide/usage",
-                "chapter": "guide-usage"
-              },
-              "children": []
-            },
+            }
+          ]
+        },
+        {
+          "type": "embeds",
+          "attrs": {
+            "target": "guide/usage",
+            "chapter": "guide-usage"
+          },
+          "children": []
+        },
+        {
+          "type": "paragraph",
+          "attrs": {},
+          "children": [
             {
               "type": "code",
               "attrs": {},

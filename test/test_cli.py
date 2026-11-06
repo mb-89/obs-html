@@ -20,7 +20,8 @@ def test_help_is_the_complete_cli_reference(capsys) -> None:
     assert exit_info.value.code == 0
     output = capsys.readouterr().out
     for option in ("DOCUMENT", "DESTINATION", "--config", "--check",
-                   "--export-pdf", "--output", "--check-rendered", "--timings", "Exit status"):
+                   "--export-pdf", "--output", "--check-rendered", "--timings", "--embed-attachments",
+                   "Editions", "Exit status"):
         assert option in output
 
 
@@ -52,6 +53,8 @@ def test_check_renders_without_output(tmp_path, capsys) -> None:
     (["--export-pdf", "a.html"], "requires --output file.pdf"),
     (["--export-pdf", "a.html", "--output", "a.html"], "requires --output file.pdf"),
     (["--check-rendered", "a.html", FIXTURE], "separate operations"),
+    (["--check-rendered", "a.html", "--embed-attachments"], "separate operations"),
+    (["--extract-comments", "a.html", "--embed-attachments"], "separate operation"),
     ([FIXTURE, FIXTURE], "must not overwrite"),
 ])
 def test_invalid_option_combinations_fail(arguments, message, capsys) -> None:
