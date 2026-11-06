@@ -41,6 +41,9 @@ files into it (obs's architecture, Source archive: [[obs-specification|obs's spe
 obs-html packages and embeds them whenever they are there
 ([[input-model#Optional reproduction archive]]). A `.pdf` destination of such a Document carries the ZIP as a PDF attachment, so
 `obs-document --embed-source --adapter html --destination artifact.pdf` attaches it in one call.
+`obs-html --export-pdf HTML --output file.pdf` prints an existing artifact the same way: it
+attaches the ZIP the HTML embeds, and prints an HTML without one with no attachment, as the
+interim adapter's option of the same name does.
 
 `obs-html --attach-source-to-pdf PDF --source-artifact HTML --output file.pdf` attaches the ZIP an
 artifact embeds to a PDF saved from it, as the interim adapter's option of the same name does; in
