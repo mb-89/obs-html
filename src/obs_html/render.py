@@ -387,7 +387,7 @@ def _command(node: dict[str, object], context: Context) -> str:
     if not isinstance(output, str):
         raise _stale(context, ["attrs", "output"], "is missing: the core captures a command fence's output only "
                      "when it runs the fences", _rebuild(context.document, " ... --execute-commands"))
-    return f'<pre class="command-output">{escape(output)}</pre>\n'
+    return f'<pre class="command-output"><code>{escape(output)}</code></pre>\n'
 
 
 def _base(node: dict[str, object], context: Context) -> str:

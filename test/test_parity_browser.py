@@ -545,9 +545,7 @@ PRINTED_CHAPTER = "design-input-cli"
 PRINTED_FORMS: dict[str, tuple[str, str]] = {
     "&#x27;": ("'", "this adapter escapes apostrophes in text (html.escape); the text is the same"),
     ' class="internal-link"': ("", "this adapter marks a link to a chapter of the artifact for its runtime"),
-    r'(?s)(<pre class="command-output">)<code>(.*?)</code></pre>': (
-        r"\1\2</pre>", "the reference wraps command output in <code> inside its <pre>; this adapter does not"),
-    r'(?m)^(<pre class="command-output">)?warning: .*\n': (
+    r'(?m)^(<pre class="command-output"><code>)?warning: .*\n': (
         r"\1", "the interim reference runs a fence through its own uv and captures uv's warnings (only "
         "where uv warns, as for a deprecated UV_* variable); the core captures the command's output alone"),
 }

@@ -952,5 +952,5 @@ The figure lint prints its warnings on stderr; none changes the HTML.
 
 ### Command-derived content
 
-- Command output is HTML-escaped and rendered as preformatted content; it cannot inject
-  artifact markup or styles.
+- Command output is HTML-escaped and rendered as preformatted code, `<pre><code>` like every
+  other code block; it cannot inject artifact markup or styles.
