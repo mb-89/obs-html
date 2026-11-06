@@ -9,7 +9,7 @@ from importlib.resources import files
 
 import pytest
 
-from conftest import FIXTURE, PIXEL
+from conftest import FIXTURE, PIXEL, ROOT
 from documents import chapter, document, heading, node, paragraph
 from obs_html.config import load_config
 from obs_html.features import FEATURES
@@ -71,6 +71,8 @@ RESPONSE = json.loads(FIXTURE.read_text(encoding="utf-8"))
 PLOT = next(item["children"][0]["attrs"] for chapter_ in RESPONSE["chapters"] for item in chapter_["content"]
             if item["type"] == "figures" and item["attrs"]["kind"] == "plot")
 IMAGE = {"mediaType": "image/png", "data": PIXEL}
+EQUATIONS = next(item["children"][0]["attrs"] for chapter_ in RESPONSE["chapters"] for item in chapter_["content"]
+                 if item["type"] == "figures" and item["attrs"]["kind"] == "equations")
 
 
 # Feature key -> Documents that meet its condition and Documents that do not.
@@ -81,7 +83,9 @@ CASES = {
     "downloads": ([plain()], []),
     "clipboard": ([plain()], []),
     "popups": ([with_context_note(), with_non_document_note(), with_guided_card()], [plain()]),
-    "plotting": ([with_figure("plot", PLOT)], [plain(), with_figure("image", IMAGE)]),
+    "plotting": ([with_figure("plot", PLOT), with_figure("equations", EQUATIONS)],
+                 [plain(), with_figure("image", IMAGE)]),
+    "equations": ([with_figure("equations", EQUATIONS)], [plain(), with_figure("plot", PLOT)]),
 }
 
 
@@ -92,6 +96,25 @@ def test_a_figure_kind_declares_what_it_needs_only_through_the_feature_registry(
     plot, image = render(with_figure("plot", PLOT), CONFIG), render(with_figure("image", IMAGE), CONFIG)
     assert 'id="plotly-script"' in plot and 'id="canary-plotting"' in plot
     assert 'id="plotly-script"' not in image and 'id="canary-plotting"' not in image
+    equations = render(with_figure("equations", EQUATIONS), CONFIG)
+    assert 'id="maths-script"' in equations and 'id="plotly-script"' in equations
+    assert 'id="maths-script"' not in plot and 'id="maths-script"' not in image
+
+
+def test_the_maths_library_ships_pinned_from_its_lockfile_with_its_licence() -> None:
+    """math.js, pinned in maths/package-lock.json and installed from it, is embedded whole in an
+    artifact with an equation figure, with its licence; nothing loads it from elsewhere."""
+    lock = json.loads((ROOT / "maths" / "package-lock.json").read_text(encoding="utf-8"))
+    installed = ROOT / "maths" / "node_modules" / "mathjs"
+    library = (installed / "lib" / "browser" / "math.js").read_text(encoding="utf-8")
+    html = render(with_figure("equations", EQUATIONS), CONFIG)
+
+    assert lock["packages"][""]["dependencies"] == {"mathjs": lock["packages"]["node_modules/mathjs"]["version"]}
+    assert json.loads((installed / "package.json").read_text(encoding="utf-8"))["version"] == \
+        lock["packages"]["node_modules/mathjs"]["version"]
+    assert library.replace("</script", "<\\/script") in html
+    assert (installed / "LICENSE").read_text(encoding="utf-8").strip() in html
+    assert "cdn" not in html.split('id="maths-script"')[1].split("</script>")[0][:200].lower()
 
 
 def test_every_feature_has_cases_and_its_canary_and_code_exist() -> None:

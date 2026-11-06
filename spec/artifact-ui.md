@@ -294,7 +294,8 @@ failures have their form in [[input-model#Chapter content]].
   engine interaction.
 
   Do not remove trace toggling or keyboard access. Print contains the default visual and
-  caption without overlay chrome or interaction controls.
+  caption without overlay chrome or interaction controls; an equation figure prints the
+  reader's view ([[#Equation figures]]).
 - Web figures preserve the engineering content and essential appearance of their existing
   Python-generated counterparts. Reverse-engineer the generating code, geometry inputs,
   calculations and annotations before migration; do not ask authors to redesign each figure.
@@ -327,6 +328,50 @@ failures have their form in [[input-model#Chapter content]].
 - Normal artifact and PDF presentation retain the complete default composition, captions and
   provenance. Interactive state is view-local; zoom does not alter source data or calculations.
   Static source figures remain available until visual and numerical parity is verified.
+
+### Equation figures
+
+Decided by the user, 5 Nov 2026 (work issue `feature/equation-figures-live-20261105`): the
+reader explores an equation figure through its options menu; there are no 3D plots.
+
+An equation figure (obs capabilities/equation-figures) is plotted live from the Document's
+expression trees by `src/obs_html/equations.js`, with the plotting library of stored-data plots
+(Plotly) for drawing, zoom and pan, and one maths library, math.js, for complex arithmetic and
+for parsing the reader's expressions. The maths library is pinned in `maths/package-lock.json`,
+installed from it (`npm --prefix maths ci`, which the complete suite's setup runs) and embedded
+whole, with its licence, only in an artifact that holds an equation figure: it is the reader
+feature `equations` (`features.py`), whose canary reports a host that does not run it. An
+artifact never loads it from elsewhere. A build of an equation figure without it installed is an
+input error that names the lockfile and the install command.
+
+- Evaluation: a tree evaluates with the variables' SI values in complex arithmetic with
+  principal branches; a result is a point of the plot where its imaginary part vanishes
+  (`|im| <= 1e-9 * max(1, |re|)`), elsewhere the curve has a gap. Real-only operators (`atan2`,
+  `sign`, `min`, `max`, `heaviside`) take real arguments only; `heaviside(0)` is 1/2 and
+  `sign(0)` is 0. The shared test vectors of the core pass with this evaluator.
+- Sampling: each curve has 241 points spread over the swept variable's visible range. At every
+  zoom and pan the visible range of the swept variable's axis is sampled again, so detail grows
+  as the reader zooms in; the range never leaves the variable's range.
+- Solving: exact branches are evaluated; each branch is a curve. Algebraic residuals are
+  solved at each point by Newton's method with a halving line search, seeded from the defaults
+  (the Document's guess) and continued from the previous point. A differential system is
+  integrated from its start with an adaptive Runge–Kutta method (Dormand–Prince 5(4), relative
+  tolerance 1e-9), stepping onto every sampled point. Curves compute in slices of at most about
+  12 ms between which the page runs on; a status line counts the curves while they compute.
+- Axes and names: an axis shows a plotted variable in its authored unit, from its quantity's
+  range or value, and any other expression in SI base units. A family curve is named by its
+  expression and its value, `T, throttle = 0.5`.
+- The options menu adds to the plot's Legend: **Add trace** (an expression over the figure's
+  variables, parsed by the maths library, on the first or the second y axis; an expression it
+  cannot read names itself, the reason and the variables it may use), **Second y axis** (its
+  side, right or left, the first axis taking the other side, and each authored y expression's
+  axis), **Swap x and y**, and **Family** (a third movable variable by a number of steps spread
+  over its range, or by values in its unit; None removes it). Every choice, and the zoom, is
+  session-only view state ([[artifact-ui#What counts as a change]]), kept per figure anchor
+  while the artifact is open.
+- Print and PDF show the reader's current view of an equation figure, not its initial plot;
+  where that view differs from the initial plot, the caption ends with the note *View changed
+  by the reader.*
 
 ## Reading shell
 

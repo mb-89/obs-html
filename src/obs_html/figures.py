@@ -1,5 +1,5 @@
 """The one figure frame and the figure kinds it frames: images, SVG drawings, Sankey diagrams,
-stored-data plots and Mermaid and PlantUML diagrams (the Document's ``figures`` nodes, obs
+stored-data plots, Mermaid and PlantUML diagrams and equation figures (the Document's ``figures`` nodes, obs
 input-model, Figure input direction).
 
 Reader: whoever changes how a figure is framed or adds a figure kind (artifact-ui.md, One
@@ -110,6 +110,13 @@ def _plot_body(attrs: dict, alt: str, source: str) -> Body:
     raise unsupported(source)
 
 
+def _equations_body(attrs: dict, alt: str, _source: str) -> Body:
+    """An equation figure's live plot: the runtime (equations.js) evaluates the Document's body,
+    which the core checked against its schema, so the spec is that body as it is."""
+    return Body('<div class="figure-live" aria-label="Interactive figure"></div>',
+                {"kind": "equations", "alt": alt or "Equation figure", **attrs})
+
+
 FIGURE_KINDS: dict[str, FigureKind] = {
     "image": FigureKind(_image_body),
     "svg": FigureKind(_svg_body),
@@ -118,6 +125,9 @@ FIGURE_KINDS: dict[str, FigureKind] = {
     # A diagram's body is the SVG the core drew at build time: no diagram library ships.
     "mermaid": FigureKind(_svg_body),
     "plantuml": FigureKind(_svg_body),
+    # Plotted with the plotting library; evaluated and solved with the maths library.
+    "equations": FigureKind(_equations_body, options=("legend", "trace", "axis", "swap", "family"),
+                            features=("plotting", "equations")),
 }
 """The figure kinds this adapter renders, by the core's kind (obs src/obs/figure.py, FIGURE_KINDS)."""
 

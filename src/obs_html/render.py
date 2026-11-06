@@ -29,7 +29,7 @@ from markdown_it import MarkdownIt
 from obs_html.bars import BarDefinition, discover_bars
 from obs_html.config import Config, paper
 from obs_html.errors import DOCUMENT_OF, InputError, field_path, schema_error
-from obs_html.features import included as included_features
+from obs_html.features import included as included_features, maths_library, maths_library_licence
 from obs_html.figures import FIGURE_KINDS, render_figure
 from obs_html.artifact_data import encode_artifact_data, prepare_artifact_scripts, serialize_artifact_data
 from obs_html.semantic_assets import SemanticAssets, markup
@@ -716,6 +716,7 @@ CAPABILITIES: dict[str, Renderer] = {
     "command-fences": _command,
     "count-query": _nothing,
     "embeds": _embed,
+    "equation-figures": _nothing,  # A figure kind: figures.py draws its body.
     "extensions": _extension,
     "figure-descriptor": _nothing,
     "figures": _figure,
@@ -1251,7 +1252,11 @@ def _shell(model: dict[str, object], limits: list[dict[str, str]], stylesheet: s
                           + read("vendor", "plotly-basic.min.js.LICENSE.txt") + "\n"
                           + read("vendor", "plotly-basic.min.js").replace("</script", "<\\/script")
                           + "</script>")
-        figure_assets = (f'<style id="figure-styles">{read("figures.css")}</style>{plotly}'
+        maths = ""
+        if any(feature.key == "equations" for feature in features):
+            maths = ('<script id="maths-script">/* ' + maths_library_licence() + " */\n"
+                     + maths_library().replace("</script", "<\\/script") + "</script>")
+        figure_assets = (f'<style id="figure-styles">{read("figures.css")}</style>{plotly}{maths}'
                          f'<script id="figure-script">{read("figures.js")}</script>')
     card_assets = ""
     if "data-record-cards" in data or any(note["frontmatter"].get("kind") == "quantity"

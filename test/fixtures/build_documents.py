@@ -379,7 +379,7 @@ CARDS = '{"version": 1, "cards": [{"title": "Items", "body": "Ranked: [[rankedIt
 def document(root: Path) -> None:
     """The adapter's main fixture (conftest.py's FIXTURE): a paged manifest with a cover, a chapter
     with a nested chapter, a Base and command fences, an appendix with figures (a Mermaid and a
-    PlantUML diagram among them), a callout, cards and a register, a count quantity and a glossary note with a property editor. Its one
+    PlantUML diagram among them, and an equation figure), a callout, cards and a register, a count quantity and a glossary note with a property editor. Its one
     diagnostic, the link to the missing note, is the one the CLI test reads on stderr."""
     (root / "images").mkdir()
     (root / "images" / "logo.png").write_bytes(base64.b64decode(
@@ -409,7 +409,8 @@ def document(root: Path) -> None:
         f"```figure\nversion: 1\nkind: plot\ncontent: {json.dumps(FLOW)}\n```\n\n"
         "> [!warning] Check the limits\n> The badge ![Logo](images/logo.png) marks it.\n\n"
         f"```cards\n{CARDS}\n```\n\n![[items.base]]\n\n"
-        "```mermaid\ngraph LR\n  Item --> Rank\n```\n\n```plantuml\n@startuml\nItem -> Rank\n@enduml\n```\n",
+        "```mermaid\ngraph LR\n  Item --> Rank\n```\n\n```plantuml\n@startuml\nItem -> Rank\n@enduml\n```\n\n"
+        f"```figure\nversion: 1\nkind: equations\ncontent:\n{_indent(PARABOLA)}```\n",
         encoding="utf-8")
     (root / "items.base").write_text(
         "filters: 'kind == \"item\"'\nviews:\n"
@@ -441,6 +442,63 @@ def property_editor_projection(root: Path) -> None:
     )
 
 
+PARABOLA = "equations: y = a*x**2\nvariables:\n  x: {default: 0, range: [-2, 2]}\n  a: {default: 1, range: [0.5, 2]}\n  y: {}\nplot: {x: x, y: y}\n"
+"""The small equation figure of the gallery and the main fixture: one exact branch over one sweep."""
+
+
+def _indent(text: str) -> str:
+    return "".join(f"  {line}\n" for line in text.splitlines())
+
+
+ENGINE_SPEED = ("---\nkind: quantity\nvalue: 3000\nunit: rpm\nrange: [800, 6000]\naliases: [engineSpeed]\n"
+                "source: '[[curves]]'\n---\n# Engine speed\n")
+EQUATIONS = {
+    # block id: the figure's content (the core's test_equation_figures.py shapes)
+    "torque": """\
+equations: T = T_max*throttle*(1 - (n/n_max)**2)
+variables:
+  n: "[[engineSpeed]]"
+  n_max: {default: 6000, unit: rpm}
+  T_max: {default: 250, unit: N*m}
+  throttle: {default: 1, range: [0, 1]}
+  T: {unit: N*m}
+plot:
+  x: n
+  y: [T, {expression: T*n, axis: secondary}]
+  family: {variable: throttle, values: [0.25, 0.5, 1]}
+""",
+    "saturated": """\
+equations: y'' + 2*zeta*w*y' + w**2*Min(Max(y, -1), 1) = w**2*u
+variables:
+  t: {default: 0, range: [0, 10], unit: s}
+  y: {of: t, initial: [0, 0]}
+  zeta: {default: 0.3, range: [0.05, 2]}
+  w: {default: 2, range: [0.5, 5], unit: 1/s}
+  u: {default: 1.5, range: [0, 2]}
+plot: {x: t, y: y}
+""",
+    "quintic": """\
+equations: y**5 + y = a
+variables:
+  a: {default: 2, range: [0, 10]}
+  y: {default: 1}
+plot: {x: a, y: y}
+""",
+}
+
+
+def equations(root: Path) -> None:
+    """The live equation figures (test_equation_figures_browser.py): the torque family over a
+    quantity note's range with a second axis, the saturated oscillator the core leaves as a
+    differential system, and an algebraic equation it leaves for Newton's method. Not a moved
+    interim vault."""
+    (root / "manifest.md").write_text("---\ntitle: Equations\n---\n- [[curves]]\n", encoding="utf-8")
+    (root / "speed.md").write_text(ENGINE_SPEED, encoding="utf-8")
+    (root / "curves.md").write_text("# Curves\n\n" + "".join(
+        f"```figure\nversion: 1\nkind: equations\ncaption: The {name} figure.\ncontent:\n{_indent(content)}```\n"
+        f"^{name}\n\n" for name, content in EQUATIONS.items()), encoding="utf-8")
+
+
 GALLERY_SVG = ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 20">'
                '<rect width="20" height="20" fill="#587894"/><circle cx="30" cy="10" r="8" fill="#73869a"/></svg>')
 
@@ -462,6 +520,7 @@ def figures(root: Path) -> None:
         "plot": f"content: {json.dumps(RESPONSE)}",
         "mermaid": "source: flow.mmd",
         "plantuml": "content: |\n  @startuml\n  Draft -> Review : submit\n  @enduml",
+        "equations": f"content:\n{_indent(PARABOLA)}",
     }
     (root / "gallery.md").write_text("# Gallery\n\n" + "".join(
         f"```figure\nversion: 1\nkind: {kind}\ncaption: The {kind} figure, see [[gallery]].\n{fence}\n```\n"
@@ -508,7 +567,7 @@ def self_link(root: Path) -> None:
     (root / "short.md").write_text("# Short\n\nBody.\n", encoding="utf-8")
 
 
-VAULTS = {"figures": figures, "document": document, "complete": complete, "artifact-change": artifact_change, "projections": projections,
+VAULTS = {"figures": figures, "equations": equations, "document": document, "complete": complete, "artifact-change": artifact_change, "projections": projections,
           "table-help": table_help, "structural": structural, "callouts": callouts,
           "registers": registers, "cards": cards,
           "property-editor-projection": property_editor_projection, "self-link": self_link,
