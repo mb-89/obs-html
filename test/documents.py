@@ -31,6 +31,18 @@ def frontmatter(metadata: dict, fields: dict[str, list[str | dict]] | None = Non
     return result
 
 
+def field_nodes(fields: dict) -> list[dict]:
+    """A note record's ``fieldNodes`` for values that are plain text: one text field node per
+    nonempty string, by dotted path, as the core parses a string without inline Markdown."""
+    def walk(value: object, name: str):
+        items = value.items() if isinstance(value, dict) else enumerate(value) if isinstance(value, list) else ()
+        for key, item in items:
+            yield from walk(item, f"{name}.{key}" if name else str(key))
+        if isinstance(value, str) and value:
+            yield {"type": "field", "attrs": {"name": name}, "children": [text(value)]}
+    return list(walk(fields, ""))
+
+
 def chapter(identifier: str, title: str, *content: dict, metadata: dict | None = None,
             fields: dict[str, list[str | dict]] | None = None, children: tuple[dict, ...] = ()) -> dict:
     nodes = list(content)
@@ -52,7 +64,9 @@ def document(title: str, *chapters: dict, metadata: dict | None = None,
         "schemaVersion": 1,
         "manifest": {"title": title, "metadata": metadata,
                      "abstract": [node("manifest"), node("markdown"), *manifest_frontmatter, *abstract]},
-        "chapters": list(chapters), "links": [], "assets": [], "records": list(records),
+        "chapters": list(chapters), "links": [], "assets": [],
+        "records": [{**record, "fieldNodes": field_nodes(record["fields"])}
+                    if record["type"] == "note" and "fieldNodes" not in record else record for record in records],
         "semanticResources": [], "diagnostics": [], "capabilities": [],
     }
     used: set[str] = set()

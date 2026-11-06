@@ -932,7 +932,37 @@
         "item": {
           "name": "Alpha"
         }
-      }
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "kind"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "item"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "item.name"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Alpha"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "beta",
@@ -944,7 +974,37 @@
         "item": {
           "name": "Beta"
         }
-      }
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "kind"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "item"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "item.name"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Beta"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "gamma",
@@ -955,7 +1015,37 @@
         "item": {
           "name": "Unranked"
         }
-      }
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "kind"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "item"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "item.name"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Unranked"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "other",
@@ -964,7 +1054,23 @@
       "fields": {
         "kind": "other",
         "rank": 3
-      }
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "kind"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "other"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "ranked",
@@ -985,7 +1091,97 @@
           ],
           "distinct": "rank"
         }
-      }
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "kind"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "quantity"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "aliases.0"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "rankedItems"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "source"
+          },
+          "children": [
+            {
+              "type": "wikilinks",
+              "attrs": {
+                "target": "intro",
+                "chapter": "intro",
+                "heading": "",
+                "label": "intro"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "query.where.0.field"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "kind"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "query.where.0.equals"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "item"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "query.distinct"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "rank"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "datum",
@@ -996,7 +1192,99 @@
         "term": "Datum",
         "definition": "A **reference** point, see [[intro]].",
         "status": "approved"
-      }
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "kind"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "glossary"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "term"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Datum"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "definition"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "A "
+            },
+            {
+              "type": "strong",
+              "attrs": {},
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "reference"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": " point, see "
+            },
+            {
+              "type": "wikilinks",
+              "attrs": {
+                "target": "intro",
+                "chapter": "intro",
+                "heading": "",
+                "label": "intro"
+              },
+              "children": []
+            },
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "."
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "status"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "approved"
+            }
+          ]
+        }
+      ]
     }
   ],
   "semanticResources": [],
