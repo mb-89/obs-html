@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+from test_moved_dom_contracts import _artifact
 from test_sandboxed_preview_browser import keep_screenshot, open_page, preview_artifact
 
 
@@ -123,21 +124,25 @@ def test_changed_html_and_the_applied_filter_are_entries_that_keep_their_behavio
     from playwright.sync_api import expect
 
     errors: list[str] = []
-    page = open_artifact(tmp_path, reader_browser, errors)
+    page = open_page(reader_browser, _artifact(tmp_path, "artifact-change"), errors)
+    expect(page.locator("html")).to_have_attribute("data-artifact-status", "ready")
     unload_prevented = """() => {
         const event = new Event("beforeunload", {cancelable: true});
         window.dispatchEvent(event);
         return event.defaultPrevented;
     }"""
     assert page.evaluate(unload_prevented) is False
-    # A view selection is saved reader state, so it changes the HTML; a filter alone does not.
+    # Reader state is never a change (artifact-ui.md "What counts as a change"); a property edit is.
     page.evaluate("globalThis.obsArtifact.setViewSelection('proof', ['a'], ['a', 'b'])")
     page.evaluate("globalThis.obsFilter.setExpression(\"file.name == 'One'\")")
     changed = page.locator('[data-notice-list="information"] [data-notice="changed-html"]')
     applied = page.locator('[data-notice-list="information"] [data-notice="applied-filter"]')
-    expect(changed).to_have_count(1)
     expect(applied).to_have_count(1)
-    expect(applied.locator("[data-notice-title]")).to_have_text(re.compile(r"^Filtered view · \d+/3 chapters$"))
+    expect(changed).to_have_count(0)
+    assert page.evaluate(unload_prevented) is False
+    expect(applied.locator("[data-notice-title]")).to_have_text(re.compile(r"^Filtered view · \d+/2 chapters$"))
+    page.evaluate("globalThis.obsArtifact.commitProperty('one', 'explanation', 'Changed')")
+    expect(changed).to_have_count(1)
     assert page.evaluate(unload_prevented) is True
     expect(page.locator('[data-notice-icon="information"] [data-notice-count]')).to_have_text("2")
     page.locator('[data-notice-icon="information"]').click()
@@ -149,7 +154,7 @@ def test_changed_html_and_the_applied_filter_are_entries_that_keep_their_behavio
     expect(applied).to_have_count(0)
     assert page.evaluate("globalThis.obsArtifact.filterSummary().empty") is True
     expect(changed).to_have_count(1)
-    page.evaluate("globalThis.obsArtifact.setViewSelection('proof', [], ['a', 'b'])")
+    page.evaluate("globalThis.obsArtifact.commitProperty('one', 'explanation', 'Original')")
     expect(changed).to_have_count(0)
     assert page.evaluate(unload_prevented) is False
     assert errors == []

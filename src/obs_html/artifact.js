@@ -1611,7 +1611,6 @@
                     delete state.presentation;
                     delete state.widths;
                     mount(rendered.element);
-                    document.dispatchEvent(new CustomEvent("obs-reader-state-change"));
                 },
                 columns: definition.columns,
                 availableColumns: definition.availableColumns,
@@ -1624,7 +1623,6 @@
                 onPresentationChange: staticView ? undefined : (presentation, defaults) => {
                     state.presentation = savedPresentations?.[table.key] === undefined &&
                         JSON.stringify(presentation) === JSON.stringify(defaults) ? undefined : presentation;
-                    document.dispatchEvent(new CustomEvent("obs-reader-state-change"));
                 },
                 // Resized widths are session-only view state: not reader state, not an artifact change.
                 initialColumnWidths: state.widths,
@@ -3306,7 +3304,6 @@
             } else {
                 viewSelections.delete(key);
             }
-            document.dispatchEvent(new CustomEvent("obs-reader-state-change"));
         },
         ping,
         records,
