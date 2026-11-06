@@ -7,14 +7,20 @@ file of the vault, named only by the explicit option, as the interim's --trusted
 was. The rebuild runs the step reproduce.py composes, offline, with this checkout standing in for
 the clone, as test_spec_archive_rebuild.py does.
 """
+import io
+import json
 import os
 import subprocess
 import sys
+import zipfile
 from pathlib import Path
 
 import pytest
 
 from conftest import CORE_ROOT
+from obs_html import reproduce
+from obs_html.source_archive import embedded
+from test_spec_archive_rebuild import _offline
 
 RUNTIME = "globalThis.trustedFixture = '</script>';\n"
 OPTION = "trusted-runtime-bundle=app-v1=apps/runtime.js"
@@ -71,3 +77,25 @@ def test_a_bundle_that_is_no_js_file_fails_naming_the_option(tmp_path) -> None:
 
     assert completed.returncode != 0 and "--trusted-runtime-bundle" in completed.stderr
     assert not (tmp_path / "out.html").exists()
+
+
+def test_the_archive_keeps_the_bundle_and_its_rebuild_embeds_the_same_bundle(built, tmp_path) -> None:
+    here = tmp_path / "extracted"
+    with zipfile.ZipFile(io.BytesIO(embedded(built.read_text(encoding="utf-8"), built))) as archive:
+        archive.extractall(here)
+    assert (here / "vault" / "apps" / "runtime.js").read_text(encoding="utf-8") == RUNTIME
+    assert "app-v1" in (here / "REPRODUCE.txt").read_text(encoding="utf-8")
+    config = json.loads((here / "build-config.json").read_text(encoding="utf-8"))
+    assert config["command"][config["command"].index("--adapter-option") + 1] == OPTION
+    checkout = here / reproduce.CHECKOUT
+    rebuild = reproduce.steps(config, here, config["obs"]["repository"], execute_commands=False)[-1]
+    environment = {key: value for key, value in os.environ.items() if key != "VIRTUAL_ENV"}
+    environment.update({name: value.replace(str(checkout), str(CORE_ROOT))
+                        for name, value in rebuild.environment.items()})
+
+    result = subprocess.run(_offline(rebuild.command, checkout), cwd=here, env=environment, text=True,
+                            encoding="utf-8", capture_output=True, timeout=300)
+
+    assert result.returncode == 0, f"{result.stdout[-2000:]}{result.stderr[-2000:]}"
+    _embeds_the_bundle((here / config["command"][config["command"].index("--destination") + 1])
+                       .read_text(encoding="utf-8"))
