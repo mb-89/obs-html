@@ -1272,6 +1272,11 @@ separate from artifact presentation.
   A name that is no note property falls back to the reader's own fields (title, text, slug,
   depth, marks, query aliases); a `note.` prefix asks for the property alone, and on a note's
   table row for that note's property.
+
+  The runtime's selection resolver (obs's quality note, Knowledge ownership) is
+  `obsQuery.propertyTexts` in `query.js`: a card's count and distinct count, a Sankey node's
+  `unique`, and every drill-down's `note.` clause read a note's property through it and its
+  property lookup, never through their own.
 - Every query-language help button is square and exactly the same height as its adjacent query
   input.
 - Filter narrows the chapter set represented by the table of contents and previous/next
