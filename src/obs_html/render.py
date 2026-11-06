@@ -627,7 +627,8 @@ def _numbered_reference(node: dict[str, object], context: Context) -> str:
 def _merged_references(nodes: list[dict[str, object]], context: Context) -> str:
     """Phrasing nodes with each run of adjacent unlabelled references to numbered figures as one
     plural reference: Figures 2.4 and 2.5, Figures 2.4–2.6 (obs input-model, Figure captions and
-    references). Adjacent means separated only by whitespace, a comma or a configured conjunction;
+    references). Adjacent means separated only by whitespace, a comma or a configured conjunction,
+    a word or a phrase whose words stand one space or one line break apart;
     the author's order and separators stay, the plural label replaces the singular once and a run
     of three or more consecutive numbers shows its ends."""
     def rendered(index: int, number_only: bool = False) -> str:
@@ -643,7 +644,7 @@ def _merged_references(nodes: list[dict[str, object]], context: Context) -> str:
     for index in units:
         between = nodes[groups[-1][-1] + 1:index] if groups else None
         if between is not None and all(node["type"] == "text" and not node["attrs"] for node in between) \
-                and separator.fullmatch("".join(node.get("text", "") for node in between)):
+                and separator.fullmatch("".join(node.get("text", "") for node in between).replace("\n", " ")):
             groups[-1].append(index)
         else:
             groups.append([index])
