@@ -16,7 +16,7 @@ from obs_html.errors import InputError, Parser, in_vault
 from obs_html.exposure import check_artifact
 from obs_html.figure_svg import document_figures, figure_svg
 from obs_html.render import render
-from obs_html.artifact_data import same_artifact_content
+from obs_html.artifact_data import chapter_html, html_text, same_artifact_content
 from obs_html.timings import recording, stage
 
 
@@ -65,6 +65,12 @@ Comments:
   --extract-comments HTML reads the comment JSON island of a returned, reviewed artifact
   without executing its scripts and prints deterministic comment candidates to stdout.
 
+Printing a chapter:
+  --print-chapter HTML CHAPTER prints one chapter of a built artifact to stdout, as the
+  generator stored it, without starting a browser. CHAPTER is a chapter id, the note slug of the
+  artifact's table of contents, or a chapter's title. --chapter-format text prints plain text,
+  one line per block, instead of HTML. An unknown chapter fails and lists the available ids.
+
 PDF operations:
   --export-pdf HTML --output file.pdf prints existing HTML with local Chrome/Edge/Chromium
   or Playwright Chromium. If no browser is installed: uv run playwright install chromium
@@ -85,6 +91,7 @@ Examples:
   obs-html --export-pdf artifact.html --output artifact.pdf
   obs-html --check-rendered artifact.html
   obs-html --extract-comments reviewed.html
+  obs-html --print-chapter artifact.html intro --chapter-format text
   obs-html document.json --export-figures figures
 
 Exit status:
@@ -118,6 +125,10 @@ def build_parser() -> argparse.ArgumentParser:
                         help="Write each figure of DOCUMENT as a byte-stable SVG into FOLDER.")
     parser.add_argument("--extract-comments", type=Path, metavar="HTML",
                         help="Print comment candidates from a returned, reviewed artifact.")
+    parser.add_argument("--print-chapter", nargs=2, metavar=("HTML", "CHAPTER"),
+                        help="Print one chapter of a built artifact by id or title.")
+    parser.add_argument("--chapter-format", choices=("html", "text"),
+                        help="Print the --print-chapter chapter as html (default) or plain text.")
     parser.add_argument("--export-pdf", type=Path, metavar="HTML", help="Print existing HTML to PDF.")
     parser.add_argument("--output", type=Path, metavar="PDF", help="PDF written by --export-pdf.")
     parser.add_argument("--check-rendered", type=Path, metavar="HTML",
@@ -132,8 +143,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     started = perf_counter()
     try:
         config = load_config(options.config)
+        if options.chapter_format and not options.print_chapter:
+            raise InputError(PROG, "--chapter-format", "is only used with --print-chapter",
+                             "Add --print-chapter HTML CHAPTER, or drop --chapter-format")
         with recording() as recorded:
-            if options.extract_comments:
+            if options.print_chapter:
+                _print_chapter(options)
+            elif options.extract_comments:
                 _extract(options)
             elif options.export_figures:
                 _export_figures(options)
@@ -268,6 +284,23 @@ def _extract(options: argparse.Namespace) -> None:
            "trusted_runtime_bundle", "embed_attachments", "vault_root", "export_pdf", "check_rendered", "output",
            "export_figures")
     print(extract_comments(options.extract_comments.resolve()), end="")
+
+
+def _print_chapter(options: argparse.Namespace) -> None:
+    _alone("--print-chapter", options, "document", "destination", "check", "style",
+           "trusted_runtime_bundle", "embed_attachments", "vault_root", "export_pdf", "check_rendered", "output",
+           "export_figures", "extract_comments", "timings")
+    path, chapter = Path(options.print_chapter[0]), options.print_chapter[1]
+    try:
+        artifact = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeError) as error:
+        raise InputError(path, "HTML", f"cannot be read ({error})",
+                         "Name a built artifact, written by obs-html or obs-document --adapter html") from error
+    try:
+        html = chapter_html(artifact, chapter)
+    except InputError as error:
+        raise InputError(path, error.field, error.problem, error.remedy) from error
+    print(html_text(html) if options.chapter_format == "text" else html, end="")
 
 
 PROG = "obs-html"
