@@ -364,8 +364,11 @@ a:focus-visible {
     width: var(--record-cards-max-width);
 }
 
+/* Cards stand in the prose column, one below the other: on paper, and in review mode, whose one
+   review gutter left of that column holds every item's controls, so no two share a line. */
 .paged-mode .record-cards,
-.print-book .record-cards {
+.print-book .record-cards,
+.review-mode .record-cards {
     grid-template-columns: minmax(0, 1fr);
     margin-inline: 0;
     width: 100%;

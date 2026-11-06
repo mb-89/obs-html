@@ -42,6 +42,12 @@ def faults(opened, width: int, layouts: list) -> list[tuple[str, str]]:
     return [(fault["control"], fault["covering"]) for result in results for fault in result["faults"]]
 
 
+@pytest.mark.parametrize("width", [1100, 1600])
+def test_cards_side_by_side_in_review_mode_keep_their_review_buttons_apart(opened, width: int) -> None:
+    found = faults(opened, width, [["comments", "right"]])
+    assert [fault for fault in found if fault[0].startswith("button.review-action")] == [], found
+
+
 @pytest.mark.parametrize("width", [360, 700])
 def test_a_card_metric_at_the_document_end_is_clear_of_the_next_chapter_arrow(opened, width: int) -> None:
     found = faults(opened, width, [None])

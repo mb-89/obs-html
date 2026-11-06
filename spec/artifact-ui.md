@@ -1366,7 +1366,8 @@ separate from artifact presentation.
   Every derived paragraph, list item, table data row,
   standalone code block, and figure review item gains a left gutter with
   Accept, Reject, and Comment controls. A figure is one item: what it draws inside, such as a
-  decision figure's rows, is none.
+  decision figure's rows, is none. Cards stand one below the other in the prose column, so no
+  two items share a gutter line.
 
   Waiting items use teal, accepted items green, and
   rejected items red.
