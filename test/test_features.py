@@ -125,6 +125,10 @@ def test_every_feature_has_cases_and_its_canary_and_code_exist() -> None:
         assert feature.condition, f"{feature.key}: its condition names what puts it in the artifact"
         for name in feature.code:
             assert SOURCE.joinpath(name).is_file(), f"{feature.key}: missing {name}"
+        for part in feature.parts:
+            assert part.condition, f"{feature.key}/{part.key}: its condition names what ships the part"
+            for name in part.code:
+                assert SOURCE.joinpath(name).is_file(), f"{feature.key}/{part.key}: missing {name}"
 
 
 @pytest.mark.parametrize("feature", FEATURES, ids=lambda feature: feature.key)

@@ -212,6 +212,20 @@ An explicitly requested reproduction archive captures the selected vault and gen
 CLI invocation and prerequisites are owned by [[cli]]; controls and PDF presentation by
 [[artifact-ui]]. The source boundary is defined here.
 
+obs-html packages the vault files a Document's `sourceArchive` carries; the core selects them
+(obs's architecture, Source archive: [[obs-specification|obs's specification]]) by the boundary
+below, and a file the Document holds as an asset takes that asset's bytes. The ZIP holds each file
+at `vault/<path>`, the `source-inventory.json` the reader's archive transactions update (its
+`generator` list empty) and `REPRODUCE.txt`, the `obs-document --embed-source` command that
+rebuilds it, with `--adapter-option embed-attachments=true` for an evidence edition. Every member
+has one fixed timestamp, so the same files give the same ZIP. The reader downloads it as
+`obs-html-source.zip`, the interim's name, and a PDF carries it under that name. An archived file
+naming an asset the Document lacks is an input error naming `sourceArchive.files[i].asset`.
+
+The generator's package source, its settings and the rebuild script described below are the
+interim adapter's; obs-html's archive does not carry them yet, so its rebuild needs obs and
+obs-html installed.
+
 It discloses the selected vault's explicit directory snapshot, including scripts/data not
 in the TOC, whether or not that vault has Git metadata. Installed dependency directories,
 Python environments identified by `pyvenv.cfg`, Python caches, generated

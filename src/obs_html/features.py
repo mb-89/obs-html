@@ -10,9 +10,12 @@ probe that capabilities.js runs. The renderer includes a feature's code and cana
 condition holds, so a feature the Document does not use has no code, control, canary or notice.
 A figure kind that needs a host ability or a library names the feature's key in its
 FigureKind.features (figures.py); the feature's condition reads those declarations, so the kind
-registry has no inclusion mechanism of its own. A library the renderer delivers itself (the
-plotting library, by artifact.figures.plotlyDelivery, and the maths library, embedded from its
-npm lockfile ``maths/package-lock.json``) ships exactly where its feature is included.
+registry has no inclusion mechanism of its own. A feature's part ships code only where its own condition holds as
+well, under the feature's canary: the downloads feature's source-archive part attaches the source
+ZIP to a PDF only in an artifact that has one. A library the renderer delivers itself (the
+plotting library, by artifact.figures.plotlyDelivery, the maths library, embedded from its
+npm lockfile ``maths/package-lock.json``, and the PDF library ``vendor/pdf-lib.min.js`` of the
+source-archive part) ships exactly where its feature or part is included.
 """
 from __future__ import annotations
 
@@ -50,6 +53,15 @@ def maths_library_licence() -> str:
 
 
 @dataclass(frozen=True)
+class Part:
+    """Code of a feature that ships only where the part's own condition holds as well."""
+    key: str
+    condition: str
+    included: Callable[[dict, bool], bool]
+    code: tuple[str, ...]
+
+
+@dataclass(frozen=True)
 class Feature:
     key: str
     condition: str
@@ -58,6 +70,11 @@ class Feature:
     """Whether the artifact meets the condition, given its model (render.py's artifact-data
     island) and whether it bundles a trusted application runtime."""
     code: tuple[str, ...] = ()
+    parts: tuple[Part, ...] = ()
+
+    def shipped(self, model: dict, trusted_runtime: bool) -> tuple[Part, ...]:
+        """The parts the artifact carries along with the feature."""
+        return tuple(part for part in self.parts if part.included(model, trusted_runtime))
 
     @property
     def canary(self) -> str:
@@ -107,12 +124,19 @@ def _figures_need(key: str) -> Callable[[dict, bool], bool]:
     return included
 
 
+def _source_archive(model: dict, _trusted_runtime: bool) -> bool:
+    """The Document carries its sources (obs-document --embed-source; source_archive.py)."""
+    return model.get("sourceArchiveComplete") is True
+
+
 FEATURES: tuple[Feature, ...] = (
     Feature("history", "always: every chapter has an address", _always),
     Feature("storage", "always: reader settings are kept", _always),
     Feature("printing", "always: Settings offers Print to PDF", _always),
     Feature("downloads", "always: Download HTML, Download source ZIP and, in the evidence edition, "
-            "attachment downloads", _always, ("attachment-download.js",)),
+            "attachment downloads", _always, ("attachment-download.js",), parts=(
+                Part("source-archive", "a source archive (obs-document --embed-source): Download source ZIP "
+                     "and Attach source ZIP to PDF, with the PDF library", _source_archive, ("archive.js",)),)),
     Feature("clipboard", "always: the Comments bar offers Copy comments", _always),
     Feature("popups", "a guided card, a note a link opens as context, or a trusted runtime",
             _floating_window, ("guided-card.js",)),

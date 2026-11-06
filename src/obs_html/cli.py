@@ -16,6 +16,7 @@ from obs_html.errors import InputError, Parser, in_vault
 from obs_html.exposure import check_artifact
 from obs_html.figure_svg import document_figures, figure_svg
 from obs_html.render import render
+from obs_html.source_archive import attach, embedded
 from obs_html.artifact_data import chapter_html, html_text, same_artifact_content
 from obs_html.timings import recording, stage
 
@@ -36,6 +37,12 @@ EPILOG = """Rendering:
   --style FOLDER selects an external style module: a folder with style.css, laid over the
   packaged base stylesheet, and an optional assets.json semantic asset index. It must not
   declare page geometry (@page, size, --paper-*, --sheet-*); the Document's profile owns it.
+
+Sources and styles:
+  A Document built with obs-document --embed-source carries the vault's source files; the HTML
+  embeds them as one ZIP (vault/<path>), which the cover and Settings + exports download as
+  obs-html-source.zip, and Settings attaches to a PDF saved from the HTML. The CSS snippets the
+  manifest lists in obsHtml.cssSnippets follow every packaged style, in their listed order.
 
 Editions:
   Without --embed-attachments, the light edition: a marked attachment (![label](file) or
@@ -74,6 +81,9 @@ Printing a chapter:
 PDF operations:
   --export-pdf HTML --output file.pdf prints existing HTML with local Chrome/Edge/Chromium
   or Playwright Chromium. If no browser is installed: uv run playwright install chromium
+  --attach-source-to-pdf PDF --source-artifact HTML --output file.pdf attaches the source ZIP
+  that HTML embeds (a Document built with obs-document --embed-source) to a PDF saved from it,
+  as obs-html-source.zip. Rendering such a Document to a .pdf DESTINATION attaches it already.
   --check-rendered HTML opens existing HTML headless, waits until it reports ready or error,
   prints console errors to stderr and the status, error count and printed page count to
   stdout. It fails (exit 2) on any console error, an error status or no status within
@@ -130,7 +140,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--chapter-format", choices=("html", "text"),
                         help="Print the --print-chapter chapter as html (default) or plain text.")
     parser.add_argument("--export-pdf", type=Path, metavar="HTML", help="Print existing HTML to PDF.")
-    parser.add_argument("--output", type=Path, metavar="PDF", help="PDF written by --export-pdf.")
+    parser.add_argument("--output", type=Path, metavar="PDF",
+                        help="PDF written by --export-pdf or --attach-source-to-pdf.")
+    parser.add_argument("--attach-source-to-pdf", type=Path, metavar="PDF",
+                        help="Attach the source ZIP of --source-artifact HTML to this PDF.")
+    parser.add_argument("--source-artifact", type=Path, metavar="HTML",
+                        help="HTML whose embedded source ZIP --attach-source-to-pdf attaches.")
     parser.add_argument("--check-rendered", type=Path, metavar="HTML",
                         help="Open existing HTML headless; report console errors and printed pages.")
     parser.add_argument("--timings", action="store_true", help="Print the duration of each stage.")
@@ -143,6 +158,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     started = perf_counter()
     try:
         config = load_config(options.config)
+        if options.source_artifact and not options.attach_source_to_pdf:
+            raise InputError(PROG, "--source-artifact", "is only used with --attach-source-to-pdf",
+                             "Add --attach-source-to-pdf PDF, or drop --source-artifact")
         if options.chapter_format and not options.print_chapter:
             raise InputError(PROG, "--chapter-format", "is only used with --print-chapter",
                              "Add --print-chapter HTML CHAPTER, or drop --chapter-format")
@@ -153,6 +171,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                 _extract(options)
             elif options.export_figures:
                 _export_figures(options)
+            elif options.attach_source_to_pdf:
+                _attach_source(options)
             elif options.check_rendered or options.export_pdf:
                 _browser_operation(options, config)
             else:
@@ -206,12 +226,40 @@ def _render(options: argparse.Namespace, config) -> None:
             pdf = export_pdf(html)
         finally:
             html.unlink()
+        archive = embedded(artifact, destination)
+        if archive is not None:
+            pdf = attach(pdf, archive, destination)
         _write_if_changed(destination, pdf)
     else:
         existing = _read_existing(destination)
         if existing is None or not same_artifact_content(artifact, existing):
             _write_if_changed(destination, artifact.encode("utf-8"))
     print(f"Generated {destination}.")
+
+
+def _attach_source(options: argparse.Namespace) -> None:
+    _alone("--attach-source-to-pdf", options, "document", "destination", "check", "style",
+           "trusted_runtime_bundle", "embed_attachments", "vault_root", "export_pdf", "check_rendered")
+    output, pdf, html = options.output, options.attach_source_to_pdf, options.source_artifact
+    if html is None:
+        raise InputError(PROG, "--source-artifact", "is missing",
+                         "Name the HTML whose source ZIP to attach: --source-artifact HTML")
+    if output is None or output.suffix.lower() != ".pdf":
+        raise InputError(PROG, "--output", "is missing or names no .pdf file",
+                         "Give --attach-source-to-pdf an --output file ending in .pdf")
+    if output.resolve() in {pdf.resolve(), html.resolve()}:
+        raise InputError(PROG, "--output", "names an input", "Name another .pdf file")
+    try:
+        artifact, saved = html.read_text(encoding="utf-8"), pdf.read_bytes()
+    except (OSError, UnicodeError) as error:
+        raise InputError(PROG, "--attach-source-to-pdf", f"cannot read its inputs ({error})",
+                         "Name an existing PDF and the HTML it was saved from") from error
+    archive = embedded(artifact, html)
+    if archive is None:
+        raise InputError(html, "--source-artifact", "embeds no source archive", "Build it from a Document "
+                         "with the sources: obs-document --embed-source --adapter html")
+    _write_if_changed(output.resolve(), attach(saved, archive, pdf))
+    print(f"Generated PDF {output.resolve()} with {html.name}'s source ZIP.")
 
 
 def _browser_operation(options: argparse.Namespace, config) -> None:
