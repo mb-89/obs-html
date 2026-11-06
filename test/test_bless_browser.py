@@ -384,7 +384,7 @@ def test_the_band_of_a_nested_bless_chapter_fits_at_360_px(phone_browser, tmp_pa
                      "Bless", "Decline", "Ask", "Pick", "Send 0 of 2 verdicts", "Open bars menu"]
     # A pick names its option by the figure's short name; the band still fits.
     page.locator('[data-bless-key="pick"]').click()
-    page.locator("[data-bless-pick]").last.click()
+    page.locator("[data-bless-pick]:not([data-bless-pick$=':none'])").last.click()
     assert re.fullmatch(r"Picked [A-Z] · \S.* · needs a comment", page.locator("[data-bless-pill]").get_attribute("title"))
     _fits(page)
     assert errors == []
@@ -503,3 +503,29 @@ def test_a_verdict_never_walks_and_a_second_press_clears_it(deck, phone_browser)
     assert events.json_value() and set(events.json_value()) == {"record"}
     assert errors == []
 
+
+def test_none_of_the_above_needs_a_comment_and_sends_a_none_pick(built, phone_browser) -> None:
+    """artifact-ui.md, Bless verdicts: Pick offers None of the above beside the letters; like Decline
+    it needs a comment, and the payload records ``option: none`` (answers.schema.json)."""
+    from playwright.sync_api import expect
+
+    page, errors = _phone(phone_browser, f"{(built / 'deck.html').as_uri()}#record")
+    page.locator('[data-bless-key="pick"]').click()
+    none = page.locator(f'[data-bless-pick="{FIGURE}:none"]')
+    expect(none).to_have_text("None of the above")
+    none.click()
+    expect(none).to_have_attribute("aria-pressed", "true")
+    assert page.evaluate(f"obsBless.picked('{FIGURE}')") == "none"
+    expect(page.locator("[data-bless-pill]")).to_have_text("None of the above · needs a comment")
+    expect(page.locator("[data-bless-send]")).to_be_disabled()
+    page.locator("[data-bless-comment]").press("Enter")
+    assert page.evaluate("obsBless.payload()") == {"verdicts": []}
+    _fits(page)
+
+    page.locator("[data-bless-comment]").fill("Neither place holds it.")
+    expect(page.locator("[data-bless-send]")).to_be_enabled()
+    payload = page.evaluate("obsBless.payload()")
+    Draft202012Validator(json.loads(ANSWERS_SCHEMA.read_text(encoding="utf-8"))).validate(payload)
+    assert payload == {"verdicts": [{"chapter": "record", "version": _versions(built)["record"], "verdict": "pick",
+                                     "comment": "Neither place holds it.", "pick": {"figure": FIGURE, "option": "none"}}]}
+    assert errors == []

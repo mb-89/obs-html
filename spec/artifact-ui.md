@@ -759,7 +759,8 @@ On such a chapter the top band shows, left of the notice icons:
   Pick only where the chapter has a decision figure.
 - **The comment:** Decline, Ask and Pick open a one-line comment entry in the band, directly
   under the keys, and only then; Pick shows there the other options' letters ("Pick A"), as the
-  figure's column heads do. There is no comment box in the page and no browser dialog.
+  figure's column heads do, and "None of the above", which needs a comment as Decline does and
+  is sent as the pick's option `none`. There is no comment box in the page and no browser dialog.
 
 A verdict is complete as a Bless, or as another verdict with its comment (and, for Pick, its
 letter); Enter confirms the comment and closes the entry. A verdict never walks: decided by the

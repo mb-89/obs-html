@@ -2,7 +2,7 @@
    requests) shows a pill with its state in the top band and, beside it, the verdict keys Bless,
    Decline, Ask and Pick. Decline, Ask and Pick take a one-line comment in the band, under the
    keys; Pick takes another option of the chapter's decision figure by its letter, here or from
-   the option's column head ("Pick B"). A verdict never walks: the reader walks the chapters. The
+   the option's column head ("Pick B"), or None of the above (option "none"). A verdict never walks: the reader walks the chapters. The
    active key or pick, chosen again, clears the verdict to pending.
    API for the decision figure (pugh-figure.js): pick(anchor, option) picks an option of a figure by
    its letter, or "none" for None of the above, toggling as the band's keys do; picked(anchor) is the
@@ -18,6 +18,7 @@ globalThis.obsBless = (() => {
   const GLYPHS = {bless: "✓", decline: "✗", ask: "?", pick: "⇄"};
   const STATES = {bless: "Blessed", decline: "Declined", ask: "Question", pick: "Picked"};
   const NEEDS_COMMENT = new Set(["decline", "ask", "pick"]);
+  const NONE = "None of the above";  // A pick of none of the options, option "none" (bless_record.py names it so).
   const data = JSON.parse(document.querySelector("[data-artifact-data]").textContent);
   const template = document.createElement("template");
   /** Each decision figure of a note: its anchor and its options' letters and names (pugh-figure.js letters them). */
@@ -105,9 +106,10 @@ globalThis.obsBless = (() => {
     const request = requests.get(slug), verdict = verdicts.get(slug);
     picks.replaceChildren(...request.figures.flatMap(figure => {
       const winner = document.getElementById(figure.anchor)?.dataset.pughWinner;
-      return figure.options.filter(option => option.letter !== winner).map(option => {
-        const key = element("button", {type: "button", className: "filter-pill", textContent: pickLabel(figure, option),
-          title: `Pick ${option.letter}: ${option.name}`});
+      return [...figure.options.filter(option => option.letter !== winner), {letter: "none"}].map(option => {
+        const key = element("button", {type: "button", className: "filter-pill",
+          textContent: option.letter === "none" ? NONE : pickLabel(figure, option),
+          title: option.letter === "none" ? NONE : `Pick ${option.letter}: ${option.name}`});
         key.dataset.blessPick = `${figure.anchor}:${option.letter}`;
         key.setAttribute("aria-pressed", String(verdict?.pick?.figure === figure.anchor && verdict.pick.option === option.letter));
         key.addEventListener("click", () => pick(figure.anchor, option.letter));
@@ -178,6 +180,7 @@ globalThis.obsBless = (() => {
   /** A verdict's state and, for Pick, the picked option's short name where its figure gives one. */
   function verdictParts(verdict) {
     if (verdict.verdict !== "pick" || !verdict.pick) return [STATES[verdict.verdict]];
+    if (verdict.pick.option === "none") return [NONE];
     const spec = specs.get(verdict.pick.figure);
     const short = spec && globalThis.obsPugh.options(spec).find(option => option.letter === verdict.pick.option)?.short;
     return [`Picked ${verdict.pick.option}`, ...(short ? [short] : [])];
