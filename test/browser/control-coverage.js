@@ -17,9 +17,12 @@
 // purpose, so a reader control the bar overlays, even in part, is hidden, not covered. The
 // chapter controls (previous and next) are not exempt: they stay reachable.
 //
-// Argument: {views: ["pages", "continuous"], layouts: [null | [bar, direction], ...],
-// firstChapterLayouts: [...]}; the latter run on the first chapter only. Returns a list of
-// {view, layout, chapter, controls, faults: [{control, covering}]}.
+// Argument: {views: ["pages", "continuous"], layouts: [null | [bar, direction] |
+// [bar, direction, contents], ...], firstChapterLayouts: [...]}; the latter run on the first
+// chapter only. A layout's contents, "collapsed" or "expanded", is set with the contents bar's
+// own collapse-all or expand-all action before the check, so it never depends on what opening
+// earlier chapters expanded. Returns a list of {view, layout, chapter, controls,
+// faults: [{control, covering}]}.
 async (_, {views, layouts, firstChapterLayouts}) => {
     const CONTROLS = 'a[href], button, input:not([type="hidden"]), select, textarea, summary, ' +
         '[role="button"], [role="link"], [role="checkbox"], [role="switch"], [role="tab"], ' +
@@ -211,7 +214,14 @@ async (_, {views, layouts, firstChapterLayouts}) => {
         return {controls: controls.length, faults};
     };
 
-    const frame = () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    // Waits until the layout a check sees is final. Opening or closing a bar narrows the reader,
+    // and the next frame's rendering step lays out again what that changes: the bar's own frame
+    // callback, then the ResizeObservers of the dock and of the chapter's figures, tables and
+    // equations, which run after every frame callback. A task queued from a frame callback runs
+    // once that step is done, so one frame is enough. Without the wait, a forced layout read sees
+    // the reader before that step: with the Comments bar's review mode, table controls lie under
+    // the next-chapter arrow.
+    const frame = () => new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve)));
     const open = async (slug) => {
         await obsArtifact.activateChapter(slug);
         await obsArtifact.whenChapterReady();
@@ -227,7 +237,9 @@ async (_, {views, layouts, firstChapterLayouts}) => {
         for (const [index, chapter] of chapters.entries()) {
             await open(chapter);
             for (const layout of index ? layouts : [...layouts, ...firstChapterLayouts]) {
-                if (layout) obsArtifact.openBar(...layout);
+                if (layout) obsArtifact.openBar(layout[0], layout[1]);
+                if (layout?.[2]) document.querySelector(
+                    `[data-toc-action="${layout[2] === "expanded" ? "expand" : "collapse"}"]`).click();
                 await frame();
                 results.push({view, layout, chapter, ...check()});
                 if (layout) obsArtifact.closeBar(layout[0]);
