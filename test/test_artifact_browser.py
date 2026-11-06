@@ -49,6 +49,9 @@ def test_everything_on_the_title_page_is_centered(tmp_path, reader_browser) -> N
     import json
     document = json.loads(FIXTURE.read_text(encoding="utf-8"))
     document["manifest"]["metadata"]["subtitle"] = "Bridge ![A](https://badges.test/a.png)"
+    document["manifest"]["abstract"][0]["children"] = [{"type": "field", "attrs": {"name": "subtitle"}, "children": [
+        {"type": "text", "attrs": {}, "children": [], "text": "Bridge "},
+        {"type": "attachments", "attrs": {"asset": "a", "label": "A"}, "children": []}]}]
     document["assets"].append({"id": "a", "href": "https://badges.test/a.png", "mediaType": "image/png",
                                "data": PIXEL})
     document["manifest"]["metadata"]["confidentiality"] = "Internal"

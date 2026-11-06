@@ -83,7 +83,9 @@ def _remote_document() -> dict:
     document = build(
         "Remote", chapter("one", "One", paragraph(node("attachments", asset="badge", label="Fetched"), " ",
                                                   node("attachments", asset="gone", label="Gone"))),
-        metadata={"subtitle": f"![Fetched]({fetched['href']}) ![Gone]({failed['href']})"})
+        metadata={"subtitle": f"![Fetched]({fetched['href']}) ![Gone]({failed['href']})"},
+        fields={"subtitle": [node("attachments", asset="badge", label="Fetched"), " ",
+                             node("attachments", asset="gone", label="Gone")]})
     document["assets"] = [fetched, failed]
     return document
 

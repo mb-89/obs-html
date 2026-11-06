@@ -9,7 +9,7 @@ import pytest
 from obs_html.config import load_config
 from obs_html.render import render
 
-from documents import chapter, document as build, heading, node, paragraph
+from documents import chapter, document as build, heading, node, paragraph, text
 
 
 pytestmark = pytest.mark.browser
@@ -32,7 +32,8 @@ def test_hover_card_shows_the_reference_link_and_the_glossary_definition(tmp_pat
         chapter("chapter", "Chapter", heading(1, "Chapter"),
                 paragraph("The limit follows ", _link("iec", "iec"), ". Errors add as ", _link("rss", "rss"), ".")),
         chapter("iec", "IEC 1234", node("references", metadata=reference), metadata=reference),
-        chapter("rss", "RSS", node("references", metadata=TERM), metadata=TERM),
+        chapter("rss", "RSS", node("references", metadata=TERM), metadata=TERM, fields={"definition": [
+            "Root ", {"type": "strong", "attrs": {}, "children": [text("sum")]}, " of squares."]}),
         records=tuple({"id": slug, "type": "note", "path": f"{slug}.md", "fields": fields}
                       for slug, fields in (("chapter", {}), ("iec", reference), ("rss", TERM))),
     )

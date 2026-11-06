@@ -13,7 +13,7 @@ from obs_html.config import load_config
 from obs_html.render import RenderError, render
 from obs_html.artifact_data import decode_artifact_data
 
-from documents import chapter, document as build, heading, node, paragraph
+from documents import chapter, document as build, heading, node, paragraph, text
 
 
 CONFIG = load_config()
@@ -32,18 +32,26 @@ def _editor(fence: dict, metadata: dict) -> dict:
 def test_a_glossary_note_carries_its_definition_for_hover_cards_and_registers() -> None:
     term = {"kind": "glossary", "term": "Datum", "definition": "A **reference**, see [[one]]."}
     notes = _notes(build("Doc", chapter("one", "One", heading(1, "One")),
-                         chapter("datum", "Datum", node("references", metadata=term), metadata=term),
+                         chapter("datum", "Datum", node("references", metadata=term), metadata=term, fields={
+                             "term": ["Datum"],
+                             "definition": ["A ", {"type": "strong", "attrs": {}, "children": [text("reference")]},
+                                            ", see ", node("wikilinks", target="one", chapter="one", heading="",
+                                                           label="one"), "."]}),
                          records=({"id": "one", "type": "note", "path": "one.md", "fields": {}},)))
     assert notes["datum"]["definitionHtml"] == (
         'A <strong>reference</strong>, see <a class="internal-link" href="#one">One</a>.')
     assert notes["one"]["definitionHtml"] == ""
 
 
-def test_a_glossary_record_without_a_chapter_carries_its_definition() -> None:
-    record = {"id": "term", "type": "note", "path": "term.md",
-              "fields": {"kind": "glossary", "term": "Term", "definition": "Said *once*."}}
+def test_a_glossary_record_without_a_chapter_carries_its_definition_from_its_field_nodes() -> None:
+    fields = {"kind": "glossary", "term": "Term", "definition": "Said *once* & <b>twice</b>."}
+    record = {"id": "term", "type": "note", "path": "term.md", "fields": fields, "fieldNodes": [
+        {"type": "field", "attrs": {"name": "kind"}, "children": [text("glossary")]},
+        {"type": "field", "attrs": {"name": "term"}, "children": [text("Term")]},
+        {"type": "field", "attrs": {"name": "definition"}, "children": [
+            text("Said "), {"type": "emphasis", "attrs": {}, "children": [text("once")]}, text(" & <b>twice</b>.")]}]}
     notes = _notes(build("Doc", chapter("one", "One"), records=(record,)))
-    assert notes["term"]["definitionHtml"] == "Said <em>once</em>."
+    assert notes["term"]["definitionHtml"] == "Said <em>once</em> &amp; &lt;b&gt;twice&lt;/b&gt;."
 
 
 def test_a_reference_note_keeps_its_url_for_the_hover_card() -> None:
@@ -161,7 +169,9 @@ def test_a_field_has_one_editor_and_home_has_none() -> None:
 def test_a_markdown_link_to_a_note_is_an_internal_link_in_prose_and_metadata() -> None:
     source = build("Doc", chapter("one", "One", paragraph({"type": "text", "attrs": {"link": "cite"},
                                                           "children": [], "text": "1"})),
-                   chapter("reference", "Reference", metadata={"document": "[Source](reference.md)"}),
+                   chapter("reference", "Reference", metadata={"document": "[Source](reference.md)"},
+                           fields={"document": [{"type": "text", "attrs": {"link": "cite"}, "children": [],
+                                                 "text": "Source"}]}),
                    records=({"id": "reference", "type": "note", "path": "reference.md", "fields": {}},))
     source["links"] = [{"id": "cite", "href": "reference.md", "label": "1"},
                        {"id": "web", "href": "https://example.org/a.md", "label": "web"}]

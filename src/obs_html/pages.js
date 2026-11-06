@@ -691,8 +691,8 @@
             number.textContent = String((live ? measuredStarts : starts).get(number.dataset.contentsChapter) || "");
         });
         [...destination.children].forEach((sheet, index) => {
-            const metadata = data.document.metadata;
-            const text = (value) => Array.isArray(value) ? value.join(", ") : value || "";
+            const metadataHtml = data.document.metadataHtml;
+            const joined = (...keys) => keys.map((key) => metadataHtml[key]).filter(Boolean).join(" · ");
             const header = document.createElement("header");
             header.className = "paper-header";
             const identity = document.createElement("span");
@@ -706,21 +706,21 @@
             if (slug !== "home") {
                 const headings = new Set([...sheet.querySelectorAll("h1, h2, h3, h4, h5, h6")]
                     .map((heading) => heading.textContent.trim()));
-                [identity.textContent, section.textContent] =
-                    globalThis.obsRunningHeader.content(metadata, slug, sectionTitle)
-                        .map((line) => headings.has(String(line).trim()) ? "" : line);
+                [identity, section].forEach((line, index) => {
+                    line.innerHTML = globalThis.obsRunningHeader.content(metadataHtml, slug, sectionTitle)[index];
+                    if (headings.has(line.textContent.trim())) line.replaceChildren();
+                });
             }
             header.append(identity, section);
             const footer = document.createElement("footer");
             footer.className = "paper-footer";
             const legal = document.createElement("div");
             legal.className = "paper-legal";
-            legal.textContent = slug === "home" ? ""
-                : [metadata.copyright, metadata.confidentiality].filter(Boolean).join(" · ");
+            legal.innerHTML = slug === "home" ? "" : joined("copyright", "confidentiality");
             const author = document.createElement("span");
-            author.textContent = [text(metadata.authors), metadata.organization].filter(Boolean).join(" · ");
+            author.innerHTML = joined("authors", "organization");
             const reference = document.createElement("span");
-            reference.textContent = [metadata["sap number"], metadata.template].filter(Boolean).join(" · ");
+            reference.innerHTML = joined("sap number", "template");
             const number = document.createElement("span");
             number.className = "paper-page-number";
             const previous = [...destination.children].slice(0, index)
