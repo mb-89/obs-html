@@ -12,7 +12,7 @@ from typing import Sequence
 
 from obs_html.comments import extract_comments
 from obs_html.config import load_config
-from obs_html.errors import InputError, Parser
+from obs_html.errors import InputError, Parser, in_vault
 from obs_html.exposure import check_artifact
 from obs_html.figure_svg import document_figures, figure_svg
 from obs_html.render import render
@@ -23,7 +23,10 @@ from obs_html.timings import recording, stage
 EPILOG = """Rendering:
   DOCUMENT is a JSON Document (the core's obs-document writes it); it is the only input.
   DESTINATION ending in .pdf prints the rendered HTML to PDF; any other name receives HTML.
-  The core calls this command as an adapter with exactly DOCUMENT and DESTINATION.
+  The core calls this command as an adapter with DOCUMENT and DESTINATION, the vault root as
+  --vault-root ROOT when it built the Document, and the options adapter.json declares.
+  --vault-root ROOT names the Document's vault-relative paths below ROOT in messages
+  (ROOT/manifest.md: ...); the Document and the artifact never carry it.
   obs-html never runs a command: a command fence shows the output the core captured while it
   built the Document (obs-document --execute-commands), and a Document without it fails.
   An artifact that names the build machine's home folder or user name fails before writing
@@ -38,8 +41,9 @@ Editions:
   Without --embed-attachments, the light edition: a marked attachment (![label](file) or
   ![[file]]) shows its label and vault path. With it, the self-contained evidence edition: the
   attachment is a download of the bytes the Document embeds, with its name, type and size.
-  Images always render from their bytes. The core's obs-document --adapter html builds the light
-  edition.
+  Images always render from their bytes. Through the core, obs-document --adapter html builds the
+  light edition, and with --adapter-option embed-attachments=true (adapter.json declares it) the
+  evidence edition.
 
 Settings:
   --config FILE merges a JSON settings file over the packaged cfg.json, validated by
@@ -99,6 +103,8 @@ def build_parser() -> argparse.ArgumentParser:
                         help="JSON Document to render.")
     parser.add_argument("destination", type=Path, nargs="?", metavar="DESTINATION",
                         help="Output file: .pdf for PDF, otherwise HTML.")
+    parser.add_argument("--vault-root", metavar="ROOT",
+                        help="The vault root as the core's user gave it, for messages only.")
     parser.add_argument("--config", type=Path, help="Settings JSON merged over the packaged cfg.json.")
     parser.add_argument("--check", action="store_true", help="Render without writing output.")
     parser.add_argument("--style", type=Path, metavar="FOLDER",
@@ -158,9 +164,12 @@ def _render(options: argparse.Namespace, config) -> None:
     if options.destination and options.destination.resolve() == options.document.resolve():
         raise InputError(PROG, "DESTINATION", "names DOCUMENT itself", "Name another output file")
     document = _read_document(options.document)
-    artifact = render(document, config, style_folder=options.style,
-                    trusted_runtime=_trusted_runtime(options.trusted_runtime_bundle),
-                    embed_attachments=options.embed_attachments)
+    try:
+        artifact = render(document, config, style_folder=options.style,
+                          trusted_runtime=_trusted_runtime(options.trusted_runtime_bundle),
+                          embed_attachments=options.embed_attachments)
+    except InputError as error:
+        raise in_vault(error, options.vault_root, _vault_paths(document)) from error
     check_artifact(artifact)
     for diagnostic in document["diagnostics"]:
         print(f"{diagnostic['level'].title()}: {diagnostic['message']}", file=sys.stderr)
@@ -192,7 +201,7 @@ def _render(options: argparse.Namespace, config) -> None:
 def _browser_operation(options: argparse.Namespace, config) -> None:
     operation = "--export-pdf" if options.export_pdf else "--check-rendered"
     _alone(operation, options, "document", "destination", "check", "style", "trusted_runtime_bundle",
-           "embed_attachments", *(["check_rendered"] if options.export_pdf else []))
+           "embed_attachments", "vault_root", *(["check_rendered"] if options.export_pdf else []))
     from obs_html.pdf import check_rendered, export_pdf
     if options.export_pdf:
         output = options.output
@@ -238,7 +247,7 @@ def _trusted_runtime(bundle: str | None) -> tuple[str, str] | None:
 
 def _export_figures(options: argparse.Namespace) -> None:
     _alone("--export-figures", options, "destination", "check", "style", "trusted_runtime_bundle",
-           "embed_attachments", "export_pdf", "check_rendered", "output")
+           "embed_attachments", "vault_root", "export_pdf", "check_rendered", "output")
     if options.document is None:
         raise InputError(PROG, "DOCUMENT", "is missing",
                          "Name the Document whose figures to export: obs-html DOCUMENT --export-figures FOLDER")
@@ -256,7 +265,7 @@ def _export_figures(options: argparse.Namespace) -> None:
 
 def _extract(options: argparse.Namespace) -> None:
     _alone("--extract-comments", options, "document", "destination", "check", "style",
-           "trusted_runtime_bundle", "embed_attachments", "export_pdf", "check_rendered", "output",
+           "trusted_runtime_bundle", "embed_attachments", "vault_root", "export_pdf", "check_rendered", "output",
            "export_figures")
     print(extract_comments(options.extract_comments.resolve()), end="")
 
@@ -272,6 +281,12 @@ def _alone(operation: str, options: argparse.Namespace, *names: str) -> None:
         argument = ARGUMENTS.get(given, f"--{given.replace('_', '-')}")
         raise InputError(PROG, argument, f"cannot be combined with {operation}",
                          f"Run {operation} on its own; see {PROG} --help")
+
+
+def _vault_paths(document: dict[str, object]) -> set[str]:
+    """The vault-relative paths the Document names: its manifest note, its notes and its files."""
+    named = [document.get("manifest"), *document.get("records", []), *document.get("assets", [])]
+    return {item["path"] for item in named if isinstance(item, dict) and isinstance(item.get("path"), str)}
 
 
 def _read_document(path: Path) -> dict[str, object]:

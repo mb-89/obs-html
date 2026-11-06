@@ -6,13 +6,15 @@ its commands. test_errors.py fails on a raise that does not go through it.
 (obs input-model, Chapter content), written here again because the adapter does not import the
 core. The source is a file or note (its vault-relative path), ``Document of <manifest>`` for a
 Document the current core does not write, or a command for its arguments. A test matches an
-error by its ``source`` and ``field``, never by its wording.
+error by its ``source`` and ``field``, never by its wording. Where the core passes the vault root
+(``--vault-root``), a vault-relative source is named below it (``in_vault``).
 """
 from __future__ import annotations
 
 import argparse
 import json
 import sys
+from pathlib import PurePath
 
 from jsonschema.exceptions import ValidationError, best_match
 
@@ -23,6 +25,20 @@ class InputError(ValueError):
     def __init__(self, source: object, field: str, problem: str, remedy: str) -> None:
         self.source, self.field, self.problem, self.remedy = str(source), field or "top level", problem, remedy
         super().__init__(f"{self.source}: {self.field}: {problem}. {remedy}.")
+
+
+DOCUMENT_OF = "Document of "
+"""Names the Document by its manifest note: ``Document of manifest.md``."""
+
+
+def in_vault(error: InputError, root: str | None, paths: set[str]) -> InputError:
+    """``error`` with its source below ``root``, the vault root as the core's user gave it, where the
+    source is one of the Document's vault-relative ``paths`` or the Document of one; else ``error``."""
+    document = DOCUMENT_OF if error.source.startswith(DOCUMENT_OF) else ""
+    name = error.source.removeprefix(document)
+    if root is None or name not in paths:
+        return error
+    return InputError(f"{document}{PurePath(root, name)}", error.field, error.problem, error.remedy)
 
 
 class Parser(argparse.ArgumentParser):
