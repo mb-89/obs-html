@@ -17,6 +17,10 @@ head instead (test/browser/viewer.py, ``with_stand_in``). And it reads the artif
 from the artifact's own performance marks: it reads no clock of its own in Python, sets no
 performance mark, and takes no time in a listener of its own in the page.
 
+No test of this adapter builds obs's spec itself: it reads the run's one shared build, which obs
+test/spec_build.py owns, with what counts as building it (``own_builds``); a test that needs
+another build copies the vault, builds only that variant, and is named in SPEC_BUILD_EXCEPTIONS.
+
 A test states the browser engine it needs by the fixture it takes. The bulk runs on Playwright's
 headless shell (``reader_browser`` and the other BROWSER_FIXTURES); full Chromium
 (FULL_CHROMIUM_FIXTURES) serves only the named set FULL_CHROMIUM_TESTS, the checks whose
@@ -26,6 +30,8 @@ test that does not, both fail.
 import re
 import ast
 from pathlib import Path
+
+from conftest import spec_build
 
 TESTS = Path(__file__).parents[1]
 # The fixtures that hand a test a browser page; test/conftest.py owns them. A test of the PDF
@@ -59,6 +65,14 @@ FULL_CHROMIUM_TESTS = {
 # The fixtures that build an artifact once per run, wherever they are defined; a browser test
 # reads what they built, and the check does not look into them.
 SHARED_FIXTURES = {"fixture_artifact", "parity_artifacts", "spec_artifact"}
+# What denotes obs's checkout in a test of this adapter (test/conftest.py owns CORE_ROOT).
+CORE_ROOTS = r"CORE_ROOT|core_root"
+# The tests that build obs's spec themselves, by module: test -> why it is a variant of its own.
+SPEC_BUILD_EXCEPTIONS = {
+    "test_spec_archive_rebuild.py": {
+        "test_reproduce_rebuilds_obs_spec_from_its_archive_with_the_references_entry":
+            "builds a copy of the vault with --embed-source and rebuilds it from the archive it embeds"},
+}
 # What only test/conftest.py may call: starting Playwright, launching or connecting a browser,
 # and opening a browser context.
 BROWSER_CALLS = {"sync_playwright", "launch", "launch_persistent_context", "connect", "connect_over_cdp",
@@ -347,3 +361,41 @@ def test_named_on_the_shell(reader_browser):
     assert "(full_chromium_browser) outside FULL_CHROMIUM_TESTS" in found[0]
     assert "(printed) outside FULL_CHROMIUM_TESTS" in found[1]
     assert engine_violations(tmp_path / "test_engines.py", EVERY_TEST) == []
+
+
+def test_no_test_builds_obs_spec_itself() -> None:
+    found = [violation for path in sorted(TESTS.glob("*.py"))
+             for violation in spec_build.own_builds(path, CORE_ROOTS, set(SPEC_BUILD_EXCEPTIONS.get(path.name, {})))]
+    missing = sorted(name for name in SPEC_BUILD_EXCEPTIONS if not (TESTS / name).is_file())
+    found += [f"{name}: SPEC_BUILD_EXCEPTIONS names a module the tests do not have; remove it" for name in missing]
+    assert found == [], "test/structure/test_quality.py: " + "\n".join(found)
+
+
+def test_the_spec_check_names_a_test_that_builds_obs_spec_through_the_core_root(tmp_path: Path) -> None:
+    """The check is not vacuous in this adapter: a build of obs's spec through CORE_ROOT is named, and
+    a build of this adapter's own spec, or the shared spec artifact, is not."""
+    (tmp_path / "test_own_spec.py").write_text('''
+from pathlib import Path
+
+from conftest import CORE_ROOT
+from spec_artifact import run, spec_artifact, uv
+
+ROOT = Path(__file__).parents[1]
+
+
+def test_parity_reference(tmp_path):
+    core = CORE_ROOT
+    run([uv(), "run", "obs-html-interim", "--source", str(core / "spec"), "--output", str(tmp_path / "r.html")],
+        core, "rendering obs's spec")
+
+
+def test_own_spec(tmp_path):
+    run([uv(), "run", "obs-document", "--source", str(ROOT / "spec" / "manifest.md")], ROOT, "own spec")
+
+
+def test_shared(tmp_path_factory):
+    assert spec_artifact(tmp_path_factory).is_file()
+''', encoding="utf-8")
+    found = spec_build.own_builds(tmp_path / "test_own_spec.py", CORE_ROOTS, set())
+    assert [line.split(":")[0] for line in found] == ["test_parity_reference"]
+    assert "test_own_spec.py:12" in found[0] and "test/spec_build.py" in found[0]
