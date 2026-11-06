@@ -73,6 +73,8 @@ class Feature:
     island) and whether it bundles a trusted application runtime."""
     code: tuple[str, ...] = ()
     parts: tuple[Part, ...] = ()
+    styles: tuple[str, ...] = ()
+    """Package stylesheets that ship with the feature, after the packaged styles."""
 
     def shipped(self, model: dict, trusted_runtime: bool) -> tuple[Part, ...]:
         """The parts the artifact carries along with the feature."""
@@ -131,6 +133,11 @@ def _bless(model: dict, _trusted_runtime: bool) -> bool:
     return any("bless" in note for note in model["notes"])
 
 
+def _screens(model: dict, _trusted_runtime: bool) -> bool:
+    """The artifact opens in screens (artifact-ui.md, Screens; render.py, _layout)."""
+    return model["reading"]["layout"] == "screens"
+
+
 def _source_archive(model: dict, _trusted_runtime: bool) -> bool:
     """The Document carries its sources (obs-document --embed-source; source_archive.py)."""
     return model.get("sourceArchiveComplete") is True
@@ -149,6 +156,9 @@ FEATURES: tuple[Feature, ...] = (
             "(obsArtifact.sendAnswers; spec/capabilities/answers.md)", _bless, ("answers.js",)),
     Feature("bless", "a chapter that asks for a bless: the top band's verdict pill and keys, and Send "
             "(spec/capabilities/bless.md)", _bless, ("bless.js",)),
+    Feature("screens", "an artifact that opens in screens (obsHtml.layout, or a deck whose chapters all ask "
+            "for a bless): the band's title and position (artifact-ui.md, Screens)", _screens, ("screens.js",),
+            styles=("screens.css",)),
     Feature("popups", "a guided card, a note a link opens as context, or a trusted runtime",
             _floating_window, ("guided-card.js",)),
     Feature("plotting", "a figure of a kind that needs the plotting library (figures.py, FIGURE_KINDS): "

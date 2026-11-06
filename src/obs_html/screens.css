@@ -1,0 +1,72 @@
+/* Screens (features.py, screens; artifact-ui.md, Screens): while the reader shows screens (not
+   Show as pages), each chapter is one screen at the reader's full width inside a side gutter that
+   holds the chapter arrows, without the cover; the band shows the title and the position. */
+.screens-mode {
+    --chapter-nav-width: 1.75rem;
+    --chapter-nav-inset-end: 0rem;
+}
+
+.screens-mode .chapter-body {
+    max-width: none;
+    padding: 1rem var(--chapter-clearance-end) 2rem var(--chapter-nav-width);
+}
+
+/* Review mode keeps its gutter (base.css, review-mode) beside Previous's narrower pointer area. */
+.screens-mode .chapter-body.review-mode {
+    padding-inline-start: var(--review-clearance-start);
+}
+
+.screens-mode .chapter-nav {
+    padding: 0.75rem 0.15rem;
+}
+
+.screens-mode .chapter-nav-icon {
+    width: 100%;
+}
+
+.screens-mode .chapter-body > .document-heading {
+    display: none;
+}
+
+:root:not(.screens-mode) .screens-title,
+:root:not(.screens-mode) .screens-position {
+    display: none;
+}
+
+/* The title shares with the crumbs what the band's squares leave, and truncates first, its full
+   text its tooltip: like the crumbs, it never takes a square's room, nor the band's gap before it,
+   which its margin takes back and its indent keeps for the text. */
+.screens-title {
+    color: var(--color-text);
+    flex: 1 1 0;
+    font: 600 0.8rem/var(--top-control-size) var(--font-interface);
+    margin-inline-start: calc(-1 * var(--top-band-gap));
+    min-width: 0;
+    text-indent: var(--top-band-gap);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.screens-title[hidden],
+.screens-position[hidden] {
+    display: none;
+}
+
+/* The position is one of the band's squares, first at its end. */
+.top-band-end > .screens-position {
+    align-items: center;
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-small);
+    box-sizing: border-box;
+    color: var(--color-text-muted);
+    display: flex;
+    font: calc(var(--top-control-size) * 0.27)/1 var(--font-interface);
+    justify-content: center;
+    order: -2;
+    white-space: nowrap;
+}
+
+.screens-mode .top-band:has(.screens-position:not([hidden])) {
+    --top-band-screens: 1;
+}

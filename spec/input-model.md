@@ -49,7 +49,7 @@ contains no front-page titles, labels or opening mode of its own.
 
 ```yaml
 obsHtml:
-  layout: paged              # or scrolling
+  layout: paged              # or scrolling, screens
   heading: cover             # or compact
   pages:
     - {page: cover}
@@ -60,9 +60,15 @@ obsHtml:
   cssSnippets: [house-style] # .obsidian/snippets/house-style.css
 ```
 
-- `layout` chooses the view every opening starts in: `paged` (paper sheets) or `scrolling`
-  (continuous reading). Readers can still switch during the session; that choice is not saved
-  as the next opening's state. It replaces the removed `artifact.reading.paged` setting.
+- `layout` chooses the view every opening starts in: `paged` (paper sheets), `scrolling`
+  (continuous reading) or `screens` (one chapter per screen). Readers can still switch during
+  the session; that choice is not saved as the next opening's state. It replaces the removed
+  `artifact.reading.paged` setting.
+
+  Use `screens` for an artifact read on a phone one chapter at a time, such as a deck of
+  decisions that each fit one screen; use `paged` for a document that is read and printed as
+  pages. Without `layout`, a manifest whose listed chapters all ask for a bless opens in
+  `screens` and any other in `paged`; [[artifact-ui#Screens]] owns that rule and the view.
 - `heading` presents the cover metadata at the top of Home. `cover` (default) is the title box,
   which `pages` can also place as the title sheet.
 

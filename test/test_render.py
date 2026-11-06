@@ -41,7 +41,7 @@ def test_front_pages_follow_the_profile_order(document) -> None:
     model = _model(document)
     assert model["document"]["pages"] == [
         {"page": "cover"}, {"page": "contents", "title": "Contents"}, {"page": "abstract", "title": "Abstract"}]
-    assert model["reading"]["paged"] is True
+    assert model["reading"]["layout"] == "paged"
     home = model["notes"][0]
     assert (home["slug"], home["generated"], home["depth"]) == ("home", "home", 0)
     assert '<div class="cover-product"><div>Widget</div><div>2</div></div>' in home["html"]
@@ -468,3 +468,36 @@ def test_home_headings_carry_anchors_that_name_the_front_page_groups() -> None:
     source = build("Doc", chapter("one", "One"), abstract=(heading(2, "Metadata"),))
     home = _notes(source)["home"]["html"]
     assert '<h2 id="home--metadata">Metadata</h2>' in home
+
+
+def _deck(*asks: bool, layout: str | None = None) -> dict:
+    """Chapters that each ask for a bless or not, and the manifest's declared layout, if any."""
+    source = build("Deck", *(chapter(f"c{index}", f"C{index}", heading(1, f"C{index}"), paragraph("Text."))
+                             for index in range(len(asks))),
+                   metadata={"obsHtml": {"layout": layout}} if layout else None)
+    for entry, ask in zip(source["chapters"], asks):
+        if ask:
+            entry["bless"] = {"version": "0" * 64}
+    return source
+
+
+@pytest.mark.parametrize(("asks", "layout", "opens"), [
+    ((True, True), None, "screens"),
+    ((True, False), None, "paged"),
+    ((False,), None, "paged"),
+    ((True, True), "paged", "paged"),
+    ((True, True), "scrolling", "scrolling"),
+    ((False,), "screens", "screens"),
+])
+def test_a_manifest_whose_chapters_all_ask_for_a_bless_opens_in_screens_unless_it_declares_a_layout(
+        asks, layout, opens) -> None:
+    """artifact-ui.md, Screens: the default layout of a deck; a declared obsHtml.layout always wins."""
+    html = _render(_deck(*asks, layout=layout))
+    assert decode_artifact_data(html)["reading"]["layout"] == opens
+    assert f'data-layout="{opens}"' in html
+
+
+def test_a_chapter_outside_the_reading_order_does_not_decide_the_default_layout() -> None:
+    source = _deck(True, False)
+    source["chapters"][1]["toc"] = False
+    assert _model(source)["reading"]["layout"] == "screens"
