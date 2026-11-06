@@ -24,7 +24,6 @@ from urllib.parse import unquote
 from jsonschema import Draft202012Validator
 from latex2mathml import exceptions as math_exceptions
 from latex2mathml.converter import convert as mathml
-from markdown_it import MarkdownIt
 
 from obs_html.bars import BarDefinition, discover_bars
 from obs_html.config import Config, paper
@@ -74,7 +73,6 @@ class Context:
     marks: list[dict[str, object]] = field(default_factory=list)
     frontmatter: dict[str, object] = field(default_factory=dict)
     paths: dict[str, str] = field(default_factory=dict)
-    aliases: dict[str, str | None] = field(default_factory=dict)
     records: dict[str, dict[str, object]] = field(default_factory=dict)
     editable: dict[str, dict[str, object]] = field(default_factory=dict)
     unknown: dict[str, dict[str, str]] = field(default_factory=dict)
@@ -223,9 +221,14 @@ def _cards(node: dict[str, object], context: Context) -> str:
         if series:
             _check_series(series, context)
         metrics = [dict(metric) for metric in card.get("metrics", [])]
+        with _at(context, "children", index, "attrs"):
+            title = _attr_nodes(body["attrs"]["title"], context, "title")
+            for position, metric in enumerate(metrics):
+                metric["labelHtml"] = _attr_nodes(body["attrs"]["labels"][position], context, "labels", position)
         for metric in metrics:
             if "secondary" in metric:
-                metric["valueHtml"] = _inline(f'[[{metric["from"]}]] ([[{metric["secondary"]}]])', context)
+                metric["valueHtml"] = (f'{_metric_quantity(metric["from"], context)} '
+                                       f'({_metric_quantity(metric["secondary"], context)})')
         payload = escape(json.dumps(metrics, ensure_ascii=False), quote=True)
         slots = "".join(f'<div data-record-metric="{index}" role="status" aria-busy="true">Calculating…</div>'
                         for index in range(len(metrics)))
@@ -233,10 +236,27 @@ def _cards(node: dict[str, object], context: Context) -> str:
         series_data = f' data-record-series="{escape(json.dumps(series), quote=True)}"' if series else ""
         rendered.append(
             f'<section class="content-card record-card" data-record-card="{payload}"{series_data}>'
-            f'<header class="content-card-title">{escape(card["title"])}</header>'
+            f'<header class="content-card-title">{title}</header>'
             + (f'<div class="record-metrics {style}">{slots}</div>' if metrics or series else "")
             + _body(body, index, context) + "</section>")
     return '<div class="record-cards" data-record-cards>' + "".join(rendered) + "</div>\n"
+
+
+def _attr_nodes(nodes: list[dict[str, object]], context: Context, *parts: object) -> str:
+    """The HTML of inline nodes an attribute of the current node holds at ``parts``: a callout
+    title, a card title, a metric label (obs capabilities/markdown#Document nodes)."""
+    with _at(context, *parts):
+        return _nodes(nodes, context)
+
+
+def _metric_quantity(path: str, context: Context) -> str:
+    """The pending count of the query quantity a metric's ``from`` or ``secondary`` names by its
+    note path (obs capabilities/cards-metrics); the core resolved it."""
+    link = _quantity_link(context.paths.get(path, ""), context)
+    if not link:
+        raise _stale(context, ["attrs", "spec"], f"names {path!r} in a metric, which is no quantity note "
+                     "of the Document")
+    return link
 
 
 def _body(body: dict[str, object], index: int, context: Context) -> str:
@@ -352,8 +372,8 @@ CALLOUT_TONES = {
 
 
 def _callout(node: dict[str, object], context: Context) -> str:
-    """A callout is a card titled by ``attrs.title`` exactly as the core gives it (the core resolves an
-    untitled callout's title); ``important`` is the emphasis box."""
+    """A callout is a card titled by the inline nodes of ``attrs.title`` exactly as the core gives
+    them (the core resolves an untitled callout's title); ``important`` is the emphasis box."""
     kind, title = node["attrs"]["kind"], node["attrs"]["title"]
     if kind not in CALLOUT_TONES:
         raise _stale(context, ["attrs", "kind"], f"is {kind!r}, not one of the callout kinds "
@@ -364,7 +384,8 @@ def _callout(node: dict[str, object], context: Context) -> str:
     else:
         opening = (f'<aside class="content-card content-callout content-callout--{CALLOUT_TONES[kind]}" '
                    f'data-callout="{kind}" aria-label="{name}">\n')
-    header = f'<header class="content-card-title">{_inline(title, context)}</header>\n' if title else ""
+    header = f'<header class="content-card-title">{_attr_nodes(title, context, "attrs", "title")}</header>\n' \
+        if title else ""
     return f"{opening}{header}{_nodes(node['children'], context)}</aside>\n"
 
 
@@ -790,12 +811,6 @@ def render(document: dict[str, object], config: Config,
         row_keys=_row_keys(document["records"]),
         embed_attachments=embed_attachments,
     )
-    for record in context.records.values():
-        aliases = record["fields"].get("aliases")
-        for alias in [aliases] if isinstance(aliases, str) else aliases if isinstance(aliases, list) else []:
-            if isinstance(alias, str) and alias.strip():
-                key = alias.strip().casefold()  # An alias two notes share resolves to neither.
-                context.aliases[key] = record["id"] if key not in context.aliases else None
     _index(document["chapters"], context)
     _index_headings(HOME, document["manifest"].get("abstract", []), context)
     context.chapters[HOME] = document["manifest"]["title"]  # The core links the manifest as home.
@@ -1548,61 +1563,6 @@ def _css_classes(frontmatter: dict[str, object], slug: str, context: Context) ->
         raise InputError(_slug_source(slug, context), "cssclasses", f"is {value!r}, not one CSS class name or "
                          "a list of them", "Write class names of letters, digits, hyphens and underscores")
     return list(dict.fromkeys(classes))
-
-
-INLINE = MarkdownIt("commonmark", {"html": False})
-
-
-def _inline(value: object, context: Context | None = None) -> str:
-    """Inline Markdown of a string a node attribute carries (a callout title, a card metric's label:
-    bold, links, images such as badges); raw HTML stays text. Metadata never comes here: it renders
-    from its field nodes (_field_html). With a context, wikilinks link the chapter their note
-    record names (see _frontmatter_link).
-    """
-    source = _text(value)
-    if re.fullmatch(r"https?://[^\s<>]+", source, re.IGNORECASE):
-        source = f"<{source}>"
-    html = INLINE.renderInline(source)
-    if context is None:
-        return html
-    html = IMAGE_TAG.sub(lambda match: _metadata_image(match, context), html)
-    html = NOTE_HREF.sub(lambda match: _note_href(match, context), html)
-    return WIKILINK.sub(lambda match: _frontmatter_link(match, context), html)
-
-
-NOTE_HREF = re.compile(r'<a href="([^"]*)">')
-IMAGE_TAG = re.compile(r'<img src="([^"]*)" alt="([^"]*)"[^>]*>')
-
-
-def _metadata_image(match: re.Match[str], context: Context) -> str:
-    """An image in an attribute string renders from the asset the core made of its reference."""
-    href = unescape(match[1])
-    asset = next((item for item in context.files.values() if item["href"] == href), {"href": href})
-    return _image(asset, unescape(match[2]))
-
-
-def _note_href(match: re.Match[str], context: Context) -> str:
-    chapter = _note_target(unescape(match[1]), context)
-    return f'<a class="internal-link" href="#{chapter}">' if chapter is not None else match[0]
-
-
-WIKILINK = re.compile(r"\[\[([^\[\]|#]*)(?:#([^\[\]|]*))?(?:\|([^\[\]]*))?\]\]")
-
-
-def _frontmatter_link(match: re.Match[str], context: Context) -> str:
-    """A wikilink in authored text links like a body wikilink: to the chapter whose note record
-    has the target's path, or, as Obsidian resolves it, the only path ending in the target, or
-    the only note with the target as alias; any other target renders unresolved."""
-    target, heading, label = (unescape(group).strip() if group else "" for group in match.groups())
-    path = target.removesuffix(".md")
-    chapter = context.paths.get(path)
-    if chapter is None:
-        candidates = [identifier for known, identifier in context.paths.items() if known.endswith(f"/{path}")]
-        chapter = candidates[0] if path and len(candidates) == 1 else context.aliases.get(path.casefold())
-    if chapter not in context.chapters:
-        shown = label or target
-        return f'<span class="unresolved" title="{escape(target, quote=True)}">{escape(shown)}</span>'
-    return _internal_link(chapter, heading, label, context)
 
 
 def _frontmatter_html(metadata: dict[str, object], slug: str, context: Context) -> dict[str, str]:

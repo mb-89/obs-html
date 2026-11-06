@@ -12,7 +12,7 @@ from typing import Sequence
 
 from obs_html.comments import extract_comments
 from obs_html.config import load_config
-from obs_html.errors import InputError, Parser, in_vault
+from obs_html.errors import InputError, Parser, in_vault, vault_naming
 from obs_html.exposure import check_artifact
 from obs_html.figure_svg import document_figures, figure_svg
 from obs_html.render import render
@@ -200,12 +200,14 @@ def _render(options: argparse.Namespace, config) -> None:
     if options.destination and options.destination.resolve() == options.document.resolve():
         raise InputError(PROG, "DESTINATION", "names DOCUMENT itself", "Name another output file")
     document = _read_document(options.document)
+    paths = _vault_paths(document)
     try:
-        artifact = render(document, config, style_folder=options.style,
-                          trusted_runtime=_trusted_runtime(options.trusted_runtime_bundle),
-                          embed_attachments=options.embed_attachments)
+        with vault_naming(options.vault_root, paths):
+            artifact = render(document, config, style_folder=options.style,
+                              trusted_runtime=_trusted_runtime(options.trusted_runtime_bundle),
+                              embed_attachments=options.embed_attachments)
     except InputError as error:
-        raise in_vault(error, options.vault_root, _vault_paths(document)) from error
+        raise in_vault(error, options.vault_root, paths) from error
     check_artifact(artifact)
     for diagnostic in document["diagnostics"]:
         print(f"{diagnostic['level'].title()}: {diagnostic['message']}", file=sys.stderr)

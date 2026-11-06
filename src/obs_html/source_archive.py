@@ -5,7 +5,9 @@ PDF; input-model.md, "Optional reproduction archive", owns the behaviour.
 
 The core carries the vault's source files only when the build asks for them (obs-document
 --embed-source; obs architecture, Source archive). This module packages them as the interim
-adapter does, each file at ``vault/<path>``, and makes the ZIP the one owner of every asset's
+adapter does, each file at ``vault/<path>``, refers to the generator instead of copying it
+(``build-config.json`` from the Document's build record, and ``reproduce.py``, which installs obs at
+the recorded commit and reruns the recorded command), and makes the ZIP the one owner of every asset's
 bytes it holds: a reader image or download whose bytes are a member becomes an ``obs-asset:``
 reference to a descriptor naming the member (payloads.js resolves it). The reader downloads the
 ZIP as ``ARCHIVE_NAME`` through the downloads feature (features.py); ``attach`` puts it into a
@@ -18,6 +20,7 @@ import binascii
 import hashlib
 import json
 import re
+from importlib.resources import files
 from io import BytesIO
 from zipfile import BadZipFile, ZIP_DEFLATED, ZipFile, ZipInfo
 
@@ -41,12 +44,19 @@ _SHARED_MIME = re.compile(r"image/[a-z0-9.+-]+|application/(?:pdf|octet-stream|j
 def package(document: dict, embed_attachments: bool = False) -> bytes | None:
     """The ZIP of the Document's source files, or None for a Document built without them: each file
     at ``vault/<path>``, the interim's ``source-inventory.json`` (which the reader's archive
-    transactions update; this archive has no generator) and ``REPRODUCE.txt``, the rebuild command
-    with the build's ``embed_attachments`` choice."""
+    transactions update; this archive copies no generator), ``build-config.json`` with the build's
+    ``embed_attachments`` choice, ``reproduce.py`` and ``REPRODUCE.txt``."""
     archive = document.get("sourceArchive")
     if archive is None:
         return None
     source = f"{DOCUMENT_OF}{document['manifest']['path']}"
+    build = archive["build"]
+    if "--adapter" not in build["arguments"]:
+        raise InputError(source, "sourceArchive.build.arguments", "names no --adapter: a call without one wrote "
+                         "the Document, so no recorded command rebuilds this artifact", "Build the artifact in "
+                         "one call: obs-document --source <manifest> --adapter html --destination <file> "
+                         "--embed-source")
+    command = ["obs-document", "--source", f"vault/{document['manifest']['path']}", *build["arguments"]]
     assets = {item["id"]: item for item in document["assets"]}
     buffer = BytesIO()
     with ZipFile(buffer, "w", ZIP_DEFLATED) as zipped:
@@ -65,15 +75,26 @@ def package(document: dict, embed_attachments: bool = False) -> bytes | None:
         paths = sorted(item["path"] for item in archive["files"])
         zipped.writestr(_member("source-inventory.json"), json.dumps({"vault": paths, "generator": []},
                                                                        separators=(",", ":")))
-        option = " --adapter-option embed-attachments=true" if embed_attachments else ""
+        zipped.writestr(_member("build-config.json"), json.dumps({
+            "schemaVersion": document["schemaVersion"],
+            "obs": {"repository": build["repository"], "commit": build["commit"]},
+            "lockfiles": build["lockfiles"],
+            "adapterOptions": {"embed-attachments": embed_attachments},
+            "command": command,
+        }, indent=2))
+        zipped.writestr(_member("reproduce.py"), files("obs_html").joinpath("reproduce.py").read_bytes())
         zipped.writestr(_member("REPRODUCE.txt"), (
-            "Source archive\n\n"
+            "Source reproduction bundle\n\n"
             "vault/ holds the vault's source files as the build disclosed them (obs-document\n"
-            "--embed-source); it does not hold obs or obs-html. With both installed, rebuild from this\n"
-            "extracted directory with:\n"
-            f"  obs-document --source vault/{document['manifest']['path']} --adapter html "
-            f"--destination document.html --embed-source{option}\n"
-            "Append --execute-commands where the vault's command fences should run again.\n"
+            "--embed-source). obs and obs-html are not copied: build-config.json names the public\n"
+            f"repository and the commit that built this artifact ({build['commit']}).\n"
+            "With git and uv installed, rebuild from this extracted directory with:\n"
+            "  python reproduce.py\n"
+            "It clones obs, checks out that commit, installs it with the commit's uv.lock and runs:\n"
+            f"  {' '.join(command)}\n"
+            "--repository <url or folder> installs obs from another clone. A build that ran the vault's\n"
+            "command fences reruns them only with python reproduce.py --execute-commands: review vault/\n"
+            "first. Where a diagram renderer is missing, obs names the npm command that installs it.\n"
             "Documents include build timestamps; byte-identical output is not promised.\n"))
     return buffer.getvalue()
 

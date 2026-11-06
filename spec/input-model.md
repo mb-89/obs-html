@@ -221,15 +221,27 @@ obs-html packages the vault files a Document's `sourceArchive` carries; the core
 (obs's architecture, Source archive: [[obs-specification|obs's specification]]) by the boundary
 below, and a file the Document holds as an asset takes that asset's bytes. The ZIP holds each file
 at `vault/<path>`, the `source-inventory.json` the reader's archive transactions update (its
-`generator` list empty) and `REPRODUCE.txt`, the `obs-document --embed-source` command that
-rebuilds it, with `--adapter-option embed-attachments=true` for an evidence edition. Every member
+`generator` list empty), `build-config.json`, `reproduce.py` and `REPRODUCE.txt`, which says how
+to run it. Every member
 has one fixed timestamp, so the same files give the same ZIP. The reader downloads it as
 `obs-html-source.zip`, the interim's name, and a PDF carries it under that name. An archived file
 naming an asset the Document lacks is an input error naming `sourceArchive.files[i].asset`.
 
-The generator's package source, its settings and the rebuild script described below are the
-interim adapter's; obs-html's archive does not carry them yet, so its rebuild needs obs and
-obs-html installed.
+obs-html's archive refers to the generator instead of copying it, from the Document's
+`sourceArchive.build` record (obs's architecture, Source archive). `build-config.json` holds the
+Document's `schemaVersion`, obs's `repository` and `commit`, the recorded `lockfiles` versions,
+the adapter's own options (`adapterOptions`) and the exact `command`: `obs-document --source
+vault/<manifest path>` followed by the recorded arguments. `python reproduce.py`, which needs git
+and uv only, clones obs from that repository (`--repository URL` names another, such as a local
+clone), checks out the commit, installs it with that commit's `uv.lock` (`uv sync --frozen`) and
+runs the command from the extracted folder. A failed clone, checkout or install names the commit,
+the repository and the remedy. A command with `--execute-commands` runs only when `reproduce.py`
+is given `--execute-commands` too, so the vault's fences never run unreviewed. A Document whose
+arguments name no `--adapter` was written by a call without one, so no recorded command rebuilds
+the artifact: that is an input error naming `sourceArchive.build.arguments`, whose remedy is the
+one-call build. The generator's package source, project manifest, lockfile, README and wrappers
+that the interim copies into `generator/` are not carried; that difference from the interim is
+listed in [[architecture#Known differences from the interim]].
 
 It discloses the selected vault's explicit directory snapshot, including scripts/data not
 in the TOC, whether or not that vault has Git metadata. Installed dependency directories,

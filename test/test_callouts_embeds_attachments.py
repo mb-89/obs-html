@@ -36,8 +36,10 @@ def _html(*content: dict, assets: list[dict] | None = None, records: tuple[dict,
     return next(note for note in notes if note["slug"] == "one")["html"]
 
 
-def _callout(kind: str, title: str = "", *body: str | dict) -> dict:
-    result = {"type": "callouts", "attrs": {"kind": kind, "title": title}, "children": []}
+def _callout(kind: str, title: str | list[dict] = "", *body: str | dict) -> dict:
+    """A callout node; a string ``title`` is the one text node the core parses plain text into."""
+    nodes = title if isinstance(title, list) else [text(title)] if title else []
+    result = {"type": "callouts", "attrs": {"kind": kind, "title": nodes}, "children": []}
     if body:
         result["children"] = [paragraph(*body)]
     return result
@@ -58,12 +60,23 @@ def test_callout_types_render_as_titled_tone_cards(kind) -> None:
     )
 
 
-def test_a_callout_title_renders_its_inline_markdown_and_wikilinks() -> None:
-    record = {"id": "two", "type": "note", "path": "two.md", "fields": {}}
-    html = _html(_callout("warning", "Check **[[two|limits]]** <b>raw</b>", "First."), records=(record,))
+def test_a_callout_title_renders_its_inline_nodes() -> None:
+    link = node("wikilinks", target="two", chapter="two", heading="", label="limits")
+    strong = {"type": "strong", "attrs": {}, "children": [link]}
+    html = _html(_callout("warning", [text("Check "), strong, text(" <b>raw</b>")], "First."))
     assert ('<header class="content-card-title">Check <strong><a class="internal-link" href="#two">'
             'limits</a></strong> &lt;b&gt;raw&lt;/b&gt;</header>') in html
     assert "[!" not in html
+
+
+def test_a_callout_title_heading_link_shows_the_core_s_link_label() -> None:
+    """``> [!note] See [[two#Authorization]]``: the title shows the label the core gave the link
+    (obs capabilities/wikilinks#Link text), never the chapter title alone."""
+    link = node("wikilinks", target="two", chapter="two", heading="Authorization",
+                label="Command Fences > Authorization")
+    html = _html(_callout("note", [text("See "), link], "Body."))
+    assert ('<header class="content-card-title">See <a class="internal-link" href="#two">'
+            'Command Fences &gt; Authorization</a></header>') in html
 
 
 def test_a_callout_with_only_a_title_renders_a_titled_card() -> None:

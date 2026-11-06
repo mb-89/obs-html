@@ -316,7 +316,8 @@ POINT_FLOW = {"version": 1, "data": {"where": [{"field": "kind", "equals": "poin
     {"id": "points", "label": "Points", "stage": 0, "records": {"where": [{"field": "owner", "equals": "lin"}]}},
     {"id": "open", "label": "Open", "stage": 1, "records": {"where": [{"field": "status", "equals": "open"}]},
      "unique": "owner"},
-    {"id": "closed", "label": "Closed", "stage": 1}], "links": [
+    {"id": "closed", "label": "Closed", "stage": 1, "records": {"where": [{"field": "status", "equals": "closed"}]},
+     "unique": "assignees"}], "links": [
     {"source": "points", "target": "open", "value": 2, "where": [{"field": "status", "equals": "open"}]},
     {"source": "points", "target": "closed", "value": 1, "where": [{"field": "status", "equals": "closed"}]}]}
 
@@ -326,7 +327,8 @@ def cards(root: Path) -> None:
     cards fence; a card with every metric field (two quantity notes for ``from`` and
     ``secondary``, a trusted projection); a card whose metrics are a series from a note's list;
     and a dynamic Sankey over the same points, one node of which narrows its incident links by its
-    own ``records``, so every kind of count has a drill-down."""
+    own ``records`` and one of which has more distinct ``unique`` items than rows, so every kind of
+    count has a drill-down."""
     point = [{"field": "kind", "equals": "point"}]
     inner = {"version": 1, "cards": [{"title": "Inner", "body": "Nested **body** with [[target]]."}]}
     outer = {"version": 1, "cards": [
@@ -368,9 +370,10 @@ def cards(root: Path) -> None:
     (root / "counts" / "open.md").write_text(
         "---\nkind: quantity\naliases: [openCount]\nsource: '[[target]]'\n"
         "query: {from: counts/points, where: [{field: status, equals: open}]}\n---\n", encoding="utf-8")
-    for name, status, owner in (("a", "open", "ada"), ("b", "closed", "lin"), ("c", "open", "lin")):
+    for name, status, owner, extra in (("a", "open", "ada", ""), ("b", "closed", "lin", "assignees: [kim, max]\n"),
+                                       ("c", "open", "lin", "")):
         (root / f"{name}-point.md").write_text(
-            f"---\nkind: point\nstatus: {status}\nowner: {owner}\n---\n# Point {name}\n", encoding="utf-8")
+            f"---\nkind: point\nstatus: {status}\nowner: {owner}\n{extra}---\n# Point {name}\n", encoding="utf-8")
 
 RESPONSE = {"schemaVersion": 1, "id": "response", "data": {"traces": [{"label": "measured", "x": [0, 1, 2], "y": [1, 4, 9]}, {"label": "model", "x": [0, 1, 2], "y": [1, 3, 8], "mode": "lines+markers"}]}, "panels": [{"id": "main", "bounds": {"x": 0, "y": 0, "width": 720, "height": 320}, "grid": {"row": 0, "column": 0, "rowSpan": 1, "columnSpan": 1}, "axes": [{"id": "time", "scale": "linear", "limits": {"minimum": 0, "maximum": 2}, "label": "Time"}, {"id": "value", "scale": "log", "limits": {"minimum": 1, "maximum": 10}, "label": "Value"}]}], "provenance": {"command": ["generate-response"]}}
 FLOW = {"schemaVersion": 1, "id": "flow", "data": {"sankey": {"version": 1, "nodes": [{"id": "in", "label": "Input", "stage": 0}, {"id": "out", "label": "Output", "stage": 1}, {"id": "loss", "label": "Loss", "stage": 1}], "links": [{"source": "in", "target": "out", "value": 8}, {"source": "in", "target": "loss", "value": 2}]}}, "panels": [{"id": "flow", "bounds": {"x": 0, "y": 0, "width": 700, "height": 680}, "grid": {"row": 0, "column": 0, "rowSpan": 1, "columnSpan": 1}, "axes": [{"id": "stage", "scale": "linear", "limits": {"minimum": 0, "maximum": 1}, "label": "Stage"}]}], "provenance": {"command": ["generate-flow"]}}
@@ -634,6 +637,11 @@ VAULTS = {"figures": figures, "equations": equations, "document": document, "com
 RUNS_COMMANDS = {"document"}
 EMBEDS_SOURCE = {"source-archive"}
 """The vaults the build archives (obs-document --embed-source)."""
+FIXTURE_BUILD = {"repository": "https://github.com/mb-89/obs", "commit": "0" * 40,
+                 "lockfiles": {"uv.lock": {"obs": "0.0.0"}},
+                 "arguments": ["--adapter", "html", "--destination", "document.html", "--embed-source"]}
+"""The build record an archived fixture Document carries in place of the core's: the core records
+the commit it runs from, which no committed file can hold, and this build runs without --adapter."""
 """The vaults whose cmd fences the build runs (obs-document --execute-commands): ``echo`` only."""
 DIAGNOSED = {"document", "complete", "artifact-change"}
 """The vaults whose Document keeps its diagnostics: those name vault notes only, never the build
@@ -683,6 +691,10 @@ def build(core: Path, names: list[str], output: Path, offline: bool = False) -> 
                 refused[name] = "\n".join(line for line in (result.stderr or result.stdout).splitlines()
                                           if line.strip() and not line.startswith("warning:"))
                 return
+            if name in EMBEDS_SOURCE:
+                built = json.loads(document.read_text(encoding="utf-8"))
+                built["sourceArchive"]["build"] = FIXTURE_BUILD
+                document.write_text(json.dumps(built, indent=2) + "\n", encoding="utf-8")
             diagnostics = json.loads(document.read_text(encoding="utf-8"))["diagnostics"]
             if diagnostics and (name not in DIAGNOSED or any(str(work) in item["message"] for item in diagnostics)):
                 refused[name] = (f"the {name} Document has diagnostics {diagnostics}, which a committed "

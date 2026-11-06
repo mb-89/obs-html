@@ -14,6 +14,8 @@ import hashlib
 import io
 import json
 import re
+import subprocess
+import sys
 import zipfile
 from pathlib import Path
 
@@ -28,12 +30,17 @@ from obs_html.artifact_data import decode_artifact_data
 from obs_html.config import load_config
 from obs_html.errors import InputError
 from obs_html.render import render
+from obs_html import reproduce
 from obs_html.source_archive import ARCHIVE_NAME, attach, embedded
 
 CONFIG = load_config()
 SCRIPT = b"print('rebuilt')\n"
 FIXTURE = ROOT / "test" / "fixtures" / "documents" / "source-archive.json"
 STYLE = re.compile(r"<style\b[^>]*>")
+BUILD = {"repository": "https://example.invalid/obs", "commit": "0123456789abcdef0123456789abcdef01234567",
+         "lockfiles": {"uv.lock": {"obs": "0.2.3", "pypdf": "6.21.2"}},
+         "arguments": ["--adapter", "html", "--destination", "report.html", "--adapter-option",
+                       "embed-attachments=true", "--embed-source"]}
 
 
 def archived(snippets: list[str] | None = None) -> dict:
@@ -52,7 +59,7 @@ def archived(snippets: list[str] | None = None) -> dict:
         {"path": "manifest.md", "data": base64.b64encode(b"- [[one]]\n").decode("ascii")},
         {"path": "media/pixel.png", "asset": "pixel-png"},
         {"path": "scripts/build.py", "data": base64.b64encode(SCRIPT).decode("ascii")},
-    ]}
+    ], "build": json.loads(json.dumps(BUILD))}
     return source
 
 
@@ -79,6 +86,92 @@ def test_the_archive_download_unzips_to_the_documents_source_files() -> None:
     # Settings, which the downloads feature owns; attaching it to a saved PDF ships only with it.
     assert 'id="canary-downloads"' in html and 'data-source-download' in html
     assert 'id="pdf-library-script"' in html and "globalThis.obsArchive" in html
+
+
+def test_build_config_records_what_rebuilds_the_artifact() -> None:
+    """The archive refers to the generator instead of copying it (input-model.md, Optional
+    reproduction archive): build-config.json names obs's repository and commit, the lockfile
+    versions, the schema version, the adapter's options and the exact command; no generator/."""
+    files = members(render(archived(), CONFIG, embed_attachments=True))
+
+    assert json.loads(files["build-config.json"]) == {
+        "schemaVersion": 1,
+        "obs": {"repository": BUILD["repository"], "commit": BUILD["commit"]},
+        "lockfiles": BUILD["lockfiles"],
+        "adapterOptions": {"embed-attachments": True},
+        "command": ["obs-document", "--source", "vault/manifest.md", *BUILD["arguments"]],
+    }
+    assert files["reproduce.py"] == (Path(reproduce.__file__).read_bytes())
+    assert not any(name.startswith("generator/") for name in files)
+    assert json.loads(files["source-inventory.json"])["generator"] == []
+    assert b"python reproduce.py" in files["REPRODUCE.txt"]
+
+
+def test_an_archive_without_a_recorded_adapter_fails_naming_its_field() -> None:
+    source = archived()
+    source["sourceArchive"]["build"]["arguments"] = ["--embed-source"]
+
+    with pytest.raises(InputError) as failure:
+        render(source, CONFIG)
+
+    assert (failure.value.source, failure.value.field) == ("Document of manifest.md", "sourceArchive.build.arguments")
+    assert "--adapter" in failure.value.remedy
+
+
+def extracted(folder: Path, arguments: list[str] | None = None) -> Path:
+    """The archive of ``archived()`` extracted into ``folder``."""
+    source = archived()
+    if arguments is not None:
+        source["sourceArchive"]["build"]["arguments"] = arguments
+    with zipfile.ZipFile(io.BytesIO(embedded(render(source, CONFIG), "artifact.html"))) as opened:
+        opened.extractall(folder)
+    return folder
+
+
+def test_reproduce_installs_the_recorded_commit_and_reruns_the_recorded_command(tmp_path: Path) -> None:
+    here = extracted(tmp_path)
+    config = json.loads((here / "build-config.json").read_text(encoding="utf-8"))
+    checkout = here / "obs"
+
+    steps = reproduce.steps(config, here, BUILD["repository"], execute_commands=False)
+
+    assert [(step.name, step.command) for step in steps] == [
+        ("clone", ["git", "clone", "--quiet", "--no-checkout", BUILD["repository"], str(checkout)]),
+        ("checkout", ["git", "-C", str(checkout), "checkout", "--quiet", "--detach", BUILD["commit"]]),
+        ("install", ["uv", "sync", "--frozen", "--project", str(checkout)]),
+        ("rebuild", ["uv", "run", "--frozen", "--project", str(checkout), *config["command"],
+                     "--adapter-config", str(checkout / "adapters.json")]),
+    ]
+    assert steps[-1].environment == {"UV_PROJECT": str(checkout)}
+    checkout.mkdir()
+    assert [step.name for step in reproduce.steps(config, here, BUILD["repository"], False)][0] == "checkout"
+
+
+def test_reproduce_runs_recorded_command_fences_only_when_asked(tmp_path: Path) -> None:
+    here = extracted(tmp_path, ["--adapter", "html", "--destination", "a.html", "--execute-commands",
+                                "--embed-source"])
+    config = json.loads((here / "build-config.json").read_text(encoding="utf-8"))
+
+    with pytest.raises(SystemExit) as refused:
+        reproduce.steps(config, here, BUILD["repository"], execute_commands=False)
+
+    assert "reproduce.py" in str(refused.value.code) and "--execute-commands" in str(refused.value.code)
+    assert reproduce.steps(config, here, BUILD["repository"], execute_commands=True)[-1].command[-3] == \
+        "--embed-source"
+
+
+def test_a_failed_clone_names_the_commit_and_the_remedy(tmp_path: Path) -> None:
+    """The extracted reproduce.py on a repository that does not exist: git fails at once, offline."""
+    here = extracted(tmp_path / "archive")
+    missing = tmp_path / "no-such-repository"
+
+    result = subprocess.run([sys.executable, "-I", str(here / "reproduce.py"), "--repository", str(missing)],
+                            capture_output=True, text=True, cwd=tmp_path)
+
+    assert result.returncode != 0
+    assert result.stderr.startswith("reproduce.py: clone:")
+    assert BUILD["commit"] in result.stderr and str(missing) in result.stderr
+    assert "--repository" in result.stderr.split("Remedy:", 1)[1]
 
 
 def test_an_archived_image_has_one_byte_owner_the_zip_member() -> None:
@@ -235,13 +328,19 @@ SNIPPET = re.compile(r'<style data-css-snippet="([^"]*)">(.*?)</style>', re.DOTA
 
 def test_the_fixture_vault_offers_what_the_interim_offers(interim: str) -> None:
     """Parity on one vault both adapters accept: the same vault files in the ZIP, the same
-    snippets in the same order, the same download and PDF attachment names. The interim's ZIP adds
-    its generator, settings and rebuild script, which this adapter's archive does not carry
-    (input-model.md, Optional reproduction archive)."""
+    top-level members (build configuration, rebuild script and instructions, source inventory),
+    the same snippets in the same order, the same download and PDF attachment names. The interim's
+    ZIP adds its generator/ copy, which this adapter's archive refers to instead (architecture.md,
+    Known differences from the interim)."""
     ours = render(json.loads(FIXTURE.read_text(encoding="utf-8")), CONFIG)
+    our_members, interim_members = members(ours), members(interim)
 
-    assert {name: data for name, data in members(ours).items() if name.startswith("vault/")} == \
-        {name: data for name, data in members(interim).items() if name.startswith("vault/")}
+    assert {name: data for name, data in our_members.items() if name.startswith("vault/")} == \
+        {name: data for name, data in interim_members.items() if name.startswith("vault/")}
+    assert {name for name in our_members if "/" not in name} == {name for name in interim_members if "/" not in name}
+    assert any(name.startswith("generator/") for name in interim_members)
+    assert not any(name.startswith("generator/") for name in our_members)
+    assert json.loads(our_members["build-config.json"])["command"][:3] == ["obs-document", "--source", "vault/manifest.md"]
     assert SNIPPET.findall(ours) == SNIPPET.findall(interim) != []
     for marker in ("data-source-download", "data-source-attach", 'id="pdf-library-script"'):
         assert marker in ours and marker in interim, marker
