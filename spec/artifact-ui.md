@@ -597,6 +597,11 @@ The tab's panel carries the heading's anchor, and its deeper headings stay in it
 sections the figure has its three tabs. Print shows each section under the Matrix tab, headed by
 its name.
 
+The heading keeps its place in the chapter's contents. A link to it, or to a place inside its
+section, opens its tab and scrolls to it: the artifact's one way of revealing a place
+(`artifact.js`, `revealSource`) asks the figure (`pugh-figure.js`, `reveal`). Decided by the
+dispatcher, 6 Nov 2026 (work issue `fix/decision-figure-follow-ups-20261106`).
+
 ## Reading shell
 
 - An artifact with appendices has one Appendix chapter. Its direct children are the handwritten appendices

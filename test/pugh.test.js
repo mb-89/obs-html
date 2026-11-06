@@ -32,6 +32,6 @@ const vectors = require(path.join(__dirname, "fixtures", "pugh-vectors.json"));
   for (const [short, label, adds] of [
     ["Two lines", "Keep two lines", false], ["Artifact", "Answered artifact", false],
     ["Comment export", "Comment export", false], ["lines", "Keep two lines.", false],
-    ["", "A page of the team wiki", true], ["HTML", "Answered artifact", true], ["two", "Keep twofold", true],
+    ["", "A page of the team wiki", true], [null, "A page of the team wiki", true], ["HTML", "Answered artifact", true], ["two", "Keep twofold", true],
   ]) assert.equal(page.obsPugh.labelAdds(short, label), adds, `labelAdds(${short}, ${label})`);
 })().catch(error => { console.error(error); process.exit(1); });

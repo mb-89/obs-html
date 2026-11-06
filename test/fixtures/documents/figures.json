@@ -819,7 +819,13 @@
                       "pass": false
                     }
                   ]
-                }
+                },
+                "shortNames": [
+                  "What runs today",
+                  "Precise",
+                  "Quick",
+                  "Middling"
+                ]
               },
               "children": []
             }
