@@ -382,10 +382,10 @@ from spec_artifact import run, spec_artifact, uv
 ROOT = Path(__file__).parents[1]
 
 
-def test_parity_reference(tmp_path):
+def test_core_spec(tmp_path):
     core = CORE_ROOT
-    run([uv(), "run", "obs-html-interim", "--source", str(core / "spec"), "--output", str(tmp_path / "r.html")],
-        core, "rendering obs's spec")
+    run([uv(), "run", "obs-document", "--source", str(core / "spec"), "--document", str(tmp_path / "r.json")],
+        core, "building obs's spec")
 
 
 def test_own_spec(tmp_path):
@@ -396,5 +396,5 @@ def test_shared(tmp_path_factory):
     assert spec_artifact(tmp_path_factory).is_file()
 ''', encoding="utf-8")
     found = spec_build.own_builds(tmp_path / "test_own_spec.py", CORE_ROOTS, set())
-    assert [line.split(":")[0] for line in found] == ["test_parity_reference"]
+    assert [line.split(":")[0] for line in found] == ["test_core_spec"]
     assert "test_own_spec.py:12" in found[0] and "test/spec_build.py" in found[0]
