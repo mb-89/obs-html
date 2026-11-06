@@ -13,6 +13,7 @@ from conftest import ROOT, built_once
 from obs_html import cli
 from obs_html.artifact_data import decode_artifact_data
 from obs_html.config import load_config
+from obs_html.errors import InputError
 from obs_html.figures import FIGURE_KINDS
 from obs_html.render import render
 
@@ -137,3 +138,26 @@ def test_tables_and_figures_build_their_options_menu_from_one_component() -> Non
     package = ROOT / "src" / "obs_html"
     for script in ("table.js", "figures.js"):
         assert "globalThis.obsOptionsMenu({" in (package / script).read_text(encoding="utf-8"), script
+
+
+def test_an_equation_figure_is_refused_by_its_capability_until_the_live_plot_renders_it() -> None:
+    """The core's equations kind needs capability equation-figures, which this adapter does not
+    declare yet: it refuses the Document naming that field before it frames any figure."""
+    document = json.loads(FIGURES.read_text(encoding="utf-8"))
+    gallery = next(chapter for chapter in document["chapters"] if chapter["id"] == "gallery")
+    body = {"equations": [{"source": "y = x", "lhs": {"symbol": "y"}, "rhs": {"symbol": "x"}}],
+            "variables": {"x": {"quantity": {"unit": "", "dimension": {}, "value": 0, "siValue": 0,
+                                             "range": [0, 1], "siRange": [0, 1]}},
+                          "y": {"quantity": {"unit": "", "dimension": {}}}},
+            "unknowns": ["y"], "solution": {"method": "exact", "branches": [{"y": {"symbol": "x"}}]},
+            "plot": {"sweep": "x", "x": {"source": "x", "tree": {"symbol": "x"}, "dimension": {}},
+                     "y": [{"source": "y", "tree": {"symbol": "y"}, "dimension": {}, "axis": "primary"}]}}
+    gallery["content"].append({"type": "figures", "attrs": {"kind": "equations"},
+                               "children": [{"type": "equations", "attrs": body, "children": []}]})
+    document["capabilities"] = sorted({*document["capabilities"], "equation-figures"})
+
+    with pytest.raises(InputError) as failure:
+        render(document, load_config())
+
+    assert failure.value.field == "capabilities"
+    assert "equation-figures" in failure.value.problem
