@@ -26,8 +26,8 @@ globalThis.obsPugh = (() => {
   const signed = value => (value > 0 ? `+${number(value)}` : value < 0 ? `−${number(-value)}` : "0");
   const symbol = mark => (mark === null || mark === undefined ? "?" : engine().SYMBOL[Math.round(mark)]);
   const letterOf = index => String.fromCharCode(65 + index);
-  /** Whether an option's label says more than its short name, so the option card shows it under
-      it (artifact-ui.md, Decision figures): not where the short name's words are all the label's
+  /** Whether an option's label says more than its short name, so the option card, the options
+      list and a letter's popover show it (artifact-ui.md, Decision figures): not where the short name's words are all the label's
       words or a run of them, "Two lines" of "Keep two lines"; always where there is no short name. */
   const labelAdds = (short, label) => {
     const words = text => (text ?? "").toLowerCase().match(/[\p{L}\p{N}]+/gu) || [];
@@ -231,7 +231,7 @@ globalThis.obsPugh = (() => {
   }
   function optionsList(figureModel) {
     return element("dl", {className: "pugh-option-list"}, ...figureModel.options.flatMap(option => [
-      element("dt", {}, named(option), option.name !== option.short ? ` (${option.name})` : ""), element("dd", {textContent: option.what})]));
+      element("dt", {}, named(option), labelAdds(option.short, option.name) ? ` (${option.name})` : ""), element("dd", {textContent: option.what})]));
   }
   function markChooser(figure, spec, view, letter, criterion, current, cell) {
     figure.querySelectorAll(".pugh-chooser").forEach(open => open.remove());
@@ -390,7 +390,7 @@ globalThis.obsPugh = (() => {
       const about = element("div", {className: "pugh-about", id: `${figure.id}--pugh-about-${option.letter}`, hidden: true},
         element("p", {}, element("strong", {}, named(option)),
           `${candidate.datum ? " (the datum)" : ""}${candidate.key === winner ? " (the winner)" : ""}`),
-        option.name !== option.short ? element("p", {textContent: option.name}) : null,
+        labelAdds(option.short, option.name) ? element("p", {textContent: option.name}) : null,
         option.what ? element("p", {textContent: option.what}) : null);
       about.setAttribute("role", "tooltip");
       box.append(about);

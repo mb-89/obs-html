@@ -503,9 +503,10 @@ of its chapter's sections after it ([[#Decision tabs from the chapter]]):
 - **What if:** the worlds in which another option wins, which the reader rules.
 
 The options view shows one option, "Option A of 5", with its letter and short name, its label in
-full where that says more, and its `what` sentence. The view says each name once: where the short
-name's words are the label's, all of them or a run of them ("Two lines" of "Keep two lines"), the
-label is not shown; without a short name it always is (`pugh-figure.js`, `labelAdds`).
+full where that says more, and its `what` sentence. The figure says each name once, in this view,
+the options list and a letter's popover alike: where the short name's words are the label's, all
+of them or a run of them ("Two lines" of "Keep two lines"), the label is not shown; without a
+short name it always is (`pugh-figure.js`, `labelAdds`).
 Previous and next keys, the arrow keys while it has focus, and a horizontal swipe move between
 the options; none of them walks the chapters.
 
@@ -572,9 +573,9 @@ beside the stepper in the narrowest figure, at a 360 px phone, and more wrap to 
 Nothing in the figure scrolls sideways.
 
 In the rows only the letter fits, and the letter is a control. Hovering it, focusing it or
-tapping it shows the option's letter and short name, its label and its `what` sentence in a small
-popover under the line; a second tap or a tap elsewhere closes it, with no browser dialog. The
-popover is the control's description for a screen reader.
+tapping it shows the option's letter and short name, its label where that says more and its
+`what` sentence in a small popover under the line; a second tap or a tap elsewhere closes it,
+with no browser dialog. The popover is the control's description for a screen reader.
 
 The letter heads its cell as a control of its own, above the cell's mark key, so a tap on the
 mark changes the mark and a tap on the letter opens the popover. A mark, a weight step and a Pick
