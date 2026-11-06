@@ -7,13 +7,12 @@ then (artifact-ui.md, notice center).
 import pytest
 
 from artifacts import artifact_html
+from canaries import undecided_where_flags_hidden
 from browser.viewer import open_viewer
 from test_features import plain, with_context_note
 
 
 pytestmark = pytest.mark.browser
-# The canaries that read the frame's sandbox flags; the viewer hides them.
-UNDECIDED = ("printing", "downloads", "popups")
 
 
 def _capability_notices(frame) -> dict[str, str]:
@@ -41,13 +40,16 @@ def test_without_a_floating_window_no_popup_code_and_no_separate_windows_notice(
 
 def test_a_host_that_hides_its_sandbox_flags_raises_nothing_at_load_for_them(tmp_path, reader_browser) -> None:
     errors: list[str] = []
-    _page, frame = open_viewer(tmp_path, reader_browser, errors, artifact_html(with_context_note()), "light")
+    html = artifact_html(with_context_note())
+    _page, frame = open_viewer(tmp_path, reader_browser, errors, html, "light")
     notices = _capability_notices(frame)
-    assert not set(UNDECIDED) & set(notices), f"undecided canaries warned at load: {notices}"
+    # The canaries that read the frame's sandbox flags, which the viewer hides, and answers, which
+    # obs-html serve did not serve (test/canaries.py).
+    expected = undecided_where_flags_hidden(html)
+    assert not set(expected) & set(notices), f"undecided canaries warned at load: {notices}"
     undecided = frame.locator("html").evaluate("() => globalThis.obsCapabilities.results"
                                                 ".filter((entry) => !entry.decided).map(({key}) => key)")
-    # So is answers, which stays silent outside obs-html serve (canaries/answers.js).
-    assert sorted(undecided) == sorted((*UNDECIDED, "answers"))
+    assert undecided == expected
     # A blocked download cannot be observed even on use: no notice, and the help names the remedy.
     assert frame.locator("html").evaluate("() => globalThis.obsCapabilities.hint('downloads')") == (
         "If this does not work here: Open the HTML file directly in a browser to download.")
