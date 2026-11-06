@@ -356,9 +356,23 @@ def cards(root: Path) -> None:
         (root / f"{name}-point.md").write_text(
             f"---\nkind: point\nstatus: {status}\nowner: {owner}\n---\n# Point {name}\n", encoding="utf-8")
 
+def property_editor_projection(root: Path) -> None:
+    """A property editor with a static projection (obs capabilities/property-editors), which the
+    core carries in the node's attrs.spec."""
+    (root / "manifest.md").write_text("- [[finding]]\n", encoding="utf-8")
+    (root / "finding.md").write_text(
+        '---\nexplanation: Original\nstatus: explained\naccepted: "yes"\noutputs: [System]\n---\n'
+        "# Finding\n\n```property-editor\nversion: 1\nfield: explanation\nlabel: Review\nprojection:\n"
+        '  blank: {status: finding, accepted: "no", outputs: []}\n'
+        '  nonblank: {status: explained, accepted: "yes", outputs: [System, Labels]}\n```\n',
+        encoding="utf-8",
+    )
+
+
 VAULTS = {"complete": complete, "artifact-change": artifact_change, "projections": projections,
           "table-help": table_help, "structural": structural, "callouts": callouts,
-          "registers": registers, "cards": cards}
+          "registers": registers, "cards": cards,
+          "property-editor-projection": property_editor_projection}
 
 
 # Runs obs-document in the core's environment with the core's one network read refused.

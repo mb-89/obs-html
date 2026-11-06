@@ -1,0 +1,258 @@
+{
+  "schemaVersion": 1,
+  "manifest": {
+    "title": "Manifest",
+    "metadata": {},
+    "abstract": [
+      {
+        "type": "manifest",
+        "attrs": {},
+        "children": []
+      }
+    ]
+  },
+  "chapters": [
+    {
+      "id": "finding",
+      "title": "Finding",
+      "content": [
+        {
+          "type": "markdown-frontmatter",
+          "attrs": {
+            "metadata": {
+              "explanation": "Original",
+              "status": "explained",
+              "accepted": "yes",
+              "outputs": [
+                "System"
+              ]
+            }
+          },
+          "children": [
+            {
+              "type": "field",
+              "attrs": {
+                "name": "explanation"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "Original"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "status"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "explained"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "accepted"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "yes"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "outputs.0"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "System"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "finding"
+          },
+          "children": []
+        },
+        {
+          "type": "markdown",
+          "attrs": {},
+          "children": []
+        },
+        {
+          "type": "section",
+          "attrs": {
+            "level": 1
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Finding"
+            }
+          ]
+        },
+        {
+          "type": "property-editors",
+          "attrs": {
+            "source": "version: 1\nfield: explanation\nlabel: Review\nprojection:\n  blank: {status: finding, accepted: \"no\", outputs: []}\n  nonblank: {status: explained, accepted: \"yes\", outputs: [System, Labels]}\n",
+            "spec": {
+              "version": 1,
+              "field": "explanation",
+              "label": "Review",
+              "projection": {
+                "blank": {
+                  "status": "finding",
+                  "accepted": "no",
+                  "outputs": []
+                },
+                "nonblank": {
+                  "status": "explained",
+                  "accepted": "yes",
+                  "outputs": [
+                    "System",
+                    "Labels"
+                  ]
+                }
+              }
+            }
+          },
+          "children": []
+        }
+      ],
+      "children": [],
+      "metadata": {
+        "explanation": "Original",
+        "status": "explained",
+        "accepted": "yes",
+        "outputs": [
+          "System"
+        ]
+      }
+    }
+  ],
+  "links": [],
+  "assets": [],
+  "records": [
+    {
+      "id": "finding",
+      "type": "note",
+      "path": "finding.md",
+      "fields": {
+        "explanation": "Original",
+        "status": "explained",
+        "accepted": "yes",
+        "outputs": [
+          "System"
+        ]
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "explanation"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Original"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "status"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "explained"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "accepted"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "yes"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "outputs.0"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "System"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "manifest",
+      "type": "note",
+      "path": "manifest.md",
+      "fields": {},
+      "fieldNodes": []
+    },
+    {
+      "id": "chapter-finding",
+      "type": "chapter",
+      "note": "finding",
+      "fields": {
+        "chapter": "Finding",
+        "title": "Finding",
+        "depth": "0",
+        "slug": "finding",
+        "sourcePath": "finding.md"
+      }
+    }
+  ],
+  "semanticResources": [],
+  "diagnostics": [],
+  "capabilities": [
+    "chapter-inclusion",
+    "manifest",
+    "markdown",
+    "markdown-frontmatter",
+    "property-editors"
+  ]
+}
