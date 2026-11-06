@@ -16,7 +16,7 @@ candidates:
   - {key: bucket, label: An object bucket, what: A bucket we rent., marks: {cost: -2, reach: 2, ops: 1},
      wins: Reachable anywhere., losses: A bill every month.}
   - {key: repo, label: The repository, what: A branch of the repository., marks: {cost: 0, reach: 1, ops: 1}}
-  - {key: wiki, label: The team wiki, what: A page of the wiki., marks: {cost: -1, reach: 1, ops: -1}}
+  - {key: wiki, label: A page of the team wiki, what: A page of the wiki., marks: {cost: -1, reach: 1, ops: -1}}
   - {key: mail, label: Mail to the owner, what: The artifact sent by mail., marks: {cost: 0, reach: 2, ops: -2},
      losses: Lost in an inbox.}
 datum: {prefer: [disk]}

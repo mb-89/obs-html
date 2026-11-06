@@ -487,7 +487,10 @@ only in an artifact that holds a decision figure: it is the reader feature `pugh
 (`features.py`), whose canary reports a host that does not run it.
 
 Every option carries its letter, A, B, C and on in the order the fence lists them, wherever the
-figure names it, and one name, its label. The figure has three tabs in the adapter's tab control
+figure names it, its label and its short name (obs input-model, Pugh decision figures). Where
+there is room, an option reads as its letter and short name, "B · Close": in the option view, the
+table's column heads, the bottom line, the Raised list, the What if lines and an answer's record.
+Without a short name the letter stands alone. The figure has three tabs in the adapter's tab control
 (the look of a table's detail tabs), Matrix first and shown at the start, then one tab for each
 of its chapter's sections after it ([[#Decision tabs from the chapter]]):
 
@@ -498,7 +501,7 @@ of its chapter's sections after it ([[#Decision tabs from the chapter]]):
   letters of the options it fails. Without items the tab is disabled.
 - **What if:** the worlds in which another option wins, which the reader rules.
 
-The options view shows one option, "Option A of 5", with its letter, name and `what` sentence.
+The options view shows one option, "Option A of 5", with its letter and short name, its label in full and its `what` sentence.
 Previous and next keys, the arrow keys while it has focus, and a horizontal swipe move between
 the options; none of them walks the chapters.
 
@@ -564,8 +567,12 @@ A cell takes up to 2.5 rem and gives way to 1.7 rem before its line wraps: five 
 beside the stepper in the narrowest figure, at a 360 px phone, and more wrap to a further line.
 Nothing in the figure scrolls sideways.
 
-In the rows an option is its letter; its name is in the option view, the letter's tooltip and
-the accessible names. A mark, a weight step and a Pick are one tap each, as in the table.
+In the rows only the letter fits, and the letter is a control. Hovering it, focusing it or
+tapping it shows the option's letter and short name, its label and its `what` sentence in a small
+popover under the line; a second tap or a tap elsewhere closes it, with no browser dialog. The
+popover is the control's description for a screen reader.
+
+A mark, a weight step and a Pick are one tap each, as in the table.
 
 The table and the rows are drawn from one decision and one reader state: a resize across the
 width draws the other form with the reader's changes kept. Print shows the table.

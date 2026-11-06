@@ -651,10 +651,47 @@
     text-align: center;
 }
 
+/* The letter heading a cell is a control (pugh-figure.js, aboutControl): its option's popover. */
 .pugh-cell-head {
+    background: transparent;
+    border: 0;
+    border-radius: var(--radius-small);
     color: var(--color-text-muted);
+    cursor: help;
+    font: inherit;
     font-size: 0.85em;
     font-weight: 600;
+    padding: 0.1rem 0;
+}
+
+.pugh-cell-head[aria-expanded="true"] {
+    color: var(--color-text);
+    text-decoration: underline;
+}
+
+.pugh-about {
+    background: var(--color-surface);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-small);
+    box-shadow: 0 0.25rem 0.75rem var(--color-shadow);
+    font-weight: 400;
+    inset-block-start: 100%;
+    inset-inline: 0;
+    padding: 0.4rem 0.6rem;
+    position: absolute;
+    z-index: 3;
+}
+
+.pugh-about[hidden] {
+    display: none;
+}
+
+.pugh-about p {
+    margin: 0;
+}
+
+.pugh-option-label {
+    color: var(--color-text-muted);
 }
 
 .pugh-cell-value {
@@ -688,6 +725,17 @@
     display: flex;
     flex-wrap: wrap;
     gap: 0.4rem;
+    justify-content: start;
+}
+
+.pugh-picks > .bless-column-pick {
+    flex: none;
+    margin: 0;
+}
+
+/* The total line keeps the stepper's room, so its cells stand under the marks. */
+.pugh-stepper-space {
+    min-inline-size: 4.4rem;
 }
 
 .pugh-row-texts {

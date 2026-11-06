@@ -96,7 +96,7 @@ def test_on_a_phone_a_mark_a_weight_and_a_pick_take_one_tap_each(phone_browser, 
     page, errors = _open(phone_browser, deck, width, "three")
     figure = page.locator(f"#{THREE}")
 
-    figure.locator('[data-pugh-mark="C:readable"] button').tap()
+    figure.locator('[data-pugh-mark="C:readable"] .pugh-mark-button').tap()
     figure.locator('[data-pugh-mark="C:readable"] [data-pugh-choice="2"]').tap()
     figure.locator('[data-pugh-step="effort:+"]').tap()
     figure.locator(f'[data-bless-column-pick="{THREE}:C"]').tap()
@@ -133,6 +133,56 @@ def test_a_chapters_sections_after_the_figure_are_its_tabs(phone_browser, deck, 
     assert errors == []
 
 
+@pytest.mark.parametrize("width", WIDTHS)
+def test_on_a_phone_tapping_a_letter_shows_the_options_label_and_sentence(phone_browser, deck, width):
+    page, errors = _open(phone_browser, deck, width, "three")
+    head = page.locator(f'#{THREE} [data-pugh-mark="B:places"] [data-pugh-head]')
+    about = f"#{THREE}--pugh-about-B"
+    shown = f"(selector => {{ const node = document.querySelector(selector); return node && !node.hidden && node.getClientRects().length > 0; }})"
+
+    head.tap()
+    opened = page.evaluate(f"{shown}('{about}')")
+    text = page.locator(about).inner_text()
+    described = head.evaluate("node => node.getAttribute('aria-describedby')")
+    box, viewport = page.locator(about).bounding_box(), page.viewport_size
+    head.tap()
+    second = page.evaluate(f"{shown}('{about}')")
+    head.tap()
+    page.locator("[data-chapter-body] h1").tap()
+    elsewhere = page.evaluate(f"{shown}('{about}')")
+
+    assert opened and described == about[1:]
+    assert "B" in text and "Answered artifact" in text and "obs-document --answers builds the artifact" in text
+    assert box["x"] >= 0 and box["x"] + box["width"] <= viewport["width"]
+    assert second is False and elsewhere is False
+    assert page.evaluate("document.querySelectorAll('dialog[open]').length") == 0
+    assert errors == []
+
+
+def test_where_there_is_room_an_option_reads_as_its_letter_and_short_name(phone_browser, deck):
+    page, errors = _open(phone_browser, deck, 1200, "three")
+    figure = page.locator(f"#{THREE}")
+
+    heads = figure.locator("thead [data-pugh-option]").evaluate_all(
+        "cells => cells.map(cell => cell.querySelector('.pugh-column-name')?.textContent ?? '')")
+    bottom = figure.locator(".pugh-bottom").inner_text()
+    card = figure.locator(".pugh-option-name").inner_text()
+    figure.locator('[data-pugh-tab="whatif"]').click()
+    worlds = figure.locator(".pugh-whatif").inner_text()
+    page.evaluate("obsArtifact.activateChapter('five')")
+    page.wait_for_selector(f"#{FIVE}.figure-pugh-ready")
+    five = page.locator(f"#{FIVE} thead [data-pugh-option]").evaluate_all(
+        "cells => cells.map(cell => cell.querySelector('.pugh-column-name')?.textContent ?? '')")
+
+    # A short name is the fence's short, else a label of at most 5 words; a longer label leaves the letter alone.
+    assert heads == ["Comment export", "Artifact", "Answers file alone"]
+    assert "B · Artifact" in bottom and "A · Comment export" in bottom
+    assert card == "A · Comment export"
+    assert "B · Artifact wins unless" in worlds
+    assert five[3] == "" and five[1] == "An object bucket"
+    assert errors == []
+
+
 def test_the_readers_changes_survive_a_resize_between_the_table_and_the_rows(phone_browser, deck):
     page, errors = _open(phone_browser, deck, 1200, "three")
     figure = page.locator(f"#{THREE}")
@@ -146,7 +196,7 @@ def test_the_readers_changes_survive_a_resize_between_the_table_and_the_rows(pho
     page.wait_for_function(f"{form} === 'rows'")
     narrow = page.evaluate(f"""() => ({{weight: document.querySelector('#{THREE} [data-pugh-weight="places"]').textContent,
         winner: document.getElementById('{THREE}').dataset.pughWinner}})""")
-    figure.locator('[data-pugh-mark="B:effort"] button').tap()
+    figure.locator('[data-pugh-mark="B:effort"] .pugh-mark-button').tap()
     figure.locator('[data-pugh-mark="B:effort"] [data-pugh-choice="-2"]').tap()
     page.set_viewport_size({"width": 1200, "height": 900})
     page.wait_for_function(f"{form} === 'table'")

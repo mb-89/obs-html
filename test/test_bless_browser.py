@@ -265,7 +265,7 @@ def test_the_answered_deck_shows_each_verdict_read_only(built, reader_browser) -
     page, errors = _open(reader_browser, (built / "answered.html").as_uri())
     record = page.locator("[data-bless-record]")
     expect(record).to_have_attribute("data-bless-record", "answer")
-    expect(record.locator("[data-bless-record-verdict]")).to_have_text("Picked C (Answers file alone)")
+    expect(record.locator("[data-bless-record-verdict]")).to_have_text("Picked C · Answers file alone")
     expect(record.locator("[data-bless-record-comment]")).to_have_text("C needs no second place.")
     expect(record).to_contain_text("Weight of Places that hold it: 1 (was 3)")
     expect(page.locator("[data-bless-pill]")).to_have_text("Picked C · recorded")

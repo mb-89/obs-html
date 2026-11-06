@@ -26,6 +26,12 @@ globalThis.obsPugh = (() => {
   const signed = value => (value > 0 ? `+${number(value)}` : value < 0 ? `−${number(-value)}` : "0");
   const symbol = mark => (mark === null || mark === undefined ? "?" : engine().SYMBOL[Math.round(mark)]);
   const letterOf = index => String.fromCharCode(65 + index);
+  const SHORT_WORDS = 5;  // The most words of a label that serves as a short name (the core checks short's).
+  /** An option's short name: its short, else its label where that has at most SHORT_WORDS words,
+      else "" and its letter stands alone (obs input-model, Pugh decision figures; bless_record.py, short_name). */
+  const shortName = (candidate, label) => candidate.short || (label.trim().split(/\s+/).length <= SHORT_WORDS ? label : "");
+  /** An option where there is room: its letter and short name, "B · Close". */
+  const tag = option => (option.short ? `${option.letter} · ${option.short}` : option.letter);
 
   function element(tag, properties = {}, ...children) {
     const node = Object.assign(document.createElement(tag), properties);
@@ -48,9 +54,11 @@ globalThis.obsPugh = (() => {
 
   /** The options with their letters, the failed checklist items and the matrix the engine decides. */
   function model(spec) {
-    const options = spec.matrix.candidates.map((candidate, index) => ({
-      key: candidate.key, letter: letterOf(index), name: String(candidate.label ?? candidate.key), what: candidate.what || "",
-      wins: texts(candidate.wins), losses: texts(candidate.losses)}));
+    const options = spec.matrix.candidates.map((candidate, index) => {
+      const name = String(candidate.label ?? candidate.key);
+      return {key: candidate.key, letter: letterOf(index), name, short: shortName(candidate, name), what: candidate.what || "",
+        wins: texts(candidate.wins), losses: texts(candidate.losses)};
+    });
     const byLetter = Object.fromEntries(options.map(option => [option.letter, option]));
     const byKey = Object.fromEntries(options.map(option => [option.key, option]));
     const checklist = spec.matrix.checklist || [];
@@ -127,7 +135,7 @@ globalThis.obsPugh = (() => {
   }
   function named(option) {
     return element("span", {className: "pugh-named"}, element("span", {className: "pugh-letter", textContent: option.letter}),
-      ` ${option.name}`);
+      option.short ? ` · ${option.short}` : "");
   }
 
   function bottomLine(spec, result, figureModel) {
@@ -161,7 +169,7 @@ globalThis.obsPugh = (() => {
     for (const entry of worlds) {
       const ruling = view.rulings[figureModel.byKey[entry.key].letter];
       if (ruling?.ruling !== "could") continue;
-      const option = figureModel.byKey[entry.key], said = world(result, entry, option.letter);
+      const option = figureModel.byKey[entry.key], said = world(result, entry, tag(option));
       const item = element("li", {}, element("strong", {textContent: "Could happen: "}), `${said.single} ${said.all}`,
         ruling.tripwire ? ` Watch for: ${ruling.tripwire}` : " No sign to watch for yet.");
       item.dataset.pughRaised = `world-${option.letter}`;
@@ -171,9 +179,9 @@ globalThis.obsPugh = (() => {
     if (chosen && result.suggestion && chosen.key !== result.suggestion.key) {
       const entry = worlds.find(item => item.key === chosen.key), candidate = result.candidates.find(c => c.key === chosen.key);
       const why = !candidate.fits ? `it does not fit (${candidate.whyNot}).`
-        : entry ? (({single, all}) => `${single} ${all}`)(world(result, entry, chosen.letter))
+        : entry ? (({single, all}) => `${single} ${all}`)(world(result, entry, tag(chosen)))
           : "it may be ranked but not suggested.";
-      const item = element("li", {}, element("strong", {textContent: `You chose ${chosen.letter}, but ${figureModel.byKey[result.suggestion.key].letter} wins: `}), why);
+      const item = element("li", {}, element("strong", {textContent: `You chose ${tag(chosen)}, but ${tag(figureModel.byKey[result.suggestion.key])} wins: `}), why);
       item.dataset.pughRaised = "chosen";
       items.push(item);
     }
@@ -188,6 +196,7 @@ globalThis.obsPugh = (() => {
     const card = element("div", {className: "pugh-option", tabIndex: 0},
       element("p", {className: "pugh-option-count", textContent: `Option ${option.letter} of ${count}`}),
       element("p", {className: "pugh-option-name"}, named(option)),
+      option.name !== option.short ? element("p", {className: "pugh-option-label", textContent: option.name}) : null,
       option.what ? element("p", {className: "pugh-option-what", textContent: option.what}) : null);
     card.dataset.pughOption = option.letter;
     card.setAttribute("aria-roledescription", "options, one at a time");
@@ -216,7 +225,7 @@ globalThis.obsPugh = (() => {
   }
   function optionsList(figureModel) {
     return element("dl", {className: "pugh-option-list"}, ...figureModel.options.flatMap(option => [
-      element("dt", {}, named(option)), element("dd", {textContent: option.what})]));
+      element("dt", {}, named(option), option.name !== option.short ? ` (${option.name})` : ""), element("dd", {textContent: option.what})]));
   }
   function markChooser(figure, spec, view, letter, criterion, current, cell) {
     figure.querySelectorAll(".pugh-chooser").forEach(open => open.remove());
@@ -251,8 +260,9 @@ globalThis.obsPugh = (() => {
       element("th", {scope: "col", className: "pugh-weight", textContent: "Weight"}));
     for (const candidate of order) {
       const option = figureModel.byKey[candidate.key];
-      const cell = element("th", {scope: "col"}, element("span", {className: "pugh-letter", textContent: option.letter}),
-        element("span", {className: "pugh-column-name", textContent: option.name}));
+      const cell = element("th", {scope: "col", title: `${option.letter}: ${option.name}`},
+        element("span", {className: "pugh-letter", textContent: option.letter}),
+        option.short ? element("span", {className: "pugh-column-name", textContent: option.short}) : null);
       cell.dataset.pughOption = option.letter;
       if (candidate.datum) cell.classList.add("pugh-datum"), cell.append(element("span", {className: "pugh-tag", textContent: "datum"}));
       if (result.suggestion?.key === candidate.key) cell.classList.add("pugh-winner"), cell.append(element("span", {className: "pugh-tag", textContent: "winner"}));
@@ -318,6 +328,42 @@ globalThis.obsPugh = (() => {
     scroll.append(element("table", {className: "pugh-matrix"}, element("thead", {}, head), body));
     return scroll;
   }
+  /** A letter in the rows is a control: hovering it, focusing it or tapping it shows its option's
+      letter, label and sentence in a small popover under its line; a second tap, or a tap
+      elsewhere, closes it. One shows at a time. */
+  let about = null;
+  function closeAbout() {
+    if (!about) return;
+    about.pop.hidden = true;
+    about.head.setAttribute("aria-expanded", "false");
+    about = null;
+  }
+  function openAbout(head, pop) {
+    if (about?.head === head) return;
+    closeAbout();
+    head.closest(".pugh-row")?.append(pop);
+    pop.hidden = false;
+    head.setAttribute("aria-expanded", "true");
+    about = {head, pop};
+  }
+  document.addEventListener("pointerdown", event => {
+    if (about && !about.head.contains(event.target) && !about.pop.contains(event.target)) closeAbout();
+  }, true);
+  function aboutControl(head, pop) {
+    let wasOpen = false;
+    head.addEventListener("pointerdown", () => { wasOpen = about?.head === head; });
+    head.addEventListener("click", event => {
+      // A tap focuses (which opens) before it clicks: what decides is whether it was open before the tap.
+      const open = event.detail === 0 ? about?.head === head : wasOpen;
+      if (open) closeAbout(); else openAbout(head, pop);
+      wasOpen = about?.head === head;
+    });
+    head.addEventListener("focus", () => openAbout(head, pop));
+    head.addEventListener("blur", () => { if (about?.head === head) closeAbout(); });
+    head.addEventListener("pointerenter", event => { if (event.pointerType === "mouse") openAbout(head, pop); });
+    head.addEventListener("pointerleave", event => { if (event.pointerType === "mouse" && about?.head === head) closeAbout(); });
+    head.addEventListener("keydown", event => { if (event.key === "Escape" && about?.head === head) { event.stopPropagation(); closeAbout(); } });
+  }
   /** The weight a step key sets: half a step up or down, never below 0. */
   function stepped(weight, direction) {
     return Math.max(0, Math.round((weight + direction * 0.5) * 2) / 2);
@@ -333,11 +379,25 @@ globalThis.obsPugh = (() => {
     box.setAttribute("aria-label", "Decision matrix");
     const order = [result.candidates.find(c => c.datum), ...result.candidates.filter(c => !c.datum)];
     const winner = result.suggestion?.key;
+    const abouts = Object.fromEntries(order.map(candidate => {
+      const option = figureModel.byKey[candidate.key];
+      const about = element("div", {className: "pugh-about", id: `${figure.id}--pugh-about-${option.letter}`, hidden: true},
+        element("p", {}, element("strong", {}, named(option)),
+          `${candidate.datum ? " (the datum)" : ""}${candidate.key === winner ? " (the winner)" : ""}`),
+        option.name !== option.short ? element("p", {textContent: option.name}) : null,
+        option.what ? element("p", {textContent: option.what}) : null);
+      about.setAttribute("role", "tooltip");
+      box.append(about);
+      return [option.letter, about];
+    }));
     const head = candidate => {
       const option = figureModel.byKey[candidate.key];
-      const letter = element("span", {className: "pugh-cell-head", textContent: option.letter,
-        title: `${option.letter}: ${option.name}${candidate.datum ? " (datum)" : ""}${candidate.key === winner ? " (winner)" : ""}`});
+      const letter = element("button", {type: "button", className: "pugh-cell-head", textContent: option.letter});
       letter.dataset.pughHead = option.letter;
+      letter.setAttribute("aria-label", `Option ${option.letter}`);
+      letter.setAttribute("aria-describedby", abouts[option.letter].id);
+      letter.setAttribute("aria-expanded", "false");
+      aboutControl(letter, abouts[option.letter]);
       return letter;
     };
     const cell = (candidate, className = "") => {
@@ -410,7 +470,7 @@ globalThis.obsPugh = (() => {
         element("ul", {className: "pugh-row-texts"}, ...listed.map(option => {
           const letter = element("span", {className: "pugh-letter", textContent: option.letter, title: option.name});
           letter.dataset.pughHead = option.letter;
-          return element("li", {}, letter, ` ${option[part].join("; ")}`);
+          return element("li", {}, letter, `${option.short ? ` · ${option.short}` : ""}: ${option[part].join("; ")}`);
         })));
       row.dataset.pughTexts = part;
       box.append(row);
@@ -433,11 +493,11 @@ globalThis.obsPugh = (() => {
     if (!result.suggestion) return panel.append(element("p", {textContent: "No option fits."})), panel;
     const winner = figureModel.byKey[result.suggestion.key];
     const entries = result.sensitivity?.all ?? [];
-    const worlds = entries.map(entry => ({entry, option: figureModel.byKey[entry.key], said: world(result, entry, figureModel.byKey[entry.key].letter)}));
+    const worlds = entries.map(entry => ({entry, option: figureModel.byKey[entry.key], said: world(result, entry, tag(figureModel.byKey[entry.key]))}));
     const closest = worlds.filter(item => Number.isFinite(item.said.closeness)).sort((a, b) => a.said.closeness - b.said.closeness)[0];
     const top = element("p", {className: "pugh-whatif-top"});
     top.dataset.pughUnless = closest ? closest.option.letter : "";
-    if (closest) top.append(element("strong", {textContent: `${winner.letter} wins unless: `}), `${closest.said.single} ${closest.said.all}`);
+    if (closest) top.append(element("strong", {textContent: `${tag(winner)} wins unless: `}), `${closest.said.single} ${closest.said.all}`);
     else top.append(element("strong", {textContent: "No change of weights makes another option win."}));
     panel.append(top);
     const list = element("ul", {className: "pugh-worlds"});
@@ -474,7 +534,7 @@ globalThis.obsPugh = (() => {
       list.append(item);
     }
     for (const candidate of result.candidates.filter(c => !c.fits)) {
-      list.append(element("li", {}, element("p", {textContent: `${figureModel.byKey[candidate.key].letter} does not fit: ${candidate.whyNot}.`})));
+      list.append(element("li", {}, element("p", {textContent: `${tag(figureModel.byKey[candidate.key])} does not fit: ${candidate.whyNot}.`})));
     }
     panel.append(list);
     return panel;
