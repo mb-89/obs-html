@@ -762,7 +762,10 @@
             showCopyFeedback("Comments copied to clipboard.");
         } catch (error) {
             const detail = error instanceof Error ? error.message : String(error);
-            showCopyFeedback(`Comments could not be copied to clipboard: ${detail}`, true);
+            // Where the canary could not decide, a rejected write is the observed refusal.
+            const reason = globalThis.obsCapabilities?.fail("clipboard",
+                `navigator.clipboard.writeText rejected: ${detail}`);
+            showCopyFeedback(`Comments could not be copied to clipboard: ${detail}${reason ? ` ${reason}` : ""}`, true);
             console.error("Comments could not be copied to clipboard.", error);
         }
     };
