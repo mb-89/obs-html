@@ -179,3 +179,18 @@ or authorization.
   Glossary projections retain their owning note's additional fields and ordering metadata.
 
 See [[product]], [[configuration]], and [[input-model]].
+
+## Output-format statements of obs's architecture
+
+obs's architecture states these without naming an output format; the HTML wording moved here.
+
+### Flow
+
+HTML rendering is the integrated adapter in `adapters/html`.
+
+Render one self-contained HTML file with an embedded chapter navigator (obs's architecture,
+Flow, step 8).
+
+### Safety boundaries
+
+Generated HTML never refers to source-machine local files.

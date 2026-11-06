@@ -631,6 +631,8 @@ Which front pages exist, their order and titles are declared by the
 [artifact presentation profile](#artifact-presentation-profile); their paged rendering and
 Contents are owned by [[artifact-ui]].
 
+  [[artifact-ui#What counts as a change]] owns which edits are content changes.
+
 ### Profiles
 
 The presentation keys of the [artifact presentation profile](#artifact-presentation-profile)
@@ -648,6 +650,9 @@ for example one row per marked paragraph instead of one per note.
 Filters, columns, titles and grouping are authored in the view. obs_html owns no default columns or
 filters for registers.
 
+- Rendering the `obsHtml` keys inside Obsidian itself (a plugin) is a possible later step, not
+  planned.
+
 ### Chapter content
 
 A link to a record-only note shows its [[artifact-ui#Link hover card|hover card]] and, when
@@ -664,6 +669,12 @@ Registers, cards, hover cards and profiles select callouts by type from the shar
 projections.
 
 Callout presentation follows [[artifact-ui]].
+
+- Each type declares its HTML presentation (rail icon as today's marks, box, collapsed box or
+  inline badge); nothing is inferred from content.
+
+- `important` keeps its established obs_html meaning: an untitled emphasis box for key
+  takeaways, not Obsidian's alias of `tip`.
 
 ### Remaining chapter content
 
@@ -715,6 +726,27 @@ Artifact-specific Base behavior is permitted only under `obsHtml`.
 The interim adapter evaluates Bases filters in Python too, until its cutover. The browser evaluates
 again because readers can edit Base definitions and canonical values in the open HTML; the
 browser Query view reports an unsupported filter as invalid.
+
+  `obsHtml.maxRows` is an optional positive integer specifying the approximate number of
+  ordinary body rows in the table's vertical viewport. It constrains visual height only;
+  page size, filtering, grouping, sorting, and row membership remain independent. Omission
+  preserves the unbounded current table presentation, and invalid values or unsupported
+  `obsHtml` properties fail validation.
+
+### Input model
+
+Source selection
+and runtime defaults are owned by [[cli]] and [[configuration]], respectively.
+
+### Reference notes and link text
+
+note without one opens in the [[artifact-ui#Floating window|floating window]] and the page
+  stays put.
+
+- A hover shows a card with the note's `description` and its external link
+  ([[artifact-ui#Link hover card|hover card]]).
+
+
 
 ## The next Obsidian extension as this adapter presents it
 
@@ -890,3 +922,35 @@ unconfirmed changes risks losing them.
   island, and never executes or imports the artifact's scripts, markup, or comments.
 - Extraction produces a deterministic text list for human or agent triage. It does not edit
   the returned copy, source Markdown, or project configuration.
+
+## Output-format statements of obs's input model
+
+obs's input model states these rules without naming an output format; each passage below is
+the HTML wording of the obs input-model section it is named after, moved from there.
+
+### Document home and abstract
+
+The generation `timestamp`: each committed canonical change in the HTML (for example an evidence
+replacement or a description edit) sets it to the time of that change, and a saved HTML keeps that
+time.
+
+### Numeric-value notes
+
+Authors reference an unlabelled `[[alias]]` rather than copying the number or its unit into prose.
+HTML renders that link as the canonical value followed by its unit, retaining normal note
+navigation, previews and details.
+
+Everything a query computes runs live in the HTML, so a reader's change updates it at once.
+
+### Reference notes and link text
+
+The link lint runs with the paragraph warnings on every build (stderr, never in the HTML).
+
+### Remaining chapter content
+
+The figure lint prints its warnings on stderr; none changes the HTML.
+
+### Command-derived content
+
+- Command output is HTML-escaped and rendered as preformatted content; it cannot inject
+  artifact markup or styles.
