@@ -5,7 +5,9 @@ embeds the CSS snippets its manifest lists (render.py); input-model.md, "Optiona
 archive" and "Artifact presentation profile", owns the behaviour.
 
 Each check reads the HTML or the PDF in Python: the archive's bytes from its island, unzipped;
-the snippets' style elements in document order; the PDF's attachment through pypdf.
+the snippets' style elements in document order; the PDF's attachment through pypdf. The parity
+check builds the source-archive fixture vault with the interim adapter as well and compares what
+both offer.
 """
 import base64
 import hashlib
@@ -18,8 +20,9 @@ from pathlib import Path
 import pytest
 from pypdf import PdfReader, PdfWriter
 
-from conftest import PIXEL
+from conftest import PIXEL, ROOT, built_once
 from documents import chapter, document, heading, node, paragraph
+from fixtures import build_documents
 from obs_html import cli
 from obs_html.artifact_data import decode_artifact_data
 from obs_html.config import load_config
@@ -29,6 +32,7 @@ from obs_html.source_archive import ARCHIVE_NAME, attach, embedded
 
 CONFIG = load_config()
 SCRIPT = b"print('rebuilt')\n"
+FIXTURE = ROOT / "test" / "fixtures" / "documents" / "source-archive.json"
 STYLE = re.compile(r"<style\b[^>]*>")
 
 
@@ -210,3 +214,37 @@ def test_an_unknown_snippet_is_named_below_the_vault_root(tmp_path: Path, capsys
 
     assert f"{Path('vault', 'manifest.md')}: obsHtml.cssSnippets[0]:" in capsys.readouterr().err
 
+
+@pytest.fixture(scope="module")
+def interim(tmp_path_factory) -> str:
+    """The source-archive fixture vault built by the interim adapter with --embed-source."""
+    from obs_html_interim.cli import main as interim_main
+
+    def build(folder: Path) -> None:
+        vault = folder / "vault"
+        vault.mkdir()
+        build_documents.VAULTS["source-archive"](vault)
+        assert interim_main(["--source", str(vault / "manifest.md"), "--output", str(folder / "interim.html"),
+                             "--embed-source"]) == 0
+
+    return (built_once(tmp_path_factory, "source-archive-interim", build) / "interim.html").read_text(encoding="utf-8")
+
+
+SNIPPET = re.compile(r'<style data-css-snippet="([^"]*)">(.*?)</style>', re.DOTALL)
+
+
+def test_the_fixture_vault_offers_what_the_interim_offers(interim: str) -> None:
+    """Parity on one vault both adapters accept: the same vault files in the ZIP, the same
+    snippets in the same order, the same download and PDF attachment names. The interim's ZIP adds
+    its generator, settings and rebuild script, which this adapter's archive does not carry
+    (input-model.md, Optional reproduction archive)."""
+    ours = render(json.loads(FIXTURE.read_text(encoding="utf-8")), CONFIG)
+
+    assert {name: data for name, data in members(ours).items() if name.startswith("vault/")} == \
+        {name: data for name, data in members(interim).items() if name.startswith("vault/")}
+    assert SNIPPET.findall(ours) == SNIPPET.findall(interim) != []
+    for marker in ("data-source-download", "data-source-attach", 'id="pdf-library-script"'):
+        assert marker in ours and marker in interim, marker
+    names = {"obs-html-source.zip"}
+    assert names <= set(re.findall(r'"(obs-html-[a-z-]+\.zip)"', interim))
+    assert names <= set(re.findall(r'"(obs-html-[a-z-]+\.zip)"', ours)) and ARCHIVE_NAME in names

@@ -568,12 +568,30 @@ def self_link(root: Path) -> None:
     (root / "short.md").write_text("# Short\n\nBody.\n", encoding="utf-8")
 
 
+def source_archive(root: Path) -> None:
+    """A vault built with obs-document --embed-source that lists one of its two CSS snippets: a
+    note with an image, a data file outside the chapters and the snippets in Obsidian's snippet
+    folder. test_source_archive.py also builds it with the interim adapter and compares."""
+    snippets = root / ".obsidian" / "snippets"
+    snippets.mkdir(parents=True)
+    (snippets / "house.css").write_text("p { color: rgb(1, 2, 3); }\n", encoding="utf-8")
+    (root / "data").mkdir()
+    (root / "data" / "values.csv").write_text("a,b\n1,2\n", encoding="utf-8")
+    (root / "pixel.png").write_bytes(base64.b64decode(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="))
+    (root / "manifest.md").write_text("---\ntitle: Archive\nobsHtml:\n  cssSnippets: [house]\n---\n- [[intro]]\n",
+                                      encoding="utf-8")
+    (root / "intro.md").write_text("# Intro\n\nText.\n\n![[pixel.png]]\n", encoding="utf-8")
+
+
 VAULTS = {"figures": figures, "equations": equations, "document": document, "complete": complete, "artifact-change": artifact_change, "projections": projections,
           "table-help": table_help, "structural": structural, "callouts": callouts,
           "registers": registers, "cards": cards,
           "property-editor-projection": property_editor_projection, "self-link": self_link,
-          "figure-references": figure_references}
+          "figure-references": figure_references, "source-archive": source_archive}
 RUNS_COMMANDS = {"document"}
+EMBEDS_SOURCE = {"source-archive"}
+"""The vaults the build archives (obs-document --embed-source)."""
 """The vaults whose cmd fences the build runs (obs-document --execute-commands): ``echo`` only."""
 DIAGNOSED = {"document", "complete", "artifact-change"}
 """The vaults whose Document keeps its diagnostics: those name vault notes only, never the build
@@ -615,7 +633,8 @@ def build(core: Path, names: list[str], output: Path, offline: bool = False) -> 
             result = subprocess.run([*uv, "python", "-c", DRIVER, "--document", str(document),
                                      "--source", str(root / "manifest.md"),
                                      "--capability-reference", str(capabilities),
-                                     *(["--execute-commands"] if name in RUNS_COMMANDS else [])],
+                                     *(["--execute-commands"] if name in RUNS_COMMANDS else []),
+                                     *(["--embed-source"] if name in EMBEDS_SOURCE else [])],
                                     cwd=core, capture_output=True, text=True)
             if result.returncode:
                 # uv's own notices start with "warning:"; the core's lines name the core.
