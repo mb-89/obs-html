@@ -2570,6 +2570,14 @@
     {
       "level": "warning",
       "message": "Link target does not exist in intro.md: [[missing]]; create missing.md in the vault or correct the link."
+    },
+    {
+      "level": "warning",
+      "message": "appendix.md:3: figure without caption. Add a caption to the figure fence; see input-model#Figure captions and references."
+    },
+    {
+      "level": "warning",
+      "message": "appendix.md:9: figure without caption. Add a caption to the figure fence; see input-model#Figure captions and references."
     }
   ],
   "capabilities": [
@@ -2596,5 +2604,6 @@
     "references",
     "registers",
     "wikilinks"
-  ]
+  ],
+  "cssSnippets": []
 }

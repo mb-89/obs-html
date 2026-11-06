@@ -95,14 +95,19 @@ _BLOCKS = {"address", "article", "aside", "blockquote", "br", "dd", "details", "
            "ul"}
 
 
+_TEXTLESS = frozenset({"style", "script"})
+
+
 class _Text(HTMLParser):
-    """Collects plain text, one line per block element; text inside <pre> keeps its lines."""
+    """Collects plain text, one line per block element; text inside <pre> keeps its lines, and
+    a style or script element (an inline figure's SVG has one) has none."""
 
     def __init__(self) -> None:
         super().__init__(convert_charrefs=True)
         self.lines: list[str] = []
         self.current: list[str] = []
         self.pre = 0
+        self.hidden = 0
 
     def end_line(self) -> None:
         line = "".join(self.current)
@@ -117,14 +122,20 @@ class _Text(HTMLParser):
             self.end_line()
         if tag == "pre":
             self.pre += 1
+        if tag in _TEXTLESS:
+            self.hidden += 1
 
     def handle_endtag(self, tag: str) -> None:
         if tag in _BLOCKS:
             self.end_line()
         if tag == "pre" and self.pre:
             self.pre -= 1
+        if tag in _TEXTLESS and self.hidden:
+            self.hidden -= 1
 
     def handle_data(self, data: str) -> None:
+        if self.hidden:
+            return
         if self.pre:
             self.lines.extend(data.strip("\n").splitlines())
         else:

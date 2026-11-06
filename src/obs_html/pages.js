@@ -383,7 +383,7 @@
             const copy = live ? node : node.cloneNode(true);
             parent().append(copy);
             if (copy.nodeType === 1 && copy.matches("figure")) {
-                const image = copy.querySelector(":scope > img");
+                const image = copy.querySelector(":scope > img, :scope > svg.figure-visual");
                 if (image && getComputedStyle(image).display !== "none") {
                     const style = getComputedStyle(copy);
                     const chrome = copy.getBoundingClientRect().height -

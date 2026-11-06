@@ -30,6 +30,7 @@ from obs_html.bars import BarDefinition, discover_bars
 from obs_html.config import Config, paper
 from obs_html.errors import DOCUMENT_OF, InputError, field_path, schema_error
 from obs_html.features import included as included_features
+from obs_html.figure_links import FigureLink
 from obs_html.figures import FIGURE_KINDS, render_figure
 from obs_html.artifact_data import encode_artifact_data, prepare_artifact_scripts, serialize_artifact_data
 from obs_html.semantic_assets import SemanticAssets, markup
@@ -87,10 +88,14 @@ class Context:
     """The path of the node being rendered in the Document, as an error names it."""
     figure_position: int = 0
     """The current note's figures so far, which name an anchor where nothing else does."""
-    figure_numbering: dict[str, object] = field(default_factory=lambda: {
-        "numbering": "none", "label": "Figure", "top": 0, "section": 0, "count": 0})
-    """The manifest's figure numbering, the current top-level contents position (0 outside the
-    contents) and the figures numbered so far in its scope."""
+    figures: dict[str, object] = field(default_factory=lambda: dict(PROFILE_DEFAULTS["figures"]))
+    """The manifest's obsHtml.figures (numbering, label, labelPlural)."""
+    figure_numbers: dict[str, list[str]] = field(default_factory=dict)
+    """Each chapter's figure numbers in document order, "" for a figure without one (_number_figures)."""
+    figure_blocks: dict[tuple[str, str], str] = field(default_factory=dict)
+    """The number of each figure with a block id, by chapter and block id, "" for none."""
+    conjunctions: tuple[str, ...] = ()
+    """The words that may separate merged figure references (cfg.json artifact.figureReferences)."""
 
 
 def _source(document: dict[str, object]) -> str:
@@ -149,6 +154,8 @@ def _wikilink(node: dict[str, object], context: Context) -> str:
     if chapter is None:
         return (f'<span class="unresolved" title="{escape(attrs["target"], quote=True)}">'
                 f'{escape(attrs["label"])}</span>')
+    if "figure" in attrs:
+        return _figure_reference(node, context)
     label = "" if attrs["label"] == attrs["target"] else attrs["label"]  # Unaliased: the note's title.
     return _internal_link(chapter, attrs["heading"], label, context)
 
@@ -161,9 +168,24 @@ def _internal_link(chapter: str, heading: str, label: str, context: Context) -> 
         quantity = _quantity_link(chapter, context)
         if quantity:
             return quantity
+    return f'<a class="internal-link" href="{_internal_href(chapter, heading, context)}">{escape(label or title)}</a>'
+
+
+def _link_href(attrs: dict[str, object], context: Context) -> str | None:
+    """The href of a wikilink: its figure's for a block link, else its chapter's at its heading;
+    None for a missing note."""
+    chapter = attrs["chapter"]
+    if chapter is None:
+        return None
+    if "figure" in attrs:
+        return f"#{chapter}/block-{escape(attrs['figure'], quote=True)}"
+    return _internal_href(chapter, attrs["heading"], context)
+
+
+def _internal_href(chapter: str, heading: str, context: Context) -> str:
+    """The href of a link to a chapter, at its heading where it names one."""
     anchor = context.headings.get(f"{chapter}#{_identifier(heading)}") if heading else None
-    href = f"#{chapter}/{anchor.removeprefix(f'{chapter}--')}" if anchor else f"#{chapter}"
-    return f'<a class="internal-link" href="{href}">{escape(label or title)}</a>'
+    return f"#{chapter}/{anchor.removeprefix(f'{chapter}--')}" if anchor else f"#{chapter}"
 
 
 def _quantity_link(chapter: str, context: Context) -> str:
@@ -488,21 +510,142 @@ def _figure(node: dict[str, object], context: Context) -> str:
         with _at(context, "attrs", "caption", index):
             paragraphs.append(_phrasing(paragraph["children"], context))
     caption_text = " ".join(_plain_text(paragraph) for paragraph in paragraphs)
+    links = {  # The links the core resolved in the figure's SVG (obs capabilities/wikilinks).
+        link["attrs"]["svg"]: FigureLink(_link_href(link["attrs"], context), link["attrs"]["label"])
+        for link in node["children"][0]["children"]
+    }
     return render_figure(node, context.chapter or HOME, context.figure_position, paragraphs, caption_text,
-                         _note_source(context), _figure_number(bool(paragraphs), context))
+                         _note_source(context), _figure_number(context), links)
 
 
-def _figure_number(captioned: bool, context: Context) -> str:
-    """The next figure number of a captioned figure in a contents note, or "" (input-model.md,
-    Artifact presentation profile: figures)."""
-    numbering = context.figure_numbering
-    if not captioned or numbering["numbering"] == "none" or not numbering["section"]:
+def _figure_number(context: Context) -> str:
+    """The current figure's label and number, or "" for a figure without a number."""
+    numbers = context.figure_numbers.get(context.chapter or HOME, [])
+    number = numbers[context.figure_position - 1] if context.figure_position <= len(numbers) else ""
+    return f"{context.figures['label']} {number}" if number else ""
+
+
+def _number_figures(chapters: list[dict[str, object]], context: Context) -> None:
+    """Number the captioned figures of the contents chapters in reading order, before any note
+    renders, so a reference shows the number of a figure further on (obs input-model, Figure
+    captions and references): `document` counts through the document, `chapter` restarts at each
+    top-level contents chapter and prefixes its position; a note outside the contents, and the
+    home page, number none."""
+    numbering = context.figures["numbering"]
+    count = top = 0
+
+    def figures(nodes: list[dict[str, object]]) -> Iterator[dict[str, object]]:
+        for node in nodes:
+            if node["type"] == "figures":
+                yield node
+            yield from figures(node.get("children", []))
+
+    def walk(items: list[dict[str, object]], depth: int, section: int) -> None:
+        nonlocal count, top
+        for chapter in items:
+            if depth == 0:  # A top-level contents chapter opens a numbering section; a note outside none.
+                in_contents = chapter.get("toc", True)
+                top += in_contents
+                section = top if in_contents else 0
+                count = 0 if numbering == "chapter" else count
+            numbers = context.figure_numbers[chapter["id"]] = []
+            for figure in figures(chapter["content"]):
+                number = ""
+                if section and numbering != "none" and figure["attrs"].get("caption"):
+                    count += 1
+                    number = str(count) if numbering == "document" else f"{section}.{count}"
+                numbers.append(number)
+                if "block" in figure["attrs"]:
+                    context.figure_blocks[(chapter["id"], figure["attrs"]["block"])] = number
+            walk(chapter["children"], depth + 1, section)
+
+    walk(chapters, 0, 0)
+
+
+def _figure_reference(node: dict[str, object], context: Context, number_only: bool = False) -> str:
+    """A block link to a figure: its label as written or, unlabelled, the figure's label and
+    number (obs input-model, Figure captions and references); ``number_only`` in a merged group."""
+    attrs = node["attrs"]
+    chapter, block = attrs["chapter"], attrs["figure"]
+    number = context.figure_blocks.get((chapter, block), "")
+    text = attrs["label"]
+    if _unlabelled(attrs):
+        if not number:
+            raise InputError(
+                _source(context.document), field_path(context.where),
+                f"is the unlabelled reference [[{attrs['target']}#{attrs['heading']}]] to a figure without a "
+                f"number (^{block} in {chapter})",
+                "Caption the figure in a contents chapter and number figures with the manifest's "
+                "obsHtml.figures.numbering, or give the link a label ([[note#^name|label]]); see obs "
+                "input-model#Figure captions and references")
+        text = number if number_only else f"{context.figures['label']} {number}"
+    return f'<a class="internal-link" href="#{chapter}/block-{escape(block, quote=True)}">{escape(text)}</a>'
+
+
+def _unlabelled(attrs: dict[str, object]) -> bool:
+    """Whether a wikilink has no |label: the core labels it with its target, or within its own
+    note with # and its heading (obs capabilities/wikilinks)."""
+    return attrs["label"] == (attrs["target"] or f"#{attrs['heading']}")
+
+
+def _numbered_reference(node: dict[str, object], context: Context) -> str:
+    """The number of an unlabelled reference to a numbered figure, else ""."""
+    attrs = node["attrs"]
+    if node["type"] != "wikilinks" or "figure" not in attrs or attrs["chapter"] is None or not _unlabelled(attrs):
         return ""
-    numbering["count"] += 1
-    label = numbering["label"]
-    if numbering["numbering"] == "document":
-        return f"{label} {numbering['count']}"
-    return f"{label} {numbering['section']}.{numbering['count']}"
+    return context.figure_blocks.get((attrs["chapter"], attrs["figure"]), "")
+
+
+def _merged_references(nodes: list[dict[str, object]], context: Context) -> str:
+    """Phrasing nodes with each run of adjacent unlabelled references to numbered figures as one
+    plural reference: Figures 2.4 and 2.5, Figures 2.4–2.6 (obs input-model, Figure captions and
+    references). Adjacent means separated only by whitespace, a comma or a configured conjunction;
+    the author's order and separators stay, the plural label replaces the singular once and a run
+    of three or more consecutive numbers shows its ends."""
+    def rendered(index: int, number_only: bool = False) -> str:
+        with _at(context, "children", index):
+            if number_only:
+                return _figure_reference(nodes[index], context, number_only=True)
+            return _node(nodes[index], context)
+
+    units = [index for index, node in enumerate(nodes) if _numbered_reference(node, context)]
+    words = "|".join(re.escape(word) for word in sorted(context.conjunctions, key=len, reverse=True))
+    separator = re.compile(rf"\s*(?:,\s*)?(?:(?:{words})\s+)?" if words else r"\s*(?:,\s*)?", re.IGNORECASE)
+    groups: list[list[int]] = []
+    for index in units:
+        between = nodes[groups[-1][-1] + 1:index] if groups else None
+        if between is not None and all(node["type"] == "text" and not node["attrs"] for node in between) \
+                and separator.fullmatch("".join(node.get("text", "") for node in between)):
+            groups[-1].append(index)
+        else:
+            groups.append([index])
+
+    def consecutive(first: int, second: int) -> bool:
+        head, _, last = _numbered_reference(nodes[first], context).rpartition(".")
+        next_head, _, next_last = _numbered_reference(nodes[second], context).rpartition(".")
+        return head == next_head and int(next_last) == int(last) + 1
+
+    html: list[str] = []
+    position = 0
+    for group in (group for group in groups if len(group) > 1):
+        html.extend(rendered(index) for index in range(position, group[0]))
+        html.append(f"{escape(context.figures['labelPlural'])} ")
+        start = 0
+        while start < len(group):
+            end = start
+            while end + 1 < len(group) and consecutive(group[end], group[end + 1]):
+                end += 1
+            if end - start >= 2:
+                html.extend([rendered(group[start], True), "–", rendered(group[end], True)])
+            else:
+                end = start
+                html.append(rendered(group[start], True))
+            if end + 1 < len(group):
+                html.extend(rendered(index) for index in range(group[end] + 1, group[end + 1]))
+            start = end + 1
+        position = group[-1] + 1
+    html.extend(rendered(index) for index in range(position, len(nodes)))
+    return "".join(html)
 
 
 def _plain_text(html: str) -> str:
@@ -685,7 +828,9 @@ def _model(document: dict[str, object], config: Config, context: Context) -> dic
     """The artifact-data island: the runtime's only model of the artifact."""
     manifest = document["manifest"]
     profile = _profile(manifest)
-    context.figure_numbering.update(numbering=profile["figures"]["numbering"], label=profile["figures"]["label"])
+    context.figures = profile["figures"]
+    context.conjunctions = tuple(config.artifact["figureReferences"]["conjunctions"])
+    _number_figures(document["chapters"], context)
     settings = config.artifact
     title = manifest["title"]
     metadata = {key: value for key, value in manifest["metadata"].items() if key not in {"obs", "obsHtml"}}
@@ -746,14 +891,7 @@ def _listed(chapters: list[dict[str, object]]) -> list[str]:
 def _chapter_notes(chapters: list[dict[str, object]], context: Context, depth: int,
                    where: list[object]) -> list[dict]:
     notes = []
-    numbering = context.figure_numbering
     for index, chapter in enumerate(chapters):
-        if depth == 0:  # A top-level contents chapter opens a numbering section; a note outside none.
-            in_contents = chapter.get("toc", True)
-            numbering["top"] += in_contents
-            numbering["section"] = numbering["top"] if in_contents else 0
-            if numbering["numbering"] == "chapter":
-                numbering["count"] = 0
         context.frontmatter = dict(chapter.get("metadata") or {})
         body = _note_body(chapter["content"], chapter["id"], [*where, index, "content"], context)
         notes.append(_note(depth, chapter["title"], chapter["id"], "", context.frontmatter, body, context))
@@ -876,7 +1014,7 @@ def _phrasing(nodes: list[dict[str, object]], context: Context) -> str:
     """The children of an element that allows only phrasing content (a paragraph, a heading)."""
     outer, context.phrasing = context.phrasing, True
     try:
-        return _nodes(nodes, context)
+        return _merged_references(nodes, context)
     finally:
         context.phrasing = outer
 

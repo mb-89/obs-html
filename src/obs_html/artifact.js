@@ -70,6 +70,8 @@
     };
     const makeRecord = (chapter) => {
         contentTemplate.innerHTML = chapter.html;
+        // A style is no text: an inline figure's SVG carries one (figure_links.py).
+        contentTemplate.content.querySelectorAll("style, script").forEach(node => node.remove());
         const text = contentTemplate.content.textContent.replace(/\s+/g, " ").trim();
         const metadata = chapter.generated === "home" ? artifactData.document.metadata : chapter.frontmatter;
         const metadataEntries = flattenFrontmatter(metadata);
