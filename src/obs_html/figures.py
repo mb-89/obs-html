@@ -118,7 +118,7 @@ def _plot_body(attrs: dict, alt: str, source: str, _links: dict[str, FigureLink]
     raise unsupported(source)
 
 
-def _equations_body(attrs: dict, alt: str, _source: str) -> Body:
+def _equations_body(attrs: dict, alt: str, _source: str, _links: dict[str, FigureLink]) -> Body:
     """An equation figure's live plot: the runtime (equations.js) evaluates the Document's body,
     which the core checked against its schema, so the spec is that body as it is."""
     return Body('<div class="figure-live" aria-label="Interactive figure"></div>',
