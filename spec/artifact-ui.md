@@ -74,7 +74,11 @@ An optional metric value link uses the existing internal chapter and table-filte
 `?tableFilter=` is the metric's conditions in the reader language (`obsQuery.conditionsExpression`
 over the metric's `from` chain and `where`, obs's cards-metrics capability, Drill-downs), so the
 table shows exactly the counted rows. A series metric's link is built the same way from its own
-conditions, the series' `where` and its group's label.
+conditions, the series' `where` and its group's label. A projected metric's link adds
+`&projection=<name>`: the linked table then matches each `note.` clause against its row's note
+as that projection shows it (`obsCards.project`), the same records the value counted. Typing,
+clearing or replacing the table's filter drops the projection; a projection changed after
+the drill-down opened applies when it is opened again.
 Static evidence cards do not change under filtering.
 Card-body base fences use the canonical query/table runtime. Per-record Sankey
 links preserve line identity and categorical outcome/origin colors; adjacent segments share

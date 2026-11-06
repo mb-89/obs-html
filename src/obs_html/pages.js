@@ -49,7 +49,8 @@
     const sourceFor = (slug) => {
         const source = document.createElement("div");
         artifact.renderStatic(slug, source, true,
-            chapter.dataset.chapter === slug ? chapter.dataset.tableFilter || "" : "");
+            ...(chapter.dataset.chapter === slug
+                ? [chapter.dataset.tableFilter || "", chapter.dataset.tableProjection || ""] : []));
         return source;
     };
     // Front-page groups ("@abstract", "@contents", ...) are projections of the manifest note.

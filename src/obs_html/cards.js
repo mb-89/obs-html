@@ -24,21 +24,24 @@
     return [...conditionChain(source, new Set([...visiting, query.from])), ...(query.where || [])];
   }
   // A metric link names its table; its table filter derives from the query it counts
-  // (obs capabilities/cards-metrics), which is why the core refuses a hand-written one.
-  const drillDown = (link, query) => `${link}?tableFilter=${
-    encodeURIComponent(globalThis.obsQuery.conditionsExpression(conditionChain(query)))}`;
+  // (obs capabilities/cards-metrics), which is why the core refuses a hand-written one. A
+  // projected metric's drill-down names its projection, so the table selects through it too.
+  const drillDown = (link, query, projectionKey = "") => `${link}?tableFilter=${
+    encodeURIComponent(globalThis.obsQuery.conditionsExpression(conditionChain(query)))}${
+    projectionKey ? `&projection=${encodeURIComponent(projectionKey)}` : ""}`;
+  // A record as a trusted projection shows it: its projected fields over its frontmatter.
+  function project(projectionKey, record) {
+    const fields = projections.get(projectionKey)?.[record.sourcePath];
+    return fields ? {...record, frontmatter: {...record.frontmatter, ...fields}} : record;
+  }
   function select(query, projectionKey = "") {
     // An ignored note is never counted (artifact.js, selectable); an explicit owner still resolves.
     population ||= artifact.records.filter(record => artifact.selectable(record) && artifact.matchesFilter(record));
     const cacheKey = JSON.stringify([projectionKey, query.from || "", query.where]);
     if (selections.has(cacheKey)) return selections.get(cacheKey);
-    const projection = projections.get(projectionKey);
     // Conditions match as every other artifact selection does (query.js, compileConditions).
     const conditions = globalThis.obsQuery.compileConditions(conditionChain(query));
-    const result = population.filter(record => {
-      const fields = projection?.[record.sourcePath];
-      return conditions.match(fields ? {...record, frontmatter: {...record.frontmatter, ...fields}} : record);
-    });
+    const result = population.filter(record => conditions.match(project(projectionKey, record)));
     selections.set(cacheKey, result);
     return result;
   }
@@ -62,7 +65,8 @@
   }
   function cardMetrics(card) {
     const metrics = JSON.parse(card.dataset.recordCard).map(metric => ({...metric,
-      ...(metric.link ? {link: drillDown(metric.link, {where: metric.where, ...(metric.from ? {from: metric.from} : {})})} : {}),
+      ...(metric.link ? {link: drillDown(metric.link, {where: metric.where, ...(metric.from ? {from: metric.from} : {})},
+        metric.obs?.projection || "")} : {}),
       ...(metric.secondaryLink ? {secondaryLink: drillDown(metric.secondaryLink, quantityQuery(metric.secondary))} : {})}));
     if (!card.dataset.recordSeries) return metrics;
     const series = JSON.parse(card.dataset.recordSeries);
@@ -177,6 +181,7 @@
   }).observe(document.body, {childList: true, subtree: true});
   globalThis.obsRecordMetrics = {evaluate, select};
   globalThis.obsCards = {
+    project,
     setProjection(key, fieldsBySourcePath) {
       if (fieldsBySourcePath === null) projections.delete(key);
       else projections.set(key, structuredClone(fieldsBySourcePath));

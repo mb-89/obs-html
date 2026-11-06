@@ -173,6 +173,33 @@ def test_a_metric_series_drill_down_shows_exactly_its_counted_rows(tmp_path, rea
     assert errors == []
 
 
+def test_a_projected_metric_drill_down_selects_through_its_projection(tmp_path, reader_browser) -> None:
+    """A metric with obs.projection counts the projected fields; its drill-down selects through
+    the same projection (obs capabilities/cards-metrics#Drill-downs), so while the projection
+    makes service two healthy and service one not, the table shows two and three."""
+    where = [{"field": "healthy", "equals": "yes"}]
+    cards = _cards({"title": "Review", "body": "", "metricStyle": "pills", "metrics": [
+        {"label": "Healthy", "where": where, "link": "#chapter", "obs": {"projection": "review"}}]})
+    spec = {"filters": {"and": ['kind == "service"']},
+            "views": [{"type": "table", "name": "Services", "order": ["healthy"]}]}
+    source = build("Cards", chapter("chapter", "Chapter", heading(1, "Operations"), node("bases", source="", spec=spec)),
+                   abstract=(cards,), records=tuple(_services()))
+    page, errors = _open(tmp_path, reader_browser, source)
+    from playwright.sync_api import expect
+    page.evaluate("obsPages.setPaged(false); obsArtifact.activateChapter('home')")
+    page.evaluate("obsCards.setProjection('review', {'one.md': {healthy: 'no'}, 'two.md': {healthy: 'yes'}})")
+    metric = page.locator("[data-active-chapter] .record-metric-value").first
+    expect(metric.locator("strong")).to_have_text("2")
+    counted = page.evaluate("where => obsRecordMetrics.select({where}, 'review').map(record => `note:${record.slug}`)"
+                            ".sort()", where)
+    assert counted == ["note:three", "note:two"]
+    metric.click()
+    rows = page.locator('[data-active-chapter] [data-data-table="chapter-base-1"] [data-row-key]')
+    expect(rows).to_have_count(len(counted))
+    assert sorted(rows.evaluate_all("rows => rows.map(row => row.dataset.rowKey)")) == counted
+    assert errors == []
+
+
 def test_quantities_count_through_their_selection_chain_and_refresh(tmp_path, reader_browser) -> None:
     total = {"kind": "quantity", "aliases": ["serviceCount"], "source": "[[chapter]]",
              "query": {"where": [{"field": "kind", "equals": "service"}], "distinct": "identity"}}

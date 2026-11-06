@@ -252,7 +252,7 @@
         columnSizing, detailFontSize = JSON.parse(
             document.querySelector("[data-artifact-data]").textContent,
         ).tableDetailFontSizePoints,
-        baseExpression = "", initialExpression = "", initialGroup = [], initialSort = [],
+        baseExpression = "", initialExpression = "", initialProjection = "", initialGroup = [], initialSort = [],
         baseQuery = globalThis.obsQuery.compile(baseExpression),
         definitionText = "", queryView = false, onDefinitionDraft, onDefinitionChange,
         initialPresentation, onPresentationChange, initialColumnWidths, onColumnWidthsChange,
@@ -587,6 +587,12 @@
             }, {columns: [...projectedColumnKeys]});
         };
         let appliedQuery = globalThis.obsQuery.compile("");
+        // A projected drill-down's filter reads each row's note as that projection shows it
+        // (cards.js, project); the reader's own expression reads the canonical note.
+        let filterProjection = initialProjection;
+        const throughProjection = (query) => !filterProjection || query.empty ? query : {...query,
+            match: (row) => query.match(row.note
+                ? {...row, note: globalThis.obsCards.project(filterProjection, row.note)} : row)};
         let rowKeys = initialRowKeys ? new Set(initialRowKeys) : null;
         const scopedRows = () => rowKeys ? rows.filter(row => rowKeys.has(row.key)) : rows;
         let baseRows = retainMatchesAndAncestors(scopedRows(), baseQuery);
@@ -948,6 +954,7 @@
             if (!shell.isConnected) return;
             if (event.target.closest("[data-clear-table-filter]")?.dataset.clearTableFilter !== key) return;
             input.value = "";
+            filterProjection = "";
             apply();
         };
         document.addEventListener("click", handleClearFilter);
@@ -1483,6 +1490,7 @@
                 status.hidden = false;
                 return;
             }
+            query = throughProjection(query);
             visibleRows = retainMatchesAndAncestors(baseRows, query);
             appliedQuery = query;
             shell.dataset.filterActive = String(!query.empty);
@@ -1559,12 +1567,14 @@
         });
         input.addEventListener("input", () => {
             filterSelections.clear();
+            filterProjection = "";
             apply();
             renderFacets();
         });
         shell.addEventListener("obs-table-set-filter", (event) => {
             filterSelections.clear();
             input.value = event.detail.expression;
+            filterProjection = event.detail.projection || "";
             apply();
             renderFacets();
         });
@@ -1662,6 +1672,7 @@
             },
             setExpression: (value) => {
                 input.value = value;
+                filterProjection = "";
                 apply();
             },
         };
