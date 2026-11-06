@@ -139,6 +139,10 @@ def pytest_runtest_protocol(item, nextitem):
 def pytest_runtest_makereport(item, call):
     report = yield
     network_guard.fail(report)
+    crashed(report)
+    if bounds.timed_out(report):
+        for pool in POOLS:
+            pool.abandon()
     bounds.explain(item, report)
     return report
 
@@ -209,32 +213,29 @@ def headless_shell(browsers: Path) -> str:
     return str(found[-1][1])
 
 
-@pytest.fixture(scope="session")
-def worker_browser(worker_playwright):
-    """One headless shell (HEADLESS_SHELL) per test process; tests lease its pages (page_pool)."""
-    # Frames stay capped at 60 Hz. Uncapped (--disable-frame-rate-limit), a lone test ends sooner,
-    # but every animation-frame wait in the artifact and the tests draws frames as fast as the CPU
-    # allows; in the complete suite, which keeps every CPU busy, that cost the adapter's part about
-    # a quarter of its CPU time and the suite about 20 s.
-    browser = worker_playwright.chromium.launch(executable_path=headless_shell(playwright_browsers()))
-    try:
-        yield browser
-    finally:
-        browser.close()
+# The pools' engines, as a crash or a failed launch names them.
+HEADLESS_SHELL_ENGINE = "chromium-headless-shell"
+FULL_CHROMIUM_ENGINE = "Chromium"
+# How long a pool waits for its browser to start (Playwright's launch timeout); it starts in about
+# a second, and a launch past it fails the test that asked, naming the engine.
+LAUNCH_TIMEOUT_MS = 30_000
 
 
-@pytest.fixture(scope="session")
-def full_chromium(worker_playwright):
-    """One full Chromium per test process that needs it, found as the PDF path finds it, for the
-    named set of checks whose behaviour can differ in the headless shell
-    (test/structure/test_quality.py, FULL_CHROMIUM_TESTS)."""
-    from obs_html.pdf import _executable
+def launcher(playwright, engine: str, executable: str, args: tuple[str, ...] = ()):
+    """What launches a pool's browser: ``executable``, with an explicit launch timeout; a failed
+    launch names the engine and the executable."""
+    from playwright.sync_api import Error as PlaywrightError
 
-    browser = worker_playwright.chromium.launch(executable_path=_executable())
-    try:
-        yield browser
-    finally:
-        browser.close()
+    def launch():
+        try:
+            return playwright.chromium.launch(executable_path=executable, args=list(args),
+                                              timeout=LAUNCH_TIMEOUT_MS)
+        except PlaywrightError as error:
+            raise BrowserEngineError(
+                f"test/conftest.py: the {engine} browser {executable} did not start within "
+                f"{LAUNCH_TIMEOUT_MS} ms (LAUNCH_TIMEOUT_MS): {str(error).strip().splitlines()[0]}. Remedy: run "
+                "one browser test alone; where it fails the same way, reinstall the engine.") from error
+    return launch
 
 
 # Playwright's default viewport, which a leased page gets where the test names none.
@@ -253,6 +254,12 @@ CONTEXT_MEDIA = {"media": "null", "color_scheme": "light", "reduced_motion": "no
 class PagePool:
     """The test process's open pages, each in a browser context of its own, leased to one test at a time.
 
+    The pool launches its browser itself (``launch``). Where that browser has died, the pool forgets
+    its pages and launches a fresh one for the next lease; a browser that dies while a test holds
+    one of its pages fails that test, "browser crashed", naming the engine (``take_crash``). A
+    browser that stops answering, one Playwright never sees die, is ended when the test holding
+    its page runs past its timeout (``abandon``), and the next lease launches a fresh one too.
+
     Opening a page in a new context costs about a CPU second (its renderer process starts); a
     pooled page is made blank again in about a third of that. When a test ends, its page drops
     the listeners the test added, closes the pages the test opened beside it, goes back to
@@ -263,10 +270,13 @@ class PagePool:
     closed or changed another page setting on (PAGE_SETTINGS) is closed with its context instead.
     """
 
-    def __init__(self, browser):
+    def __init__(self, engine: str, launch):
         from playwright.sync_api import Page
 
-        self._browser = browser
+        self.engine = engine
+        self._launch = launch
+        self._browser = None
+        self._crashed = False
         self._idle = []
         self._listeners: dict[object, list] = {}
         self._origins: dict[object, set[str]] = {}
@@ -275,10 +285,59 @@ class PagePool:
         self._on = Page.on
 
     def lease(self, viewport: dict | None = None):
-        page = self._idle.pop() if self._idle else self._open()
-        page.set_viewport_size(viewport or DEFAULT_VIEWPORT)
+        from playwright.sync_api import Error as PlaywrightError
+
+        try:
+            page = self._ready_page(viewport)
+        except PlaywrightError:
+            if self._browser.is_connected():
+                raise
+            page = self._ready_page(viewport)  # The browser died since its last use: a fresh one serves.
         self._listeners[page] = []
         return page
+
+    def _ready_page(self, viewport: dict | None):
+        if self._browser is None or not self._browser.is_connected():
+            self._relaunch()
+        page = self._idle.pop() if self._idle else self._open()
+        page.set_viewport_size(viewport or DEFAULT_VIEWPORT)
+        return page
+
+    def _relaunch(self) -> None:
+        """Forget the pages of a browser that died, and launch a fresh one."""
+        for page in self._idle:
+            self._origins.pop(page, None)
+        self._idle.clear()
+        browser = self._launch()
+        browser.on("disconnected", lambda _: self._lost(browser))
+        session = browser.new_browser_cdp_session()
+        processes = session.send("SystemInfo.getProcessInfo")["processInfo"]
+        session.detach()
+        self._process = next(each["id"] for each in processes if each["type"] == "browser")
+        self._browser = browser
+
+    def abandon(self) -> None:
+        """Where a test holds one of the pool's pages, end the browser, which may no longer answer,
+        without asking it anything, and forget its pages; the next lease launches a fresh one."""
+        if not self._listeners:
+            return
+        import signal
+
+        self._browser = None
+        with contextlib.suppress(OSError):
+            os.kill(self._process, getattr(signal, "SIGKILL", signal.SIGTERM))
+        for each in (self._idle, self._listeners, self._origins, self._changed, self._emulated):
+            each.clear()
+
+    def _lost(self, browser) -> None:
+        """The browser disconnected without the pool closing it: a crash, if a test holds one of its pages."""
+        if browser is self._browser and self._listeners:
+            self._crashed = True
+
+    def take_crash(self) -> bool:
+        """Whether the browser crashed while a test held one of its pages since the last call."""
+        crashed, self._crashed = self._crashed, False
+        return crashed
 
     def _open(self):
         page = self._browser.new_context().new_page()
@@ -302,8 +361,15 @@ class PagePool:
             self._changed.add(page)
 
     def release(self, page) -> None:
+        if page not in self._listeners:  # The pool abandoned its browser.
+            return
         listeners = self._listeners.pop(page)
         context = page.context
+        if not context.browser.is_connected():
+            for each in (self._changed, self._emulated):
+                each.discard(page)
+            self._origins.pop(page, None)
+            return
         if page.is_closed() or page in self._changed:
             self._changed.discard(page)
             self._emulated.discard(page)
@@ -335,9 +401,10 @@ class PagePool:
         self._idle.append(page)
 
     def close(self) -> None:
-        for page in self._idle:
-            page.context.close()
+        browser, self._browser = self._browser, None
         self._idle.clear()
+        if browser is not None and browser.is_connected():
+            browser.close()
 
 
 def origin(url: str) -> str:
@@ -389,9 +456,9 @@ def page_patches():
 
 
 @contextlib.contextmanager
-def live_pool(browser):
-    """A page pool over ``browser``, in POOLS while it lives."""
-    pool = PagePool(browser)
+def live_pool(engine: str, launch):
+    """A page pool over the browser ``launch`` starts, in POOLS while it lives."""
+    pool = PagePool(engine, launch)
     POOLS.append(pool)
     try:
         yield pool
@@ -401,16 +468,26 @@ def live_pool(browser):
 
 
 @pytest.fixture(scope="session")
-def page_pool(worker_browser, page_patches):
-    """The test process's page pool over its headless shell; tests lease its pages through ``reader_browser``."""
-    with live_pool(worker_browser) as pool:
+def page_pool(worker_playwright, page_patches):
+    """The test process's page pool over one headless shell (HEADLESS_SHELL); tests lease its pages
+    through ``reader_browser``."""
+    # Frames stay capped at 60 Hz. Uncapped (--disable-frame-rate-limit), a lone test ends sooner,
+    # but every animation-frame wait in the artifact and the tests draws frames as fast as the CPU
+    # allows; in the complete suite, which keeps every CPU busy, that cost the adapter's part about
+    # a quarter of its CPU time and the suite about 20 s.
+    shell = headless_shell(playwright_browsers())
+    with live_pool(HEADLESS_SHELL_ENGINE, launcher(worker_playwright, HEADLESS_SHELL_ENGINE, shell)) as pool:
         yield pool
 
 
 @pytest.fixture(scope="session")
-def full_page_pool(full_chromium, page_patches):
-    """The page pool over full Chromium; tests lease its pages through ``full_chromium_browser``."""
-    with live_pool(full_chromium) as pool:
+def full_page_pool(worker_playwright, page_patches):
+    """The page pool over one full Chromium, found as the PDF path finds it, for the named set of
+    checks whose behaviour can differ in the headless shell (test/structure/test_quality.py,
+    FULL_CHROMIUM_TESTS); tests lease its pages through ``full_chromium_browser``."""
+    from obs_html.pdf import _executable
+
+    with live_pool(FULL_CHROMIUM_ENGINE, launcher(worker_playwright, FULL_CHROMIUM_ENGINE, _executable())) as pool:
         yield pool
 
 
@@ -418,13 +495,23 @@ def full_page_pool(full_chromium, page_patches):
 def overlay_scrollbar_pool(worker_playwright, page_patches):
     """A page pool over a second headless shell with overlay scrollbars, as on touch devices and
     macOS: scrollbars take no room, so the reader's clearance for the chapter arrows is at its narrowest."""
-    browser = worker_playwright.chromium.launch(executable_path=headless_shell(playwright_browsers()),
-                                                args=["--enable-features=OverlayScrollbar"])
-    try:
-        with live_pool(browser) as pool:
-            yield pool
-    finally:
-        browser.close()
+    engine = f"{HEADLESS_SHELL_ENGINE} (overlay scrollbars)"
+    launch = launcher(worker_playwright, engine, headless_shell(playwright_browsers()),
+                      ("--enable-features=OverlayScrollbar",))
+    with live_pool(engine, launch) as pool:
+        yield pool
+
+
+def crashed(report) -> None:
+    """Fail a test phase's report where a pool's browser crashed while the test held one of its pages."""
+    engines = [pool.engine for pool in POOLS if pool.take_crash()]
+    if engines:
+        report.outcome = "failed"
+        report.longrepr = (
+            f"test/conftest.py: browser crashed: the {', '.join(engines)} browser died while {report.nodeid} ran "
+            f"({report.when}); its pool launches a fresh one for the next test (PagePool). Remedy: run the test "
+            "alone; where its browser crashes again, find what the page does just before.\n\n"
+            + (str(report.longrepr) if report.longrepr else ""))
 
 
 class BrowserLease:
@@ -464,7 +551,7 @@ class PoolChromium:
 
         assert executable_path == _executable(), (
             f"test/conftest.py: the PDF path launches {executable_path!r}, not the full-Chromium pool's browser "
-            f"{_executable()!r}; lease what it launches or launch it in full_chromium")
+            f"{_executable()!r}; lease what it launches or launch it in full_page_pool")
         return BrowserLease(self._pool)
 
 

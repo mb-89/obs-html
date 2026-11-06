@@ -73,3 +73,74 @@ def test_a_page_the_test_closed_is_replaced(page_pool) -> None:
     other = page_pool.lease(None)
     assert not other.is_closed()
     page_pool.release(other)
+
+
+# A test that kills its pool's own browser process mid-test, through the browser's DevTools
+# process list, then waits for a page that cannot answer; and the test after it.
+CRASHING = """import os
+import signal
+
+
+def test_kills_its_browser(reader_browser):
+    page = reader_browser.new_page()
+    processes = page.context.browser.new_browser_cdp_session().send("SystemInfo.getProcessInfo")["processInfo"]
+    os.kill(next(each["id"] for each in processes if each["type"] == "browser"), getattr(signal, "SIGKILL", signal.SIGTERM))
+    page.evaluate("() => new Promise(() => {})")
+
+
+def test_runs_on_a_fresh_browser(reader_browser):
+    assert reader_browser.new_page().evaluate("1 + 1") == 2
+"""
+
+
+def test_a_test_whose_browser_crashes_fails_naming_itself_and_the_next_gets_a_fresh_browser(tmp_path: Path) -> None:
+    output = run_inner(tmp_path, CRASHING)
+
+    assert "1 failed, 1 passed" in output, output
+    assert ("test/conftest.py: browser crashed: the chromium-headless-shell browser died while "
+            "test_inner.py::test_kills_its_browser ran") in output, output
+    assert "pytest-timeout" not in output, output
+
+
+# A test whose browser stops answering, as a browser Playwright never sees die does: its process
+# is stopped mid-test. Its timeout fails it; the test after it runs on a fresh browser.
+STOPPED = """import os
+import signal
+
+import pytest
+
+
+@pytest.mark.timeout(2)
+def test_its_browser_stops_answering(reader_browser):
+    page = reader_browser.new_page()
+    processes = page.context.browser.new_browser_cdp_session().send("SystemInfo.getProcessInfo")["processInfo"]
+    os.kill(next(each["id"] for each in processes if each["type"] == "browser"), signal.SIGSTOP)
+    page.evaluate("1 + 1")
+
+
+def test_runs_on_a_fresh_browser(reader_browser):
+    assert reader_browser.new_page().evaluate("1 + 1") == 2
+"""
+
+
+def run_inner(tmp_path: Path, source: str) -> str:
+    """Run ``source`` as a test module with this folder's conftest.py as a plugin; its output."""
+    import os
+    import subprocess
+    import sys
+
+    (tmp_path / "test_inner.py").write_text(source, encoding="utf-8")
+    environment = {**os.environ, "PYTHONPATH": os.pathsep.join([str(Path(__file__).parent),
+                                                                os.environ.get("PYTHONPATH", "")])}
+    return subprocess.run([sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider", "-p", "conftest",
+                           "--rootdir", str(tmp_path), str(tmp_path / "test_inner.py")],
+                          cwd=tmp_path, env=environment, capture_output=True, text=True, timeout=120).stdout
+
+
+@pytest.mark.skipif(not hasattr(__import__("signal"), "SIGSTOP"), reason="Windows cannot stop a process (SIGSTOP)")
+def test_a_test_whose_browser_stops_answering_fails_by_its_timeout_and_the_next_gets_a_fresh_browser(
+        tmp_path: Path) -> None:
+    output = run_inner(tmp_path, STOPPED)
+
+    assert "1 failed, 1 passed" in output, output
+    assert "test/bounds.py: test_inner.py::test_its_browser_stops_answering ran past its timeout of 2 s" in output, output
