@@ -123,16 +123,21 @@ def test_runs_on_a_fresh_browser(reader_browser):
 """
 
 
-def run_inner(tmp_path: Path, source: str) -> str:
-    """Run ``source`` as a test module with this folder's conftest.py as a plugin; its output."""
+def run_inner(tmp_path: Path, source: str, plugins: dict[str, str] | None = None) -> str:
+    """Run ``source`` as a test module with this folder's conftest.py as a plugin, and each of
+    ``plugins`` (a module name and its source) after it; its output."""
     import os
     import subprocess
     import sys
 
     (tmp_path / "test_inner.py").write_text(source, encoding="utf-8")
-    environment = {**os.environ, "PYTHONPATH": os.pathsep.join([str(Path(__file__).parent),
+    loaded = []
+    for name, plugin in (plugins or {}).items():
+        (tmp_path / f"{name}.py").write_text(plugin, encoding="utf-8")
+        loaded += ["-p", name]
+    environment = {**os.environ, "PYTHONPATH": os.pathsep.join([str(Path(__file__).parent), str(tmp_path),
                                                                 os.environ.get("PYTHONPATH", "")])}
-    return subprocess.run([sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider", "-p", "conftest",
+    return subprocess.run([sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider", "-p", "conftest", *loaded,
                            "--rootdir", str(tmp_path), str(tmp_path / "test_inner.py")],
                           cwd=tmp_path, env=environment, capture_output=True, text=True, timeout=120).stdout
 
@@ -144,3 +149,32 @@ def test_a_test_whose_browser_stops_answering_fails_by_its_timeout_and_the_next_
 
     assert "1 failed, 1 passed" in output, output
     assert "test/bounds.py: test_inner.py::test_its_browser_stops_answering ran past its timeout of 2 s" in output, output
+
+
+# Names in each test's report, as its timeout starts (pytest-timeout's set-timer hook), the
+# engines of the pools whose browser is up then.
+TIMER_PROBE = """import pytest
+
+import conftest
+
+
+@pytest.hookimpl(tryfirst=True)
+def pytest_timeout_set_timer(item, settings):
+    item.user_properties.append(("launched", sorted(pool.engine for pool in conftest.POOLS if pool.launched())))
+"""
+
+# A test that needs no browser, then the first test of the process that needs the shell's pages:
+# its pool's browser is up before its timeout starts, and no other pool's is.
+FIRST_LEASE = """def test_needs_no_browser(request):
+    assert dict(request.node.user_properties)["launched"] == []
+
+
+def test_first_to_need_the_shell(reader_browser, request):
+    assert dict(request.node.user_properties)["launched"] == ["chromium-headless-shell"]
+"""
+
+
+def test_a_cold_browser_launch_is_done_before_the_timeout_of_the_first_test_that_needs_it(tmp_path: Path) -> None:
+    output = run_inner(tmp_path, FIRST_LEASE, {"timer_probe": TIMER_PROBE})
+
+    assert "2 passed" in output, output

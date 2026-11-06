@@ -1,4 +1,5 @@
 import contextlib
+import functools
 import json
 import os
 import shutil
@@ -148,10 +149,25 @@ def document() -> dict[str, object]:
     return json.loads(FIXTURE.read_text(encoding="utf-8"))
 
 
-@pytest.hookimpl(wrapper=True)
+@pytest.hookimpl(wrapper=True, tryfirst=True)
 def pytest_runtest_protocol(item, nextitem):
+    """Launch the browsers of the pools the test needs before its timeout starts (warm), then run it.
+    This wrapper is outside pytest-timeout's, whose timer covers setup, call and teardown."""
+    warm(item)
     with network_guard.running(item.nodeid), bounds.running(item, os.environ.get(spec_build.RUN_FOLDER)):
         return (yield)
+
+
+@pytest.hookimpl(trylast=True)
+def pytest_sessionfinish(session):
+    """End the test process's page pools and its Playwright driver, after the session's fixtures."""
+    for pool in POOLS:
+        pool.close()
+    POOLS.clear()
+    PROCESS_POOLS.clear()
+    if process_playwright.cache_info().currsize:
+        process_playwright().stop()
+        process_playwright.cache_clear()
 
 
 @pytest.hookimpl(wrapper=True)
@@ -183,18 +199,26 @@ def pytest_collection_modifyitems(config, items):
     suite.heaviest_first(ROOT, items)
 
 
+@functools.cache
+def process_playwright():
+    """The test process's one Playwright driver, started on first use; pytest_sessionfinish stops it."""
+    from playwright.sync_api import sync_playwright
+
+    return sync_playwright().start()
+
+
 @pytest.fixture(scope="session")
 def worker_playwright():
-    """One Playwright driver per test process.
+    """One Playwright driver per test process (process_playwright).
 
     A process runs one sync driver at a time, so while this one runs, the PDF path's own
     ``sync_playwright()`` uses it too; a test of the PDF path leases its browser through
     ``pdf_browser``.
     """
     from obs_html import pdf
-    from playwright.sync_api import sync_playwright
 
-    with sync_playwright() as playwright, pytest.MonkeyPatch.context() as patch:
+    playwright = process_playwright()
+    with pytest.MonkeyPatch.context() as patch:
         patch.setattr(pdf, "sync_playwright", lambda: contextlib.nullcontext(playwright))
         yield playwright
 
@@ -300,9 +324,17 @@ class PagePool:
         self._listeners[page] = []
         return page
 
-    def _ready_page(self, viewport: dict | None):
-        if self._browser is None or not self._browser.is_connected():
+    def launched(self) -> bool:
+        """Whether the pool's browser is up."""
+        return self._browser is not None and self._browser.is_connected()
+
+    def warm(self) -> None:
+        """Launch the pool's browser where it is not up: a first launch, or one after its browser died."""
+        if not self.launched():
             self._relaunch()
+
+    def _ready_page(self, viewport: dict | None):
+        self.warm()
         page = self._idle.pop() if self._idle else self._open()
         page.set_viewport_size(viewport or DEFAULT_VIEWPORT)
         return page
@@ -424,6 +456,9 @@ def origin(url: str) -> str:
 # The live page pools of this test process; the Page and BrowserContext patches page_patches sets
 # tell each of them what a test did to its pages.
 POOLS: list[PagePool] = []
+# The test process's page pools by the fixture that hands each out (POOL_KINDS); process_pool
+# makes each on first use and pytest_sessionfinish ends them.
+PROCESS_POOLS: dict[str, PagePool] = {}
 
 
 @pytest.fixture(scope="session")
@@ -459,67 +494,84 @@ def page_patches():
         yield
 
 
-@contextlib.contextmanager
-def live_pool(engine: str, launch, context: dict | None = None):
-    """A page pool over the browser ``launch`` starts, its pages in contexts made with ``context``,
-    in POOLS while it lives."""
-    pool = PagePool(engine, launch, context)
-    POOLS.append(pool)
-    try:
-        yield pool
-    finally:
-        pool.close()
-        POOLS.remove(pool)
+def _shell() -> str:
+    return headless_shell(suite.playwright_browsers())
 
 
-@pytest.fixture(scope="session")
-def page_pool(worker_playwright, page_patches):
-    """The test process's page pool over one headless shell (HEADLESS_SHELL); tests lease its pages
-    through ``reader_browser``."""
-    # Frames stay capped at 60 Hz. Uncapped (--disable-frame-rate-limit), a lone test ends sooner,
-    # but every animation-frame wait in the artifact and the tests draws frames as fast as the CPU
-    # allows; in the complete suite, which keeps every CPU busy, that cost the adapter's part about
-    # a quarter of its CPU time and the suite about 20 s.
-    shell = headless_shell(suite.playwright_browsers())
-    with live_pool(HEADLESS_SHELL_ENGINE, launcher(worker_playwright, HEADLESS_SHELL_ENGINE, shell)) as pool:
-        yield pool
-
-
-@pytest.fixture(scope="session")
-def full_page_pool(worker_playwright, page_patches):
-    """The page pool over one full Chromium, found as the PDF path finds it, for the named set of
-    checks whose behaviour can differ in the headless shell (test/structure/test_quality.py,
-    FULL_CHROMIUM_TESTS); tests lease its pages through ``full_chromium_browser``."""
+def _full_chromium() -> str:
     from obs_html.pdf import _executable
 
-    with live_pool(FULL_CHROMIUM_ENGINE, launcher(worker_playwright, FULL_CHROMIUM_ENGINE, _executable())) as pool:
-        yield pool
-
-
-@pytest.fixture(scope="session")
-def overlay_scrollbar_pool(worker_playwright, page_patches):
-    """A page pool over a second headless shell with overlay scrollbars, as on touch devices and
-    macOS: scrollbars take no room, so the reader's clearance for the chapter arrows is at its narrowest."""
-    engine = f"{HEADLESS_SHELL_ENGINE} (overlay scrollbars)"
-    launch = launcher(worker_playwright, engine, headless_shell(suite.playwright_browsers()),
-                      ("--enable-features=OverlayScrollbar",))
-    with live_pool(engine, launch) as pool:
-        yield pool
+    return _executable()
 
 
 # A phone as Playwright emulates one: touch, a mobile viewport and a phone's device scale. The
 # width is the test's (its viewport), so one pool serves every phone width.
 PHONE_CONTEXT = {"is_mobile": True, "has_touch": True, "device_scale_factor": 3}
 
+# Each pool fixture's pool: its engine, what finds the browser's executable, the browser's launch
+# arguments and its pages' context. Frames stay capped at 60 Hz in every pool. Uncapped
+# (--disable-frame-rate-limit), a lone test ends sooner, but every animation-frame wait in the
+# artifact and the tests draws frames as fast as the CPU allows; in the complete suite, which keeps
+# every CPU busy, that cost the adapter's part about a quarter of its CPU time and the suite about 20 s.
+POOL_KINDS = {
+    # One headless shell (HEADLESS_SHELL); tests lease its pages through ``reader_browser``.
+    "page_pool": (HEADLESS_SHELL_ENGINE, _shell, (), None),
+    # One full Chromium, found as the PDF path finds it, for the named set of checks whose behaviour
+    # can differ in the headless shell (test/structure/test_quality.py, FULL_CHROMIUM_TESTS).
+    "full_page_pool": (FULL_CHROMIUM_ENGINE, _full_chromium, (), None),
+    # A second headless shell with overlay scrollbars, as on touch devices and macOS: scrollbars
+    # take no room, so the reader's clearance for the chapter arrows is at its narrowest.
+    "overlay_scrollbar_pool": (f"{HEADLESS_SHELL_ENGINE} (overlay scrollbars)", _shell,
+                               ("--enable-features=OverlayScrollbar",), None),
+    # A further headless shell whose pages are phones (PHONE_CONTEXT).
+    "phone_pool": (f"{HEADLESS_SHELL_ENGINE} (phone)", _shell, (), PHONE_CONTEXT),
+}
+
+
+def process_pool(name: str) -> PagePool:
+    """The test process's pool of the fixture ``name`` (POOL_KINDS), made on first use; a missing
+    engine raises BrowserEngineError."""
+    if name not in PROCESS_POOLS:
+        engine, executable, args, context = POOL_KINDS[name]
+        pool = PagePool(engine, launcher(process_playwright(), engine, executable(), args), context)
+        PROCESS_POOLS[name] = pool
+        POOLS.append(pool)
+    return PROCESS_POOLS[name]
+
+
+def warm(item) -> None:
+    """Launch the browser of each pool the test needs, so that no test's timeout pays for a cold
+    launch. A pool whose engine is missing or whose launch fails is left cold: its fixture or its
+    first lease fails the test, naming the engine."""
+    for name in POOL_KINDS.keys() & set(getattr(item, "fixturenames", ())):
+        with contextlib.suppress(BrowserEngineError):
+            process_pool(name).warm()
+
+
+@pytest.fixture(scope="session")
+def page_pool(worker_playwright, page_patches):
+    """The test process's page pool over one headless shell (POOL_KINDS)."""
+    return process_pool("page_pool")
+
+
+@pytest.fixture(scope="session")
+def full_page_pool(worker_playwright, page_patches):
+    """The test process's page pool over one full Chromium (POOL_KINDS); tests lease its pages
+    through ``full_chromium_browser``."""
+    return process_pool("full_page_pool")
+
+
+@pytest.fixture(scope="session")
+def overlay_scrollbar_pool(worker_playwright, page_patches):
+    """The test process's page pool over a headless shell with overlay scrollbars (POOL_KINDS)."""
+    return process_pool("overlay_scrollbar_pool")
+
 
 @pytest.fixture(scope="session")
 def phone_pool(worker_playwright, page_patches):
-    """A page pool over a second headless shell whose pages are phones (PHONE_CONTEXT); tests lease
-    its pages through ``phone_browser``."""
-    engine = f"{HEADLESS_SHELL_ENGINE} (phone)"
-    launch = launcher(worker_playwright, engine, headless_shell(suite.playwright_browsers()))
-    with live_pool(engine, launch, PHONE_CONTEXT) as pool:
-        yield pool
+    """The test process's page pool whose pages are phones (POOL_KINDS); tests lease its pages
+    through ``phone_browser``."""
+    return process_pool("phone_pool")
 
 
 def crashed(report) -> None:
