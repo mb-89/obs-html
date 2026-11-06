@@ -532,7 +532,8 @@ anchor and with options by letter, with the winner they give, for whatever sends
 verdict ([[#Bless verdicts]]).
 
 Where the chapter asks for a bless, each option's column head other than the winner's has a
-Pick key ("Pick B").
+Pick key ("Pick B"). Where the chapter's answer recorded changes, the figure shows them
+read-only, as print does, and Reset is disabled.
 
 Print and PDF show the Matrix tab as the reader left it, the options as a list and the weights
 and marks as text; where weights or marks changed, the caption ends with the note *View changed
@@ -697,7 +698,10 @@ verdicts of the asking chapters. It is disabled until one is complete, and hands
 the answer sink ([[capabilities/answers]]); [[capabilities/bless]] owns its fields. A sent
 verdict shows as sent until its chapter's version changes.
 
-At 390 px the band's squares shrink so the row fits.
+A chapter whose answer the build carries (`obs-document --answers`) shows it read-only under
+its heading: the verdict, the picked option, the comment and the reader's changes, rulings and
+tripwires; its pill reads "· recorded" and it has no keys. An outdated answer shows the same way,
+marked outdated, and the chapter asks again. At 390 px the band's squares shrink so the row fits.
 
 ## Internal-link previews
 

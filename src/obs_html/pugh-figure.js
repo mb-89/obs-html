@@ -11,8 +11,9 @@
    first four by figure anchor, options by letter. Print shows the Matrix tab as the reader left
    it, with a caption note where weights or marks changed.
 
-   Where the chapter asks for a bless (bless.js), each option's column head other than the
-   winner's has a Pick key. */
+   A figure whose chapter carries an answer (obs input-model, Answers) shows the answer's weights,
+   marks and rulings read-only (its spec's ``answered``); where the chapter asks for a bless
+   (bless.js), each option's column head other than the winner's has a Pick key. */
 globalThis.obsPugh = (() => {
   const VIEW_NOTE = "View changed by the reader.";
   const CHECKLIST = "checklist";  // The key of the row failed checklist items make (the core reserves it).
@@ -30,8 +31,12 @@ globalThis.obsPugh = (() => {
     node.append(...children.filter(child => child !== null && child !== undefined && child !== false));
     return node;
   }
-  function state(anchor) {
-    if (!states.has(anchor)) states.set(anchor, {weights: {}, marks: {}, rulings: {}, option: 0, tab: "matrix"});
+  function state(anchor, answered) {
+    if (!states.has(anchor)) {
+      states.set(anchor, {weights: {}, marks: {}, rulings: {}, option: 0, tab: "matrix",
+        ...(answered ? {...structuredClone({weights: {}, marks: {}, rulings: {}, ...answered}), locked: true} : {})});
+      delete states.get(anchor).winner;
+    }
     return states.get(anchor);
   }
   function changed(anchor) {
@@ -234,7 +239,8 @@ globalThis.obsPugh = (() => {
     cell.append(chooser);
     chooser.querySelector('[aria-pressed="true"]')?.focus();
   }
-  function table(figure, spec, result, figureModel, view, {print}) {
+  function table(figure, spec, result, figureModel, view, {print: shown}) {
+    const print = shown || view.locked;
     const scroll = element("div", {className: "pugh-scroll", tabIndex: 0});
     scroll.setAttribute("role", "region");
     scroll.setAttribute("aria-label", "Decision matrix");
@@ -344,6 +350,7 @@ globalThis.obsPugh = (() => {
         const key = element("button", {type: "button", className: "filter-pill", textContent: label});
         key.setAttribute("aria-pressed", String(ruling.ruling === value));
         key.dataset.pughRuling = value;
+        key.disabled = Boolean(view.locked);
         key.addEventListener("click", () => {
           view.rulings[option.letter] = ruling.ruling === value ? {} : {...ruling, ruling: value};
           draw(figure, spec);
@@ -356,6 +363,7 @@ globalThis.obsPugh = (() => {
           placeholder: "A sign to watch for"});
         tripwire.setAttribute("aria-label", `Tripwire for ${option.letter}: a sign to watch for`);
         tripwire.dataset.pughTripwire = option.letter;
+        tripwire.readOnly = Boolean(view.locked);
         tripwire.addEventListener("change", () => {
           view.rulings[option.letter] = {...view.rulings[option.letter], tripwire: tripwire.value.trim()};
           draw(figure, spec);
@@ -416,14 +424,14 @@ globalThis.obsPugh = (() => {
     observer.observe(parent);
   }
   function draw(figure, spec, host = figure.querySelector(".figure-live"), {print = false} = {}) {
-    const view = state(figure.id);
+    const view = state(figure.id, spec.answered);
     const {result, figureModel} = decide(spec, view);
     const matrix = element("div", {className: "pugh-view"}, bottomLine(spec, result, figureModel),
       raised(spec, result, figureModel, view),
       print ? optionsList(figureModel) : optionsView(figure, spec, figureModel, view),
       table(figure, spec, result, figureModel, view, {print}));
     view.winner = result.suggestion ? figureModel.byKey[result.suggestion.key].letter : "";
-    if (!print && changed(figure.id)) {
+    if (!print && !view.locked && changed(figure.id)) {
       const reset = element("button", {type: "button", className: "filter-pill pugh-reset", textContent: "Reset"});
       reset.title = "Restore the fence's weights and marks";
       reset.addEventListener("click", () => reset_(figure, spec));
@@ -441,14 +449,15 @@ globalThis.obsPugh = (() => {
       host.replaceChildren(element("div", {className: "pugh-figure-view"}, tabs(figure, spec, view, panels, figureModel), ...panels));
     }
     const menuReset = figure.querySelector(":scope > .figure-options .pugh-reset");
-    if (menuReset) menuReset.disabled = !changed(figure.id);
+    if (menuReset) menuReset.disabled = view.locked || !changed(figure.id);
     figure.dataset.pughWinner = result.suggestion ? figureModel.byKey[result.suggestion.key].letter : "";
     figure.classList.add("figure-pugh-ready");
     if (!print) fit(figure);
     return result;
   }
   function reset_(figure, spec) {
-    const view = state(figure.id);
+    const view = state(figure.id, spec.answered);
+    if (view.locked) return;  // An answer's changes are the record; nothing resets them.
     view.weights = {};
     view.marks = {};
     draw(figure, spec);
@@ -466,7 +475,7 @@ globalThis.obsPugh = (() => {
   function option(figure) {
     const reset = element("button", {type: "button", className: "filter-pill pugh-reset", textContent: "Reset",
       title: "Restore the fence's weights and marks"});
-    reset.disabled = !changed(figure.id);
+    reset.disabled = Boolean(states.get(figure.id)?.locked) || !changed(figure.id);
     reset.addEventListener("click", () => reset_(figure, JSON.parse(figure.dataset.figureSpec)));
     return reset;
   }
@@ -480,10 +489,10 @@ globalThis.obsPugh = (() => {
     (caption.querySelector("p:last-child") || caption).append(note);
   }
   /** The reader's changed weights and marks, rulings and tripwires, and the winner they give, by figure
-      anchor (a figure the reader left as it was is not listed), options by letter. */
+      anchor (a figure the reader left as it was, or one an answer shows, is not listed), options by letter. */
   function readerState() {
     const marked = view => Object.fromEntries(Object.entries(view.marks).filter(([, marks]) => Object.keys(marks).length));
-    return Object.fromEntries([...states]
+    return Object.fromEntries([...states].filter(([, view]) => !view.locked)
       .map(([anchor, view]) => [anchor, structuredClone({weights: view.weights, marks: marked(view), rulings: view.rulings,
         winner: view.winner})])
       .filter(([, view]) => Object.keys(view.weights).length || Object.keys(view.marks).length || Object.keys(view.rulings).length));

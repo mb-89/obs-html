@@ -35,6 +35,7 @@ from obs_html.semantic_assets import SemanticAssets, markup
 from obs_html.declared_style import DeclaredStyles, GitFetcher, user_cache
 from obs_html.styles import load_style
 from obs_html import source_archive
+from obs_html.bless_record import record_html
 from obs_html.timings import stage
 
 
@@ -87,6 +88,8 @@ class Context:
     where: list[object] = field(default_factory=list)
     """The path of the node being rendered in the Document, as an error names it."""
     figure_position: int = 0
+    answered_figures: dict[str, dict] = field(default_factory=dict)
+    """The current chapter's answered decision figures, by anchor (obs input-model, Answers)."""
     """The current note's figures so far, which name an anchor where nothing else does."""
     figures: dict[str, object] = field(default_factory=lambda: dict(PROFILE_DEFAULTS["figures"]))
     """The manifest's obsHtml.figures (numbering, label, labelPlural)."""
@@ -540,7 +543,7 @@ def _figure(node: dict[str, object], context: Context) -> str:
         for link in node["children"][0]["children"]
     }
     return render_figure(node, context.chapter or HOME, context.figure_position, paragraphs, caption_text,
-                         _note_source(context), _figure_number(context), links)
+                         _note_source(context), _figure_number(context), links, context.answered_figures)
 
 
 def _figure_number(context: Context) -> str:
@@ -949,7 +952,14 @@ def _chapter_notes(chapters: list[dict[str, object]], context: Context, depth: i
     notes = []
     for index, chapter in enumerate(chapters):
         context.frontmatter = dict(chapter.get("metadata") or {})
+        context.answered_figures = ((chapter.get("bless") or {}).get("answer") or {}).get("figures", {})
         body = _note_body(chapter["content"], chapter["id"], [*where, index, "content"], context)
+        context.answered_figures = {}
+        record = record_html(chapter)
+        if record:  # The answer, read-only, under the chapter's heading (bless_record.py).
+            heading = re.match(r"\s*<h1\b.*?</h1>\n?", body, re.S)
+            cut = heading.end() if heading else 0
+            body = body[:cut] + record + "\n" + body[cut:]
         notes.append(_note(depth, chapter["title"], chapter["id"], "", context.frontmatter, body, context))
         if "bless" in chapter:  # Its bless request, answered or not (obs input-model, Bless requests; bless.js).
             notes[-1]["bless"] = chapter["bless"]
