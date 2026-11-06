@@ -731,6 +731,51 @@
               "text": "."
             }
           ]
+        },
+        {
+          "type": "paragraph",
+          "attrs": {},
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Broken "
+            },
+            {
+              "type": "wikilinks",
+              "attrs": {
+                "target": "",
+                "chapter": "two",
+                "heading": "^d",
+                "label": "^d",
+                "figure": "d"
+              },
+              "children": []
+            },
+            {
+              "type": "break",
+              "attrs": {},
+              "children": []
+            },
+            {
+              "type": "wikilinks",
+              "attrs": {
+                "target": "",
+                "chapter": "two",
+                "heading": "^e",
+                "label": "^e",
+                "figure": "e"
+              },
+              "children": []
+            },
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "."
+            }
+          ]
         }
       ],
       "children": [],

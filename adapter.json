@@ -39,6 +39,10 @@
     "embed-attachments": {
       "type": "boolean",
       "summary": "The evidence edition: embed each marked attachment as a download of its bytes (obs-html --embed-attachments)."
+    },
+    "trusted-runtime-bundle": {
+      "type": "vault-file",
+      "summary": "ID=PATH: explicitly trust the vault's JavaScript file PATH and embed it as application runtime ID (obs-html --trusted-runtime-bundle)."
     }
   }
 }

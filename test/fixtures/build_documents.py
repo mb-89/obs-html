@@ -249,6 +249,7 @@ def structural(root: Path) -> None:
         "> A quoted **line**.\n\n"
         "| Left | Center | Right |\n|:---|:---:|---:|\n| a | *b* | 3 |\n\n"
         "---\n\n"
+        "A line  \nbroken twice\\\nand a soft\nline.\n\n"
         "> [!note]\n> Untitled note body.\n",
         encoding="utf-8",
     )
@@ -582,6 +583,7 @@ FIGURE_REFERENCES = {
     "german": "Siehe [[#^a]] und [[#^b]].",
     "plus": "See [[#^a]] plus [[#^b]] and [[#^c]].",
     "labelled": "Labelled [[#^a|the first]].",
+    "broken": "Broken [[#^d]]  \n[[#^e]].",
 }
 
 

@@ -59,6 +59,7 @@ def test_references_show_the_number_and_adjacent_ones_merge() -> None:
         f"Mixed Figures {_link('a', '2.1')}–{_link('c', '2.3')}, and {_link('e', '2.5')} or "
         f"{_link('b', 'the second')} {_link('c', 'Figure 2.3')}.")
     assert _paragraph(two, "Siehe") == f"Siehe Figures {_link('a', '2.1')} und {_link('b', '2.2')}."
+    assert _paragraph(two, "Broken") == f"Broken {_link('d', 'Figure 2.4')}<br>\n{_link('e', 'Figure 2.5')}."
     assert _paragraph(notes["one"], "Across") == f"Across {_link('b', 'Figure 2.2')}."
     assert '<span class="figure-number">Figure 2.4:</span> Figure d.' in two
     assert 'id="two--block-d"' in two
