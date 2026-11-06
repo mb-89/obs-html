@@ -3195,8 +3195,10 @@
         if (!expectedRuntimeBundle) throw new Error("The HTML has no trusted runtime bundle selection.");
         if (registeredApplication) throw new Error("A trusted runtime bundle is already registered.");
         if (!bundle || typeof bundle !== "object" || Array.isArray(bundle) ||
-                bundle.id !== expectedRuntimeBundle || !Array.isArray(bundle.actions) || !bundle.actions.length) {
-            throw new Error("Trusted runtime registration does not match the selected bundle.");
+                bundle.id !== expectedRuntimeBundle || !Array.isArray(bundle.actions)) {
+            throw new Error(`obsArtifact.registerApplication: the bundle is not {id: "${expectedRuntimeBundle}", ` +
+                "actions: [...]}; register the id --trusted-runtime-bundle selected and an actions array, " +
+                "empty where the bundle registers only extensions.");
         }
         const actions = new Map();
         for (const action of bundle.actions) {

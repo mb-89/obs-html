@@ -10,6 +10,16 @@ capability:
 
 The register presents the owning metadata as the capability reference.
 
+## Registration
+
+The bundle `--trusted-runtime-bundle ID=PATH` selects registers once, with
+`obsArtifact.registerApplication({id, actions})`: `id` is the selected ID, and `actions` is an
+array of actions, each with an `id`, the file types it `accept`s, its `help` and its `handle`.
+`actions` may be empty: a bundle that registers only extensions, such as an
+[[capabilities/answers|answers]] sink, is trusted for them and adds no action. A registration
+without an `actions` array, or under another ID, fails the opening and names
+`obsArtifact.registerApplication`.
+
 ## Adapter extensions
 
 obs's input model owns where an adapter documents its trusted extensions and how it names their

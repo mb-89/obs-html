@@ -315,7 +315,8 @@ failures have their form in [[input-model#Chapter content]].
   toggling or plot panning; provide a keyboard-accessible equivalent. Legend position is
   view-local and survives expand/close in the session; print retains the authored default.
 - Figures are centered on the available reader viewport and may extend equally to either
-  side of the prose column, within the viewport. Plot coordinate areas should occupy
+  side of the prose column, within the reader and clear of the chapter controls, which a
+  figure's own controls never lie under. Plot coordinate areas should occupy
   approximately the prose width; their labels and margins may extend beyond it.
 
   Do not distort aspect or enlarge inline images merely to fill space. Narrow screens
