@@ -58,13 +58,13 @@ globalThis.obsPugh = (() => {
     const line = element("p", {className: "pugh-check"});
     line.dataset.pughCheck = chosen;
     if (!candidate.fits) {
-      line.append(element("strong", {textContent: `The chosen ${label} is not the winner`}),
+      line.append(element("strong", {textContent: `The chosen option, ${label}, is not the winner`}),
         `: it does not fit (${candidate.whyNot}), so no weight makes it win.`);
       return line;
     }
     const sensitivity = result.sensitivity, entry = sensitivity?.all.find(item => item.key === chosen);
     if (!entry) {
-      line.append(element("strong", {textContent: `The chosen ${label} is not the winner`}),
+      line.append(element("strong", {textContent: `The chosen option, ${label}, is not the winner`}),
         ": it may be ranked but not suggested, so no weight makes it win.");
       return line;
     }
@@ -84,7 +84,7 @@ globalThis.obsPugh = (() => {
           + `size, one by at most ${number(entry.minChange.maxStep)}, ${band(allReasonable, step)}`})
       : element("span", {className: "pugh-unreasonable", textContent: "no change of the weights makes it tie the winner"});
     all.dataset.pughAll = allReasonable ? "reasonable" : "unreasonable";
-    line.append(element("strong", {textContent: `The chosen ${label} is not the winner`}), ": ", single, "; ", all, ".");
+    line.append(element("strong", {textContent: `The chosen option, ${label}, is not the winner`}), ": ", single, "; ", all, ".");
     return line;
   }
   function bottomLine(spec, result) {
@@ -109,7 +109,7 @@ globalThis.obsPugh = (() => {
     const justification = check(spec, result);
     if (justification) box.append(justification);
     else if (spec.matrix.chosen === suggestion.key) box.append(element("p", {className: "pugh-chosen",
-      textContent: `The chosen ${suggestion.label} is the winner.`}));
+      textContent: `The chosen option, ${suggestion.label}, is the winner.`}));
     return box;
   }
   function matrixTable(spec, result, figure, {print}) {
@@ -132,7 +132,8 @@ globalThis.obsPugh = (() => {
     }
     const body = element("tbody");
     result.criteria.forEach((criterion, index) => {
-      const row = element("tr", {}, element("th", {scope: "row", className: "pugh-criterion", textContent: criterion.label}));
+      const row = element("tr", {}, element("th", {scope: "row", className: "pugh-criterion", textContent: criterion.label,
+        title: criterion.label}));
       row.dataset.pughCriterion = criterion.key;
       const weight = result.weights[index];
       if (print) row.append(element("td", {className: "pugh-weight", textContent: number(weight)}));
