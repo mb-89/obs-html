@@ -96,13 +96,18 @@ obsHtml:
   margin limits. It replaces the removed project `artifact.paper` setting.
 - `cssSnippets` lists CSS snippet names, without `.css`, from the vault's snippet folder
   (configuration's `input.cssSnippetFolder`, Obsidian's `.obsidian/snippets` by default).
+  obs-html reads them from the Document, whose `cssSnippets` carries every snippet of that folder
+  (obs's architecture, CSS snippets: [[obs-specification|obs's specification]]).
 
-  The HTML embeds them in list order after its own styles, so they style screen, pages and
-  PDF and win at equal specificity. Obsidian's own enabled-snippet list is a per-device
+  The HTML embeds them in list order after its own styles, every packaged stylesheet including
+  the figure styles, so they style screen, pages and PDF and win at equal specificity. Snippet CSS
+  applies page-wide by design: unlike a figure's authored styles it is the author's styling of
+  the whole artifact. Obsidian's own enabled-snippet list is a per-device
   appearance choice and is not read: the document declares what it needs.
 
-  A listed snippet that is missing, or that contains `</style`, is an input error. The
-  default is none.
+  A listed snippet that is missing, or that contains `</style`, is an input error. A missing one
+  names the manifest, the field (`obsHtml.cssSnippets[1]`) and, in its remedy, the snippets the
+  vault has; one that contains `</style` names its snippet file. The default is none.
 - Generated abstract sections are [register](#registers) embeds in the abstract Markdown.
 - Vaults that declare none of these keys keep the packaged defaults shown above, which reproduce
   the established cover, "Abstract", "Contents", and paged opening.

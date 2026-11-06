@@ -1,10 +1,11 @@
-"""The source archive a Document carries, packaged by obs-html.
+"""The source archive and the CSS snippets a Document carries, packaged and applied by obs-html.
 
-Reader: whoever changes how obs-html packages a Document's sourceArchive (source_archive.py);
-input-model.md, "Optional reproduction archive", owns the behaviour.
+Reader: whoever changes how obs-html packages a Document's sourceArchive (source_archive.py) or
+embeds the CSS snippets its manifest lists (render.py); input-model.md, "Optional reproduction
+archive" and "Artifact presentation profile", owns the behaviour.
 
 Each check reads the HTML or the PDF in Python: the archive's bytes from its island, unzipped;
-the PDF's attachment through pypdf.
+the snippets' style elements in document order; the PDF's attachment through pypdf.
 """
 import base64
 import hashlib
@@ -28,6 +29,7 @@ from obs_html.source_archive import ARCHIVE_NAME, attach, embedded
 
 CONFIG = load_config()
 SCRIPT = b"print('rebuilt')\n"
+STYLE = re.compile(r"<style\b[^>]*>")
 
 
 def archived(snippets: list[str] | None = None) -> dict:
@@ -162,4 +164,49 @@ def test_a_pdf_destination_of_an_archived_document_carries_the_archive(tmp_path:
     attachment = PdfReader(tmp_path / "artifact.pdf").attachments[ARCHIVE_NAME][0]
     with zipfile.ZipFile(io.BytesIO(attachment)) as opened:
         assert opened.read("vault/scripts/build.py") == SCRIPT
+
+
+def test_listed_snippets_follow_every_packaged_style_in_listed_order() -> None:
+    html = render(archived(["print", "house"]), CONFIG)
+    styles = STYLE.findall(html)
+
+    assert styles[-2:] == ['<style data-css-snippet="print">', '<style data-css-snippet="house">']
+    assert all("data-css-snippet" not in style for style in styles[:-2])
+    assert '<style data-css-snippet="house">p { color: rgb(1, 2, 3); }\n</style>' in html
+
+
+def test_unlisted_snippets_are_not_embedded() -> None:
+    html = render(archived(["house"]), CONFIG)
+
+    assert 'data-css-snippet="house"' in html and "rgb(4, 5, 6)" not in html
+    assert "data-css-snippet" not in render(archived(), CONFIG)
+
+
+def test_an_unknown_snippet_fails_naming_the_manifest_and_the_available_snippets() -> None:
+    with pytest.raises(InputError) as failure:
+        render(archived(["house", "missing"]), CONFIG)
+
+    assert failure.value.source == "manifest.md"
+    assert failure.value.field == "obsHtml.cssSnippets[1]"
+    assert "house" in failure.value.remedy and "print" in failure.value.remedy
+
+
+def test_a_snippet_that_closes_its_style_element_fails_naming_its_file() -> None:
+    source = archived(["house"])
+    source["cssSnippets"][0]["text"] = "p {} </style><script>"
+
+    with pytest.raises(InputError) as failure:
+        render(source, CONFIG)
+
+    assert failure.value.source == ".obsidian/snippets/house.css"
+
+
+def test_an_unknown_snippet_is_named_below_the_vault_root(tmp_path: Path, capsys) -> None:
+    source = tmp_path / "document.json"
+    source.write_text(json.dumps(archived(["missing"])), encoding="utf-8")
+
+    with pytest.raises(SystemExit):
+        cli.main([str(source), "--check", "--vault-root", "vault"])
+
+    assert f"{Path('vault', 'manifest.md')}: obsHtml.cssSnippets[0]:" in capsys.readouterr().err
 

@@ -49,6 +49,7 @@ PROFILE_DEFAULTS = {
               {"page": "contents", "title": "Contents"}],
     "figures": {"numbering": "none", "label": "Figure", "labelPlural": "Figures"},
     "query": {"scope": "chapters"},
+    "cssSnippets": [],
 }
 COVER_FIELDS = ("authors", "reviewers", "approvers", "document number", "legal entity")
 HOME = "home"
@@ -804,7 +805,27 @@ def render(document: dict[str, object], config: Config,
         model = source_archive.share(model, archive)
     return prepare_artifact_scripts(assets.resolve_markup(
         _shell(model, list(context.unknown.values()), style.stylesheet, assets, config, trusted_runtime,
-               archive=archive)))
+               snippets=_css_snippets(document), archive=archive)))
+
+
+def _css_snippets(document: dict[str, object]) -> str:
+    """The style elements of the CSS snippets the manifest's obsHtml.cssSnippets lists, in its
+    order, from the Document's cssSnippets (the vault's snippet folder, which the core reads)."""
+    manifest = document["manifest"]
+    available = {snippet["name"]: snippet for snippet in document["cssSnippets"]}
+    styles = []
+    for index, name in enumerate(_profile(manifest)["cssSnippets"]):
+        snippet = available.get(name)
+        if snippet is None:
+            listed = ", ".join(sorted(available)) or "none"
+            raise InputError(manifest["path"], f"obsHtml.cssSnippets[{index}]", f"names {name!r}, which the "
+                             "vault's snippet folder does not hold", f"Name one of its snippets ({listed}) or add "
+                             f"{name}.css to the snippet folder (obs configuration input.cssSnippetFolder)")
+        if re.search(r"</style", snippet["text"], re.IGNORECASE):
+            raise InputError(snippet["path"], "", "contains '</style', which would end its style element",
+                             "Remove it from the snippet")
+        styles.append(f'<style data-css-snippet="{escape(name, quote=True)}">{snippet["text"]}</style>')
+    return "".join(styles)
 
 
 def _resolve_icons(value: object, assets: SemanticAssets) -> object:
@@ -1251,10 +1272,11 @@ def _note_target(href: str, context: Context) -> str | None:
 
 
 def _shell(model: dict[str, object], limits: list[dict[str, str]], stylesheet: str, assets: SemanticAssets,
-           config: Config, trusted_runtime: tuple[str, str] | None,
+           config: Config, trusted_runtime: tuple[str, str] | None, snippets: str = "",
            archive: bytes | None = None) -> str:
     """The artifact page; ``limits`` are the Document's limited functions (capabilities.js warns of each).
-    ``archive`` is the source ZIP (source_archive.py)."""
+    ``snippets`` are the author's style elements, which follow every packaged style; ``archive`` is
+    the source ZIP (source_archive.py)."""
     package = files("obs_html")
 
     def read(*parts: str) -> str:
@@ -1422,6 +1444,7 @@ def _shell(model: dict[str, object], limits: list[dict[str, str]], stylesheet: s
 {feature_code}{read("artifact.js")}
   </script>
   {figure_assets}
+  {snippets}
   {card_assets}
   {property_assets}
   <script id="pages-script">
