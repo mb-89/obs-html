@@ -18,6 +18,7 @@
     "embeds",
     "extensions",
     "figure-descriptor",
+    "figures",
     "manifest",
     "markdown",
     "markdown-frontmatter",

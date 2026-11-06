@@ -1,16 +1,31 @@
-"""Figures from the Document's FigureDescriptors: Plotly plots and Sankey diagrams.
+"""The one figure frame and the figure kinds it frames: images, SVG drawings, Sankey diagrams and
+stored-data plots (the Document's ``figures`` nodes, obs input-model, Figure input direction).
 
-A descriptor carries neutral data, panels with axes, and provenance (the core's
-figure.schema.json). This adapter reads two shapes of ``data``: ``sankey`` (a graph valid
-against sankey.schema.json) and ``traces`` (numeric series drawn on the descriptor's panels).
+Reader: whoever changes how a figure is framed or adds a figure kind (artifact-ui.md, One
+figure frame).
+
+Every figure is one frame (``frame``): the ``obs-figure`` element with the kind's body, then the
+caption with its number; figures.js gives every frame its expansion button and, where its kind
+registers options, its options menu, and figures.css's one ``.obs-figure`` rule styles every
+frame. A kind is one ``FIGURE_KINDS`` entry: its body renderer, its options and the reader
+features it needs (features.py); it never changes the frame.
+
+A plot body reads two shapes of a FigureDescriptor's ``data`` (the core's figure.schema.json):
+``traces`` (numeric series drawn on the descriptor's panels) and ``sankey`` (a graph valid
+against sankey.schema.json).
 """
 from __future__ import annotations
 
+import base64
+from dataclasses import dataclass
 import json
 import math
+import re
 from functools import cache
 from html import escape
 from importlib.resources import files
+from typing import Callable
+from xml.etree import ElementTree
 
 from jsonschema import Draft202012Validator
 
@@ -20,13 +35,129 @@ from .timings import stage as timed
 
 
 FIGURE = "figure"
-"""The field a message names a descriptor by: the figure fence it comes from."""
+"""The field a message names a figure by: the figure fence it comes from."""
 REMEDY = "Correct the figure's descriptor; see obs capabilities/figure-descriptor"
 
 
 def figure_error(source: str, field: str, problem: str, remedy: str = REMEDY) -> InputError:
-    """A descriptor this adapter cannot draw; ``source`` is the note of its figure fence."""
+    """A figure this adapter cannot draw; ``source`` is the note of its figure fence."""
     return InputError(source, f"{FIGURE}.{field}", problem, remedy)
+
+
+@dataclass(frozen=True)
+class Body:
+    """What a kind renders inside the frame."""
+
+    html: str
+    spec: dict | None = None
+    """The runtime's spec of an interactive body (figures.js), on the frame as data-figure-spec."""
+    name: str = ""
+    """A name the body gives its figure's anchor where it has no block id (a descriptor's id)."""
+    presents: str = ""
+    """The kind the runtime presents it as, where it differs from the node's (a descriptor's Sankey)."""
+
+
+@dataclass(frozen=True)
+class FigureKind:
+    """One figure kind: its body renderer, its options and the reader features it needs."""
+
+    body: Callable[[dict, str, str], Body]
+    """The body from the kind's node attrs, the figure's accessible name and its note."""
+    options: tuple[str, ...] = ()
+    """The view options figures.js offers in the figure's options menu (FIGURE_OPTIONS keys)."""
+    features: tuple[str, ...] = ()
+    """The keys of the reader features (features.py) a figure of this kind needs."""
+
+
+def _image_body(attrs: dict, alt: str, _source: str) -> Body:
+    alt = alt or "Figure"
+    return Body(f'<img class="figure-visual" src="data:{escape(attrs["mediaType"], quote=True)};base64,'
+                f'{attrs["data"]}" alt="{escape(alt, quote=True)}">')
+
+
+def _svg_body(attrs: dict, alt: str, source: str) -> Body:
+    """The exact drawing as an image; with panels, the runtime's panel inspector."""
+    markup, alt = attrs["svg"], alt or "Figure"
+    uri = "data:image/svg+xml;base64," + base64.b64encode(markup.encode("utf-8")).decode("ascii")
+    image = f'<img class="figure-default figure-visual" src="{uri}" alt="{escape(alt, quote=True)}">'
+    if "panels" not in attrs:
+        return Body(image)
+    view_box = ElementTree.fromstring(markup).get("viewBox")
+    if not view_box or len(re.split(r"[,\s]+", view_box.strip())) != 4:
+        raise InputError(source, f"{FIGURE}.svg", "has panels but its svg element has no viewBox of four "
+                         "numbers, which the panel boxes are measured in", "Give the svg element a viewBox")
+    return Body(f'{image}<div class="figure-live" aria-label="Interactive figure"></div>',
+                {"kind": "svg", "panels": attrs["panels"], "viewBox": view_box, "alt": alt})
+
+
+def _sankey_body(attrs: dict, alt: str, source: str) -> Body:
+    graph, nodes = _sankey_graph(attrs["graph"], source, "graph")
+    return _sankey(graph, nodes, alt or "Figure", COUNT_LABELS | attrs.get("countLabels", {}))
+
+
+def _plot_body(attrs: dict, alt: str, source: str) -> Body:
+    descriptor = attrs["descriptor"]
+    data, name = descriptor["data"], descriptor["id"]
+    if "sankey" in data:
+        graph, nodes = _sankey_graph(data["sankey"], source)
+        body = _sankey(graph, nodes, alt or name, COUNT_LABELS | data.get("countLabels", {}))
+        return Body(body.html, body.spec, name, "sankey")
+    if "traces" in data:
+        payload = {**_plot(descriptor, source), "kind": "plot", "source": name, "alt": alt or name}
+        return Body('<div class="figure-live" aria-label="Interactive figure"></div>', payload, name)
+    raise unsupported(source)
+
+
+FIGURE_KINDS: dict[str, FigureKind] = {
+    "image": FigureKind(_image_body),
+    "svg": FigureKind(_svg_body),
+    "sankey": FigureKind(_sankey_body),
+    "plot": FigureKind(_plot_body, features=("plotting",)),
+}
+"""The figure kinds this adapter renders, by the core's kind (obs src/obs/figure.py, FIGURE_KINDS)."""
+
+
+def frame(kind: str, body: Body, anchor: str, caption: list[str], number: str = "") -> str:
+    """The one figure frame of every kind: the body, then the caption with its number.
+
+    ``caption`` holds the caption's paragraphs as phrasing HTML; ``number`` is the figure's
+    generated number, shown only before a caption.
+    """
+    presents = body.presents or kind
+    attributes = f' id="{escape(anchor, quote=True)}"'
+    number_html = f'<span class="figure-number">{escape(number)}:</span> ' if number and caption else ""
+    if number_html:
+        attributes += f' data-figure-number="{escape(number, quote=True)}"'
+    if body.spec is not None:
+        spec = escape(json.dumps(body.spec, separators=(",", ":"), allow_nan=False), quote=True)
+        attributes += f' data-engineering-figure data-figure-spec="{spec}"'
+    if len(caption) == 1:
+        caption_html = f"<figcaption>{number_html}{caption[0]}</figcaption>"
+    elif caption:
+        caption_html = "<figcaption>" + "".join(
+            f"<p>{number_html if index == 0 else ''}{paragraph}</p>" for index, paragraph in enumerate(caption)
+        ) + "</figcaption>"
+    else:
+        caption_html = ""
+    return (f'<figure class="obs-figure figure-{presents}" data-artifact-figure data-figure-kind="{presents}"'
+            f'{attributes}>{body.html}{caption_html}</figure>\n')
+
+
+@timed("figures")
+def render_figure(node: dict, chapter: str, position: int, caption: list[str], caption_text: str,
+                  source: str, number: str = "") -> str:
+    """One figures node in its frame. ``position`` counts the chapter's figures from 1, for an
+    anchor where neither a block id nor the body names one; ``caption_text`` is the caption's
+    plain text, the accessible name where the figure has no alt."""
+    attrs = node["attrs"]
+    [child] = node["children"]
+    kind = FIGURE_KINDS[attrs["kind"]]
+    body = kind.body(child["attrs"], attrs.get("alt") or caption_text, source)  # "" leaves the kind's default.
+    if "block" in attrs:
+        anchor = f"{chapter}--block-{attrs['block']}"
+    else:
+        anchor = f"{chapter}--figure-{body.name or position}"
+    return frame(attrs["kind"], body, anchor, caption, number)
 
 
 @cache
@@ -35,9 +166,9 @@ def _sankey_validator():
         json.loads(files("obs_html").joinpath("sankey.schema.json").read_text(encoding="utf-8")))
 
 
-def _sankey_graph(graph, source: str):
-    """The descriptor's ``data.sankey`` graph, checked as this adapter draws it."""
-    field = "data.sankey"
+def _sankey_graph(graph, source: str, field: str = "data.sankey"):
+    """A Sankey graph, checked as this adapter draws it: a sankey figure's ``graph`` or a
+    descriptor's ``data.sankey``."""
     error = schema_error(list(_sankey_validator().iter_errors(graph)), source,
                          "obs-html's sankey.schema.json", prefix=f"{FIGURE}.{field}")
     if error is not None:
@@ -87,9 +218,15 @@ def _sankey_number(value):
     return format(value, ".6g")
 
 
-def _render_sankey(graph, nodes, caption, source_name, caption_html, alt="", source_note=None,
-                   *, layout_width=0, identity="", count_labels=COUNT_LABELS, standalone_style=None):
-    """The artifact's Sankey figure; with standalone_style, only its SVG, styled by that CSS."""
+def _sankey(graph, nodes, alt: str, count_labels) -> Body:
+    """A Sankey body: its static drawing and the runtime's spec, which redraws it."""
+    spec = {"kind": "sankey", "alt": alt, **graph, "countLabels": count_labels}
+    return Body(_render_sankey(graph, nodes, alt, count_labels=count_labels), spec)
+
+
+def _render_sankey(graph, nodes, accessible_name, *, layout_width=0, count_labels=COUNT_LABELS,
+                   standalone_style=None):
+    """The Sankey drawing's SVG; with standalone_style, a standalone SVG styled by that CSS."""
     stages = sorted({node["stage"] for node in graph["nodes"]})
     columns = {stage: [] for stage in stages}
     incoming = {node["id"]: 0.0 for node in graph["nodes"]}
@@ -181,12 +318,6 @@ def _render_sankey(graph, nodes, caption, source_name, caption_html, alt="", sou
             link_centers[id(link)] = (source_y, y + thickness / 2)
             y += thickness
 
-    encoded = escape(json.dumps(
-        {"caption": caption, "alt": alt, "source": source_name, **graph,
-         "countLabels": count_labels,
-         **({"sourceNote": source_note} if source_note else {})},
-        separators=(",", ":"), allow_nan=False,
-    ), quote=True)
     incoming_series = {
         (link["series"], link["target"]): link
         for link in graph["links"] if "series" in link
@@ -202,7 +333,6 @@ def _render_sankey(graph, nodes, caption, source_name, caption_html, alt="", sou
             graph, minimum_width=layout_width, count_labels=count_labels,
         )
         link_centers = {id(link): center for link, center in zip(graph["links"], centers)}
-    accessible_name = alt or caption or source_name
     parts = [
         f'<svg xmlns="http://www.w3.org/2000/svg" class="sankey-canvas" width="{width}" height="{height}" viewBox="0 0 {width} {height}" '
         f'role="img" aria-label="{escape(accessible_name, quote=True)}" style="--sankey-width:{width}px">'
@@ -282,13 +412,7 @@ def _render_sankey(graph, nodes, caption, source_name, caption_html, alt="", sou
             f'<title>{escape(node["label"])}</title></text></g>'
         )
     parts.append("</svg>")
-    if standalone_style is not None:
-        return "".join(parts) + "\n"
-    parts.insert(0, f'<figure class="engineering-figure figure-sankey" data-artifact-figure data-engineering-figure data-figure-kind="sankey" data-figure-spec="{encoded}"{identity}>')
-    if caption_html:
-        parts.append(f"<figcaption>{caption_html}</figcaption>")
-    parts.append("</figure>\n")
-    return "".join(parts)
+    return "".join(parts) + ("\n" if standalone_style is not None else "")
 
 
 def _path(start_x, start_y, end_x, end_y, control):
@@ -300,28 +424,6 @@ def _path(start_x, start_y, end_x, end_y, control):
     )
 
 
-@timed("figures")
-def render_descriptor(descriptor: dict, anchor: str, source: str) -> str:
-    """Render one FigureDescriptor as an interactive figure with a printable form; ``source`` is
-    the note of its figure fence, as an error names it."""
-    data = descriptor["data"]
-    name = descriptor["id"]
-    identity = f' id="{escape(anchor, quote=True)}"'
-    if "sankey" in data:
-        graph, nodes = _sankey_graph(data["sankey"], source)
-        return _render_sankey(graph, nodes, "", name, "", name, identity=identity,
-                              count_labels=COUNT_LABELS | data.get("countLabels", {}))
-    if "traces" in data:
-        payload = {**_plot(descriptor, source), "kind": "plot", "source": name, "alt": name}
-        encoded = escape(json.dumps(payload, separators=(",", ":"), allow_nan=False), quote=True)
-        return (
-            f'<figure class="engineering-figure" data-artifact-figure data-engineering-figure '
-            f'data-figure-kind="plot" data-figure-spec="{encoded}"{identity}>'
-            '<div class="figure-live" aria-label="Interactive figure"></div></figure>\n'
-        )
-    raise unsupported(source)
-
-
 def unsupported(source: str) -> InputError:
     return figure_error(source, "data", "carries neither 'sankey' nor 'traces'",
                         "Give the descriptor's data one of the two shapes obs-html draws")
@@ -331,9 +433,8 @@ def sankey_svg(descriptor: dict, style: str, source: str) -> str:
     """The Sankey descriptor's static drawing as a standalone SVG document styled by ``style``."""
     data = descriptor["data"]
     graph, nodes = _sankey_graph(data["sankey"], source)
-    return _render_sankey(graph, nodes, "", descriptor["id"], "", descriptor["id"],
-                          count_labels=COUNT_LABELS | data.get("countLabels", {}),
-                          standalone_style=style)
+    return _render_sankey(graph, nodes, descriptor["id"],
+                          count_labels=COUNT_LABELS | data.get("countLabels", {}), standalone_style=style)
 
 
 def _plot(descriptor: dict, source: str) -> dict:

@@ -1,21 +1,35 @@
-.artifact-figure,
-.engineering-figure {
+/* The frame style tokens: set one here, or in a style module's :root, and every figure kind
+   shows it (figures.py, One figure frame). */
+:root {
+    --figure-frame-border-block: var(--border-width) solid var(--color-border);
+    --figure-frame-border-inline: none;
+    --figure-frame-background: transparent;
+    --figure-frame-padding-block: 0.75rem;
+    --figure-frame-padding-inline: 0;
+}
+
+/* The one frame rule: every kind's figure is an .obs-figure. */
+.obs-figure {
     --figure-width: min(
         calc(var(--content-inline-size) * var(--figure-prose-width-multiplier)),
         calc(100vw - 2 * var(--figure-viewport-gutter))
     );
-    border-block: var(--border-width) solid var(--color-border);
+    background: var(--figure-frame-background);
+    border-block: var(--figure-frame-border-block);
+    border-inline: var(--figure-frame-border-inline);
+    box-sizing: border-box;
     break-inside: avoid;
     margin-block: 1.25rem;
     margin-inline: calc((100% - var(--figure-width)) / 2);
     max-width: calc(100vw - 2 * var(--figure-viewport-gutter));
     min-width: 0;
-    padding-block: 0.75rem;
+    padding-block: var(--figure-frame-padding-block);
+    padding-inline: var(--figure-frame-padding-inline);
     position: relative;
     width: var(--figure-width);
 }
 
-.artifact-figure > img {
+.obs-figure > img {
     display: block;
     height: auto;
     margin-inline: auto;
@@ -23,7 +37,7 @@
     width: auto;
 }
 
-.engineering-figure > .figure-default {
+.obs-figure > .figure-default {
     background: var(--color-surface);
     display: block;
     height: auto;
@@ -32,8 +46,7 @@
     width: 100%;
 }
 
-.engineering-figure figcaption,
-.artifact-figure figcaption {
+.obs-figure > figcaption {
     font-size: 0.9em;
     margin-block: 0.65rem 0;
     overflow-wrap: anywhere;
@@ -52,7 +65,7 @@
     display: none;
 }
 
-.paper-content :is(.artifact-figure, .engineering-figure) {
+.paper-content .obs-figure {
     --figure-width: 100%;
     margin-inline: 0;
     max-width: 100%;
@@ -170,8 +183,7 @@
     background: var(--color-canvas);
 }
 
-.figure-overlay > .artifact-figure,
-.figure-overlay > .engineering-figure {
+.figure-overlay > .obs-figure {
     display: flex;
     flex-direction: column;
     height: 100%;
@@ -187,7 +199,7 @@
     flex-shrink: 0;
 }
 
-.figure-overlay > .artifact-figure {
+.figure-overlay > [data-figure-kind="image"] {
     overflow: hidden;
 }
 
@@ -197,7 +209,7 @@
     transform-origin: 0 0;
 }
 
-.figure-overlay .artifact-figure > figcaption {
+.figure-overlay [data-figure-kind="image"] > figcaption {
     background: var(--color-canvas);
     position: relative;
     z-index: 1;
@@ -262,26 +274,24 @@
     height: 100%;
 }
 
-.print-book .artifact-figure button,
-.print-book .engineering-figure button {
+.print-book .obs-figure button {
     display: none !important;
 }
 
 @media screen {
-    .artifact-figure:not(.figure-expanded) > img,
-    .engineering-figure:not(.figure-expanded) > .figure-default {
+    .obs-figure:not(.figure-expanded) > img {
         max-height: calc(100dvh * var(--figure-viewport-height-ratio));
         width: auto;
     }
 }
 
-.paper-content :is(.artifact-figure, .engineering-figure):not(.figure-expanded) > img {
+.paper-content .obs-figure:not(.figure-expanded) > img {
     max-height: var(--figure-paper-image-height, calc(var(--paper-height) - 2 * var(--paper-margin)));
     width: auto;
 }
 
 @media screen {
-    .paged-reader .paper-content :is(.artifact-figure, .engineering-figure):not(.figure-expanded) > img {
+    .paged-reader .paper-content .obs-figure:not(.figure-expanded) > img {
         max-height: min(
             var(--figure-paper-image-height, calc(var(--paper-height) - 2 * var(--paper-margin))),
             calc(100dvh * var(--figure-viewport-height-ratio))
@@ -290,8 +300,7 @@
 }
 
 @media print {
-    .artifact-figure button,
-    .engineering-figure button,
+    .obs-figure button,
     .figure-overlay {
         display: none !important;
     }
@@ -302,15 +311,15 @@
         width: 100%;
     }
 
-    .engineering-figure > .figure-default {
+    .obs-figure > .figure-default {
         display: block !important;
     }
 
-    .engineering-figure .figure-live {
+    .obs-figure .figure-live {
         display: none !important;
     }
 
-    .engineering-figure[data-figure-kind="plot"]:not(:has(> .figure-default)) .figure-live {
+    .obs-figure[data-figure-kind="plot"]:not(:has(> .figure-default)) .figure-live {
         display: block !important;
     }
 }

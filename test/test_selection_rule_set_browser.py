@@ -50,13 +50,7 @@ def _scope(kind: str) -> dict:
 
 
 def _sankey(graph: dict) -> dict:
-    return node("figure-descriptor", descriptor={
-        "schemaVersion": 1, "id": "flow", "data": {"sankey": graph},
-        "panels": [{"id": "flow", "bounds": {"x": 0, "y": 0, "width": 700, "height": 680},
-                    "grid": {"row": 0, "column": 0, "rowSpan": 1, "columnSpan": 1},
-                    "axes": [{"id": "stage", "scale": "linear", "limits": {"minimum": 0, "maximum": 1},
-                              "label": "Stage"}]}],
-        "provenance": {"command": ["generate-flow"]}})
+    return {"type": "figures", "attrs": {"kind": "sankey"}, "children": [node("sankey", graph=graph)]}
 
 
 def _open(tmp_path, reader_browser, source: dict, start: str = "flow"):

@@ -24,15 +24,18 @@ HOME = "home"
 
 
 def document_figures(document: dict) -> Iterator[tuple[str, dict, str]]:
-    """Each FigureDescriptor in Document order, named like its anchor in the HTML artifact, with
-    the note of its figure fence (as an error names it)."""
+    """Each plot figure's FigureDescriptor in Document order, named like its figure's anchor in the
+    HTML artifact (figures.py, render_figure), with the note of its figure fence (as an error names it)."""
     paths = {record["id"]: record["path"] for record in document["records"] if record["type"] == "note"}
 
     def walk(nodes: list[dict], chapter: str, source: str) -> Iterator[tuple[str, dict, str]]:
         for node in nodes:
-            if node["type"] == "figure-descriptor":
-                descriptor = node["attrs"]["descriptor"]
-                yield f"{chapter}--figure-{descriptor['id']}", descriptor, source
+            if node["type"] == "figures":
+                if node["attrs"]["kind"] == "plot":
+                    descriptor = node["children"][0]["attrs"]["descriptor"]
+                    name = f"block-{node['attrs']['block']}" if "block" in node["attrs"] else f"figure-{descriptor['id']}"
+                    yield f"{chapter}--{name}", descriptor, source
+                continue
             yield from walk(node.get("children", []), chapter, source)
 
     yield from walk(document["manifest"]["abstract"], HOME, document["manifest"]["path"])

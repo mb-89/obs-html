@@ -242,11 +242,11 @@ def test_an_ignored_record_marks_its_note_and_an_ignored_chapter_stays_in_the_re
 
 
 def test_unsupported_capabilities_are_refused(document) -> None:
-    document["capabilities"].append("figures")
+    document["capabilities"].append("reviewed-copies")
     with pytest.raises(InputError) as failure:
         _render(document)
     assert (failure.value.source, failure.value.field) == ("Document of manifest.md", "capabilities")
-    assert "figures" in failure.value.problem  # The capability it does not render.
+    assert "reviewed-copies" in failure.value.problem  # The capability it does not render.
 
 
 def test_an_unknown_node_type_renders_its_text_and_warns_once_naming_the_source_and_the_remedy(

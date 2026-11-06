@@ -249,8 +249,8 @@ def _export_figures(options: argparse.Namespace) -> None:
         _write_if_changed(folder / f"{name}.svg", figure_svg(descriptor, source).encode("utf-8"))
         exported += 1
     if not exported:
-        raise InputError(options.document, "", "has no figure-descriptor node, so there is nothing to export",
-                         "Author a figure fence with a FigureDescriptor")
+        raise InputError(options.document, "", "has no plot figure, so there is nothing to export",
+                         "Author a figure fence of kind plot with a FigureDescriptor")
     print(f"Exported {exported} figure{'' if exported == 1 else 's'} to {folder}.")
 
 

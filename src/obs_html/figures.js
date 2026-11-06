@@ -88,7 +88,7 @@
     let originalParent = null;
     let fittedVisual = null;
     let originalVisualStyle = null;
-    const magnifier = figure.matches(".artifact-figure") ? imageMagnifier(figure) : null;
+    const magnifier = figure.dataset.figureKind === "image" ? imageMagnifier(figure) : null;
     function fitVisual() {
       if (!dialog.open) return;
       let visual = figure.querySelector(":scope > img, :scope > .sankey-canvas");

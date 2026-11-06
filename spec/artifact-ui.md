@@ -196,6 +196,20 @@ failures have their form in [[input-model#Chapter content]].
 - A shared figure presentation owns images, screenshots, plots, and diagrams, not only
   engineering plots. Standalone content images use it; inline icons and linked title-page
   image rows retain their existing inline and cover behavior.
+- One figure frame. Every figure kind of the Document's `figures` node (obs input-model,
+  Figure input direction) renders in the same frame, `src/obs_html/figures.py` (`frame`): one
+  `figure` element whose caption, generated number, expansion button, options menu, print sizing
+  and frame style it owns, while each kind renders only its body inside it. One stylesheet rule
+  (`.obs-figure` in `figures.css`) styles every frame from the frame style tokens
+  (`--figure-frame-border-block`, `--figure-frame-border-inline`, `--figure-frame-background`,
+  `--figure-frame-padding-block`, `--figure-frame-padding-inline`), so a border set once, in a
+  style module's `:root` for example, frames every kind. A kind is one entry of the kind
+  registry (`FIGURE_KINDS`): its body renderer, its view options and the reader features it
+  needs (`features.py`); adding one never changes the frame.
+
+  An anchor is `<note-slug>--block-<name>` for a figure with a block id, otherwise
+  `<note-slug>--figure-<name>`, where name is a plot's descriptor id or the figure's position
+  among the note's figures.
 - Every figure has one small, always discoverable top-right expand button using the
   four-corner expand icon. It opens the figure in a viewport-filling overlay with an
   accessible close action, Escape handling, keyboard focus containment and focus return.
