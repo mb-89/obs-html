@@ -21,6 +21,24 @@ FIXTURE = ROOT / "test" / "fixtures" / "documents" / "document.json"
 CORE_ROOT = ROOT.parents[1]
 
 
+def _core_suite() -> types.ModuleType:
+    """The repository's complete suite (obs test/suite.py), which owns the Node test packages' setup."""
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("suite", CORE_ROOT / "test" / "suite.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+suite = _core_suite()
+
+
+def pytest_sessionstart(session):
+    """A focused run installs the suite's Node test packages where they are missing or stale."""
+    suite.set_up_focused_run(session.config)
+
+
 @pytest.fixture(scope="session")
 def core_root() -> Path:
     """The core of this repository; tests read its JSON contracts, never its Python code."""
