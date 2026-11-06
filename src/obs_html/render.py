@@ -28,7 +28,7 @@ from markdown_it import MarkdownIt
 
 from obs_html.bars import BarDefinition, discover_bars
 from obs_html.config import Config, paper
-from obs_html.errors import InputError, field_path, schema_error
+from obs_html.errors import DOCUMENT_OF, InputError, field_path, schema_error
 from obs_html.features import included as included_features
 from obs_html.figures import FIGURE_KINDS, render_figure
 from obs_html.artifact_data import encode_artifact_data, prepare_artifact_scripts, serialize_artifact_data
@@ -95,7 +95,7 @@ class Context:
 
 def _source(document: dict[str, object]) -> str:
     """The Document as a message names it: by the manifest note it was built from."""
-    return f"Document of {document['manifest']['path']}"
+    return f"{DOCUMENT_OF}{document['manifest']['path']}"
 
 
 def _rebuild(document: dict[str, object], option: str = "") -> str:
@@ -543,19 +543,20 @@ def _extension(node: dict[str, object], context: Context) -> str:
 PROPERTY_EDITOR_SCHEMA = json.loads(files("obs_html").joinpath("property-editor.schema.json")
                                     .read_text(encoding="utf-8"))
 PROPERTY_EDITOR = Draft202012Validator(PROPERTY_EDITOR_SCHEMA)
-PROTECTED_FIELDS = frozenset(PROPERTY_EDITOR_SCHEMA["$defs"]["editableField"]["not"]["enum"])
 
 
 def _property_editor(node: dict[str, object], context: Context) -> str:
     """A ``property-editors`` node: a text editor for one existing string field of an authored
     note; properties.js commits edits through artifact.js (``obsArtifact.commitProperty``), which
-    checks the same declaration. ``attrs.spec`` is the fence's mapping (obs property-editors)."""
+    checks the same declaration. ``attrs.spec`` is the fence's mapping and ``attrs.writes`` the
+    fields the core let it write (obs capabilities/property-editors); the runtime writes no other."""
     source, fence = _note_source(context), "property-editor"
     spec = node["attrs"]["spec"]
     field = spec.get("field") if isinstance(spec, dict) else None
-    if isinstance(field, str) and field.lower() in PROTECTED_FIELDS:
-        raise InputError(source, f"{fence}.field", f"is {field!r}, a protected field a property editor cannot "
-                         "change", "Edit another field")
+    writes = node["attrs"].get("writes")
+    if not isinstance(writes, list) or not writes or not all(isinstance(name, str) for name in writes):
+        raise _stale(context, ["attrs", "writes"], "is missing or not a list of field names; the core "
+                     "writes the fields a property editor may write there (obs capabilities/property-editors)")
     error = schema_error(list(PROPERTY_EDITOR.iter_errors(spec)), source, "obs-html's "
                          "property-editor.schema.json and obs capabilities/property-editors", prefix=fence)
     if error is not None:
@@ -570,7 +571,7 @@ def _property_editor(node: dict[str, object], context: Context) -> str:
     if field in context.editable:
         raise InputError(source, f"{fence}.field", f"names {field!r}, which another property editor of the "
                          "note edits", "Keep one editor per field")
-    definition: dict[str, object] = {"label": spec["label"], "maxLength": limit}
+    definition: dict[str, object] = {"label": spec["label"], "maxLength": limit, "writes": writes}
     if "projection" in spec:  # The core enforces its rules (obs capabilities/property-editors).
         definition["projection"] = spec["projection"]
     context.editable[field] = definition
@@ -1233,7 +1234,6 @@ def _shell(model: dict[str, object], limits: list[dict[str, str]], stylesheet: s
   </script>
   <script id="base-schema" type="application/json">{read("base.schema.json")}</script>
   <script type="application/json" data-json-schema="assets.schema.json">{read("assets.schema.json")}</script>
-  <script id="property-editor-schema" type="application/json">{read("property-editor.schema.json")}</script>
   <script id="yaml-script">
 /* {read("vendor", "js-yaml.LICENSE")} */
 {read("vendor", "js-yaml.min.js")}

@@ -26,8 +26,11 @@ def _notes(source: dict) -> dict[str, dict]:
 
 
 def _editor(fence: dict, metadata: dict) -> dict:
+    """A note with one property-editors node, whose ``attrs.writes`` is what the core writes."""
+    writes = list(dict.fromkeys([fence["field"], *(name for fields in fence.get("projection", {}).values()
+                                                   for name in fields)]))
     return build("Doc", chapter("one", "One", heading(1, "One"), node("property-editors", source=json.dumps(fence),
-                                                                      spec=fence), metadata=metadata))
+                                                                      spec=fence, writes=writes), metadata=metadata))
 
 
 def test_a_glossary_note_carries_its_definition_for_hover_cards_and_registers() -> None:
@@ -87,7 +90,8 @@ def test_property_editor_is_explicit_and_canonical() -> None:
     notes = _notes(_editor({"version": 1, "field": "explanation", "label": "Review explanation"},
                            {"explanation": "Original", "identifier": "R-1"}))
     one = notes["one"]
-    assert one["editableProperties"] == {"explanation": {"label": "Review explanation", "maxLength": 4096}}
+    assert one["editableProperties"] == {"explanation": {"label": "Review explanation", "maxLength": 4096,
+                                                         "writes": ["explanation"]}}
     assert ('<textarea data-property-editor data-property-note="one" data-property-field="explanation" '
             'maxlength="4096" aria-label="Review explanation" rows="2"></textarea>') in one["html"]
     assert one["frontmatter"] == {"explanation": "Original", "identifier": "R-1"}
@@ -113,8 +117,8 @@ def test_property_editor_projection_preserves_supported_arrays() -> None:
     assert notes["one"]["editableProperties"]["explanation"]["projection"] == projection
 
 
-@pytest.mark.parametrize("field,value", [("missing", "text"), ("explanation", 42), ("title", "semantic")])
-def test_property_editor_rejects_missing_nontext_or_semantic_fields(field, value) -> None:
+@pytest.mark.parametrize("field,value", [("missing", "text"), ("explanation", 42)])
+def test_property_editor_rejects_missing_or_nontext_fields(field, value) -> None:
     with pytest.raises(InputError) as failure:
         render(_editor({"version": 1, "field": field, "label": "Review"},
                        {"explanation": value, "title": value}), CONFIG)
@@ -131,9 +135,22 @@ def test_invalid_or_oversized_editors_fail_naming_the_note_and_the_field(fence, 
     assert (failure.value.source, failure.value.field) == ("chapter one", field)
 
 
+@pytest.mark.parametrize("writes", [None, [], ["explanation", 2]])
+def test_an_editor_without_the_cores_writes_fails_as_a_stale_document(writes) -> None:
+    fence = {"version": 1, "field": "explanation", "label": "Review"}
+    editor = node("property-editors", source=json.dumps(fence), spec=fence)
+    if writes is not None:
+        editor["attrs"]["writes"] = writes
+    with pytest.raises(InputError) as failure:
+        render(build("Doc", chapter("one", "One", editor, metadata={"explanation": "x"})), CONFIG)
+    assert (failure.value.source, failure.value.field) == ("Document of manifest.md",
+                                                           "chapters[0].content[1].attrs.writes")
+    assert "obs capabilities/property-editors" in failure.value.problem
+
+
 def test_a_field_has_one_editor_and_home_has_none() -> None:
     fence = node("property-editors", source="version: 1\nfield: explanation\nlabel: Review\n",
-                 spec={"version": 1, "field": "explanation", "label": "Review"})
+                 spec={"version": 1, "field": "explanation", "label": "Review"}, writes=["explanation"])
     with pytest.raises(InputError) as failure:
         render(build("Doc", chapter("one", "One", fence, fence, metadata={"explanation": "x"})), CONFIG)
     assert (failure.value.source, failure.value.field) == ("chapter one", "property-editor.field")

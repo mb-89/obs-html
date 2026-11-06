@@ -137,7 +137,13 @@
                   ]
                 }
               }
-            }
+            },
+            "writes": [
+              "explanation",
+              "status",
+              "accepted",
+              "outputs"
+            ]
           },
           "children": []
         }

@@ -19,11 +19,16 @@ closed. It holds this adapter to the design notes alone: a covered control fails
 says where the reference, swept then in the same frame, has the same fault, which is not a parity
 difference.
 
+Each test opens each artifact once, in one page its checks reuse. Pointer and keyboard steps are
+real input, one round trip each; every other observation is computed in the page and returned as
+one structure (the icon counts of every chapter in one evaluation), and Python compares them.
+
 Run it alone with `uv run pytest test/test_parity_browser.py`; it builds the artifacts once per
 run, without the network: the core's Document through the core's test/offline_obs_document.py.
 Each test runs on its own worker in the complete suite: one per frame for the interaction
 script and one per frame and pair of widths for the sweep.
 """
+import contextlib
 import json
 import re
 from concurrent.futures import ThreadPoolExecutor
@@ -32,7 +37,7 @@ from pathlib import Path
 import pytest
 
 from conftest import CORE_ROOT, FAST_FRAMES, built_once
-from preview import SANDBOXES, http_origin, open_preview
+from preview import READY, SANDBOXES, http_origin, load_preview, open_preview
 from spec_artifact import run, spec_artifact, uv
 
 # step -> why this adapter may still differ from the interim reference there.
@@ -44,7 +49,10 @@ KNOWN_DIFFERENCES: dict[str, str] = {
 
 FILTER = "file.name == 'nothing'"
 
-ICONS = """() => {
+# The page helpers every evaluation below starts with: what each step observes, computed in the
+# page and returned as one structure that Python compares.
+HELPERS = """
+const icons = () => {
     const regions = {};
     const region = (element) => {
         const bar = element.closest("[data-bar]");
@@ -75,14 +83,50 @@ ICONS = """() => {
         if (painted(icon)) counts.painted += 1;
     }
     return Object.fromEntries(Object.entries(regions).sort());
-}"""
-
-# After an input the artifact has settled once the chapter's deferred content is in, every
-# image is decoded and two frames have been drawn; no wall-clock wait.
-SETTLE = """async () => {
+};
+// The active chapter's slug; exactly one chapter is active.
+const chapter = () => {
+    const active = document.querySelectorAll("[data-active-chapter]");
+    if (active.length !== 1) {
+        throw new Error(`test/test_parity_browser.py: ${active.length} elements carry data-active-chapter, not one`);
+    }
+    return active[0].getAttribute("data-chapter");
+};
+// After an input the artifact has settled once the chapter's deferred content is in, every
+// image is decoded and two frames have been drawn; no wall-clock wait.
+const settle = async () => {
     await globalThis.obsArtifact.whenChapterReady();
     await Promise.all([...document.images].map((image) => image.decode().catch(() => {})));
     await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+};
+"""
+
+ICONS = "() => {" + HELPERS + "return icons(); }"
+# Settles, then returns the active chapter.
+SETTLE = "async () => {" + HELPERS + "await settle(); return chapter(); }"
+CHAPTER = "() => {" + HELPERS + "return chapter(); }"
+# Every top-level chapter opened from the contents in turn, by a click event on its link: once
+# the chapter is active (within 5 s, as Playwright's expect waits) and settled, its icon counts.
+CHAPTER_ICONS = "async () => {" + HELPERS + """
+    const slugs = [...document.querySelectorAll("[data-toc-tree] a")]
+        .map((link) => link.getAttribute("href").slice(1)).filter((slug) => !slug.includes("/"));
+    const observed = [];
+    for (const slug of slugs) {
+        const link = document.querySelector(`[data-toc-tree] a[href="#${CSS.escape(slug)}"]`);
+        if (!link) throw new Error(`test/test_parity_browser.py: the contents lost the link to ${slug}`);
+        link.dispatchEvent(new MouseEvent("click", {bubbles: true, cancelable: true, composed: true}));
+        const deadline = performance.now() + 5000;
+        while (document.querySelector("[data-active-chapter]")?.getAttribute("data-chapter") !== slug) {
+            if (performance.now() > deadline) {
+                throw new Error(`test/test_parity_browser.py: chapter ${slug} did not become active ` +
+                    `within 5 s of a click on its contents link; active: ${chapter()}`);
+            }
+            await new Promise((resolve) => requestAnimationFrame(resolve));
+        }
+        await settle();
+        observed.push([slug, icons()]);
+    }
+    return observed;
 }"""
 
 POINTER = """(element) => {
@@ -136,17 +180,17 @@ def interact(page, frame) -> tuple[list[tuple[str, object]], list[str]]:
     steps: list[tuple[str, object]] = []
     violations: list[str] = []
     root = frame.locator("html")
-    chapter = lambda: frame.locator("[data-active-chapter]").get_attribute("data-chapter")
     settle = lambda: root.evaluate(SETTLE)
+    chapter = lambda: root.evaluate(CHAPTER)
+    # The preview frame stays where open_preview put it: the wrapper page neither scrolls nor reflows.
+    box = page.evaluate("document.getElementById('artifact').getBoundingClientRect().toJSON()")
 
     def pointer(selector: str) -> str:
         """Click where the element is shown; report what covers it, if anything."""
-        element = frame.locator(selector).first
-        spot = element.evaluate(POINTER)
-        box = page.evaluate("document.getElementById('artifact').getBoundingClientRect().toJSON()")
+        spot = frame.locator(selector).first.evaluate(POINTER)
         page.mouse.click(box["x"] + spot["x"], box["y"] + spot["y"])
-        settle()
-        return f"covered by {spot['covered']}, then {chapter()}" if spot["covered"] else chapter()
+        then = settle()
+        return f"covered by {spot['covered']}, then {then}" if spot["covered"] else then
 
     def visible(selector: str) -> bool:
         return frame.locator(selector).first.is_visible()
@@ -164,16 +208,14 @@ def interact(page, frame) -> tuple[list[tuple[str, object]], list[str]]:
     frame.locator("[data-chapter-scroll]").focus()
     for count, key in enumerate(["ArrowRight", "ArrowRight", "ArrowLeft"], 1):
         page.keyboard.press(key)
-        settle()
-        steps.append((f"key {count} {key}", chapter()))
+        steps.append((f"key {count} {key}", settle()))
     for count in range(1, 4):
         for _ in range(count):
             pointer('[data-step="1"] .chapter-nav-icon')
         origin = chapter()
         frame.locator(".chapter-home-link").first.focus()
         page.keyboard.press("Enter")
-        settle()
-        steps.append((f"Home by keyboard from {origin}", chapter()))
+        steps.append((f"Home by keyboard from {origin}", settle()))
     for count in range(1, 4):
         for _ in range(count):
             pointer('[data-step="1"] .chapter-nav-icon')
@@ -183,8 +225,7 @@ def interact(page, frame) -> tuple[list[tuple[str, object]], list[str]]:
             violations.append(f"Home by pointer from {origin}: {home}, not home")
     frame.locator(".chapter-home-link").first.focus()
     page.keyboard.press("Enter")
-    settle()
-    steps.append(("Home by keyboard after the pointer checks", chapter()))
+    steps.append(("Home by keyboard after the pointer checks", settle()))
     menu = pointer("[data-menu-button]")
     steps.append(("menu button by pointer", (menu, visible("[data-bars-menu]"))))
     steps.append(("contents dock by pointer", pointer('[data-dock-bar="toc"]')))
@@ -195,8 +236,7 @@ def interact(page, frame) -> tuple[list[tuple[str, object]], list[str]]:
         steps.append((f"contents link {href} by pointer", pointer(f'[data-toc-tree] a[href="{href}"]')))
     frame.locator(".chapter-home-link").first.focus()
     page.keyboard.press("Enter")
-    settle()
-    steps.append(("Home by keyboard from the contents", chapter()))
+    steps.append(("Home by keyboard from the contents", settle()))
     steps.append(("icons with the contents open", root.evaluate(ICONS)))
 
     root.evaluate("() => globalThis.obsArtifact.openBar('filter')")
@@ -219,28 +259,32 @@ def interact(page, frame) -> tuple[list[tuple[str, object]], list[str]]:
     root.evaluate("() => globalThis.obsArtifact.setViewSelection('parity', [], ['a', 'b'])")
     settle()
 
-    slugs = root.evaluate("""() => [...document.querySelectorAll("[data-toc-tree] a")]
-        .map((link) => link.getAttribute("href").slice(1)).filter((slug) => !slug.includes("/"))""")
-    for slug in slugs:
-        frame.locator(f'[data-toc-tree] a[href="#{slug}"]').first.dispatch_event("click")
-        expect(frame.locator("[data-active-chapter]")).to_have_attribute("data-chapter", slug)
-        settle()
-        steps.append((f"icons in {slug}", root.evaluate(ICONS)))
+    steps += [(f"icons in {slug}", icons) for slug, icons in root.evaluate(CHAPTER_ICONS)]
     return steps, violations
 
 
-def observe(tmp_path: Path, reader_browser, artifact: str, frame_kind: str, name: str):
-    errors: list[str] = []
-    folder = tmp_path / name
-    folder.mkdir()
-    with http_origin(folder) as origin:
-        page, frame = open_preview(folder, reader_browser, errors, artifact, frame_kind,
-                                   origin if frame_kind == "same-origin" else None)
-        try:
-            steps, violations = interact(page, frame)
-        finally:
-            page.close()
-    return steps, violations, errors
+def observe(tmp_path: Path, reader_browser, artifacts: dict[str, str], frame_kind: str):
+    """The interaction script on each artifact, each opened once in its own page.
+
+    Every artifact starts loading at once, so the interim reference's slower startup runs while
+    the script runs on this adapter's artifact. Returns, per artifact, its steps, design-note
+    violations and page errors.
+    """
+    observed = {}
+    with contextlib.ExitStack() as stack:
+        opened = {}
+        for name, artifact in artifacts.items():
+            folder = tmp_path / name
+            folder.mkdir()
+            origin = stack.enter_context(http_origin(folder)) if frame_kind == "same-origin" else None
+            errors: list[str] = []
+            page, frame = load_preview(folder, reader_browser, errors, artifact, frame_kind, origin)
+            stack.callback(page.close)
+            opened[name] = page, frame, errors
+        for name, (page, frame, errors) in opened.items():
+            frame.evaluate(READY)
+            observed[name] = (*interact(page, frame), errors)
+    return observed
 
 
 @pytest.mark.browser
@@ -248,10 +292,9 @@ def observe(tmp_path: Path, reader_browser, artifact: str, frame_kind: str, name
     pytest.param(frame_kind, marks=pytest.mark.xdist_group(f"parity-{frame_kind}")) for frame_kind in SANDBOXES])
 def test_the_artifact_behaves_as_the_interim_reference_in_preview_frames(
         tmp_path: Path, reader_browser, parity_artifacts: dict[str, str], frame_kind: str) -> None:
-    adapter, violations, errors = observe(tmp_path, reader_browser, parity_artifacts["adapter"],
-                                          frame_kind, "adapter")
-    reference, _reference_violations, _reference_errors = observe(
-        tmp_path, reader_browser, parity_artifacts["reference"], frame_kind, "reference")
+    observed = observe(tmp_path, reader_browser, parity_artifacts, frame_kind)
+    (adapter, violations, errors), (reference, _reference_violations, _reference_errors) = (
+        observed["adapter"], observed["reference"])
     assert [step for step, _ in adapter] == [step for step, _ in reference], (
         "test/test_parity_browser.py: the script took different steps; first steps differ at "
         + next((f"{a!r} / {r!r}" for (a, _), (r, _) in zip(adapter, reference) if a != r), "the end"))

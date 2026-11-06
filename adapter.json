@@ -31,5 +31,11 @@
     "references",
     "registers",
     "wikilinks"
-  ]
+  ],
+  "options": {
+    "embed-attachments": {
+      "type": "boolean",
+      "summary": "The evidence edition: embed each marked attachment as a download of its bytes (obs-html --embed-attachments)."
+    }
+  }
 }

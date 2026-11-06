@@ -17,7 +17,7 @@ from documents import chapter, document as build, heading, node, paragraph
 pytestmark = pytest.mark.browser
 CONFIG = load_config()
 EDITOR = node("property-editors", source="version: 1\nfield: explanation\nlabel: Explanation\n",
-              spec={"version": 1, "field": "explanation", "label": "Explanation"})
+              spec={"version": 1, "field": "explanation", "label": "Explanation"}, writes=["explanation"])
 TABLE = {"obs": {"records": "note"}, "views": [{"type": "table", "order": ["identifier", "explanation"]}]}
 
 
@@ -102,3 +102,40 @@ def test_native_property_edits_survive_actual_reviewed_download_and_reopen(tmp_p
         assert errors == []
     finally:
         context.close()
+
+
+def test_the_runtime_commits_only_the_fields_the_notes_editors_declare(tmp_path, reader_browser) -> None:
+    """artifact.js's commit guard (``obsArtifact.commitCanonicalProjection``) accepts a field only
+    when a property editor of the note declares it in the core's ``attrs.writes``; it refuses
+    every other field, protected or not, and every field of a note without an editor."""
+    spec = {"version": 1, "field": "explanation", "label": "Explanation",
+            "projection": {"blank": {"status": "finding"}, "nonblank": {"status": "explained"}}}
+    editor = node("property-editors", source="", spec=spec, writes=["explanation", "status"])
+    fields = {"explanation": "Original", "status": "explained", "identifier": "one", "title": "One"}
+    source = build("Edits", chapter("one", "One", heading(1, "One"), editor, metadata=fields),
+                   chapter("two", "Two", heading(1, "Two"), metadata=dict(fields)),
+                   records=({"id": "one", "type": "note", "path": "one.md", "fields": fields},
+                            {"id": "two", "type": "note", "path": "two.md", "fields": dict(fields)}))
+    artifact = tmp_path / "artifact.html"
+    artifact.write_text(render(source, CONFIG), encoding="utf-8")
+    page = reader_browser.new_page()
+    errors: list[str] = []
+    page.on("pageerror", lambda error: errors.append(str(error)))
+    page.goto(artifact.as_uri())
+    page.wait_for_function("document.documentElement.dataset.artifactStatus === 'ready'")
+    refused = """([slug, fields]) => {
+        try { obsArtifact.commitCanonicalProjection([{slug, fields}]); return null; }
+        catch (error) { return error.message; }
+    }"""
+    for slug, update in (("one", {"identifier": "changed"}), ("one", {"title": "Changed"}),
+                         ("one", {"status": "finding", "identifier": "changed"}), ("two", {"status": "finding"}),
+                         ("two", {"explanation": "Changed"})):
+        message = page.evaluate(refused, [slug, update])
+        assert message and "attrs.writes" in message, (slug, update, message)
+    frontmatter = "slug => obsArtifact.records.find(note => note.slug === slug).frontmatter"
+    assert page.evaluate(f"({frontmatter})('one')") == fields
+    assert page.evaluate(f"({frontmatter})('two')") == fields
+    assert page.evaluate("obsArtifact.commitCanonicalProjection([{slug:'one', fields:{status:'finding'}}])")
+    assert page.evaluate("obsArtifact.commitProperty('one', 'explanation', '')") is True
+    assert page.evaluate(f"({frontmatter})('one')") == {**fields, "status": "finding", "explanation": ""}
+    assert errors == []
