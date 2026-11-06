@@ -91,7 +91,7 @@
     const magnifier = figure.dataset.figureKind === "image" ? imageMagnifier(figure) : null;
     function fitVisual() {
       if (!dialog.open) return;
-      let visual = figure.querySelector(":scope > img, :scope > .sankey-canvas");
+      let visual = figure.querySelector(":scope > img, :scope > svg.figure-visual, :scope > .sankey-canvas");
       if (!visual || getComputedStyle(visual).display === "none") return;
       const style = getComputedStyle(figure);
       const caption = figure.querySelector(":scope > figcaption");
@@ -181,6 +181,8 @@
       }
     });
     dialog.addEventListener("click", event => {
+      // A link inside the figure navigates like one in prose: the overlay closes first.
+      if (event.target.closest?.('a[href^="#"]')) closeFigure();
       if (event.target === dialog) closeFigure();
     });
     function closeFigure() {
@@ -231,11 +233,14 @@
     viewport.setAttribute("tabindex", "0");
     viewport.setAttribute("role", "img");
     viewport.setAttribute("aria-label", "Figure panel; wheel to zoom, drag to pan, 0 to reset");
-    const image = document.createElementNS(ns, "image");
+    // An inline drawing (one with links) is copied, so its links work in the inspector too.
+    const drawing = figure.querySelector(".figure-default");
+    const image = drawing.src ? document.createElementNS(ns, "image") : drawing.cloneNode(true);
+    image.removeAttribute("class");
     const full = spec.viewBox.split(/[ ,]+/).map(Number);
     image.setAttribute("x", full[0]); image.setAttribute("y", full[1]);
     image.setAttribute("width", full[2]); image.setAttribute("height", full[3]);
-    image.setAttribute("href", figure.querySelector(".figure-default").src);
+    if (drawing.src) image.setAttribute("href", drawing.src);
     viewport.append(image);
     const states = new Map(spec.panels.map(panel => [panel.id, panel.box.slice()]));
     function box() { return states.get(select.value); }

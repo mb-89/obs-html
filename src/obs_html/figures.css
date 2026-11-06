@@ -298,7 +298,7 @@
     min-height: 0;
 }
 
-.figure-overlay [data-figure-kind="svg"] > .figure-default {
+.figure-overlay [data-figure-kind="svg"]:has(> .figure-live) > .figure-default {
     display: none;
 }
 
@@ -318,19 +318,22 @@
 }
 
 @media screen {
-    .obs-figure:not(.figure-expanded) > img {
+    .obs-figure:not(.figure-expanded) > img,
+    .obs-figure:not(.figure-expanded) > svg.figure-visual {
         max-height: calc(100dvh * var(--figure-viewport-height-ratio));
         width: auto;
     }
 }
 
-.paper-content .obs-figure:not(.figure-expanded) > img {
+.paper-content .obs-figure:not(.figure-expanded) > img,
+.paper-content .obs-figure:not(.figure-expanded) > svg.figure-visual {
     max-height: var(--figure-paper-image-height, calc(var(--paper-height) - 2 * var(--paper-margin)));
     width: auto;
 }
 
 @media screen {
-    .paged-reader .paper-content .obs-figure:not(.figure-expanded) > img {
+    .paged-reader .paper-content .obs-figure:not(.figure-expanded) > img,
+    .paged-reader .paper-content .obs-figure:not(.figure-expanded) > svg.figure-visual {
         max-height: min(
             var(--figure-paper-image-height, calc(var(--paper-height) - 2 * var(--paper-margin))),
             calc(100dvh * var(--figure-viewport-height-ratio))

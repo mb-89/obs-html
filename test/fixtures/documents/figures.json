@@ -753,5 +753,6 @@
     "mermaid",
     "plantuml",
     "wikilinks"
-  ]
+  ],
+  "cssSnippets": []
 }
