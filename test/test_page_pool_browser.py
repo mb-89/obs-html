@@ -55,14 +55,14 @@ def test_a_released_page_is_reused_as_a_new_context_shows_it(tmp_path: Path, pag
 
 def test_a_page_with_a_setting_a_navigation_keeps_is_not_reused(tmp_path: Path, page_pool) -> None:
     page = page_pool.lease(None)
-    page.add_init_script("globalThis.leaked = true")
+    page.route("**/*", lambda route: route.abort())
     page_pool.release(page)
     assert page.is_closed()
 
     other = page_pool.lease(None)
     assert other is not page
     other.goto(stateful(tmp_path, "one.html"))
-    assert other.evaluate("() => globalThis.leaked") is None
+    assert other.evaluate("() => localStorage.getItem('kept')") == "yes"
     page_pool.release(other)
 
 

@@ -7,6 +7,7 @@ guided-card, quantity and mark parts stay with the capabilities that own them.
 import pytest
 
 from artifacts import artifact_html
+from browser.viewer import with_stand_in
 
 from documents import chapter, document as build, heading, node, paragraph, text
 
@@ -38,9 +39,8 @@ def test_hover_card_shows_the_reference_link_and_the_glossary_definition(tmp_pat
     for item in source["chapters"][1:]:
         item["toc"] = False
     artifact = tmp_path / "references.html"
-    artifact.write_text(artifact_html(source), encoding="utf-8")
+    artifact.write_text(with_stand_in(artifact_html(source), "window.open = () => null;"), encoding="utf-8")
     page = reader_browser.new_page(viewport={"width": 1200, "height": 800})
-    page.add_init_script("window.open = () => null;")
     errors = []
     page.on("pageerror", lambda error: errors.append(str(error)))
     page.goto(artifact.as_uri() + "#chapter")

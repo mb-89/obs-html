@@ -10,7 +10,14 @@ module that it calls may start Playwright (``sync_playwright``), launch or conne
 open a browser context, or build an artifact with this adapter (``render`` or the CLI's
 ``main``). An artifact is built by a shared fixture (SHARED_FIXTURES, or a module fixture
 that builds inside ``built_once``) or by ``artifacts.artifact_html``.
+
+Nor may a browser test add an init script (``add_init_script``): in the preview's srcdoc frames
+one can run after the artifact's own scripts (#233, #298); a stand-in goes into the artifact's
+head instead (test/browser/viewer.py, ``with_stand_in``). And it reads the artifact's timings
+from the artifact's own performance marks: it reads no clock of its own in Python, sets no
+performance mark, and takes no time in a listener of its own in the page.
 """
+import re
 import ast
 from pathlib import Path
 
@@ -26,6 +33,13 @@ SHARED_FIXTURES = {"fixture_artifact", "parity_artifacts", "spec_artifact"}
 # and opening a browser context.
 BROWSER_CALLS = {"sync_playwright", "launch", "launch_persistent_context", "connect", "connect_over_cdp",
                  "new_context"}
+# A setting only the artifact itself can make reliable in the preview's srcdoc frames.
+INIT_SCRIPTS = {"add_init_script"}
+# Python's clocks, as the time module's functions.
+CLOCKS = {"time", "time_ns", "monotonic", "monotonic_ns", "perf_counter", "perf_counter_ns", "process_time"}
+# A page script that sets a mark of its own, or takes a time in a listener of its own.
+OWN_MARK = re.compile(r"performance\.mark\(")
+OWN_TIME = re.compile(r"performance\.now\(|Date\.now\(")
 # This adapter's builders, (module, name) as a test module imports them, and the modules whose
 # ``main`` builds, as ``cli.main(...)`` calls it.
 BUILDERS = {("obs_html.render", "render"), ("obs_html.cli", "main")}
@@ -69,6 +83,27 @@ def called(node: ast.AST) -> list[tuple[str, ast.Call]]:
     return found
 
 
+def clock_names(module: ast.Module) -> set[str]:
+    """The names a module calls Python's clocks by: ``time.perf_counter`` or an imported ``perf_counter``."""
+    names = {f"{alias.asname or alias.name}.{clock}" for node in ast.walk(module) if isinstance(node, ast.Import)
+             for alias in node.names if alias.name == "time" for clock in CLOCKS}
+    return names | {alias.asname or alias.name for node in ast.walk(module)
+                    if isinstance(node, ast.ImportFrom) and node.module == "time"
+                    for alias in node.names if alias.name in CLOCKS}
+
+
+def own_timings(module: ast.Module) -> list[str]:
+    """Each page script of the module that sets its own performance mark or takes a time in its own listener."""
+    found = []
+    for node in ast.walk(module):
+        if isinstance(node, ast.Constant) and isinstance(node.value, str):
+            if OWN_MARK.search(node.value):
+                found.append(f"{node.lineno} sets a performance mark of its own")
+            elif "addEventListener" in node.value and OWN_TIME.search(node.value):
+                found.append(f"{node.lineno} takes a time in a listener of its own")
+    return found
+
+
 def built_once_builds(module: ast.Module, functions: dict[str, ast.FunctionDef]) -> set[str]:
     """The functions a module passes to ``built_once`` as its build: they build once per run."""
     builds = set()
@@ -84,6 +119,7 @@ def violations(path: Path) -> list[str]:
     # The module's functions and classes: a call to a class reaches every method it has.
     functions = {node.name: node for node in module.body if isinstance(node, (ast.FunctionDef, ast.ClassDef))}
     builders = builder_names(module)
+    clocks = clock_names(module)
     exempt = built_once_builds(module, functions) | SHARED_FIXTURES
     browser_fixtures = {name for name, function in functions.items() if isinstance(function, ast.FunctionDef)
                         and is_fixture(function) and fixture_names(function) & BROWSER_FIXTURES}
@@ -102,11 +138,21 @@ def violations(path: Path) -> list[str]:
                 where = f"{path.name}:{call.lineno} ({current})"
                 if called_name in BROWSER_CALLS:
                     found.append(f"{name}: {where} calls {called_name}; lease a page from reader_browser")
+                elif called_name in INIT_SCRIPTS:
+                    found.append(f"{name}: {where} calls {called_name}; write a stand-in into the artifact's "
+                                 "head (browser/viewer.py, with_stand_in)")
+                elif called_name in clocks:
+                    found.append(f"{name}: {where} reads the clock {called_name}; read the artifact's own "
+                                 "performance marks")
                 elif called_name in builders:
                     found.append(f"{name}: {where} builds an artifact with {called_name}; use "
                                  "artifacts.artifact_html or a fixture that builds inside built_once")
                 elif called_name in functions and called_name not in exempt:
                     pending.append(called_name)
+    if any(line.split(":")[0].startswith("test_") for line in found) or any(
+            name.startswith("test_") and isinstance(test, ast.FunctionDef)
+            and fixture_names(test) & (BROWSER_FIXTURES | browser_fixtures) for name, test in functions.items()):
+        found += [f"{path.name}:{timing}; read the artifact's own performance marks" for timing in own_timings(module)]
     return found
 
 
@@ -118,9 +164,15 @@ def test_no_browser_test_builds_an_artifact_or_starts_a_browser() -> None:
 def test_the_check_names_a_test_that_launches_a_browser_or_renders(tmp_path: Path) -> None:
     """The check is not vacuous: each kind of call it refuses is named, with its test and line."""
     (tmp_path / "test_new_browser.py").write_text('''
+import time
+from time import perf_counter
+
 from playwright.sync_api import sync_playwright
 from obs_html.render import render
 from obs_html import cli
+
+TIMES = "document.addEventListener('obs-html-ready', () => { globalThis.ready = performance.now(); })"
+MARK = "performance.mark('mine')"
 
 
 def helper(document):
@@ -167,12 +219,26 @@ class Reader:
 
 
 def test_own_context_in_a_class(reader_browser):
-    Reader(reader_browser)''', encoding="utf-8")
+    Reader(reader_browser)
+
+
+def test_own_init_script_and_clocks(reader_browser):
+    page = reader_browser.new_page()
+    page.add_init_script(TIMES)
+    started = time.monotonic()
+    return perf_counter() - started
+''', encoding="utf-8")
     found = violations(tmp_path / "test_new_browser.py")
     assert [line.split(":")[0] for line in found] == [
         "test_own_browser", "test_own_browser", "test_own_artifact", "test_own_artifact", "test_own_context",
-        "test_own_context_in_a_class"]
+        "test_own_context_in_a_class", "test_own_init_script_and_clocks", "test_own_init_script_and_clocks",
+        "test_own_init_script_and_clocks", "test_new_browser.py", "test_new_browser.py"]
     assert any("(helper) builds an artifact with render" in line for line in found)
     assert any("calls sync_playwright" in line for line in found)
     assert any("calls launch" in line for line in found)
     assert any("calls new_context" in line for line in found)
+    assert any("calls add_init_script; write a stand-in" in line for line in found)
+    assert any("reads the clock time.monotonic" in line for line in found)
+    assert any("reads the clock perf_counter" in line for line in found)
+    assert any("takes a time in a listener of its own" in line for line in found)
+    assert any("sets a performance mark of its own" in line for line in found)

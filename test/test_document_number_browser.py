@@ -11,6 +11,7 @@ from importlib.resources import files
 from pathlib import Path
 
 import pytest
+from browser.viewer import with_stand_in
 from conftest import CORE_ROOT, built_once
 
 from obs_html.cli import main as obs_html
@@ -45,15 +46,16 @@ def numbered_artifact(tmp_path_factory) -> Path:
 
 @pytest.mark.browser
 def test_the_document_number_shows_in_the_running_footer_and_the_copied_comments(
-        numbered_artifact: Path, reader_browser) -> None:
+        numbered_artifact: Path, reader_browser, tmp_path: Path) -> None:
     from playwright.sync_api import expect
 
     errors: list[str] = []
     page = reader_browser.new_page()
     page.on("pageerror", lambda error: errors.append(str(error)))
     page.on("console", lambda message: errors.append(message.text) if message.type == "error" else None)
-    page.add_init_script(CLIPBOARD)
-    page.goto(numbered_artifact.as_uri())
+    artifact = tmp_path / "artifact.html"
+    artifact.write_text(with_stand_in(numbered_artifact.read_text(encoding="utf-8"), CLIPBOARD), encoding="utf-8")
+    page.goto(artifact.as_uri())
     expect(page.locator("html")).to_have_attribute("data-artifact-status", "ready")
     page.evaluate("globalThis.obsPages.setPaged(true)")
     page.evaluate("location.hash = '#one'")

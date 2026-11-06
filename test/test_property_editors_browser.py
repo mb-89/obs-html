@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 
 from artifacts import artifact_html
+from browser.viewer import with_stand_in
 
 from documents import chapter, document as build, heading, node, paragraph
 
@@ -17,6 +18,9 @@ pytestmark = pytest.mark.browser
 EDITOR = node("property-editors", source="version: 1\nfield: explanation\nlabel: Explanation\n",
               spec={"version": 1, "field": "explanation", "label": "Explanation"}, writes=["explanation"])
 TABLE = {"obs": {"records": "note"}, "views": [{"type": "table", "order": ["identifier", "explanation"]}]}
+
+# Chromium offers the save picker on a file page; without it the artifact's save is a download.
+NO_SAVE_PICKER = "delete window.showSaveFilePicker"
 
 
 def _artifact(path: Path) -> Path:
@@ -36,13 +40,15 @@ def test_native_property_edits_survive_actual_reviewed_download_and_reopen(tmp_p
     artifact = _artifact(tmp_path / "artifact.html")
     malicious = 'Accepted α 中 </script><script>window.editExecuted=true</script> **literal**'
     page = reader_browser.new_page()
-    page.add_init_script("delete window.showSaveFilePicker")
     page.set_default_timeout(5000)
     errors = []
     page.on("pageerror", lambda error: errors.append(str(error)))
 
     def open_chapter(path: Path, slug: str) -> None:
-        page.goto(path.as_uri() + f"#{slug}")
+        """Open the artifact, or a copy it saved, without the save picker, so a save downloads."""
+        opened = path.with_name(f"opened-{path.name}")
+        opened.write_text(with_stand_in(path.read_text(encoding="utf-8"), NO_SAVE_PICKER), encoding="utf-8")
+        page.goto(opened.as_uri() + f"#{slug}")
         page.wait_for_function("document.documentElement.dataset.artifactStatus === 'ready'")
         page.evaluate(f"obsPages.setPaged(false); obsArtifact.activateChapter('{slug}')")
 
