@@ -236,7 +236,7 @@ globalThis.obsPugh = (() => {
   /** The print copy of a figure: the reader's view, its weights as text, and a caption note where they changed. */
   function print(figure, spec) {
     draw(figure, spec, figure.querySelector(".figure-live"), {print: true});
-    if (!changed(spec, figure.id)) return;
+    if (!changed(spec, figure.id) || figure.querySelector(".figure-view-note")) return;
     const note = element("span", {className: "figure-view-note", textContent: ` ${VIEW_NOTE}`});
     let caption = figure.querySelector("figcaption");
     if (!caption) { caption = element("figcaption"); figure.append(caption); }

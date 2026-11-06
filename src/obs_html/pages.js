@@ -382,6 +382,8 @@
             if (expanded) newPage();
             const copy = live ? node : node.cloneNode(true);
             parent().append(copy);
+            // A figure whose kind draws its body in the page is drawn now, so its page holds its height.
+            if (copy.nodeType === 1 && copy.matches("figure")) globalThis.obsFigures?.place(copy);
             if (copy.nodeType === 1 && copy.matches("figure")) {
                 const image = copy.querySelector(":scope > img, :scope > svg.figure-visual");
                 if (image && getComputedStyle(image).display !== "none") {

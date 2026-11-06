@@ -507,6 +507,9 @@ says so. It gives the smallest single-weight change and the smallest change of a
 make the chosen option tie the winner, as the engine computes them, and marks each one outside
 the reasonable band (each weight within ±1 of its own, the engine's step) where it is.
 
+The view keeps to the prose column inside the figure's frame, clear of the chapter controls. A
+page layout draws a decision figure when it places it, so its page holds the whole view.
+
 At a phone's width, 390 px, the one-page view needs no sideways scrolling of the page: the matrix
 scrolls in its own box, the criterion names held at its left, and the options are labelled by
 their `short` label where they have one.
@@ -1287,7 +1290,8 @@ separate from artifact presentation.
 
   Every derived paragraph, list item, table data row,
   standalone code block, and figure review item gains a left gutter with
-  Accept, Reject, and Comment controls.
+  Accept, Reject, and Comment controls. A figure is one item: what it draws inside, such as a
+  decision figure's rows, is none.
 
   Waiting items use teal, accepted items green, and
   rejected items red.
