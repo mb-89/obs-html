@@ -1,10 +1,12 @@
-"""Native-browser tier: bless verdicts in the top band, the swipe walk and Send (bless.js;
-artifact-ui.md, Bless verdicts and Reading shell; spec/capabilities/bless.md).
+"""Native-browser tier: bless verdicts in the top band, the swipe walk, Send and the screens the deck
+opens in (bless.js, screens.js; artifact-ui.md, Bless verdicts, Screens and Reading shell;
+spec/capabilities/bless.md).
 
-Reader: whoever changes the verdict keys, Send, the answered record or the chapter swipe.
+Reader: whoever changes the verdict keys, Send, the answered record, the chapter swipe or screens.
 
 The artifact is the example deck of obs's spec (spec/examples/bless-deck), built through the core
-once per run: Home, then two chapters that ask for a bless, each with a decision figure. Send posts
+once per run: Home, then two chapters that ask for a bless, each with a decision figure, so it opens
+in screens (artifact-ui.md, Screens: the default of a deck); the phone checks open it so, on a phone. Send posts
 to the real obs-html serve (test/serving.py); the answers it writes build the answered deck, which
 shows each verdict read-only.
 """
@@ -17,7 +19,9 @@ import pytest
 from jsonschema import Draft202012Validator
 
 import serving
+from artifacts import artifact_html
 from conftest import CORE_ROOT, built_once
+from documents import chapter, document, heading, paragraph
 from obs_html import cli
 
 pytestmark = pytest.mark.browser
@@ -83,14 +87,17 @@ def _active(page) -> str:
     return page.locator("[data-active-chapter]").get_attribute("data-chapter")
 
 
-# Each shown control of the top band: its name, its box and whether a pointer at its centre reaches it.
+# Each shown control of the top band: its name, its box and whether a pointer at its centre reaches it;
+# the breadcrumbs' choosers (toggle) are small triangles, not squares.
 BAND = """() => [...document.querySelectorAll(
-        '.top-band a.chapter-home-link, .top-band button, .top-band [data-bless-pill]')]
+        '.top-band a.chapter-home-link, .top-band button, .top-band [data-bless-pill], .top-band [data-screens-position], '
+        + '.top-band summary.chapter-breadcrumb-toggle')]
     .filter(node => node.checkVisibility() && !node.closest('.notice-list, .bless-entry, .chapter-breadcrumb-menu'))
     .map(node => {
         const box = node.getBoundingClientRect(), hit = document.elementFromPoint(
             box.left + box.width / 2, box.top + box.height / 2);
         return {name: node.getAttribute('aria-label') || node.textContent.trim(), pill: node.matches('[data-bless-pill]'),
+                toggle: node.matches('summary'),
                 left: box.left, right: box.right, width: box.width, height: box.height,
                 reached: Boolean(hit) && node.contains(hit)};
     })"""
@@ -105,7 +112,8 @@ def _fits(page) -> list[dict]:
     assert page.evaluate("document.documentElement.scrollWidth") == width
     assert [item["name"] for item in controls if item["left"] < -0.5 or item["right"] > width + 0.5
             or not item["reached"]] == []
-    squares = {(round(item["width"]), round(item["height"])) for item in controls if not item["pill"]}
+    squares = {(round(item["width"]), round(item["height"])) for item in controls
+               if not item["pill"] and not item["toggle"]}
     assert len(squares) == 1 and len({*squares.pop()}) == 1, controls
     return controls
 
@@ -151,7 +159,7 @@ def test_the_band_holds_every_key_in_one_row_at_phone_width_with_the_notices_sho
     page.evaluate("""() => obsNotices.severities.forEach(severity =>
         obsNotices.post({id: severity, severity, title: severity}))""")
     names = [item["name"] for item in _fits(page)]
-    assert names == ["Home", "Show frontmatter", PENDING, "Bless", "Decline", "Ask", "Pick", "Send 0 of 2 verdicts",
+    assert names == ["Home", "Choose chapter", "Show frontmatter", "Chapter 1 of 2", PENDING, "Bless", "Decline", "Ask", "Pick", "Send 0 of 2 verdicts",
                      "Errors: 1 notice", "Warnings: 1 notice", "Information: 1 notice", "Open bars menu"]
     # Short of space, the breadcrumb has shrunk and the pill is a square of the band's size showing
     # only its state colour, its label its tooltip and accessible name.
@@ -207,10 +215,18 @@ def test_a_swipe_walks_the_chapters_and_does_not_decide(deck, reader_browser) ->
     assert page.evaluate("obsBless.verdicts()") == {}
     expect(page.locator("[data-bless-pill]")).to_have_text("Bless pending")
 
-    # A swipe that starts in the figure's table, which scrolls sideways at this width, stays with it.
-    page.wait_for_selector(f"#{FIGURE}.figure-pugh-ready .pugh-scroll")
-    assert page.evaluate("(box => box.scrollWidth > box.clientWidth)(document.querySelector('.pugh-scroll'))")
-    page.evaluate(SWIPE, [".pugh-scroll td", -120])
+    # A swipe that starts in a box that scrolls sideways stays with it. At this width the figure's
+    # matrix is rows and scrolls no more (artifact-ui.md, Decision figures), so the box is built here.
+    page.wait_for_selector(f"#{FIGURE}.figure-pugh-ready [data-pugh-form='rows']")
+    assert page.evaluate("""() => {
+        const box = Object.assign(document.createElement('div'), {className: 'swipe-box'});
+        box.style.overflowX = 'auto';
+        box.append(Object.assign(document.createElement('p'), {textContent: 'wide'}));
+        box.firstChild.style.width = '200vw';
+        document.querySelector('[data-active-chapter] [data-chapter-body], [data-chapter-body]').append(box);
+        return box.scrollWidth > box.clientWidth;
+    }""")
+    page.evaluate(SWIPE, [".swipe-box p", -120])
     assert _active(page) == "record"
     # The decision figure's options take their own swipe.
     page.evaluate(SWIPE, [".pugh-option", -120])
@@ -257,7 +273,7 @@ def test_the_answered_deck_shows_each_verdict_read_only(built, reader_browser) -
     page, errors = _open(reader_browser, (built / "answered.html").as_uri())
     record = page.locator("[data-bless-record]")
     expect(record).to_have_attribute("data-bless-record", "answer")
-    expect(record.locator("[data-bless-record-verdict]")).to_have_text("Picked C (Answers file alone)")
+    expect(record.locator("[data-bless-record-verdict]")).to_have_text("Picked C · Answers file alone")
     expect(record.locator("[data-bless-record-comment]")).to_have_text("C needs no second place.")
     expect(record).to_contain_text("Weight of Places that hold it: 1 (was 3)")
     expect(page.locator("[data-bless-pill]")).to_have_text("Picked C · recorded")
@@ -265,4 +281,97 @@ def test_the_answered_deck_shows_each_verdict_read_only(built, reader_browser) -
     expect(page.locator("[data-bless-send]")).to_be_hidden()
     expect(page.locator(f"#{FIGURE} [data-pugh-weight]")).to_have_count(0)  # The figure shows the answer read-only.
     expect(page.locator(f'#{FIGURE} [data-pugh-criterion="places"] .pugh-weight')).to_have_text("1")
+    assert errors == []
+
+
+# What the reader shows as a page: paper sheets, their running headers and footers, and the cover.
+PAGE_FRAME = """() => [...document.querySelectorAll(
+        '.paper-sheet, .paper-header, .paper-footer, .paper-page-number, .document-heading')]
+    .filter(node => node.checkVisibility()).length"""
+
+
+@pytest.mark.parametrize("width", [360, 390])
+def test_the_deck_opens_in_screens_on_a_phone_that_fit_and_walk_by_swipe_and_arrows(deck, phone_browser,
+                                                                                    width: int) -> None:
+    """artifact-ui.md, Screens: no sideways scroll, no page frame, the band's title and position, and the
+    band fits (Reading shell, the top band); swipe and the arrows walk, and Home has no cover."""
+    from playwright.sync_api import expect
+
+    page = phone_browser.new_page(viewport={"width": width, "height": 780})
+    errors: list[str] = []
+    page.on("pageerror", lambda error: errors.append(str(error)))
+    page.goto(f"{deck.as_uri()}#record")
+    page.wait_for_function("document.documentElement.dataset.artifactStatus === 'ready'")
+    assert page.evaluate("[matchMedia('(pointer: coarse)').matches, innerWidth]") == [True, width]
+    assert page.evaluate("document.documentElement.className.split(' ').filter(name => name.endsWith('-mode'))") \
+        == ["screens-mode"]
+    position = page.locator("[data-screens-position]")
+    expect(position).to_have_text("1 / 2")
+    expect(page.locator("[data-screens-title]")).to_have_attribute("title", "Bless verdicts, two decisions")
+    assert page.evaluate(PAGE_FRAME) == 0
+    assert "Chapter 1 of 2" in [item["name"] for item in _fits(page)]
+    # The chapter takes the reader's width inside the gutter that holds the arrows.
+    body = page.locator("[data-chapter-body]").bounding_box()
+    assert body["width"] >= width - 2 * 32
+
+    page.evaluate(SWIPE, ["[data-chapter-body] h1", -120])
+    expect(page.locator("[data-active-chapter]")).to_have_attribute("data-chapter", "swipe")
+    expect(position).to_have_text("2 / 2")
+    _fits(page)
+    page.locator("[data-step='-1']").click()
+    expect(page.locator("[data-active-chapter]")).to_have_attribute("data-chapter", "record")
+    page.locator("[data-step='-1']").click()
+    expect(page.locator("[data-active-chapter]")).to_have_attribute("data-chapter", "home")
+    expect(position).to_be_hidden()
+    assert page.evaluate(PAGE_FRAME) == 0
+    _fits(page)
+    page.locator("[data-step='1']").click()
+    expect(position).to_have_text("1 / 2")
+    assert errors == []
+
+
+def test_printing_from_screens_prints_each_screen_from_a_new_page_without_a_page_frame(deck, reader_browser) -> None:
+    """artifact-ui.md, Screens: the print projection holds Home without its cover, then each chapter
+    from a new sheet, with no front pages, running header, footer or page number."""
+    page, errors = _open(reader_browser, deck.as_uri(), PHONE)
+    page.evaluate("dispatchEvent(new Event('beforeprint'))")
+    sheets = page.evaluate("""() => [...document.querySelectorAll('.print-book > .paper-sheet')].map(sheet => ({
+        chapter: sheet.dataset.pageChapter, id: sheet.id,
+        frame: sheet.querySelectorAll('.paper-header, .paper-footer, .document-heading, .title-page').length}))""")
+    page.evaluate("dispatchEvent(new Event('afterprint'))")
+    assert [sheet["chapter"] for sheet in sheets if sheet["id"]] == ["home", "record", "swipe"]
+    assert {sheet["frame"] for sheet in sheets} == {0}
+    assert page.evaluate("document.documentElement.classList.contains('screens-mode')")
+    assert errors == []
+
+
+def _nested_deck() -> str:
+    """A deck whose second chapter, with a decision figure, is a subchapter of the first: its
+    breadcrumbs hold two choosers, Choose chapter and Choose subchapter."""
+    decisions = json.loads((Path(__file__).parent / "fixtures" / "documents" / "pugh.json").read_text(encoding="utf-8"))
+    figure = next(item for entry in decisions["chapters"] for item in entry["content"]
+                  if item["type"] == "figures" and item["attrs"]["kind"] == "pugh")
+    asks = {"obs": {"bless": "pending"}}
+    source = document("Nested deck", chapter(
+        "parent", "Parent decision", heading(1, "Parent decision"), paragraph("Bless this."), metadata=asks,
+        children=(chapter("child", "Child decision", heading(1, "Child decision"), figure, metadata=asks),)))
+    for entry in (source["chapters"][0], source["chapters"][0]["children"][0]):
+        entry["bless"] = {"version": "0" * 64}
+    return artifact_html(source)
+
+
+def test_the_band_of_a_nested_bless_chapter_fits_at_360_px(phone_browser, tmp_path: Path) -> None:
+    """Both breadcrumb choosers, the position, the pill and every key in one row, none under another."""
+    from playwright.sync_api import expect
+
+    (tmp_path / "nested.html").write_text(_nested_deck(), encoding="utf-8")
+    page = phone_browser.new_page(viewport={"width": 360, "height": 780})
+    errors: list[str] = []
+    page.on("pageerror", lambda error: errors.append(str(error)))
+    page.goto(f"{(tmp_path / 'nested.html').as_uri()}#child")
+    page.wait_for_function("document.documentElement.dataset.artifactStatus === 'ready'")
+    expect(page.locator("[data-screens-position]")).to_have_text("2 / 2")
+    names = [item["name"] for item in _fits(page)]
+    assert names == ["Home", "Choose chapter", "Choose subchapter", "Show frontmatter", "Chapter 2 of 2", PENDING,
+                     "Bless", "Decline", "Ask", "Pick", "Send 0 of 2 verdicts", "Open bars menu"]
     assert errors == []

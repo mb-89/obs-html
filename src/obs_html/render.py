@@ -43,7 +43,6 @@ STRUCTURAL = frozenset(json.loads(files("obs").joinpath("document.schema.json").
                        ["$defs"]["structuralType"]["enum"])
 """The node types every adapter renders, as the core's Document schema lists them (structuralType)."""
 PROFILE_DEFAULTS = {
-    "layout": "paged",
     "heading": "cover",
     "pages": [{"page": "cover"}, {"page": "abstract", "title": "Abstract"},
               {"page": "contents", "title": "Contents"}],
@@ -843,7 +842,7 @@ def _css_snippets(document: dict[str, object]) -> str:
     manifest = document["manifest"]
     available = {snippet["name"]: snippet for snippet in document["cssSnippets"]}
     styles = []
-    for index, name in enumerate(_profile(manifest)["cssSnippets"]):
+    for index, name in enumerate(_profile(manifest, document["chapters"])["cssSnippets"]):
         snippet = available.get(name)
         if snippet is None:
             listed = ", ".join(sorted(available)) or "none"
@@ -868,7 +867,23 @@ def _resolve_icons(value: object, assets: SemanticAssets) -> object:
     return value
 
 
-def _profile(manifest: dict[str, object]) -> dict[str, object]:
+def _layout(declared: dict[str, object], chapters: list[dict[str, object]]) -> str:
+    """The layout every opening starts in (artifact-ui.md, Screens): the declared one, else screens
+    where every chapter of the reading order asks for a bless (obs input-model, Bless requests), else paged."""
+    if "layout" in declared:
+        return declared["layout"]
+    listed = set(_listed(chapters))
+
+    def asking(entries: list[dict[str, object]]):
+        for entry in entries:
+            if entry["id"] in listed:
+                yield "bless" in entry
+            yield from asking(entry["children"])
+    asks = list(asking(chapters))
+    return "screens" if asks and all(asks) else "paged"
+
+
+def _profile(manifest: dict[str, object], chapters: list[dict[str, object]]) -> dict[str, object]:
     """The manifest frontmatter's obsHtml mapping, the adapter's own namespace, which the obs core
     passes on without reading (obs input-model#Core and adapter namespaces); this adapter checks it."""
     declared = manifest["metadata"].get("obsHtml", {})
@@ -880,13 +895,14 @@ def _profile(manifest: dict[str, object]) -> dict[str, object]:
     resolved = {key: declared.get(key, value) for key, value in PROFILE_DEFAULTS.items()}
     resolved["figures"] = PROFILE_DEFAULTS["figures"] | resolved["figures"]
     resolved["print"] = declared.get("print") or {}
+    resolved["layout"] = _layout(declared, chapters)
     return resolved
 
 
 def _model(document: dict[str, object], config: Config, context: Context) -> dict[str, object]:
     """The artifact-data island: the runtime's only model of the artifact."""
     manifest = document["manifest"]
-    profile = _profile(manifest)
+    profile = _profile(manifest, document["chapters"])
     context.figures = profile["figures"]
     context.conjunctions = tuple(config.artifact["figureReferences"]["conjunctions"])
     _number_figures(document["chapters"], context)
@@ -920,7 +936,7 @@ def _model(document: dict[str, object], config: Config, context: Context) -> dic
         "paper": paper({**config.print_default, **profile["print"]}, config, lambda key: (
             (manifest["path"], f"obsHtml.print.{key}") if key in profile["print"]
             else (config.source("artifact", "print", "default", key), f"artifact.print.default.{key}"))),
-        "reading": {"theme": "light", "paged": profile["layout"] == "paged", **settings["reading"]},
+        "reading": {"theme": "light", "layout": profile["layout"], **settings["reading"]},
         "figures": settings["figures"],
         "printReadyTimeoutMilliseconds": settings["printReadyTimeoutMilliseconds"],
         "hoverCard": settings["hoverCard"],
@@ -972,9 +988,45 @@ def _note_body(nodes: list[dict[str, object]], chapter: str, where: list[object]
     context.chapter, context.tables, context.marks, context.editable = chapter, [], [], {}
     context.figure_position = 0
     context.where = where[:-1]
-    body = _nodes(nodes, context, where[-1])
+    html = []
+    for index, node in enumerate(nodes):
+        with _at(context, where[-1], index):
+            html.append(_node(node, context))
+    _decision_tabs(nodes, html, context)
     context.chapter, context.where = "", []
-    return body
+    return "".join(html)
+
+
+FIGURE_END = "</figure>\n"
+
+
+def _decision_tabs(nodes: list[dict[str, object]], html: list[str], context: Context) -> None:
+    """A chapter whose main content is a decision figure, its one decision figure at the top level:
+    each second-level section after the figure, up to a first-level one, moves into the figure as
+    one more tab, named by its heading (pugh-figure.js; obs input-model, Pugh decision figures).
+    ``html`` holds each node's rendering; the moved ones are emptied."""
+    figures = [index for index, node in enumerate(nodes)
+               if node["type"] == "figures" and node["attrs"].get("kind") == "pugh"]
+    if len(figures) != 1:
+        return
+    def level(node: dict[str, object]) -> int:
+        return int(node["attrs"].get("level", 1)) if node["type"] == "section" else 0
+
+    end = next((index for index in range(figures[0] + 1, len(nodes)) if level(nodes[index]) == 1), len(nodes))
+    starts = [index for index in range(figures[0] + 1, end) if level(nodes[index]) == 2]
+    if not starts:
+        return
+    sections = []
+    for start, stop in zip(starts, [*starts[1:], end]):
+        heading = nodes[start]
+        anchor = context.headings.get(f"{context.chapter or HOME}#{_identifier(_plain(heading))}", "")
+        title = re.fullmatch(r"<h2[^>]*>(.*)</h2>\n", html[start], re.S).group(1)
+        identifier = f' id="{anchor}"' if anchor else ""
+        sections.append(f'<section class="pugh-extra"{identifier} data-pugh-extra="{escape(_plain(heading), quote=True)}">'
+                        f'<p class="pugh-extra-title">{title}</p>{"".join(html[start + 1:stop])}</section>')
+        html[start:stop] = [""] * (stop - start)
+    figure = html[figures[0]]
+    html[figures[0]] = figure[:-len(FIGURE_END)] + "".join(sections) + FIGURE_END
 
 
 def _note(depth: int, title: str, slug: str, generated: str, frontmatter: dict[str, object],
@@ -1351,6 +1403,8 @@ def _shell(model: dict[str, object], limits: list[dict[str, str]], stylesheet: s
     parts = [part for feature in features for part in feature.shipped(model, trusted_runtime is not None)]
     feature_code = "".join(f"{read(name)}\n" for feature in features for name in feature.code)
     feature_code += "".join(f"{read(name)}\n" for part in parts for name in part.code)
+    feature_styles = "".join(f'\n  <style id="feature-styles-{feature.key}">\n{read(name)}  </style>'
+                             for feature in features for name in feature.styles)
     pdf_library = ""
     if any(part.key == "source-archive" for part in parts):
         pdf_library = ('<script id="pdf-library-script">/* ' + read("vendor", "pdf-lib.LICENSE") + " */\n"
@@ -1392,7 +1446,7 @@ def _shell(model: dict[str, object], limits: list[dict[str, str]], stylesheet: s
     reader_startup = "".join(
         f"    {line}\n" for line in read("reader-startup.js")
         .replace("READER_THEME", json.dumps(startup["theme"]))
-        .replace("READER_PAGED", json.dumps(startup["paged"])).splitlines()
+        .replace("READER_LAYOUT", json.dumps(startup["layout"])).splitlines()
     )
     runtime_head = runtime_script = ""
     if trusted_runtime:
@@ -1404,7 +1458,7 @@ def _shell(model: dict[str, object], limits: list[dict[str, str]], stylesheet: s
                           + "</script>")
     header_metadata = escape(serialize_artifact_data(model["document"]["metadataHtml"]), quote=True)
     return f"""<!doctype html>
-<html lang="en" data-theme="{escape(startup['theme'])}">
+<html lang="en" data-theme="{escape(startup['theme'])}" data-layout="{escape(startup['layout'])}">
 <head>
   <meta charset="utf-8">
   {runtime_head}
@@ -1415,7 +1469,7 @@ def _shell(model: dict[str, object], limits: list[dict[str, str]], stylesheet: s
   <style id="artifact-styles">
 {stylesheet}
   </style>
-  <style id="semantic-asset-styles">{assets.css()}</style>
+  <style id="semantic-asset-styles">{assets.css()}</style>{feature_styles}
 </head>
 <body>
   <header class="top-band" data-top-band>

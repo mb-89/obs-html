@@ -2706,6 +2706,15 @@
         }
     };
 
+    // A click anywhere outside the breadcrumbs closes an open chooser. It listens in the capture
+    // phase, so a click that a control keeps to itself (the menu, a bar's own controls) closes it too.
+    document.addEventListener("click", (event) => {
+        if (event.target.closest?.(".chapter-breadcrumbs")) return;
+        document.querySelectorAll(".chapter-breadcrumb-chooser[open]").forEach(
+            (item) => item.removeAttribute("open"),
+        );
+    }, true);
+
     document.addEventListener("click", (event) => {
         const headingButton = event.target.closest("[data-heading-toggle]");
         if (headingButton) {
@@ -2737,12 +2746,6 @@
                 setTocExpanded(toggle, expanded);
             });
             return;
-        }
-
-        if (!event.target.closest(".chapter-breadcrumbs")) {
-            document.querySelectorAll(".chapter-breadcrumb-chooser[open]").forEach(
-                (item) => item.removeAttribute("open"),
-            );
         }
 
         const link = event.target.closest('a[href^="#"]');

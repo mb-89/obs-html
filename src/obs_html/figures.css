@@ -452,6 +452,11 @@
     min-width: 0;
 }
 
+/* The tabs wrap clear of the figure's expand key and options menu, which sit at its top end. */
+.pugh-tabs {
+    padding-inline-end: 2.6rem;
+}
+
 .pugh-figure-view > .pugh-view {
     width: 100%;
 }
@@ -582,6 +587,185 @@
     text-align: start;
     vertical-align: top;
     white-space: normal;
+}
+
+/* The matrix as rows at a narrow width (pugh-figure.js, rows): each criterion's name over the full
+   width, then its weight stepper and a cell of about 40 px per option, wrapping rather than scrolling. */
+.pugh-rows {
+    display: grid;
+    gap: 0.45rem;
+    font-size: 0.9em;
+}
+
+.pugh-row {
+    border-block-end: var(--border-width) solid var(--color-border);
+    padding-block-end: 0.35rem;
+    position: relative;
+}
+
+.pugh-row-name {
+    font-weight: 600;
+    margin: 0 0 0.2rem;
+    overflow-wrap: anywhere;
+}
+
+.pugh-row-cells {
+    align-items: end;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.15rem;
+}
+
+.pugh-stepper {
+    align-items: center;
+    display: inline-flex;
+    flex: none;
+}
+
+.pugh-step {
+    background: transparent;
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-small);
+    color: inherit;
+    cursor: pointer;
+    font: inherit;
+    block-size: 2rem;
+    inline-size: 1.5rem;
+    padding: 0;
+}
+
+.pugh-weight-value {
+    min-inline-size: 1.4rem;
+    text-align: center;
+}
+
+/* A cell takes up to 2.5rem and gives way to 1.7rem before a line wraps: five fit beside the
+   stepper in the narrowest figure, 226 px at a 360 px phone. */
+.pugh-cell {
+    border-radius: var(--radius-small);
+    display: grid;
+    flex: 1 1 0;
+    max-inline-size: 2.5rem;
+    min-inline-size: 1.7rem;
+    justify-items: stretch;
+    text-align: center;
+}
+
+/* The letter heading a cell is a control (pugh-figure.js, aboutControl): its option's popover. */
+.pugh-cell-head {
+    background: transparent;
+    border: 0;
+    border-radius: var(--radius-small);
+    color: var(--color-text-muted);
+    cursor: help;
+    font: inherit;
+    font-size: 0.85em;
+    font-weight: 600;
+    padding: 0.1rem 0;
+}
+
+.pugh-cell-head[aria-expanded="true"] {
+    color: var(--color-text);
+    text-decoration: underline;
+}
+
+.pugh-about {
+    background: var(--color-surface);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-small);
+    box-shadow: 0 0.25rem 0.75rem var(--color-shadow);
+    font-weight: 400;
+    inset-block-start: 100%;
+    inset-inline: 0;
+    padding: 0.4rem 0.6rem;
+    position: absolute;
+    z-index: 3;
+}
+
+.pugh-about[hidden] {
+    display: none;
+}
+
+.pugh-about p {
+    margin: 0;
+}
+
+.pugh-option-label {
+    color: var(--color-text-muted);
+}
+
+.pugh-cell-value {
+    line-height: 2rem;
+}
+
+.pugh-rows .pugh-mark-button {
+    block-size: 2rem;
+    min-inline-size: 0;
+    padding: 0;
+}
+
+.pugh-cell.pugh-winner {
+    background: var(--color-accent-soft);
+}
+
+.pugh-cell.pugh-datum .pugh-cell-head {
+    text-decoration: underline;
+}
+
+.pugh-cell.pugh-out {
+    color: var(--color-text-muted);
+}
+
+/* In the rows a mark's choices open under its line, from the line's start, so all five fit. */
+.pugh-rows .pugh-chooser {
+    inset-inline: 0 auto;
+}
+
+.pugh-picks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    justify-content: start;
+}
+
+.pugh-picks > .bless-column-pick {
+    flex: none;
+    margin: 0;
+}
+
+/* The total line keeps the stepper's room, so its cells stand under the marks. */
+.pugh-stepper-space {
+    min-inline-size: 4.4rem;
+}
+
+.pugh-row-texts {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.pugh-row-texts li + li {
+    margin-block-start: 0.2rem;
+}
+
+/* A chapter's section after the figure, one more tab of it (render.py, decision tabs): its title
+   is the tab's, so it shows only where the section prints under the matrix. */
+.pugh-extra {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.pugh-extra[hidden] {
+    display: none;
+}
+
+.pugh-figure-view .pugh-extra-title {
+    display: none;
+}
+
+.pugh-extra-title {
+    font-weight: 600;
+    margin-block: 0.6rem 0.2rem;
 }
 
 .pugh-column-name {

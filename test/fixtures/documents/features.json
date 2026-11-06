@@ -6,6 +6,7 @@
     "metadata": {
       "title": "Feature fixture",
       "obsHtml": {
+        "layout": "screens",
         "figures": {
           "numbering": "chapter"
         }
@@ -18,6 +19,7 @@
           "metadata": {
             "title": "Feature fixture",
             "obsHtml": {
+              "layout": "screens",
               "figures": {
                 "numbering": "chapter"
               }
@@ -36,6 +38,20 @@
                 "attrs": {},
                 "children": [],
                 "text": "Feature fixture"
+              }
+            ]
+          },
+          {
+            "type": "field",
+            "attrs": {
+              "name": "obsHtml.layout"
+            },
+            "children": [
+              {
+                "type": "text",
+                "attrs": {},
+                "children": [],
+                "text": "screens"
               }
             ]
           },
@@ -1405,6 +1421,152 @@
               "text": "Paragraph 2 of the closing text, which reads on after the content above it. Paragraph 2 of the closing text, which reads on after the content above it. Paragraph 2 of the closing text, which reads on after the content above it."
             }
           ]
+        },
+        {
+          "type": "section",
+          "attrs": {
+            "level": 2
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Summary"
+            }
+          ]
+        },
+        {
+          "type": "cards-metrics",
+          "attrs": {
+            "source": "{\"version\": 1, \"cards\": [{\"title\": \"Items\", \"body\": \"The table holds [[itemCount]] items.\", \"metrics\": [{\"label\": \"Items\", \"where\": [{\"field\": \"kind\", \"equals\": \"item\"}], \"link\": \"#tables\"}]}, {\"title\": \"Ranks\", \"body\": \"Each item has its own rank.\", \"metrics\": [{\"label\": \"Ranks\", \"from\": \"counts/items\", \"where\": [], \"distinct\": \"rank\", \"link\": \"#tables\"}]}]}\n",
+            "spec": {
+              "version": 1,
+              "cards": [
+                {
+                  "title": "Items",
+                  "body": "The table holds [[itemCount]] items.",
+                  "metrics": [
+                    {
+                      "label": "Items",
+                      "where": [
+                        {
+                          "field": "kind",
+                          "equals": "item"
+                        }
+                      ],
+                      "link": "#tables"
+                    }
+                  ]
+                },
+                {
+                  "title": "Ranks",
+                  "body": "Each item has its own rank.",
+                  "metrics": [
+                    {
+                      "label": "Ranks",
+                      "from": "counts/items",
+                      "where": [],
+                      "distinct": "rank",
+                      "link": "#tables"
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "children": [
+            {
+              "type": "document",
+              "attrs": {
+                "title": [
+                  {
+                    "type": "text",
+                    "attrs": {},
+                    "children": [],
+                    "text": "Items"
+                  }
+                ],
+                "labels": [
+                  [
+                    {
+                      "type": "text",
+                      "attrs": {},
+                      "children": [],
+                      "text": "Items"
+                    }
+                  ]
+                ]
+              },
+              "children": [
+                {
+                  "type": "paragraph",
+                  "attrs": {},
+                  "children": [
+                    {
+                      "type": "text",
+                      "attrs": {},
+                      "children": [],
+                      "text": "The table holds "
+                    },
+                    {
+                      "type": "wikilinks",
+                      "attrs": {
+                        "target": "itemCount",
+                        "chapter": "counts-items",
+                        "heading": "",
+                        "label": "itemCount"
+                      },
+                      "children": []
+                    },
+                    {
+                      "type": "text",
+                      "attrs": {},
+                      "children": [],
+                      "text": " items."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "document",
+              "attrs": {
+                "title": [
+                  {
+                    "type": "text",
+                    "attrs": {},
+                    "children": [],
+                    "text": "Ranks"
+                  }
+                ],
+                "labels": [
+                  [
+                    {
+                      "type": "text",
+                      "attrs": {},
+                      "children": [],
+                      "text": "Ranks"
+                    }
+                  ]
+                ]
+              },
+              "children": [
+                {
+                  "type": "paragraph",
+                  "attrs": {},
+                  "children": [
+                    {
+                      "type": "text",
+                      "attrs": {},
+                      "children": [],
+                      "text": "Each item has its own rank."
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ],
       "children": [],
@@ -1458,6 +1620,185 @@
       ],
       "children": [],
       "metadata": {}
+    },
+    {
+      "id": "counts-items",
+      "title": "Items",
+      "toc": false,
+      "content": [
+        {
+          "type": "markdown-frontmatter",
+          "attrs": {
+            "metadata": {
+              "kind": "quantity",
+              "aliases": [
+                "itemCount"
+              ],
+              "source": "[[tables]]",
+              "query": {
+                "where": [
+                  {
+                    "field": "kind",
+                    "equals": "item"
+                  }
+                ]
+              }
+            }
+          },
+          "children": [
+            {
+              "type": "field",
+              "attrs": {
+                "name": "kind"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "quantity"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "aliases.0"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "itemCount"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "source"
+              },
+              "children": [
+                {
+                  "type": "wikilinks",
+                  "attrs": {
+                    "target": "tables",
+                    "chapter": "tables",
+                    "heading": "",
+                    "label": "tables"
+                  },
+                  "children": []
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "query.where.0.field"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "kind"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "query.where.0.equals"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "item"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "quantities",
+          "attrs": {
+            "metadata": {
+              "kind": "quantity",
+              "aliases": [
+                "itemCount"
+              ],
+              "source": "[[tables]]",
+              "query": {
+                "where": [
+                  {
+                    "field": "kind",
+                    "equals": "item"
+                  }
+                ]
+              }
+            },
+            "quantity": {
+              "unit": "",
+              "dimension": {}
+            }
+          },
+          "children": []
+        },
+        {
+          "type": "queries",
+          "attrs": {
+            "query": {
+              "where": [
+                {
+                  "field": "kind",
+                  "equals": "item"
+                }
+              ]
+            }
+          },
+          "children": []
+        },
+        {
+          "type": "count-query",
+          "attrs": {
+            "query": {
+              "where": [
+                {
+                  "field": "kind",
+                  "equals": "item"
+                }
+              ]
+            }
+          },
+          "children": []
+        },
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "counts-items"
+          },
+          "children": []
+        }
+      ],
+      "children": [],
+      "metadata": {
+        "kind": "quantity",
+        "aliases": [
+          "itemCount"
+        ],
+        "source": "[[tables]]",
+        "query": {
+          "where": [
+            {
+              "field": "kind",
+              "equals": "item"
+            }
+          ]
+        }
+      }
     },
     {
       "id": "item-01",
@@ -3109,6 +3450,11 @@
       "label": "the site"
     },
     {
+      "id": "itemcount",
+      "href": "itemCount",
+      "label": "itemCount"
+    },
+    {
       "id": "source-a",
       "href": "overview.md",
       "label": "Source A"
@@ -3130,6 +3476,106 @@
       "path": "aside.md",
       "fields": {},
       "fieldNodes": []
+    },
+    {
+      "id": "counts-items",
+      "type": "note",
+      "path": "counts/items.md",
+      "fields": {
+        "kind": "quantity",
+        "aliases": [
+          "itemCount"
+        ],
+        "source": "[[tables]]",
+        "query": {
+          "where": [
+            {
+              "field": "kind",
+              "equals": "item"
+            }
+          ]
+        }
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "kind"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "quantity"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "aliases.0"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "itemCount"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "source"
+          },
+          "children": [
+            {
+              "type": "wikilinks",
+              "attrs": {
+                "target": "tables",
+                "chapter": "tables",
+                "heading": "",
+                "label": "tables"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "query.where.0.field"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "kind"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "query.where.0.equals"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "item"
+            }
+          ]
+        }
+      ],
+      "quantity": {
+        "unit": "",
+        "dimension": {}
+      }
     },
     {
       "id": "equations",
@@ -4112,6 +4558,7 @@
       "fields": {
         "title": "Feature fixture",
         "obsHtml": {
+          "layout": "screens",
           "figures": {
             "numbering": "chapter"
           }
@@ -4129,6 +4576,20 @@
               "attrs": {},
               "children": [],
               "text": "Feature fixture"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "obsHtml.layout"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "screens"
             }
           ]
         },
@@ -4433,7 +4894,9 @@
     "attachments",
     "bases",
     "callouts",
+    "cards-metrics",
     "chapter-inclusion",
+    "count-query",
     "equation-figures",
     "figure-descriptor",
     "figures",
@@ -4444,6 +4907,8 @@
     "profiles",
     "property-editors",
     "pugh-decisions",
+    "quantities",
+    "queries",
     "references",
     "registers",
     "wikilinks"
@@ -4454,6 +4919,10 @@
       {
         "path": "aside.md",
         "data": "IyBBc2lkZQoKQSBub3RlIGEgbGluayBvcGVucyBhcyBjb250ZXh0Lgo="
+      },
+      {
+        "path": "counts/items.md",
+        "data": "LS0tCmtpbmQ6IHF1YW50aXR5CmFsaWFzZXM6IFtpdGVtQ291bnRdCnNvdXJjZTogJ1tbdGFibGVzXV0nCnF1ZXJ5OiB7d2hlcmU6IFt7ZmllbGQ6IGtpbmQsIGVxdWFsczogaXRlbX1dfQotLS0K"
       },
       {
         "path": "drawing.svg",
@@ -4569,7 +5038,7 @@
       },
       {
         "path": "manifest.md",
-        "data": "LS0tCnRpdGxlOiBGZWF0dXJlIGZpeHR1cmUKb2JzSHRtbDoge2ZpZ3VyZXM6IHtudW1iZXJpbmc6IGNoYXB0ZXJ9fQotLS0KLSBbW292ZXJ2aWV3XV0KLSBbW2ZpZ3VyZXNdXQogIC0gW1tlcXVhdGlvbnNdXQogICAgLSBbW3RhYmxlc11dCi0gW1twcm9zZV1dCi0gW1tyZWZlcmVuY2VzXV0K"
+        "data": "LS0tCnRpdGxlOiBGZWF0dXJlIGZpeHR1cmUKb2JzSHRtbDoge2xheW91dDogc2NyZWVucywgZmlndXJlczoge251bWJlcmluZzogY2hhcHRlcn19Ci0tLQotIFtbb3ZlcnZpZXddXQotIFtbZmlndXJlc11dCiAgLSBbW2VxdWF0aW9uc11dCiAgICAtIFtbdGFibGVzXV0KLSBbW3Byb3NlXV0KLSBbW3JlZmVyZW5jZXNdXQo="
       },
       {
         "path": "overview.md",
@@ -4581,7 +5050,7 @@
       },
       {
         "path": "references.md",
-        "data": "LS0tCnN0YXR1czogZHJhZnQKLS0tCiMgUmVmZXJlbmNlcwoKIVtbc291cmNlcy5iYXNlXV0KCmBgYHByb3BlcnR5LWVkaXRvcgp2ZXJzaW9uOiAxCmZpZWxkOiBzdGF0dXMKbGFiZWw6IFN0YXR1cwpgYGAKClBhcmFncmFwaCAxIG9mIHRoZSBjbG9zaW5nIHRleHQsIHdoaWNoIHJlYWRzIG9uIGFmdGVyIHRoZSBjb250ZW50IGFib3ZlIGl0LiBQYXJhZ3JhcGggMSBvZiB0aGUgY2xvc2luZyB0ZXh0LCB3aGljaCByZWFkcyBvbiBhZnRlciB0aGUgY29udGVudCBhYm92ZSBpdC4gUGFyYWdyYXBoIDEgb2YgdGhlIGNsb3NpbmcgdGV4dCwgd2hpY2ggcmVhZHMgb24gYWZ0ZXIgdGhlIGNvbnRlbnQgYWJvdmUgaXQuIAoKUGFyYWdyYXBoIDIgb2YgdGhlIGNsb3NpbmcgdGV4dCwgd2hpY2ggcmVhZHMgb24gYWZ0ZXIgdGhlIGNvbnRlbnQgYWJvdmUgaXQuIFBhcmFncmFwaCAyIG9mIHRoZSBjbG9zaW5nIHRleHQsIHdoaWNoIHJlYWRzIG9uIGFmdGVyIHRoZSBjb250ZW50IGFib3ZlIGl0LiBQYXJhZ3JhcGggMiBvZiB0aGUgY2xvc2luZyB0ZXh0LCB3aGljaCByZWFkcyBvbiBhZnRlciB0aGUgY29udGVudCBhYm92ZSBpdC4gCg=="
+        "data": "LS0tCnN0YXR1czogZHJhZnQKLS0tCiMgUmVmZXJlbmNlcwoKIVtbc291cmNlcy5iYXNlXV0KCmBgYHByb3BlcnR5LWVkaXRvcgp2ZXJzaW9uOiAxCmZpZWxkOiBzdGF0dXMKbGFiZWw6IFN0YXR1cwpgYGAKClBhcmFncmFwaCAxIG9mIHRoZSBjbG9zaW5nIHRleHQsIHdoaWNoIHJlYWRzIG9uIGFmdGVyIHRoZSBjb250ZW50IGFib3ZlIGl0LiBQYXJhZ3JhcGggMSBvZiB0aGUgY2xvc2luZyB0ZXh0LCB3aGljaCByZWFkcyBvbiBhZnRlciB0aGUgY29udGVudCBhYm92ZSBpdC4gUGFyYWdyYXBoIDEgb2YgdGhlIGNsb3NpbmcgdGV4dCwgd2hpY2ggcmVhZHMgb24gYWZ0ZXIgdGhlIGNvbnRlbnQgYWJvdmUgaXQuIAoKUGFyYWdyYXBoIDIgb2YgdGhlIGNsb3NpbmcgdGV4dCwgd2hpY2ggcmVhZHMgb24gYWZ0ZXIgdGhlIGNvbnRlbnQgYWJvdmUgaXQuIFBhcmFncmFwaCAyIG9mIHRoZSBjbG9zaW5nIHRleHQsIHdoaWNoIHJlYWRzIG9uIGFmdGVyIHRoZSBjb250ZW50IGFib3ZlIGl0LiBQYXJhZ3JhcGggMiBvZiB0aGUgY2xvc2luZyB0ZXh0LCB3aGljaCByZWFkcyBvbiBhZnRlciB0aGUgY29udGVudCBhYm92ZSBpdC4gCgojIyBTdW1tYXJ5CgpgYGBjYXJkcwp7InZlcnNpb24iOiAxLCAiY2FyZHMiOiBbeyJ0aXRsZSI6ICJJdGVtcyIsICJib2R5IjogIlRoZSB0YWJsZSBob2xkcyBbW2l0ZW1Db3VudF1dIGl0ZW1zLiIsICJtZXRyaWNzIjogW3sibGFiZWwiOiAiSXRlbXMiLCAid2hlcmUiOiBbeyJmaWVsZCI6ICJraW5kIiwgImVxdWFscyI6ICJpdGVtIn1dLCAibGluayI6ICIjdGFibGVzIn1dfSwgeyJ0aXRsZSI6ICJSYW5rcyIsICJib2R5IjogIkVhY2ggaXRlbSBoYXMgaXRzIG93biByYW5rLiIsICJtZXRyaWNzIjogW3sibGFiZWwiOiAiUmFua3MiLCAiZnJvbSI6ICJjb3VudHMvaXRlbXMiLCAid2hlcmUiOiBbXSwgImRpc3RpbmN0IjogInJhbmsiLCAibGluayI6ICIjdGFibGVzIn1dfV19CmBgYAo="
       },
       {
         "path": "source-a.md",

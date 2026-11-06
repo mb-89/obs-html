@@ -31,6 +31,7 @@ Data-only card groups compose the existing `content-card` primitive in responsiv
 with headings, authored Markdown, and optional artifact-filtered metrics. Metrics use compact,
 wrapping label/value rows; at ordinary desktop widths each metric should remain one compact
 label/value line, with wrapping reserved for narrow layouts or genuinely long labels.
+A card group extends within the reader and clear of the chapter controls, as a figure does.
 
 Within a metric block, labels share one aligned column and values share another;
 do not position every label/value pair independently.
@@ -132,7 +133,7 @@ failures have their form in [[input-model#Chapter content]].
   text and thin grey rules. The token values are owned by [[semantic-assets]].
 
   Every opening starts in Light appearance and in the manifest's declared `obsHtml.layout`
-  (paged by default), regardless of the operating-system theme or previously selected reader
+  (paged by default; [[#Screens]] for a deck), regardless of the operating-system theme or previously selected reader
   appearance. Reader controls may switch appearance and viewing mode during the current
   session; those choices do not override the next opening's Light/declared-layout starting state.
 
@@ -487,8 +488,12 @@ only in an artifact that holds a decision figure: it is the reader feature `pugh
 (`features.py`), whose canary reports a host that does not run it.
 
 Every option carries its letter, A, B, C and on in the order the fence lists them, wherever the
-figure names it, and one name, its label. The figure has three tabs in the adapter's tab control
-(the look of a table's detail tabs), Matrix first and shown at the start:
+figure names it, its label and its short name (obs input-model, Pugh decision figures). Where
+there is room, an option reads as its letter and short name, "B · Close": in the option view, the
+table's column heads, the bottom line, the Raised list, the What if lines and an answer's record.
+Without a short name the letter stands alone. The figure has three tabs in the adapter's tab control
+(the look of a table's detail tabs), Matrix first and shown at the start, then one tab for each
+of its chapter's sections after it ([[#Decision tabs from the chapter]]):
 
 - **Matrix:** the bottom line (the winner, its total against the datum, and whether the choice
   holds or depends on the weights, with the winner's share of the weight draws); under it the
@@ -497,7 +502,7 @@ figure names it, and one name, its label. The figure has three tabs in the adapt
   letters of the options it fails. Without items the tab is disabled.
 - **What if:** the worlds in which another option wins, which the reader rules.
 
-The options view shows one option, "Option A of 5", with its letter, name and `what` sentence.
+The options view shows one option, "Option A of 5", with its letter and short name, its label in full and its `what` sentence.
 Previous and next keys, the arrow keys while it has focus, and a horizontal swipe move between
 the options; none of them walks the chapters.
 
@@ -541,9 +546,53 @@ and marks as text; where weights or marks changed, the caption ends with the not
 by the reader.*
 
 Inside its frame the view keeps to the prose around the figure, clear of the chapter controls. A
-page layout draws a decision figure when it places it, so its page holds the whole view. At a
-phone's width, 390 px, the page needs no sideways scrolling: the table scrolls in its own box,
-the criterion names held at its left.
+page layout draws a decision figure when it places it, so its page holds the whole view. Where
+the table is wider than the view, it scrolls in its own box, the criterion names held at its left.
+
+#### Decision figures on a phone
+
+Decided by the user, 6 Nov 2026 (work issue `feature/decision-figure-on-phones-20261106`): on a
+phone a reader scrolls up and down, never sideways, so the matrix prefers rows over columns.
+
+Below 36 rem of the figure's own width (`ROWS_BELOW` in `pugh-figure.js`; the figure measures
+its frame, not the device), the table becomes rows. Each criterion is two lines:
+
+- its name over the full width;
+- its weight stepper (−, the weight, +, half a step a tap), then one cell per option, headed by
+  the option's letter, the winner's cell marked.
+
+The weighted total follows the same pattern. Wins and Losses list one line per option, letter
+first. The Pick keys sit in one line under the total.
+
+A cell takes up to 2.5 rem and gives way to 1.7 rem before its line wraps: five options fit
+beside the stepper in the narrowest figure, at a 360 px phone, and more wrap to a further line.
+Nothing in the figure scrolls sideways.
+
+In the rows only the letter fits, and the letter is a control. Hovering it, focusing it or
+tapping it shows the option's letter and short name, its label and its `what` sentence in a small
+popover under the line; a second tap or a tap elsewhere closes it, with no browser dialog. The
+popover is the control's description for a screen reader.
+
+The letter heads its cell as a control of its own, above the cell's mark key, so a tap on the
+mark changes the mark and a tap on the letter opens the popover. A mark, a weight step and a Pick
+are one tap each, as in the table.
+
+The table and the rows are drawn from one decision and one reader state: a resize across the
+width draws the other form with the reader's changes kept. Print shows the table.
+
+#### Decision tabs from the chapter
+
+Decided by the user, 6 Nov 2026 (work issue `feature/decision-figure-on-phones-20261106`): a
+decision chapter's long material sits in its own tab, not under the one-pager.
+
+In a chapter whose main content is a decision figure, its one decision figure at the top level,
+each second-level section after the figure, up to a first-level one, becomes one more tab of the
+figure, named by its heading; "## The record" becomes a tab "The record". `render.py` moves the
+section into the figure when it renders the chapter, so its text no longer runs below.
+
+The tab's panel carries the heading's anchor, and its deeper headings stay in it. Without such
+sections the figure has its three tabs. Print shows each section under the Matrix tab, headed by
+its name.
 
 ## Reading shell
 
@@ -607,6 +656,9 @@ the criterion names held at its left.
 
   The current Home crumb offers top-level chapters.
 
+  A click anywhere outside the breadcrumbs, the menu and a docked bar included, closes an open
+  chooser.
+
   A node has no child chooser; ancestor
   crumbs continue to navigate.
 
@@ -616,12 +668,14 @@ the criterion names held at its left.
   neither invents a TOC path nor intercepts the Home link.
 - No table of contents, filter, toolbar, or navigation bar is open initially.
 - The top band is one row and holds every top control: Home, the breadcrumbs, the
-  frontmatter chevron, the bless controls ([[#Bless verdicts]]), the notice icons and the menu.
+  frontmatter chevron, the position indicator and title of [[#Screens]], the bless controls
+  ([[#Bless verdicts]]), the notice icons and the menu.
   The notice icons sit directly left of the menu.
   The bless controls sit directly left of them.
   Every control in the band is a square of one size. No control takes a row of its own.
   Breadcrumbs that do not fit truncate on that row; each keeps its full title as its text and
-  tooltip.
+  tooltip. Their choosers do not truncate: the row keeps room for one toggle per level of the
+  path, so a subchapter's Choose chapter and Choose subchapter both show.
 
   At 360 px and wider the row holds every control the band shows, fully visible, without
   sideways scrolling. Where the squares at full size do not fit, they all shrink to one size
@@ -711,6 +765,33 @@ marked outdated, and the chapter asks again.
 When the band is short of space, the breadcrumbs shrink first. Then the pill truncates, and
 then it shows only its state colour, as a square of the band's size; its label stays its
 tooltip and accessible name. Only then do the band's squares shrink. No key is dropped.
+
+## Screens
+
+Decided by the user, 6 Nov 2026 (work issue `feature/screen-layout-for-decks-20261106`): a
+decision is a one-pager, not a document page, so an artifact can be read as screens.
+
+`obsHtml.layout: screens` ([[input-model#Artifact presentation profile]]) shows each chapter of
+the walk as one screen: the chapter at the reader's full width inside a side gutter that holds
+the chapter arrows, with no page frame, cover, running header, footer or page number. The
+manifest's title shows only in the top band, between the breadcrumbs and the frontmatter
+chevron; it truncates first, its full text its tooltip. Home shows its content without the cover.
+
+Without a declared `obsHtml.layout`, a manifest whose listed chapters (the reading order) all
+ask for a bless opens in `screens`; any other opens in `paged`. A declared layout always wins.
+The adapter decides this from the Document's chapters, so the core carries nothing new; obs's
+example deck (`spec/examples/bless-deck`) opens in screens by this rule.
+
+- **The walk:** swipe and the arrows move between screens ([[#Reading shell]]); the contents
+  stay in the menu. The top band shows the position on the chapters of the walk, "2 / 3", as
+  one of its squares, first at the band's end; Home, which is not one of them, shows none. The
+  bottom of the screen stays free for content.
+- **Show as pages** switches to the paged view for the session; switching it off returns to
+  screens.
+- **Printing** from screens prints each chapter from a new page, as the reader sees it: no
+  cover, front pages, running header, footer or page number ([[#Pages and PDF]] owns the rest).
+- The feature `screens` (`features.py`) ships only in an artifact that opens in screens, with
+  its canary (`canaries/screens.js`), which reports a host that gives the page no viewport.
 
 ## Internal-link previews
 
@@ -898,7 +979,7 @@ Implementation decisions (4 Nov 2026, worker, reversible):
   paper dimensions or physical pagination.
 
 - Settings + exports owns appearance (system, sun/light, moon/dark icons), paged viewing,
-  and Export PDF.
+  and Export PDF. An artifact that opens in [[#Screens]] prints as screens.
 
   Export invokes the browser print dialog; select Save as PDF.
 
@@ -1365,7 +1446,8 @@ separate from artifact presentation.
   Every derived paragraph, list item, table data row,
   standalone code block, and figure review item gains a left gutter with
   Accept, Reject, and Comment controls. A figure is one item: what it draws inside, such as a
-  decision figure's rows, is none.
+  decision figure's rows, is none. Cards stand one below the other in the prose column, so no
+  two items share a gutter line.
 
   Waiting items use teal, accepted items green, and
   rejected items red.

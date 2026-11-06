@@ -42,6 +42,19 @@ def with_bless() -> dict:
     return source
 
 
+def deck() -> dict:
+    """Every listed chapter asks for a bless, so the artifact opens in screens (artifact-ui.md, Screens)."""
+    source = with_bless()
+    source["chapters"][1]["bless"] = {"version": "1" * 64}
+    return source
+
+
+def declared(layout: str, source: dict) -> dict:
+    """``source`` with its manifest declaring ``obsHtml.layout``."""
+    source["manifest"]["metadata"]["obsHtml"] = {"layout": layout}
+    return source
+
+
 def with_context_note() -> dict:
     """A note outside the reading order, which a link opens as context in the floating window."""
     source = document(
@@ -99,6 +112,8 @@ CASES = {
     "clipboard": ([plain()], []),
     "answers": ([with_bless()], [plain()]),
     "bless": ([with_bless()], [plain(), with_figure("pugh", PUGH)]),
+    "screens": ([deck(), declared("screens", plain())],
+                [plain(), with_bless(), declared("paged", deck()), declared("scrolling", deck())]),
     "popups": ([with_context_note(), with_non_document_note(), with_guided_card()], [plain()]),
     "plotting": ([with_figure("plot", PLOT), with_figure("equations", EQUATIONS)],
                  [plain(), with_figure("image", IMAGE)]),
