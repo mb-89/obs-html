@@ -83,9 +83,11 @@
     };
     const propertyTexts = (record, field) => conditionTexts(propertyValue(record, field));
     // The reader's own fields (title, text, query aliases) answer only names that are no
-    // note property; a note. prefix asks for the property alone, as drill-downs do.
+    // note property; a note. prefix asks for the property alone, as drill-downs do, and on a
+    // note's table row for that note's property.
     const readerValue = (record, field) => {
-        const value = record.frontmatter || record.marks ? propertyValue(record, field) : undefined;
+        const value = record.frontmatter || record.marks ? propertyValue(record, field)
+            : record.note && /^note\./.test(field) ? propertyValue(record.note, field) : undefined;
         return value !== undefined || /^note\./.test(field) ? value : record.fields?.[field.toLocaleLowerCase()];
     };
 

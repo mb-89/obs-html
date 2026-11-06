@@ -189,7 +189,7 @@ def test_the_metric_contract_reaches_the_runtime_as_the_interim_adapter_ships_it
 
 def test_a_compound_metric_value_is_the_primary_and_secondary_quantity_links() -> None:
     metric = {"label": "Findings (unexplained)", "from": "counts/total", "where": [],
-              "secondary": "counts/subset", "secondaryLink": "#one?tableFilter=explained%3Afalse",
+              "secondary": "counts/subset", "secondaryLink": "#one",
               "toneRules": [{"value": "secondary", "when": "positive", "tone": "negative"}]}
     html = _html(_cards({"title": "Coverage", "body": "", "metricStyle": "lines", "metrics": [metric]}))
     [payload] = _card_payload(html)

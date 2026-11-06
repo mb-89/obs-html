@@ -771,6 +771,8 @@
             source: options.source,
             noteId: options.noteId || "",
             canonicalId: options.canonicalId || "",
+            // A note's row answers a note. clause with the note's property (query.js, readerValue).
+            ...(options.note ? {note: options.note} : {}),
         };
     };
     const queryProjection = (record) => Object.fromEntries((queryProfile.fields || [])
@@ -804,6 +806,7 @@
             "file.ext": globalThis.obsBases.recordValue(record, "file.ext"),
         }, {
             ownFields,
+            note: record,
             noteId: record.slug,
             canonicalId: record.sourcePath.replace(/\.md$/i, ""),
             cells: {
@@ -835,6 +838,7 @@
                 slug: record.slug,
             }, {
                 ownFields,
+                note: record,
                 noteId: record.slug,
                 depth: record.depth,
                 parentKey,
