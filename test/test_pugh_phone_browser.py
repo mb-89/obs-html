@@ -97,6 +97,44 @@ def test_on_a_phone_the_matrix_is_rows_of_letters_and_nothing_scrolls_sideways(p
     assert errors == []
 
 
+# What a tab shows on a phone (artifact-ui.md, Decision figures on a phone): nothing scrolls sideways,
+# and the Sensitivity grid is one block per option, its letter, then a line per criterion and all weights.
+TAB = """anchor => {
+    const figure = document.getElementById(anchor), panel = figure.querySelector('[role="tabpanel"]:not([hidden])');
+    const outside = [...panel.querySelectorAll('*')].filter(node => node.getClientRects().length
+        && (node.getBoundingClientRect().left < -0.5 || node.getBoundingClientRect().right > innerWidth + 0.5));
+    return {page: document.scrollingElement.scrollWidth, outside: outside.map(node => node.className.baseVal ?? node.className),
+            sideways: [...panel.querySelectorAll('*')].filter(node => node.scrollWidth > node.clientWidth + 1
+                && ['auto', 'scroll'].includes(getComputedStyle(node).overflowX)).length,
+            grid: panel.querySelector('[data-pugh-grid]')?.dataset.pughGrid ?? null,
+            blocks: [...panel.querySelectorAll('[data-pugh-block]')].map(block => [block.dataset.pughBlock,
+                block.querySelector('[data-pugh-column]').textContent.trim().slice(0, 1), block.querySelectorAll('.pugh-grid-line').length]),
+            lines: panel.querySelectorAll('polyline[data-pugh-line]').length};
+}"""
+
+
+@pytest.mark.parametrize("width", WIDTHS)
+def test_on_a_phone_the_sensitivity_grid_is_a_block_per_option_and_both_tabs_fit(phone_browser, deck, width):
+    page, errors = _open(phone_browser, deck, width, "five")
+    figure = page.locator(f"#{FIVE}")
+    criteria = figure.locator("[data-pugh-form] [data-pugh-criterion]").count()
+
+    figure.locator('[data-pugh-tab="sensitivity"]').tap()
+    sensitivity = page.evaluate(TAB, FIVE)
+    figure.locator('[data-pugh-cell]').first.tap()
+    ruling = figure.locator("[data-pugh-ruling-for]").count()
+    figure.locator('[data-pugh-tab="pareto"]').tap()
+    pareto = page.evaluate(TAB, FIVE)
+
+    for tab in (sensitivity, pareto):
+        assert tab["page"] <= width and tab["outside"] == [] and tab["sideways"] == 0
+    blocks = sensitivity["blocks"]
+    assert sensitivity["grid"] == "blocks" and len(blocks) == 4 and ruling == 1
+    assert all(letter == head for letter, head, _ in blocks) and {lines for *_, lines in blocks} == {criteria + 1}
+    assert pareto["lines"] == 5
+    assert errors == []
+
+
 @pytest.mark.parametrize("width", WIDTHS)
 def test_on_a_phone_a_mark_a_weight_and_a_pick_take_one_tap_each(phone_browser, deck, width):
     page, errors = _open(phone_browser, deck, width, "three")
