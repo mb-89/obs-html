@@ -278,7 +278,7 @@ def test_the_home_slug_is_reserved(document) -> None:
 def test_a_minimal_document_renders(document) -> None:
     minimal = {"schemaVersion": 1, "manifest": {"title": "Only", "path": "manifest.md", "metadata": {}}, "chapters": [],
                "links": [], "assets": [], "records": [], "semanticResources": [], "diagnostics": [],
-               "capabilities": []}
+               "capabilities": [], "cssSnippets": []}
     model = decode_artifact_data(render(minimal, CONFIG))
     assert '<h1 class="document-title">Only</h1>' in model["notes"][0]["html"]
     assert model["toc"] == ["home"]

@@ -7,6 +7,7 @@
   "properties": {
     "layout": {"enum": ["paged", "scrolling"]},
     "heading": {"enum": ["cover", "compact"]},
+    "cssSnippets": {"type": "array", "items": {"type": "string", "minLength": 1}},
     "query": {
       "type": "object",
       "properties": {"scope": {"enum": ["chapters", "records"]}, "where": {"type": "array"}}

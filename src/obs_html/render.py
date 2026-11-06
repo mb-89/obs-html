@@ -35,6 +35,7 @@ from obs_html.figures import FIGURE_KINDS, render_figure
 from obs_html.artifact_data import encode_artifact_data, prepare_artifact_scripts, serialize_artifact_data
 from obs_html.semantic_assets import SemanticAssets, markup
 from obs_html.styles import load_style
+from obs_html import source_archive
 from obs_html.timings import stage
 
 
@@ -48,6 +49,7 @@ PROFILE_DEFAULTS = {
               {"page": "contents", "title": "Contents"}],
     "figures": {"numbering": "none", "label": "Figure", "labelPlural": "Figures"},
     "query": {"scope": "chapters"},
+    "cssSnippets": [],
 }
 COVER_FIELDS = ("authors", "reviewers", "approvers", "document number", "legal entity")
 HOME = "home"
@@ -798,8 +800,32 @@ def render(document: dict[str, object], config: Config,
     _index_headings(HOME, document["manifest"].get("abstract", []), context)
     context.chapters[HOME] = document["manifest"]["title"]  # The core links the manifest as home.
     model = _resolve_icons(_model(document, config, context), assets)
+    archive = source_archive.package(document, embed_attachments)
+    if archive is not None:
+        model = source_archive.share(model, archive)
     return prepare_artifact_scripts(assets.resolve_markup(
-        _shell(model, list(context.unknown.values()), style.stylesheet, assets, config, trusted_runtime)))
+        _shell(model, list(context.unknown.values()), style.stylesheet, assets, config, trusted_runtime,
+               snippets=_css_snippets(document), archive=archive)))
+
+
+def _css_snippets(document: dict[str, object]) -> str:
+    """The style elements of the CSS snippets the manifest's obsHtml.cssSnippets lists, in its
+    order, from the Document's cssSnippets (the vault's snippet folder, which the core reads)."""
+    manifest = document["manifest"]
+    available = {snippet["name"]: snippet for snippet in document["cssSnippets"]}
+    styles = []
+    for index, name in enumerate(_profile(manifest)["cssSnippets"]):
+        snippet = available.get(name)
+        if snippet is None:
+            listed = ", ".join(sorted(available)) or "none"
+            raise InputError(manifest["path"], f"obsHtml.cssSnippets[{index}]", f"names {name!r}, which the "
+                             "vault's snippet folder does not hold", f"Name one of its snippets ({listed}) or add "
+                             f"{name}.css to the snippet folder (obs configuration input.cssSnippetFolder)")
+        if re.search(r"</style", snippet["text"], re.IGNORECASE):
+            raise InputError(snippet["path"], "", "contains '</style', which would end its style element",
+                             "Remove it from the snippet")
+        styles.append(f'<style data-css-snippet="{escape(name, quote=True)}">{snippet["text"]}</style>')
+    return "".join(styles)
 
 
 def _resolve_icons(value: object, assets: SemanticAssets) -> object:
@@ -1246,8 +1272,11 @@ def _note_target(href: str, context: Context) -> str | None:
 
 
 def _shell(model: dict[str, object], limits: list[dict[str, str]], stylesheet: str, assets: SemanticAssets,
-           config: Config, trusted_runtime: tuple[str, str] | None) -> str:
-    """The artifact page; ``limits`` are the Document's limited functions (capabilities.js warns of each)."""
+           config: Config, trusted_runtime: tuple[str, str] | None, snippets: str = "",
+           archive: bytes | None = None) -> str:
+    """The artifact page; ``limits`` are the Document's limited functions (capabilities.js warns of each).
+    ``snippets`` are the author's style elements, which follow every packaged style; ``archive`` is
+    the source ZIP (source_archive.py)."""
     package = files("obs_html")
 
     def read(*parts: str) -> str:
@@ -1257,7 +1286,13 @@ def _shell(model: dict[str, object], limits: list[dict[str, str]], stylesheet: s
     features = included_features(model, trusted_runtime is not None)
     canaries = "".join(f'\n  <script id="canary-{feature.key}">\n{read(feature.canary)}  </script>'
                        for feature in features)
+    parts = [part for feature in features for part in feature.shipped(model, trusted_runtime is not None)]
     feature_code = "".join(f"{read(name)}\n" for feature in features for name in feature.code)
+    feature_code += "".join(f"{read(name)}\n" for part in parts for name in part.code)
+    pdf_library = ""
+    if any(part.key == "source-archive" for part in parts):
+        pdf_library = ('<script id="pdf-library-script">/* ' + read("vendor", "pdf-lib.LICENSE") + " */\n"
+                       + read("vendor", "pdf-lib.min.js").replace("</script", "<\\/script") + "</script>")
     bar_scripts = "\n".join(f"\n{bar.script}" for bar in bars if bar.script)
     data = serialize_artifact_data(model)
     title = model["document"]["title"]
@@ -1372,6 +1407,7 @@ def _shell(model: dict[str, object], limits: list[dict[str, str]], stylesheet: s
   </div>
 
   {encode_artifact_data(model, config.artifact["dataCompression"])}
+  {source_archive.island(archive) if archive is not None else ""}
   <script id="obs-comments" type="application/json" data-comment-island>{_empty_comment_island()}</script>
   <script id="document-limits" type="application/json">{_json_island(limits)}</script>
   <script id="capabilities-script">
@@ -1402,11 +1438,13 @@ def _shell(model: dict[str, object], limits: list[dict[str, str]], stylesheet: s
 {read("canonical-transaction.js")}
 {read("attachment-replacement.js")}
   </script>
+  {pdf_library}
   <script id="artifact-script">
 {read("hover-card.js")}
 {feature_code}{read("artifact.js")}
   </script>
   {figure_assets}
+  {snippets}
   {card_assets}
   {property_assets}
   <script id="pages-script">
