@@ -62,3 +62,11 @@ def test_every_wikilink_resolves_inside_this_vault() -> None:
             elif heading and not heading.startswith("^") and heading.lower() not in headings[resolved]:
                 broken.append(f"spec/{name}.md: [[{target}]] names no heading of spec/{resolved}.md")
     assert broken == []
+
+
+def test_trusted_actions_names_this_adapters_extension_example() -> None:
+    section = (SPEC / "capabilities" / "trusted-actions.md").read_text(encoding="utf-8").split(
+        "## Adapter extensions", 1)[1]
+
+    assert "`obsHtml`" in section
+    assert "[[capabilities/attachment-replacement|" in section
