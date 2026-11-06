@@ -3,7 +3,7 @@
 The sink ships with a chapter that asks for a bless (features.py, answers), so each artifact here
 has one. The served page posts to obs-html serve, which writes answers.json and exits with the payload; a
 sink a trusted bundle registers takes the payload in place of the built-in sinks; elsewhere the
-payload is shown as text to copy. obs-html serve runs as the real command (test/serving.py), on
+payload is shown as text to copy. A bundle that registers no action registers a sink all the same. obs-html serve runs as the real command (test/serving.py), on
 loopback only, every wait bounded.
 """
 import json
@@ -18,11 +18,13 @@ from test_features import with_bless
 pytestmark = pytest.mark.browser
 
 PAYLOAD = {"verdicts": [{"id": "one", "verdict": "bless"}, {"id": "two", "verdict": "rework"}]}
-BUNDLE = """globalThis.obsArtifact.registerApplication({id: "sink-v1", actions: [
+APPLICATION = """globalThis.obsArtifact.registerApplication({id: "sink-v1", actions: [
     {id: "noop", accept: ".txt", help: "Nothing.", handle: async () => true}]});
-globalThis.received = [];
+"""
+SINK = """globalThis.received = [];
 globalThis.obsArtifact.trustedExtension("obsHtml.answers").register({id: "host-save",
     send: async payload => { globalThis.received.push(payload); return "saved by the host"; }});"""
+BUNDLE = APPLICATION + SINK
 SEND = """async payload => {
     try { return await globalThis.obsArtifact.sendAnswers(payload); }
     catch (error) { return {error: error.message}; }
@@ -84,6 +86,28 @@ def test_a_sink_the_trusted_bundle_registers_takes_the_answers_in_place_of_the_s
     finally:
         served.stop()
     assert not (tmp_path / "answers.json").exists()
+
+
+def test_a_bundle_without_actions_registers_a_sink_that_takes_sends_payload(tmp_path: Path, reader_browser) -> None:
+    bundle = 'globalThis.obsArtifact.registerApplication({id: "sink-v1", actions: []});\n' + SINK
+    artifact = _write(tmp_path, artifact_html(with_bless(), trusted_runtime=("sink-v1", bundle)))
+    page = _open(reader_browser, artifact.as_uri() + "#one")
+    page.locator('[data-bless-key="bless"]').click()
+    page.locator("[data-bless-send]").click()
+    page.wait_for_function("globalThis.received.length > 0")
+    assert page.evaluate("() => globalThis.received") == [
+        {"verdicts": [{"chapter": "one", "version": "0" * 64, "verdict": "bless"}]}]
+    assert page.locator("[data-artifact-action]").count() == 0
+
+
+def test_a_bundle_without_an_actions_array_is_refused_and_names_its_owner(tmp_path: Path, reader_browser) -> None:
+    from playwright.sync_api import expect
+
+    bundle = 'globalThis.obsArtifact.registerApplication({id: "sink-v1"});\n' + SINK
+    page = reader_browser.new_page()
+    page.goto(_write(tmp_path, artifact_html(with_bless(), trusted_runtime=("sink-v1", bundle))).as_uri())
+    expect(page.locator("html")).to_have_attribute("data-artifact-status", "error")
+    expect(page.get_by_role("alert")).to_contain_text("obsArtifact.registerApplication")
 
 
 def test_elsewhere_the_answers_are_shown_as_text_with_a_copy_key(tmp_path: Path, reader_browser) -> None:

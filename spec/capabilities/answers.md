@@ -24,7 +24,8 @@ host application.
 The first that applies takes the payload:
 
 1. **A registered sink**: one a trusted runtime bundle registered (below). It takes the payload in
-   place of the built-in sinks.
+   place of the built-in sinks. A host's bundle registers its sink only where its host is present,
+   and otherwise leaves obs-html's own sinks in place.
 2. **The local server**: where `obs-html serve` served the page. The page posts the payload to its
    own URL, and the server writes `answers.json` beside the artifact.
 3. **The text**: elsewhere, the notice center shows the payload as text with a Copy answers key,

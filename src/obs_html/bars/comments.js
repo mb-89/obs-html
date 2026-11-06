@@ -851,11 +851,11 @@
     const reviewElements = (root) => [...root.querySelectorAll("p, li, tr, pre, figure")]
         .filter((element) => {
             if (element.closest(".data-table-detail-row")) return false;
-            // A figure is one review item, whatever it draws inside it (a decision figure's rows).
+            // A figure is one review item, whatever it draws inside it (a decision figure's rows and lists).
             if (element.matches("tr")) return !element.closest("thead, figure") &&
                 (!element.closest("[data-data-table], [data-review-table]") || element.hasAttribute("data-row-key"));
             if (element.closest("tr")) return false;
-            if (element.matches("li")) return true;
+            if (element.matches("li")) return !element.closest("figure");
             if (element.matches("figure")) return !element.closest("li");
             if (element.matches("p[data-figure-caption-review]")) return !element.closest("li");
             return !element.closest("li, figure");

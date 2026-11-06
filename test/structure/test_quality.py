@@ -63,7 +63,7 @@ FULL_CHROMIUM_TESTS = {
 }
 # The fixtures that build an artifact once per run, wherever they are defined; a browser test
 # reads what they built, and the check does not look into them.
-SHARED_FIXTURES = {"fixture_artifact", "spec_html", "spec_artifact"}
+SHARED_FIXTURES = {"fixture_artifact", "feature_artifact", "spec_html", "spec_artifact"}
 # What denotes obs's checkout in a test of this adapter (test/conftest.py owns CORE_ROOT).
 CORE_ROOTS = r"CORE_ROOT|core_root"
 # The tests that build obs's spec themselves, by module: test -> why it is a variant of its own.
