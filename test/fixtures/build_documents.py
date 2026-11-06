@@ -352,7 +352,7 @@ def cards(root: Path) -> None:
     (root / "manifest.md").write_text("- [[overview]]\n- [[target]]\n", encoding="utf-8")
     (root / "overview.md").write_text(
         "# Overview\n\n```cards\n" + json.dumps(outer) + "\n```\n\n"
-        "```figure\nversion: 1\nkind: sankey\ncaption: Points by status.\nsource: flow.json\n```\n",
+        "```figure\nversion: 1\nkind: sankey\ncaption: Points by status.\nsource: flow.json\n```\n^points\n",
         encoding="utf-8")
     (root / "flow.json").write_text(json.dumps(POINT_FLOW), encoding="utf-8")
     (root / "target.md").write_text(

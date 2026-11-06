@@ -2707,11 +2707,23 @@
     },
     {
       "level": "warning",
+      "message": "appendix.md:3: figure without block id. Add a line ^name after the fence so references can link it; see input-model#Figure captions and references."
+    },
+    {
+      "level": "warning",
       "message": "appendix.md:9: figure without caption. Add a caption to the figure fence; see input-model#Figure captions and references."
     },
     {
       "level": "warning",
+      "message": "appendix.md:9: figure without block id. Add a line ^name after the fence so references can link it; see input-model#Figure captions and references."
+    },
+    {
+      "level": "warning",
       "message": "appendix.md:35: figure without caption. Add a caption to the figure fence; see input-model#Figure captions and references."
+    },
+    {
+      "level": "warning",
+      "message": "appendix.md:35: figure without block id. Add a line ^name after the fence so references can link it; see input-model#Figure captions and references."
     }
   ],
   "capabilities": [
