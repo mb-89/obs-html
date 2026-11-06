@@ -211,7 +211,14 @@ async (_, {views, layouts, firstChapterLayouts}) => {
         return {controls: controls.length, faults};
     };
 
-    const frame = () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    // Waits until the layout a check sees is final. Opening or closing a bar narrows the reader,
+    // and the next frame's rendering step lays out again what that changes: the bar's own frame
+    // callback, then the ResizeObservers of the dock and of the chapter's figures, tables and
+    // equations, which run after every frame callback. A task queued from a frame callback runs
+    // once that step is done, so one frame is enough. Without the wait, a forced layout read sees
+    // the reader before that step: with the Comments bar's review mode, table controls lie under
+    // the next-chapter arrow.
+    const frame = () => new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve)));
     const open = async (slug) => {
         await obsArtifact.activateChapter(slug);
         await obsArtifact.whenChapterReady();
