@@ -1120,7 +1120,7 @@ def _shell(model: dict[str, object], limits: list[dict[str, str]], stylesheet: s
     figure_assets = ""
     if "data-artifact-figure" in data:
         plotly = ""
-        if 'data-figure-kind=\\"plot\\"' in data:
+        if any(feature.key == "plotting" for feature in features):
             figures = config.artifact["figures"]
             if figures["plotlyDelivery"] == "cdn":
                 plotly = (f'<script id="plotly-script" src="{figures["plotlyCdnUrl"]}" '

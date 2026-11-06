@@ -1203,7 +1203,8 @@ separate from artifact presentation.
 
   No feature uses a browser dialog; its messages are inline. Print to PDF never stays in
   its preparing state. The registry and its entries are owned by obs-html's
-  `features.py`; the list of abilities is not repeated here.
+  `features.py`; the list of abilities is not repeated here. A figure kind that needs a host
+  ability or a library declares it there by key, never through a second inclusion mechanism.
 
   Generic reader-facing controls and messages call the artifact HTML, not a report.
   Where its semantic name is useful, derive it from the authored document type;

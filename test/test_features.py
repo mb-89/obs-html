@@ -3,14 +3,17 @@
 Each feature's inclusion condition decides whether its code and its canary are in the HTML; no
 source of the artifact calls a browser dialog (artifact-ui.md, notice center).
 """
+import json
 import re
 from importlib.resources import files
 
 import pytest
 
+from conftest import FIXTURE, PIXEL
 from documents import chapter, document, heading, node, paragraph
 from obs_html.config import load_config
 from obs_html.features import FEATURES
+from obs_html.figures import FIGURE_KINDS
 from obs_html.render import render
 
 
@@ -58,6 +61,18 @@ def with_guided_card() -> dict:
     return document("Guided", chapter("one", "One", heading(1, "One"), base))
 
 
+def with_figure(kind: str, body: dict) -> dict:
+    """One figure of ``kind`` (figures.py, FIGURE_KINDS) whose body attrs are ``body``."""
+    figure = {"type": "figures", "attrs": {"kind": kind}, "children": [node(kind, **body)]}
+    return document(f"Figure {kind}", chapter("one", "One", heading(1, "One"), figure))
+
+
+RESPONSE = json.loads(FIXTURE.read_text(encoding="utf-8"))
+PLOT = next(item["children"][0]["attrs"] for chapter_ in RESPONSE["chapters"] for item in chapter_["content"]
+            if item["type"] == "figures" and item["attrs"]["kind"] == "plot")
+IMAGE = {"mediaType": "image/png", "data": PIXEL}
+
+
 # Feature key -> Documents that meet its condition and Documents that do not.
 CASES = {
     "history": ([plain()], []),
@@ -66,7 +81,17 @@ CASES = {
     "downloads": ([plain()], []),
     "clipboard": ([plain()], []),
     "popups": ([with_context_note(), with_non_document_note(), with_guided_card()], [plain()]),
+    "plotting": ([with_figure("plot", PLOT)], [plain(), with_figure("image", IMAGE)]),
 }
+
+
+def test_a_figure_kind_declares_what_it_needs_only_through_the_feature_registry() -> None:
+    keys = {feature.key for feature in FEATURES}
+    for kind, entry in FIGURE_KINDS.items():
+        assert set(entry.features) <= keys, f"{kind}: declares features {entry.features} the registry lacks"
+    plot, image = render(with_figure("plot", PLOT), CONFIG), render(with_figure("image", IMAGE), CONFIG)
+    assert 'id="plotly-script"' in plot and 'id="canary-plotting"' in plot
+    assert 'id="plotly-script"' not in image and 'id="canary-plotting"' not in image
 
 
 def test_every_feature_has_cases_and_its_canary_and_code_exist() -> None:

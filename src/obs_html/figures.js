@@ -874,6 +874,9 @@
         + (figure.querySelector(".figure-default") ? " Showing the embedded static figure." : "");
       host.append(message);
       figure.dataset.figureError = "Plotly unavailable";
+      try {
+        globalThis.obsCapabilities?.fail("plotting", "the plotting library did not load");
+      } catch (_error) { /* An HTML without the plotting canary reports nothing more. */ }
       return;
     }
     const chart = document.createElement("div");
