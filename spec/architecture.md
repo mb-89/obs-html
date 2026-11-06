@@ -1,0 +1,181 @@
+# HTML architecture
+
+Reader: whoever changes how the HTML adapter, or the interim adapter it replaces, renders and runs.
+
+obs's architecture, part of obs's specification, owns the flow from vault to Document, the
+repository layout and the Document-adapter contract. This note owns the HTML adapter's rendering
+and runtime architecture; its sections moved here from obs's architecture note with their text.
+Domain adapters own their evidence parsing, calculations, and artifact content; obs-html owns
+reusable rendering and interaction behavior. An adapter's migrated artifact must provide its
+required interactions within the obs-html edition.
+
+
+## Filter and navigation owners
+
+The global Filter owns one compiled query and its applied expression. Figure gestures and
+facets use that same owner; invalid drafts do not replace it. The optional profile contract
+is owned by [[input-model]] and constrained by the configuration schema. Canonical field
+aliases follow the shared Bases reference/value adapters, not copied target metadata.
+
+Chapter/paragraph totals derive from canonical chapter content; reader and print clones
+are disposable views. One retained navigation sequence includes Home and supplies arrows,
+breadcrumbs, sidebar and artifact contents; record scope leaves authored sections intact.
+
+## Build stage timings
+
+The named build stages are registered once, in `src/obs_html_interim/timings.py`; the
+`--timings` help, the timing output and the baseline file read that registry, and an
+unregistered stage name is an error. Stages are non-overlapping: a nested stage
+pauses its enclosing one, so a build's stage durations sum to at most its total.
+Producers (silent `cmd` fences) are their own stage, timed before conversion.
+
+Per-stage baselines live in one committed data file,
+`src/obs_html_interim/timing-baselines.json`, validated by its adjacent
+`timing-baselines.schema.json`: an object of stage name to baseline seconds for a
+build of this repository's own spec. A stage without a baseline is not compared.
+
+With `--timings`, an artifact stage that exceeds its baseline by both the relative and
+the absolute threshold of the [[configuration]] `timings` section prints a warning to
+stderr; it never fails the build. Either threshold alone stays silent, so small stages
+and small absolute changes do not cause noise.
+
+## The interim adapter
+
+Until the cutover, the interim adapter stays in `src/obs_html_interim` with the command
+`obs-html-interim`; `obs-html` names the integrated adapter. The integrated adapter's parity
+gate compares its artifact against the interim one built in the same tree.
+
+## Interim validation
+
+During the transition, the interim adapter (`obs-html-interim`) retains its existing parsing and rendering code and
+does not import the core package. The duplicated adapter validation remains the
+compatibility owner until a later Document-rendering cutover removes it.
+
+## Rendering and runtime
+
+The renderer emits the nested table of contents and ordered chapter data once;
+client-side navigation shows exactly one chapter and manages previous/next controls, URL
+fragments, browser history, scroll reset, and docked-bar state.
+
+One embedded central stylesheet owns the component rules described in [[artifact-ui]].
+The [[semantic-assets]] index owns named presentation values and their inheritance;
+stylesheet variables and DOM are derived views of that owner.
+
+Success, failure, waiting, and annotation colors are semantic tokens; components never own
+parallel literals for those meanings.
+
+Icons, colors and stateful appearances share that typed semantic resource owner,
+resolved for generated markup and browser controls. Consumers reference names,
+not glyph/graphic/color literals. Obsidian action compatibility belongs to
+[[input-model#Named icon resources]]; resource semantics belong to [[semantic-assets]].
+
+One embedded data-table runtime owns table filtering, hierarchical rows, rendered cells, and column
+order.
+
+The Markdown parser adapts each `base` fence into a declarative table definition attached to
+its ordinary chapter; the runtime has no Appendix or named-register knowledge.
+
+The Markdown table-authoring contract is owned by [[input-model]]. Domain adapters
+project records; authored Markdown owns queries and composition. Application runtimes
+update canonical data without replacing the authored table selection. Framework default
+content follows the same contract instead of constructing hidden table definitions.
+
+The artifact embeds
+those definitions and their queries, not precomputed result rows.
+
+The browser evaluates a definition
+lazily against canonical artifact records when its containing chapter is opened.
+
+Platform wrappers contain only bootstrap logic and dispatch to the same CLI.
+
+Trusted application registration and revision-checked canonical/archive transactions
+follow [[input-model]]. The generic artifact owns action dispatch and atomic replacement;
+domain adapters own parsing, shared semantic projection and their generated source
+changes.
+
+Figures resolve declared canonical graph owners from live records, not a second startup
+graph. Cover, authored source links and Settings use one current-archive
+download action; activation resolves bytes from the existing payload owner.
+
+Dockable bars are extension modules discovered from the `obs_html_interim.bars` package. Each
+module exports one definition containing its key, label, icon, help text, and content
+factory. The renderer derives both menu entries and parked bar markup from those
+definitions; it never keeps a second list. See obs's quality note ([[obs-specification|obs's specification]]).
+
+A bar's optional browser runtime is the sibling `<module>.js` package resource;
+discovery attaches it, and a definition carrying script text is rejected.
+
+Browser runtime code lives only in package `.js` resources read through
+`importlib.resources`, never in Python string literals, so the JavaScript syntax check
+covers every runtime file. Values reach a runtime through data islands or attributes;
+the pre-paint reader startup substitutes JSON values for its placeholders.
+
+Review comments and per-reviewer block decisions live in one embedded JSON island separate
+from the canonical artifact data.
+
+The Comments bar is the only browser-side owner of that
+island.
+
+Review-item identifiers are deterministic derived views of rendered chapter blocks,
+not a parallel copy of source content.
+
+Saving a reviewed copy rewrites the island in the
+standalone HTML; it never changes source Markdown or canonical chapter data.
+
+CLI extraction
+reads only this island and never executes artifact scripts or parses comments from rendered
+prose.
+
+Command execution is owned by a separate runner boundary. Markdown parsing supplies the
+command and receives escaped output; it does not own process invocation, timeout policy,
+or authorization.
+
+## Artifact data ownership
+
+- The generated HTML embeds one canonical note store with identifiers, normalized frontmatter,
+	and rendered content; its separate ordered TOC contains note identifiers, not copied records.
+	Manifest and link resolution semantics are owned by [[input-model]].
+- Repeated embedded data-URI payloads are stored once in the canonical artifact data and referenced
+  by opaque local tokens. Browser views resolve those tokens before presentation, keeping artifacts
+  self-contained and preserving standalone/PDF access.
+- The single-payload rule also applies across reader attachments and an embedded reproduction
+  archive. Do not embed the same original evidence once for downloads and again in a separate
+  source payload. References or a reconstructed archive may share the owning bytes; compression
+  must preserve exact original downloads, standalone opening and source reproduction.
+- With source embedding, the ordinary compressed ZIP is the byte owner. Reader asset
+  descriptors name a ZIP member, its media type and SHA-256; local Blob URLs are disposable
+  browser projections, never serialized owners. The browser validates the ZIP entry and
+  original-byte digest before exposing it, and printing awaits pending asset hydration.
+
+  Canonical notes remain the authority for model edits and exports. Evidence replacement
+  must atomically rewrite the owning ZIP entry and its descriptors, removing superseded
+  unreferenced bytes; appending a second asset store or retaining stale originals is not
+  a valid replacement operation. This transport alone does not implement evidence upload.
+- The reader, table of contents, filters, database views, and future render modes derive
+	their state from that store. They do not receive copied chapter datasets or maintain
+	parallel metadata.
+- Only the active chapter is materialized in the reader. Screen pagination moves its live
+	nodes so table state and review interactions survive view changes; static PDF projections
+	render from the canonical store rather than hidden chapter documents.
+- New views consume the generic store contract and keep only view-local state.
+- Derived indexes may be built in memory at runtime but are not serialized as duplicate
+	artifact data.
+- Canonical artifact data has one transport codec shared by generation, source-archive
+  handling, read-only extraction and reviewed saving. The default gzip/base64
+  transport compresses that semantic JSON, not only its original attachments.
+
+  Decoding is a bootstrap boundary; views initialize from the decoded canonical
+  store in their normal order. Decoded data and DOM are disposable in-memory
+  projections, not extra serialized owners. Reviewed saving encodes the current
+  model and does not retain an inflated copy or stale startup payload alongside it.
+- Python owns one parsed semantic chapter model containing normalized frontmatter, paragraph
+  semantic tags, diagnostics, and authored Markdown. Rendered chapters,
+	generated projections, query records, and lint output consume that model; browser code does
+	not rediscover source semantics from HTML.
+
+- Table cells displaying note metadata use Markdown rendered by the same Python semantic
+  renderer as chapter content. Derived HTML remains attached to the canonical note, keyed
+  by flattened field path; raw values remain authoritative for filtering and sorting.
+  Glossary projections retain their owning note's additional fields and ordering metadata.
+
+See [[product]], [[configuration]], and [[input-model]].

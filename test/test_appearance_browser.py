@@ -1,6 +1,6 @@
 """Appearance in Claude's artifact viewer: the chosen appearance decides every colour the reader sees.
 
-The design owner is spec/design_input/artifact-ui.md (Appearance). Each test opens the artifact in
+The design owner is spec/artifact-ui.md (Appearance). Each test opens the artifact in
 the viewer fixture (test/browser/viewer.py) with the host in dark and in light
 `prefers-color-scheme`; nothing the artifact shows may take a colour from the host.
 """
