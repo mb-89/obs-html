@@ -8,3 +8,5 @@ spec/design_output/
 /test/browser/node_modules/
 # The browser assets the build writes into the package from their lockfiles (hatch_build.py)
 /src/obs_html/vendor/maths/
+# The adapter's specification, copied into the package by its build (hatch_build.py)
+/src/obs_html/spec/

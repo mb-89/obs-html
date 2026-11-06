@@ -4,9 +4,11 @@ Every browser asset the adapter embeds is package data in its wheel (hatch_build
 ones that come from a lockfile). The test builds the wheels of obs and obs-html once, installs them
 into a fresh virtual environment outside the checkout, with the lockfile's dependencies from uv's
 cache, and renders a Document with an equation figure and a plot there, in a Python whose audit hook
-records every file it opens or lists inside the checkout. A build that cannot install a lockfile
-names the lockfile and the remedy. The installed core draws Mermaid and PlantUML from its own
-package data the same way (the core's hatch_build.py).
+records every file it opens or lists inside the checkout. It builds the adapter's own
+specification there too (`obs-html --build-own-spec`), every Python process it starts (the core,
+which runs the specification's command fences) recording its reads as well. A build that cannot
+install a lockfile names the lockfile and the remedy. The installed core draws Mermaid and PlantUML
+from its own package data the same way (the core's hatch_build.py).
 """
 import importlib.util
 import json
@@ -41,6 +43,21 @@ code = main(sys.argv[3:])
 reads.append(obs_html.__file__) if obs_html.__file__.startswith(checkout + os.sep) else None
 open(sys.argv[2], "w", encoding="utf-8").write(json.dumps(reads))
 sys.exit(code)
+"""
+
+
+# The audit of every Python process of the installed environment: a sitecustomize module on
+# PYTHONPATH appends to the file AUDIT_RECORD names each path inside AUDIT_CHECKOUT it opens or lists.
+AUDIT = """
+import os, sys
+checkout = os.path.realpath(os.environ["AUDIT_CHECKOUT"])
+def audit(event, args):
+    if event in ("open", "os.listdir", "os.scandir") and args and isinstance(args[0], (str, bytes, os.PathLike)):
+        path = os.path.realpath(os.fsdecode(args[0]))
+        if path == checkout or path.startswith(checkout + os.sep):
+            with open(os.environ["AUDIT_RECORD"], "a", encoding="utf-8") as record:
+                record.write(path + "\\n")
+sys.addaudithook(audit)
 """
 
 
@@ -123,6 +140,28 @@ def test_the_installed_core_draws_mermaid_and_plantuml_from_its_package_data(ins
     mermaid, plantuml = (figure["children"][0]["attrs"]["svg"] for figure in figures)
     assert mermaid.startswith("<svg") and "Draft" in mermaid
     assert plantuml.startswith("<svg") and "Reviewer" in plantuml
+
+
+def test_the_installed_wheel_builds_its_own_spec_and_reads_nothing_from_the_tree(installed, tmp_path) -> None:
+    (tmp_path / "audit").mkdir()
+    (tmp_path / "audit" / "sitecustomize.py").write_text(AUDIT, encoding="utf-8")
+    reads, output = tmp_path / "reads.txt", tmp_path / "out" / "obs-html-specification.html"
+    reads.touch()
+    environment = {key: value for key, value in os.environ.items() if key not in ("VIRTUAL_ENV", "UV_PROJECT")}
+    environment.update(PYTHONPATH=str(tmp_path / "audit"), AUDIT_CHECKOUT=str(CORE_ROOT), AUDIT_RECORD=str(reads))
+    result = subprocess.run([str(installed), "-c", "import sys; from obs_html.cli import main; "
+                             "sys.exit(main(sys.argv[1:]))", "--build-own-spec", str(output)],
+                            cwd=tmp_path, env=environment, capture_output=True, text=True)
+
+    assert result.returncode == 0, result.stderr
+    assert reads.read_text(encoding="utf-8").splitlines() == []
+    assert "<title>obs-html</title>" in output.read_text(encoding="utf-8")
+    # The CLI note's command fence ran in the installed environment and shows the interim's help.
+    chapter = subprocess.run([str(installed), "-I", "-c", "import sys; from obs_html.cli import main; "
+                              "sys.exit(main(sys.argv[1:]))", "--print-chapter", str(output), "cli",
+                              "--chapter-format", "text"], cwd=tmp_path, capture_output=True, text=True)
+    assert chapter.returncode == 0, chapter.stderr
+    assert "usage: obs-html-interim" in chapter.stdout
 
 
 @pytest.fixture

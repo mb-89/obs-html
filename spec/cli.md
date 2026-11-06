@@ -49,6 +49,24 @@ files, like `--export-pdf`, not a choice about rendering a Document, so `adapter
 option for it: through the core the PDF destination attaches already, and an option would only
 repeat what the Document says.
 
+## Building its own specification
+
+`obs-html --build-own-spec DESTINATION` builds this specification, which the package ships as
+package data ([[architecture#Packaged browser assets]]), into DESTINATION, from the installed
+package alone. It starts the core of its own environment, `python -m obs.document --source
+<packaged specification>/manifest.md --document <temporary file> --execute-commands`, whose
+capability reference is the one the core ships, and renders that Document as `obs-html DOCUMENT
+DESTINATION` does; `--style`, `--config` and `--embed-attachments` apply as they do there. The
+core runs the specification's command fences, so its environment puts the running Python's
+scripts folder first on `PATH`: a fence finds the programs installed beside obs-html. A package
+whose build wrote no specification fails naming the missing manifest and the remedy, to build the
+package again; a failed core build names the core's message.
+
+The command exists so that a vault can carry this specification without reaching outside itself:
+obs's specification builds it into its References with this command (obs's appendix, obs-html
+specification: [[obs-specification|obs's specification]]), so its source archive rebuilds it with
+the installed obs at the recorded commit ([[input-model#Optional reproduction archive]]).
+
 ## Several artifacts per call
 
 A caller that builds several artifacts passes repeated `--source`/`--output` pairs in one
