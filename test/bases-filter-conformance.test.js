@@ -9,7 +9,10 @@ const vm = require("node:vm");
 
 const root = path.resolve(__dirname, "..");
 const schema = fs.readFileSync(path.join(root, "src", "obs_html", "base.schema.json"), "utf8");
-globalThis.document = {querySelector: selector => selector === "#base-schema" ? {textContent: schema} : null};
+// The core's case-folding table, which the page embeds as #case-folding.
+const folding = fs.readFileSync(path.join(root, "..", "..", "src", "obs", "case-folding.json"), "utf8");
+const islands = {"#base-schema": schema, "#case-folding": folding};
+globalThis.document = {querySelector: selector => selector in islands ? {textContent: islands[selector]} : null};
 vm.runInThisContext(fs.readFileSync(path.join(root, "src", "obs_html", "base.js"), "utf8"));
 vm.runInThisContext(fs.readFileSync(path.join(root, "src", "obs_html", "query.js"), "utf8"));
 
@@ -37,10 +40,18 @@ for (const {where, expected} of fixture.conditions) {
     assert.deepEqual(records.filter(record => conditions.match(record)).map(record => record.id),
         expected, `where ${JSON.stringify(where)}`);
 }
+// A drill-down's expression retains exactly the records its conditions select.
+for (const {where, expected} of fixture.conditions) {
+    const query = globalThis.obsQuery.compile(globalThis.obsQuery.conditionsExpression(where));
+    assert.deepEqual(records.filter(record => query.match(record)).map(record => record.id), expected,
+        `drill-down of ${JSON.stringify(where)}`);
+}
 // The reader's filter applies the same rule set; its /…/c flag is a condition's matchCase.
 for (const [expression, expected] of [
     ["status: /^Open$/", ["a"]], ["status: /^Open$/c", []], ["status: /^open$/c", ["a"]],
     ["Owner.Name: /^EVE$/", ["e"]], ["note.slug: a", []],
+    ["street: STRASSE", ["e"]], ["street: stra*e", ["e"]], ["street: /^strasse$/", ["e"]],
+    ["street: /^STRASSE$/c", []], ["dotless: i", []], ["word: \u03bf\u03b4\u03bf\u03c2", ["e"]],
 ]) {
     const query = globalThis.obsQuery.compile(expression);
     assert.deepEqual(records.filter(record => query.match(record)).map(record => record.id), expected,

@@ -69,11 +69,11 @@
     };
     // mark and mark.<category> name a note's marks when its frontmatter has no such property.
     const markValue = (record, field) => {
-        const name = field.replace(/^note\./, "").toLowerCase();
+        const name = fold(field.replace(/^note\./, ""));
         const marks = record.marks || [];
         if (name === "mark") return marks.length ? [...new Set(marks.map((mark) => mark.kind))] : undefined;
         if (!name.startsWith("mark.")) return undefined;
-        const selected = marks.filter((mark) => mark.kind.toLowerCase() === name.slice(5)).map((mark) => mark.label);
+        const selected = marks.filter((mark) => fold(mark.kind) === name.slice(5)).map((mark) => mark.label);
         return selected.length ? selected : undefined;
     };
     // A condition sees note properties and marks only: no other derived field is a property.
@@ -83,13 +83,34 @@
     };
     const propertyTexts = (record, field) => conditionTexts(propertyValue(record, field));
     // The reader's own fields (title, text, query aliases) answer only names that are no
-    // note property; a note. prefix asks for the property alone, as drill-downs do.
+    // note property; a note. prefix asks for the property alone, as drill-downs do, and on a
+    // note's table row for that note's property.
     const readerValue = (record, field) => {
-        const value = record.frontmatter || record.marks ? propertyValue(record, field) : undefined;
+        const value = record.frontmatter || record.marks ? propertyValue(record, field)
+            : record.note && /^note\./.test(field) ? propertyValue(record.note, field) : undefined;
         return value !== undefined || /^note\./.test(field) ? value : record.fields?.[field.toLocaleLowerCase()];
     };
 
     const quotePattern = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    // Ignoring case compares case foldings (capabilities/bases#Comparisons, obsBases.fold).
+    const fold = (text) => globalThis.obsBases.fold(text);
+    // A text's folding with, for each folded character, the start and end of its source character.
+    const folding = (text) => {
+        let folded = "";
+        const starts = [];
+        const ends = [];
+        let index = 0;
+        for (const character of text) {
+            const part = fold(character);
+            for (let count = 0; count < part.length; count += 1) {
+                starts.push(index);
+                ends.push(index + character.length);
+            }
+            folded += part;
+            index += character.length;
+        }
+        return {folded, starts, ends};
+    };
 
     class Clause {
         constructor(field, value) {
@@ -101,9 +122,9 @@
             if (value.kind === "regex") {
                 this.pattern = value.text;
             } else if (value.text.includes("*")) {
-                this.pattern = value.text.split("*").map(quotePattern).join(".*");
+                this.pattern = value.text.split("*").map((part) => quotePattern(fold(part))).join(".*");
             } else {
-                this.needle = value.text.toLocaleLowerCase();
+                this.needle = fold(value.text);
             }
             this.expression = this.pattern === null ? null : new RegExp(this.pattern, this.flags);
         }
@@ -114,9 +135,11 @@
             return readerValue(record, this.name);
         }
 
+        // Ignoring case, an expression matches a text or its folding; a word, the folding.
         hit(value) {
-            return conditionTexts(value).some((text) => this.expression !== null
-                ? this.expression.test(text) : text.toLocaleLowerCase().includes(this.needle));
+            return conditionTexts(value).some((text) => this.expression === null
+                ? fold(text).includes(this.needle)
+                : this.expression.test(text) || (this.flags === "i" && this.expression.test(fold(text))));
         }
 
         match(record) {
@@ -133,20 +156,25 @@
 
         ranges(value, field) {
             if (!this.appliesTo(field)) return [];
+            const {folded, starts, ends} = folding(value);
+            const source = ([start, end]) => [starts[start], ends[end - 1]];
             if (this.pattern !== null) {
                 const ranges = [];
                 const expression = new RegExp(this.pattern, `g${this.flags}`);
                 for (const match of value.matchAll(expression)) {
                     if (match[0].length) ranges.push([match.index, match.index + match[0].length]);
                 }
+                if (this.flags !== "i") return ranges;
+                for (const match of folded.matchAll(expression)) {
+                    if (match[0].length) ranges.push(source([match.index, match.index + match[0].length]));
+                }
                 return ranges;
             }
             const ranges = [];
-            const lower = value.toLocaleLowerCase();
-            let start = lower.indexOf(this.needle);
+            let start = folded.indexOf(this.needle);
             while (this.needle && start >= 0) {
-                ranges.push([start, start + this.needle.length]);
-                start = lower.indexOf(this.needle, start + this.needle.length);
+                ranges.push(source([start, start + this.needle.length]));
+                start = folded.indexOf(this.needle, start + this.needle.length);
             }
             return ranges;
         }
@@ -285,16 +313,19 @@
         };
     };
 
-    // An exact clause is the reader-language form of an equals condition: the same pattern
-    // obsBases.textMatcher compares with, so a drill-down retains exactly what its count counted.
+    // An exact clause is the reader-language form of an equals condition: ignoring case, it
+    // matches the folding obsBases.textMatcher compares, so a drill-down retains exactly what
+    // its count counted.
     const exactClause = (field, value, matchCase = false) => {
-        const pattern = globalThis.obsBases.escapePattern(String(value));
+        const pattern = globalThis.obsBases.escapePattern(matchCase ? String(value) : fold(String(value)));
         const name = /^[A-Za-z][\w.-]*$/.test(field) ? field : JSON.stringify(field);
         return `${name}: /^${pattern}$/${matchCase ? "c" : ""}`;
     };
+    // A drill-down asks for the property alone, with one note. prefix.
+    const propertyField = (field) => field.startsWith("note.") ? field : `note.${field}`;
     const conditionsExpression = (conditions = []) => conditions.map((condition) =>
-        "equals" in condition ? exactClause(`note.${condition.field}`, condition.equals, condition.matchCase === true)
-            : `${JSON.stringify(`note.${condition.field}`)}: /\\S/`,
+        "equals" in condition ? exactClause(propertyField(condition.field), condition.equals, condition.matchCase === true)
+            : `${JSON.stringify(propertyField(condition.field))}: /\\S/`,
     ).join(" AND ");
     const compileConditions = (conditions) => {
         const tests = (conditions || []).map((condition) => {

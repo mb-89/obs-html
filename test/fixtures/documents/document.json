@@ -1637,6 +1637,10 @@
                 ],
                 "distinct": "rank"
               }
+            },
+            "quantity": {
+              "unit": "",
+              "dimension": {}
             }
           },
           "children": []
@@ -2449,7 +2453,11 @@
             }
           ]
         }
-      ]
+      ],
+      "quantity": {
+        "unit": "",
+        "dimension": {}
+      }
     },
     {
       "id": "chapter-intro",

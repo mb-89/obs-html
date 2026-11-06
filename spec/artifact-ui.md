@@ -70,7 +70,10 @@ content-sized compact pill block leave more width for its evidence neighbour.
 Preserve semantic light/dark metric pills at a page-fitting density through shared
 primitives, without hard-coded artifact names or deleting metric links.
 
-An optional metric value link uses the existing internal chapter and table-filter route.
+An optional metric value link uses the existing internal chapter and table-filter route; its
+`?tableFilter=` is the metric's conditions in the reader language (`obsQuery.conditionsExpression`
+over the metric's `from` chain and `where`, obs's cards-metrics capability, Drill-downs), so the
+table shows exactly the counted rows.
 Static evidence cards do not change under filtering.
 Card-body base fences use the canonical query/table runtime. Per-record Sankey
 links preserve line identity and categorical outcome/origin colors; adjacent segments share
@@ -1285,10 +1288,19 @@ separate from artifact presentation.
 - A field clause selects by the one rule set (obs's bases capability, Comparisons: [[obs-specification|obs's specification]]): it resolves
   a note property and tests its text as obs's queries capability (Conditions) does. Words,
   wildcards and regular expressions ignore case; a `c` after a regular expression
-  (`status: /^Open$/c`) matches case, as a condition's `matchCase` does.
+  (`status: /^Open$/c`) matches case, as a condition's `matchCase` does. Ignoring case, a
+  word or wildcard matches the text's case folding (obs's bases capability, Comparisons), and
+  a regular expression matches the text or its folding, so `street: /^strasse$/` finds
+  `Straße`.
 
   A name that is no note property falls back to the reader's own fields (title, text, slug,
-  depth, marks, query aliases); a `note.` prefix asks for the property alone.
+  depth, marks, query aliases); a `note.` prefix asks for the property alone, and on a note's
+  table row for that note's property.
+
+  The runtime's selection resolver (obs's quality note, Knowledge ownership) is
+  `obsQuery.propertyTexts` in `query.js`: a card's count and distinct count, a Sankey node's
+  `unique`, and every drill-down's `note.` clause read a note's property through it and its
+  property lookup, never through their own.
 - Every query-language help button is square and exactly the same height as its adjacent query
   input.
 - Filter narrows the chapter set represented by the table of contents and previous/next
