@@ -44,9 +44,9 @@ from pathlib import Path
 import pytest
 
 from artifacts import artifact_html
-from conftest import CORE_ROOT, built_once
+from conftest import CORE_ROOT, spec_build
 from preview import READY, SANDBOXES, http_origin, load_preview, open_preview
-from spec_artifact import run, spec_artifact, uv
+from spec_artifact import spec_artifact, uv
 from obs_html.cli import main as obs_html
 
 # step -> why this adapter may still differ from the interim reference there.
@@ -188,23 +188,16 @@ def require_reference(core: Path) -> Path:
 
 @pytest.fixture(scope="session")
 def parity_artifacts(tmp_path_factory) -> dict[str, str]:
-    """obs's spec built by this adapter (test/spec_artifact.py) and by the interim reference, once per run."""
-    core = CORE_ROOT
-    reference = require_reference(core)
-
-    def build(folder: Path) -> None:
-        # The interim reference builds alongside this adapter's spec artifact.
-        with ThreadPoolExecutor(1) as alongside:
-            reference_built = alongside.submit(
-                run, [uv(), "run", "--offline", "--project", str(reference), "obs-html-interim", "--source",
-                      str(core / "spec"), "--output", str(folder / "reference.html"), "--execute-commands"],
-                reference, "rendering obs's spec with the interim reference")
-            spec_artifact(tmp_path_factory)
-            reference_built.result()
-
-    folder = built_once(tmp_path_factory, "parity", build)
-    return {"adapter": spec_artifact(tmp_path_factory).read_text(encoding="utf-8"),
-            "reference": (folder / "reference.html").read_text(encoding="utf-8")}
+    """obs's spec rendered by this adapter (test/spec_artifact.py) and by the interim reference, each the
+    run's one shared build (obs test/spec_build.py)."""
+    require_reference(CORE_ROOT)
+    # The interim reference builds alongside this adapter's spec artifact.
+    with ThreadPoolExecutor(1) as alongside:
+        reference = alongside.submit(spec_build.built, spec_build.base(tmp_path_factory), "interim")
+        adapter = spec_artifact(tmp_path_factory)
+        folder = reference.result()
+    return {"adapter": adapter.read_text(encoding="utf-8"),
+            "reference": (folder / spec_build.INTERIM).read_text(encoding="utf-8")}
 
 
 def interact(page, frame) -> tuple[list[tuple[str, object]], list[str]]:

@@ -22,17 +22,19 @@ FIXTURE = ROOT / "test" / "fixtures" / "documents" / "document.json"
 CORE_ROOT = ROOT.parents[1]
 
 
-def _core_suite() -> types.ModuleType:
-    """The repository's complete suite (obs test/suite.py), which owns the Node test packages' setup."""
+def _core_module(name: str) -> types.ModuleType:
+    """A module of the core's tests: test/suite.py, which owns the Node test packages' setup, or
+    test/spec_build.py, which owns the run's one build of obs's spec."""
     import importlib.util
 
-    spec = importlib.util.spec_from_file_location("suite", CORE_ROOT / "test" / "suite.py")
+    spec = importlib.util.spec_from_file_location(name, CORE_ROOT / "test" / f"{name}.py")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
 
 
-suite = _core_suite()
+suite = _core_module("suite")
+spec_build = _core_module("spec_build")
 
 
 def pytest_sessionstart(session):

@@ -2,9 +2,9 @@
 
 Reader: a test that reads the spec artifact (the parity gate, the content-model check).
 
-The core of this repository builds the spec Document (its capability reference first) through
-the core's test/offline_obs_document.py, whose fake remote fetcher keeps every subprocess off the
-network; the core runs the spec's commands; this adapter renders the Document.
+The spec's Document is the run's one shared build, which the core's test/spec_build.py owns
+(it builds the capability reference first and runs the spec's commands offline); this adapter
+renders that Document.
 """
 import os
 import shutil
@@ -13,12 +13,8 @@ from pathlib import Path
 
 import pytest
 
-from conftest import CORE_ROOT, built_once
+from conftest import CORE_ROOT, built_once, spec_build
 from obs_html.cli import main as obs_html
-
-# The core's obs-document with the core's fake remote fetcher: no subprocess reaches the network.
-OFFLINE_DOCUMENT = CORE_ROOT / "test" / "offline_obs_document.py"
-
 
 def run(command: list[str], cwd: Path, what: str) -> None:
     """Run a build step; on failure name the step, its command and its output."""
@@ -39,18 +35,10 @@ def uv() -> str:
 
 
 def spec_artifact(tmp_path_factory) -> Path:
-    """The spec artifact, built once per run and shared by every xdist worker."""
-    core = CORE_ROOT
+    """The spec artifact, rendered once per run from the shared Document and shared by every xdist worker."""
+    document = spec_build.built(spec_build.base(tmp_path_factory), "document") / spec_build.DOCUMENT
 
     def build(folder: Path) -> None:
-        capabilities, document = folder / "capabilities.json", folder / "spec.json"
-        run([uv(), "run", "--offline", "--project", str(core), "python", "-m", "obs.capabilities",
-             "--notes", str(core / "spec" / "capabilities"), "--output", str(capabilities)],
-            core, "building the capability reference with the core")
-        run([uv(), "run", "--offline", "--project", str(core), "python", str(OFFLINE_DOCUMENT),
-             "--document", str(document), "--source", str(core / "spec" / "manifest.md"),
-             "--capability-reference", str(capabilities), "--execute-commands"],
-            core, "building obs's spec Document with the core, without the network")
         assert obs_html([str(document), str(folder / "adapter.html")]) == 0, \
             "test/spec_artifact.py: obs-html could not render obs's spec Document"
 
