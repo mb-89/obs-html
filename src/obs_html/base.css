@@ -2019,10 +2019,17 @@ math {
     flex: none;
 }
 
+/* The verdicts' semantic colours are the review's (artifact-ui.md, Bless verdicts): Bless and every
+   accepted state its acceptance colour, Decline its rejection colour; Ask keeps its own. */
 .bless-pill[data-bless-state="bless"],
 .bless-pill[data-bless-state="recorded"] {
     background: var(--color-success-soft);
     border-color: var(--color-success);
+}
+
+.bless-pill[data-bless-state="decline"] {
+    background: var(--color-failure-soft);
+    border-color: var(--color-failure);
 }
 
 .bless-keys {
@@ -2048,6 +2055,19 @@ math {
 .bless-key[aria-pressed="true"] {
     background: var(--color-accent-soft);
     border-color: var(--color-accent);
+}
+
+/* Pressed, Bless and Decline are the review's pressed accept and reject keys (.review-action). */
+.bless-key[data-bless-key="bless"][aria-pressed="true"] {
+    background: var(--color-success);
+    border-color: var(--color-success);
+    color: var(--color-surface);
+}
+
+.bless-key[data-bless-key="decline"][aria-pressed="true"] {
+    background: var(--color-failure);
+    border-color: var(--color-failure);
+    color: var(--color-surface);
 }
 
 .bless-send {

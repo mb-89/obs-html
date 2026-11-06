@@ -905,6 +905,12 @@ On such a chapter the top band shows, left of the notice icons:
   radios of the figure's options list do, and "None of the above", which needs a comment as Decline does and
   is sent as the pick's option `none`. There is no comment box in the page and no browser dialog.
 
+Decided by the user, 6 Nov 2026 (work issue `feat/decision-success-and-winner-box-20261106`):
+the verdicts take the review's semantic colours ([[#Dock menu]]). Bless and every accepted
+state in the deck, the pill, its square and the pressed key, use the review's acceptance colour
+(`color.success`), and Decline the review's rejection colour (`color.failure`): one token each,
+shared with the review. The Ask verdict keeps its own colour.
+
 A verdict is complete as a Bless, or as another verdict with its comment (and, for Pick, its
 letter); Enter confirms the comment and closes the entry. A verdict never walks: decided by the
 user, 6 Nov 2026 (work issue `feature/deck-shell-verdicts-20261106`), the reader moves on by

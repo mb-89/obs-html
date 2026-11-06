@@ -209,6 +209,50 @@ def test_decline_without_a_comment_cannot_be_sent_and_a_complete_verdict_stays(d
     assert errors == []
 
 
+# The review's acceptance and rejection colours, as its own summary draws them, and the band's
+# pill and pressed keys as they show now.
+COLOURS = """() => {
+    const probe = document.createElement('div');
+    probe.className = 'comment-review-summary';
+    probe.innerHTML = '<span data-review-summary-state="accepted"><strong>1</strong></span>'
+        + '<span data-review-summary-state="rejected"><strong>1</strong></span>';
+    document.body.append(probe);
+    const [accept, reject] = [...probe.querySelectorAll('strong')].map(node => getComputedStyle(node).color);
+    probe.remove();
+    const style = node => node && {background: getComputedStyle(node).backgroundColor, border: getComputedStyle(node).borderTopColor};
+    return {accept, reject, pill: style(document.querySelector('[data-bless-pill]')),
+            pressed: style(document.querySelector('[data-bless-key][aria-pressed="true"]'))};
+}"""
+
+
+def test_bless_and_decline_take_the_reviews_acceptance_and_rejection_colours(deck, reader_browser) -> None:
+    """artifact-ui.md, Bless verdicts: Bless and every accepted state, the pill and the pressed key, use
+    the review's acceptance colour, Decline its rejection colour; Ask keeps its own."""
+    from playwright.sync_api import expect
+
+    page, errors = _open(reader_browser, deck.as_uri(), PHONE)
+    page.locator('[data-bless-key="bless"]').click()
+    expect(page.locator("[data-bless-pill]")).to_have_text("Blessed")
+    blessed = page.evaluate(COLOURS)
+    page.locator('[data-bless-key="decline"]').click()
+    page.locator("[data-bless-comment]").fill("It keeps the verdict in two places.")
+    page.locator("[data-bless-comment]").press("Enter")
+    expect(page.locator("[data-bless-pill]")).to_have_text("Declined")
+    declined = page.evaluate(COLOURS)
+    page.locator('[data-bless-key="ask"]').click()
+    page.locator("[data-bless-comment]").fill("Why two places?")
+    page.locator("[data-bless-comment]").press("Enter")
+    expect(page.locator("[data-bless-pill]")).to_have_text("Question")
+    asked = page.evaluate(COLOURS)
+
+    accept, reject = blessed["accept"], blessed["reject"]
+    assert accept != reject
+    assert blessed["pill"]["border"] == accept and blessed["pressed"] == {"background": accept, "border": accept}
+    assert declined["pill"]["border"] == reject and declined["pressed"] == {"background": reject, "border": reject}
+    assert asked["pill"]["border"] not in (accept, reject) and asked["pressed"]["border"] not in (accept, reject)
+    assert errors == []
+
+
 def test_a_swipe_walks_the_chapters_and_does_not_decide(deck, reader_browser) -> None:
     from playwright.sync_api import expect
 
