@@ -87,11 +87,13 @@ const chapter = () => {
     return active[0].getAttribute("data-chapter");
 };
 // After an input the artifact has settled once the chapter's deferred content is in, every
-// image is decoded and two frames have been drawn; no wall-clock wait.
+// image is decoded and one frame has been drawn: a task queued from the frame's callback runs
+// after that frame's rendering step, so the artifact's requestAnimationFrame and ResizeObserver
+// work is done, as control-coverage.js waits. No wall-clock wait.
 const settle = async () => {
     await globalThis.obsArtifact.whenChapterReady();
     await Promise.all([...document.images].map((image) => image.decode().catch(() => {})));
-    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    await new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve)));
 };
 """
 
@@ -142,7 +144,7 @@ FIGURE_REFERENCE = ("capabilities-wikilinks", "#capabilities-figures/block-gener
                     "capabilities-figures--block-generic-figure")
 # Opens a chapter the contents do not list by a click event on a link to it, which the
 # artifact's own link handling routes as a reader's link; the link is removed again. Settles.
-OPEN_CHAPTER = "async (_root, slug) => {" + HELPERS + """
+OPEN_CHAPTER = "async (slug) => {" + HELPERS + """
     const link = document.body.appendChild(Object.assign(document.createElement("a"), {href: `#${slug}`}));
     link.dispatchEvent(new MouseEvent("click", {bubbles: true, cancelable: true, composed: true}));
     link.remove();
@@ -150,7 +152,7 @@ OPEN_CHAPTER = "async (_root, slug) => {" + HELPERS + """
     return chapter();
 }"""
 # Whether the element with this id starts within the visible part of the chapter's scroll area.
-IN_VIEW = """(_root, id) => {
+IN_VIEW = """(id) => {
     const element = document.getElementById(id);
     if (!element) return "missing";
     const box = element.getBoundingClientRect();
@@ -174,9 +176,9 @@ def interact(page, frame) -> tuple[list[tuple[str, object]], list[str]]:
 
     steps: list[tuple[str, object]] = []
     violations: list[str] = []
-    root = frame.locator("html")
-    settle = lambda: root.evaluate(SETTLE)
-    chapter = lambda: root.evaluate(CHAPTER)
+    # Evaluated in the frame itself: a locator would resolve its element on every call.
+    settle = lambda: frame.evaluate(SETTLE)
+    chapter = lambda: frame.evaluate(CHAPTER)
     # The preview frame stays where open_preview put it: the wrapper page neither scrolls nor reflows.
     box = page.evaluate("document.getElementById('artifact').getBoundingClientRect().toJSON()")
 
@@ -194,13 +196,13 @@ def interact(page, frame) -> tuple[list[tuple[str, object]], list[str]]:
         """Whether the notice center shows the changed-HTML notice."""
         return frame.locator('[data-notice="changed-html"]').count() > 0
 
-    steps.append(("chapters", root.evaluate("""() => {
+    steps.append(("chapters", frame.evaluate("""() => {
         const home = document.querySelector(".chapter-home-link").getAttribute("href").slice(1);
         const listed = [...document.querySelectorAll("[data-toc-tree] a")].map((link) => link.getAttribute("href").slice(1));
         return [home, ...listed.filter((slug) => !slug.includes("/") && slug !== home)];
     }""")))
     steps.append(("start", chapter()))
-    steps.append(("icons on start", root.evaluate(ICONS)))
+    steps.append(("icons on start", frame.evaluate(ICONS)))
     for count in range(1, 5):
         steps.append((f"next {count} by pointer", pointer('[data-step="1"] .chapter-nav-icon')))
     for count in range(1, 3):
@@ -237,9 +239,9 @@ def interact(page, frame) -> tuple[list[tuple[str, object]], list[str]]:
     frame.locator(".chapter-home-link").first.focus()
     page.keyboard.press("Enter")
     steps.append(("Home by keyboard from the contents", settle()))
-    steps.append(("icons with the contents open", root.evaluate(ICONS)))
+    steps.append(("icons with the contents open", frame.evaluate(ICONS)))
 
-    root.evaluate("() => globalThis.obsArtifact.openBar('filter')")
+    frame.evaluate("() => globalThis.obsArtifact.openBar('filter')")
     frame.locator("[data-filter-input]").fill(FILTER)
     settle()
     expect(frame.locator('[data-filter-status]')).not_to_have_text(re.compile(r"^All "))
@@ -248,29 +250,29 @@ def interact(page, frame) -> tuple[list[tuple[str, object]], list[str]]:
             button.is_disabled() for button in frame.locator("[data-step]").all()])))
     if changed():
         violations.append("applying a filter showed the changed-HTML notice")
-    root.evaluate("() => globalThis.obsFilter.setExpression('')")
+    frame.evaluate("() => globalThis.obsFilter.setExpression('')")
     settle()
     steps.append(("filter cleared", (frame.locator("[data-filter-status]").inner_text(), chapter())))
     if changed():
         violations.append("clearing a filter showed the changed-HTML notice")
-    root.evaluate("() => globalThis.obsArtifact.setViewSelection('parity', ['a'], ['a', 'b'])")
+    frame.evaluate("() => globalThis.obsArtifact.setViewSelection('parity', ['a'], ['a', 'b'])")
     settle()
     if changed():
         violations.append("a view selection showed the changed-HTML notice; reader state is never a change "
                           "(artifact-ui.md, What counts as a change)")
-    root.evaluate("() => globalThis.obsArtifact.setViewSelection('parity', [], ['a', 'b'])")
+    frame.evaluate("() => globalThis.obsArtifact.setViewSelection('parity', [], ['a', 'b'])")
     settle()
 
     source, href, anchor = FIGURE_REFERENCE
-    root.evaluate(OPEN_CHAPTER, source)
+    frame.evaluate(OPEN_CHAPTER, source)
     reference = pointer(f'[data-chapter-body] a[href="{href}"]', FIRST_LINE_POINTER)
-    shown = root.evaluate(IN_VIEW, anchor)
+    shown = frame.evaluate(IN_VIEW, anchor)
     steps.append(("figure reference by pointer", (reference, shown)))
     if shown is not True:
         violations.append(f"the figure reference {href} in {source}: {reference}, and its anchor {anchor} "
                           f"is {'missing' if shown == 'missing' else 'not in view'}")
 
-    steps += [(f"icons in {slug}", icons) for slug, icons in root.evaluate(CHAPTER_ICONS)]
+    steps += [(f"icons in {slug}", icons) for slug, icons in frame.evaluate(CHAPTER_ICONS)]
     return steps, violations
 
 
