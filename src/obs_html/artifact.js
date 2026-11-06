@@ -1327,31 +1327,28 @@
                     globalThis.obsBases.recordValue(owner, field) !== undefined)),
             });
         });
-        // A view's members order the core's rows and label them (generic-tables); the core selected
-        // them, so a member names a row here or nothing.
+        // A view's members label the core's rows (generic-tables); the core selected them and sent
+        // them in member order, so a member names a row here or nothing, and the order stays.
         const members = view.obs?.members;
         if (coreKeys && members) {
             const notePath = (row) => recordsBySlug.get(row.noteId)?.sourcePath ?? row.values.sourcePath;
-            const position = new Map(members.map((member, index) => [member.path, index]));
-            const place = row => position.get(notePath(row)) ?? members.length;
-            rows = rows.map((row, index) => ({row, index}))
-                .sort((left, right) => place(left.row) - place(right.row) || left.index - right.index)
-                .map(({row}) => {
-                    const member = members[position.get(notePath(row))];
-                    if (!member) return row;
-                    const label = member.label ?? "";
-                    const cells = {...row.cells};
-                    if (member.label !== undefined && row.noteId) {
-                        cells["obsHtml.label"] = {type: "detail", href: `#${row.noteId}`, label};
-                    }
-                    return {
-                        ...row,
-                        values: {...row.values, "obsHtml.label": label},
-                        ownFields: {...row.ownFields, "obsHtml.label": label},
-                        fields: {...row.fields, "obshtml.label": [label]},
-                        cells,
-                    };
-                });
+            const byPath = new Map(members.map(member => [member.path, member]));
+            rows = rows.map(row => {
+                const member = byPath.get(notePath(row));
+                if (!member) return row;
+                const label = member.label ?? "";
+                const cells = {...row.cells};
+                if (member.label !== undefined && row.noteId) {
+                    cells["obsHtml.label"] = {type: "detail", href: `#${row.noteId}`, label};
+                }
+                return {
+                    ...row,
+                    values: {...row.values, "obsHtml.label": label},
+                    ownFields: {...row.ownFields, "obsHtml.label": label},
+                    fields: {...row.fields, "obshtml.label": [label]},
+                    cells,
+                };
+            });
         }
         const matched = rows.filter((row) => selection.match(row));
         const fields = [...new Set([

@@ -102,6 +102,16 @@ def test_views_with_different_members_show_the_core_rows_in_member_order_with_th
 
 
 @pytest.mark.dom
+def test_members_label_the_core_rows_in_the_order_received_without_sorting_them(tmp_path: Path) -> None:
+    """The core emits a members view's rows in member order (obs generic-tables); the adapter keeps
+    the order it receives, so rows the core sent in another order stay in it."""
+    document = copy.deepcopy(REGISTERS)
+    _register(document, "points")["attrs"]["rows"][0] = ["a-point", "c-point"]
+    [views] = _inspect(document, tmp_path, ["points"])["points"]["views"]
+    assert views[0] == {"name": "Labelled", "rows": ["note:a-point", "note:c-point"], "labels": ["A", "C"]}
+
+
+@pytest.mark.dom
 def test_the_adapter_shows_the_core_rows_and_evaluates_no_selection(tmp_path: Path) -> None:
     """Rows the filter and members would not select show when the core names them, in its order, and
     no others."""

@@ -883,8 +883,8 @@
                 "view": null,
                 "rows": [
                   [
-                    "quiet-reference",
-                    "reference"
+                    "reference",
+                    "quiet-reference"
                   ]
                 ]
               },

@@ -239,8 +239,8 @@
                 "view": null,
                 "rows": [
                   [
-                    "a-point",
-                    "c-point"
+                    "c-point",
+                    "a-point"
                   ],
                   [
                     "b-point"
@@ -356,8 +356,8 @@
                 "view": 1,
                 "rows": [
                   [
-                    "a-point",
-                    "c-point"
+                    "c-point",
+                    "a-point"
                   ],
                   [
                     "b-point"
