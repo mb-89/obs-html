@@ -1,10 +1,12 @@
-"""Native-browser tier: bless verdicts in the top band, the swipe walk and Send (bless.js;
-artifact-ui.md, Bless verdicts and Reading shell; spec/capabilities/bless.md).
+"""Native-browser tier: bless verdicts in the top band, the swipe walk, Send and the screens the deck
+opens in (bless.js, screens.js; artifact-ui.md, Bless verdicts, Screens and Reading shell;
+spec/capabilities/bless.md).
 
-Reader: whoever changes the verdict keys, Send, the answered record or the chapter swipe.
+Reader: whoever changes the verdict keys, Send, the answered record, the chapter swipe or screens.
 
 The artifact is the example deck of obs's spec (spec/examples/bless-deck), built through the core
-once per run: Home, then two chapters that ask for a bless, each with a decision figure. Send posts
+once per run: Home, then two chapters that ask for a bless, each with a decision figure, so it opens
+in screens (artifact-ui.md, Screens: the default of a deck); the phone checks open it so, on a phone. Send posts
 to the real obs-html serve (test/serving.py); the answers it writes build the answered deck, which
 shows each verdict read-only.
 """
@@ -265,6 +267,52 @@ def test_the_answered_deck_shows_each_verdict_read_only(built, reader_browser) -
     expect(page.locator("[data-bless-send]")).to_be_hidden()
     expect(page.locator(f"#{FIGURE} [data-pugh-weight]")).to_have_count(0)  # The figure shows the answer read-only.
     expect(page.locator(f'#{FIGURE} [data-pugh-criterion="places"] .pugh-weight')).to_have_text("1")
+    assert errors == []
+
+
+# What the reader shows as a page: paper sheets, their running headers and footers, and the cover.
+PAGE_FRAME = """() => [...document.querySelectorAll(
+        '.paper-sheet, .paper-header, .paper-footer, .paper-page-number, .document-heading')]
+    .filter(node => node.checkVisibility()).length"""
+
+
+@pytest.mark.parametrize("width", [360, 390])
+def test_the_deck_opens_in_screens_on_a_phone_that_fit_and_walk_by_swipe_and_arrows(deck, phone_browser,
+                                                                                    width: int) -> None:
+    """artifact-ui.md, Screens: no sideways scroll, no page frame, the band's title and position, and the
+    band fits (Reading shell, the top band); swipe and the arrows walk, and Home has no cover."""
+    from playwright.sync_api import expect
+
+    page = phone_browser.new_page(viewport={"width": width, "height": 780})
+    errors: list[str] = []
+    page.on("pageerror", lambda error: errors.append(str(error)))
+    page.goto(f"{deck.as_uri()}#record")
+    page.wait_for_function("document.documentElement.dataset.artifactStatus === 'ready'")
+    assert page.evaluate("[matchMedia('(pointer: coarse)').matches, innerWidth]") == [True, width]
+    assert page.evaluate("document.documentElement.className.split(' ').filter(name => name.endsWith('-mode'))") \
+        == ["screens-mode"]
+    position = page.locator("[data-screens-position]")
+    expect(position).to_have_text("1 / 2")
+    expect(page.locator("[data-screens-title]")).to_have_attribute("title", "Bless verdicts, two decisions")
+    assert page.evaluate(PAGE_FRAME) == 0
+    assert "Chapter 1 of 2" in [item["name"] for item in _fits(page)]
+    # The chapter takes the reader's width inside the gutter that holds the arrows.
+    body = page.locator("[data-chapter-body]").bounding_box()
+    assert body["width"] >= width - 2 * 32
+
+    page.evaluate(SWIPE, ["[data-chapter-body] h1", -120])
+    expect(page.locator("[data-active-chapter]")).to_have_attribute("data-chapter", "swipe")
+    expect(position).to_have_text("2 / 2")
+    _fits(page)
+    page.locator("[data-step='-1']").click()
+    expect(page.locator("[data-active-chapter]")).to_have_attribute("data-chapter", "record")
+    page.locator("[data-step='-1']").click()
+    expect(page.locator("[data-active-chapter]")).to_have_attribute("data-chapter", "home")
+    expect(position).to_be_hidden()
+    assert page.evaluate(PAGE_FRAME) == 0
+    _fits(page)
+    page.locator("[data-step='1']").click()
+    expect(position).to_have_text("1 / 2")
     assert errors == []
 
 

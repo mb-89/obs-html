@@ -37,7 +37,7 @@ TESTS = Path(__file__).parents[1]
 # The fixtures that hand a test a browser page; test/conftest.py owns them. A test of the PDF
 # path (``pdf_browser``) runs the CLI, whose build is what it tests.
 BROWSER_FIXTURES = {"reader_browser", "shared_reader_browser", "overlay_scrollbar_browser", "page_pool",
-                    "overlay_scrollbar_pool", "worker_playwright", "full_chromium_browser",
+                    "overlay_scrollbar_pool", "phone_browser", "phone_pool", "worker_playwright", "full_chromium_browser",
                     "shared_full_chromium_browser", "full_page_pool"}
 # The fixtures that run a test on full Chromium instead of the headless shell; test/conftest.py
 # owns them. The PDF path's browser (``pdf_browser``) is full Chromium too.

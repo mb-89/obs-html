@@ -270,11 +270,12 @@ class PagePool:
     closed or changed another page setting on (PAGE_SETTINGS) is closed with its context instead.
     """
 
-    def __init__(self, engine: str, launch):
+    def __init__(self, engine: str, launch, context: dict | None = None):
         from playwright.sync_api import Page
 
         self.engine = engine
         self._launch = launch
+        self._context = context or {}
         self._browser = None
         self._crashed = False
         self._idle = []
@@ -340,7 +341,7 @@ class PagePool:
         return crashed
 
     def _open(self):
-        page = self._browser.new_context().new_page()
+        page = self._browser.new_context(**self._context).new_page()
         self._origins[page] = set()
         self._on(page, "framenavigated", lambda frame: self._origins[page].add(origin(frame.url)))
         return page
@@ -456,9 +457,9 @@ def page_patches():
 
 
 @contextlib.contextmanager
-def live_pool(engine: str, launch):
-    """A page pool over the browser ``launch`` starts, in POOLS while it lives."""
-    pool = PagePool(engine, launch)
+def live_pool(engine: str, launch, context: dict | None = None):
+    """A page pool over the browser ``launch`` starts, its contexts made with ``context``, in POOLS while it lives."""
+    pool = PagePool(engine, launch, context)
     POOLS.append(pool)
     try:
         yield pool
@@ -499,6 +500,20 @@ def overlay_scrollbar_pool(worker_playwright, page_patches):
     launch = launcher(worker_playwright, engine, headless_shell(playwright_browsers()),
                       ("--enable-features=OverlayScrollbar",))
     with live_pool(engine, launch) as pool:
+        yield pool
+
+
+# What a phone's browser context emulates: a touch screen, the page's viewport meta and a phone's
+# pixel density (Playwright's phone descriptors); the test names the width.
+PHONE_CONTEXT = {"is_mobile": True, "has_touch": True, "device_scale_factor": 3}
+
+
+@pytest.fixture(scope="session")
+def phone_pool(worker_playwright, page_patches):
+    """A page pool over a second headless shell whose contexts emulate a phone (PHONE_CONTEXT)."""
+    engine = f"{HEADLESS_SHELL_ENGINE} (phone)"
+    launch = launcher(worker_playwright, engine, headless_shell(playwright_browsers()))
+    with live_pool(engine, launch, PHONE_CONTEXT) as pool:
         yield pool
 
 
@@ -603,6 +618,16 @@ def full_chromium_browser(full_page_pool):
 def shared_full_chromium_browser(full_page_pool):
     """As ``shared_reader_browser``, on full Chromium (``full_chromium_browser``)."""
     lease = BrowserLease(full_page_pool)
+    try:
+        yield lease
+    finally:
+        lease.close()
+
+
+@pytest.fixture
+def phone_browser(phone_pool):
+    """As ``reader_browser``, on a phone (``phone_pool``): touch, the viewport meta and a phone's density."""
+    lease = BrowserLease(phone_pool)
     try:
         yield lease
     finally:
