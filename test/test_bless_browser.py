@@ -266,3 +266,18 @@ def test_the_answered_deck_shows_each_verdict_read_only(built, reader_browser) -
     expect(page.locator(f"#{FIGURE} [data-pugh-weight]")).to_have_count(0)  # The figure shows the answer read-only.
     expect(page.locator(f'#{FIGURE} [data-pugh-criterion="places"] .pugh-weight')).to_have_text("1")
     assert errors == []
+
+
+def test_printing_from_screens_prints_each_screen_from_a_new_page_without_a_page_frame(deck, reader_browser) -> None:
+    """artifact-ui.md, Screens: the print projection holds Home without its cover, then each chapter
+    from a new sheet, with no front pages, running header, footer or page number."""
+    page, errors = _open(reader_browser, deck.as_uri(), PHONE)
+    page.evaluate("dispatchEvent(new Event('beforeprint'))")
+    sheets = page.evaluate("""() => [...document.querySelectorAll('.print-book > .paper-sheet')].map(sheet => ({
+        chapter: sheet.dataset.pageChapter, id: sheet.id,
+        frame: sheet.querySelectorAll('.paper-header, .paper-footer, .document-heading, .title-page').length}))""")
+    page.evaluate("dispatchEvent(new Event('afterprint'))")
+    assert [sheet["chapter"] for sheet in sheets if sheet["id"]] == ["home", "record", "swipe"]
+    assert {sheet["frame"] for sheet in sheets} == {0}
+    assert page.evaluate("document.documentElement.classList.contains('screens-mode')")
+    assert errors == []

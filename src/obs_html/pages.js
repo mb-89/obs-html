@@ -30,6 +30,7 @@
     let measurementScheduled = false;
     let printMediaBoxes = [];
     const root = document.documentElement;
+    const screens = () => root.classList.contains("screens-mode");
     const paper = data.paper;
     root.style.setProperty("--paper-width", `${paper.widthMillimeters}mm`);
     root.style.setProperty("--paper-height", `${paper.heightMillimeters}mm`);
@@ -694,6 +695,7 @@
             number.textContent = String((live ? measuredStarts : starts).get(number.dataset.contentsChapter) || "");
         });
         [...destination.children].forEach((sheet, index) => {
+            if (forPrint && screens()) return;
             const metadataHtml = data.document.metadataHtml;
             const joined = (...keys) => keys.map((key) => metadataHtml[key]).filter(Boolean).join(" · ");
             const header = document.createElement("header");
@@ -978,10 +980,20 @@
         }
         document.dispatchEvent(new CustomEvent("obs-pages-layout"));
     };
+    // Artifact-ui.md "Screens": printed from screens, each screen starts a page, as the reader sees
+    // it: Home without its cover, then the chapters, with no front pages, running header or footer.
+    const printEntries = () => {
+        if (!screens()) return groups(artifact.exportChapters());
+        const home = sourceFor("home");
+        home.querySelector(".document-heading")?.remove();
+        const shown = [...home.childNodes].some((node) => node.nodeType === 1 || node.textContent.trim());
+        return [...(shown ? [{slug: "home", source: home}] : []),
+            ...artifact.exportChapters().map((record) => ({slug: record.slug, source: sourceFor(record.slug)}))];
+    };
     const preparePrint = () => {
         printing = true;
         root.classList.add("preparing-print");
-        layout(printed, groups(artifact.exportChapters()), true);
+        layout(printed, printEntries(), true);
     };
     const finishPrint = () => {
         printing = false;
@@ -1049,7 +1061,7 @@
             printing = true;
             root.classList.add("preparing-print");
             try {
-                const entries = groups(artifact.exportChapters());
+                const entries = printEntries();
                 printed.replaceChildren(...entries.map(({source}) => source));
                 await waitForPrintAssets(printed);
                 layout(printed, entries, true);
