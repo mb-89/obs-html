@@ -3,9 +3,12 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
+import subprocess
 import sys
 import tempfile
+from importlib.resources import as_file, files
 from pathlib import Path
 from time import perf_counter
 from typing import Sequence
@@ -104,6 +107,13 @@ Examples:
   obs-html --extract-comments reviewed.html
   obs-html --print-chapter artifact.html intro --chapter-format text
   obs-html document.json --export-figures figures
+  obs-html --build-own-spec obs-html-specification.html
+
+Own specification:
+  --build-own-spec DESTINATION builds the adapter's specification, which the package ships, into
+  DESTINATION from the installed package alone: it starts the core of this environment
+  (python -m obs.document --source <packaged spec>/manifest.md --execute-commands), which runs
+  the specification's command fences, and renders the Document as DOCUMENT DESTINATION does.
 
 Exit status:
   0: success (including --help); 2: invalid options, input or operation failure.
@@ -149,6 +159,8 @@ def build_parser() -> argparse.ArgumentParser:
                         help="HTML whose embedded source ZIP --attach-source-to-pdf attaches.")
     parser.add_argument("--check-rendered", type=Path, metavar="HTML",
                         help="Open existing HTML headless; report console errors and printed pages.")
+    parser.add_argument("--build-own-spec", type=Path, metavar="DESTINATION",
+                        help="Build the adapter's packaged specification with the core into DESTINATION.")
     parser.add_argument("--timings", action="store_true", help="Print the duration of each stage.")
     return parser
 
@@ -176,6 +188,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                 _attach_source(options)
             elif options.check_rendered or options.export_pdf:
                 _browser_operation(options, config)
+            elif options.build_own_spec:
+                _build_own_spec(options, config)
             else:
                 _render(options, config)
     except InputError as error:
@@ -200,7 +214,11 @@ def _render(options: argparse.Namespace, config) -> None:
                          "Name the output file, or pass --check to render without output")
     if options.destination and options.destination.resolve() == options.document.resolve():
         raise InputError(PROG, "DESTINATION", "names DOCUMENT itself", "Name another output file")
-    document = _read_document(options.document)
+    _write_artifact(_read_document(options.document), options, config, options.destination)
+
+
+def _write_artifact(document: dict, options: argparse.Namespace, config, destination: Path | None) -> None:
+    """Render ``document`` and write it to ``destination``, a PDF for a .pdf name; with --check, nothing."""
     paths = _vault_paths(document)
     try:
         with vault_naming(options.vault_root, paths):
@@ -215,7 +233,7 @@ def _render(options: argparse.Namespace, config) -> None:
     if options.check:
         print(f"Checked {options.document.resolve()}; no output written.")
         return
-    destination = options.destination.resolve()
+    destination = destination.resolve()
     if destination.suffix.lower() == ".pdf":
         from obs_html.pdf import export_pdf
         # Print beside the destination, so the Document's relative asset links resolve.
@@ -238,6 +256,36 @@ def _render(options: argparse.Namespace, config) -> None:
         if existing is None or not same_artifact_content(artifact, existing):
             _write_if_changed(destination, artifact.encode("utf-8"))
     print(f"Generated {destination}.")
+
+
+OWN_SPEC = "spec"
+"""The package folder holding the adapter's specification vault, which hatch_build.py copies."""
+
+
+def _build_own_spec(options: argparse.Namespace, config) -> None:
+    """Build the packaged specification with the core of this environment, then render it."""
+    _alone("--build-own-spec", options, "document", "destination", "check", "vault_root", "output")
+    with as_file(files("obs_html") / OWN_SPEC) as vault, \
+            tempfile.TemporaryDirectory(prefix="obs-html-own-spec-") as work:
+        manifest = Path(vault) / "manifest.md"
+        if not manifest.is_file():
+            raise InputError(PROG, "--build-own-spec", f"the package ships no specification ({manifest} is missing)",
+                             "Build the obs-html package again (uv sync, or reinstall it); its build hook "
+                             "hatch_build.py copies the specification into it")
+        document = Path(work) / "obs-html-specification.json"
+        # The fences the core runs find the programs installed beside this Python first.
+        scripts = os.path.dirname(sys.executable)
+        environment = {**os.environ, "PATH": os.pathsep.join(filter(None, (scripts, os.environ.get("PATH"))))}
+        result = subprocess.run([sys.executable, "-m", "obs.document", "--source", str(manifest), "--document",
+                                 str(document), "--execute-commands"], env=environment, capture_output=True,
+                                text=True, encoding="utf-8", errors="replace")
+        if result.returncode:
+            raise InputError(PROG, "--build-own-spec", f"the core could not build {manifest}:\n"
+                             f"{result.stderr.strip()}", "The core's message above names the cause; obs-html "
+                             "runs the core installed beside it, python -m obs.document")
+        sys.stderr.write(result.stderr)  # The core's diagnostics, printed once.
+        options.vault_root = str(vault)
+        _write_artifact(_read_document(document), options, config, options.build_own_spec)
 
 
 def _attach_source(options: argparse.Namespace) -> None:

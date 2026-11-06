@@ -33,8 +33,9 @@ dev = [
 ]
 
 [tool.uv]
-# Build the adapter again when what hatch_build.py generates from changes.
-cache-keys = [{ file = "pyproject.toml" }, { file = "hatch_build.py" }, { file = "maths/package-lock.json" }]
+# Build the adapter again when what hatch_build.py generates or copies from changes.
+cache-keys = [{ file = "pyproject.toml" }, { file = "hatch_build.py" }, { file = "maths/package-lock.json" },
+              { file = "spec/**" }]
 
 [build-system]
 requires = ["hatchling"]
@@ -44,7 +45,8 @@ build-backend = "hatchling.build"
 packages = ["src/obs_html"]
 
 [tool.hatch.build.targets.wheel.hooks.custom]
-# hatch_build.py: the browser assets built from lockfiles, such as src/obs_html/vendor/maths/math.js.
+# hatch_build.py: the browser assets built from lockfiles, such as src/obs_html/vendor/maths/math.js,
+# and the adapter's specification, src/obs_html/spec/.
 
 [tool.pytest.ini_options]
 testpaths = ["test"]

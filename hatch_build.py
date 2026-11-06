@@ -1,10 +1,11 @@
-"""The build hook of the adapter's package: it writes the browser assets built from lockfiles.
+"""The build hook of the adapter's package: it writes the browser assets built from lockfiles and
+copies the adapter's specification into the package.
 
 Reader: whoever changes how the adapter is built or what its package ships.
 
 Each build of the `obs-html` distribution, editable (`uv sync`) or not, fills every folder that
-PACKAGED names inside `src/obs_html` and ships its files as package data; the renderer reads them
-through `importlib.resources`. The folders are generated, so they are ignored and never edited;
+PACKAGED names inside `src/obs_html` and ships its files as package data; the renderer and
+`obs-html --build-own-spec` read them through `importlib.resources`. The folders are generated, so they are ignored and never edited;
 `[tool.uv] cache-keys` in pyproject.toml makes uv build again when the hook or a lockfile changes.
 spec/architecture.md, Packaged browser assets, owns the design.
 """
@@ -19,6 +20,7 @@ from hatchling.builders.hooks.plugin.interface import BuildHookInterface
 
 PACKAGE = Path("src") / "obs_html"
 MATHS = Path("maths")
+SPEC = Path("spec")
 # The maths library's files the renderer embeds, by their path in the installed mathjs package.
 MATHS_FILES = {"math.js": "lib/browser/math.js", "math.js.LICENSE.txt": "lib/browser/math.js.LICENSE.txt",
                "LICENSE": "LICENSE"}
@@ -55,9 +57,14 @@ def maths(root: Path, work: Path, folder: Path) -> None:
         shutil.copy2(installed / path, folder / name)
 
 
+def spec(root: Path, work: Path, folder: Path) -> None:
+    """The adapter's specification vault, ``spec/``, without hidden files, which obs-html --build-own-spec builds."""
+    shutil.copytree(root / SPEC, folder, dirs_exist_ok=True, ignore=shutil.ignore_patterns(".*", "__pycache__"))
+
+
 # Each generated folder of the package, relative to PACKAGE, and what fills it:
 # fill(checkout root, an empty work folder, an empty folder to fill).
-PACKAGED: dict[str, Callable[[Path, Path, Path], None]] = {"vendor/maths": maths}
+PACKAGED: dict[str, Callable[[Path, Path, Path], None]] = {"vendor/maths": maths, "spec": spec}
 
 
 def build(root: Path) -> list[str]:
