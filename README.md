@@ -35,7 +35,7 @@ The adapter's own features are documented as capability notes in
 [attachment replacement](spec/capabilities/attachment-replacement.md).
 
 The artifact runtime's DOM tests run in Node over a test-only DOM adapter, which the complete
-suite (`uv run python test/suite.py` from the repository root) installs; then `uv run pytest -m dom`
+suite's setup (`uv run python test/suite.py --setup` from the repository root) installs; then `uv run pytest -m dom`
 runs that tier alone.
 
 The artifact verification harness, `test/browser/artifact-harness.cjs`, opens a rendered artifact in that
@@ -108,7 +108,7 @@ A register renders from its `registers` node alone (obs
 [capabilities/registers](../../spec/capabilities/registers.md), "Document node"): each view shows
 the rows the core selected for it, and obs-html evaluates no selection of its own. A view's
 `obs.members` only labels those rows as `obsHtml.label`; the core sends them in member order,
-which obs-html keeps ([generic-tables](../../spec/design_input/generic-tables.md)). A `documentMetadata` view also shows
+which obs-html keeps ([generic-tables](spec/generic-tables.md)). A `documentMetadata` view also shows
 obs-html's generation rows (`timestamp`, `generator`, `target`) that its filter selects, since the
 core has none. A query the reader edits in the table's Query view narrows the register's rows.
 Members need the core's rows, so a `base` fence whose view declares them fails the build; the

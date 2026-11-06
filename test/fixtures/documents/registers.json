@@ -10,10 +10,12 @@
         {
           "version": "1",
           "date": "2026-01-01",
+          "author": "Ann",
           "change": "First"
         },
         {
           "version": "2",
+          "author": "Ann",
           "change": "Second"
         }
       ]
@@ -29,10 +31,12 @@
               {
                 "version": "1",
                 "date": "2026-01-01",
+                "author": "Ann",
                 "change": "First"
               },
               {
                 "version": "2",
+                "author": "Ann",
                 "change": "Second"
               }
             ]
@@ -98,6 +102,20 @@
           {
             "type": "field",
             "attrs": {
+              "name": "history.0.author"
+            },
+            "children": [
+              {
+                "type": "text",
+                "attrs": {},
+                "children": [],
+                "text": "Ann"
+              }
+            ]
+          },
+          {
+            "type": "field",
+            "attrs": {
               "name": "history.0.change"
             },
             "children": [
@@ -120,6 +138,20 @@
                 "attrs": {},
                 "children": [],
                 "text": "2"
+              }
+            ]
+          },
+          {
+            "type": "field",
+            "attrs": {
+              "name": "history.1.author"
+            },
+            "children": [
+              {
+                "type": "text",
+                "attrs": {},
+                "children": [],
+                "text": "Ann"
               }
             ]
           },
@@ -1057,10 +1089,12 @@
           {
             "version": "1",
             "date": "2026-01-01",
+            "author": "Ann",
             "change": "First"
           },
           {
             "version": "2",
+            "author": "Ann",
             "change": "Second"
           }
         ]
@@ -1125,6 +1159,20 @@
         {
           "type": "field",
           "attrs": {
+            "name": "history.0.author"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Ann"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
             "name": "history.0.change"
           },
           "children": [
@@ -1147,6 +1195,20 @@
               "attrs": {},
               "children": [],
               "text": "2"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "history.1.author"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Ann"
             }
           ]
         },
@@ -1280,6 +1342,7 @@
       "fields": {
         "version": "1",
         "date": "2026-01-01",
+        "author": "Ann",
         "change": "First"
       }
     },
@@ -1288,6 +1351,7 @@
       "type": "documentHistory",
       "fields": {
         "version": "2",
+        "author": "Ann",
         "change": "Second",
         "date": ""
       }
