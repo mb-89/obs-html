@@ -602,6 +602,10 @@
     const walkIndices = () => screensWalk()
         ? visibleIndices.filter((index) => chapters[index].generated !== "home")
         : visibleIndices;
+    // Screens show Home only while the walk holds no chapter, as under a filter that matches none.
+    const leaveHome = () => {
+        if (screensWalk() && activeChapter.dataset.chapter === "home") activateChapter("home", "replace");
+    };
     const stepTarget = (step) => {
         if (activeIndex < 0) return undefined;
         const targets = [
@@ -2366,6 +2370,7 @@
             link.closest("li").hidden = !visibleTocIndices.has(Number(link.dataset.chapterIndex));
         });
         if (activeIndex >= 0 && !visibleTocIndices.has(activeIndex)) activateChapter("home", "replace");
+        else leaveHome();
         syncBreadcrumbs();
         const summary = filterSummary();
         if (query.empty) globalThis.obsNotices.remove("applied-filter");
@@ -2463,9 +2468,7 @@
             .forEach(node => anchorObserver?.observe(node));
     };
     document.addEventListener("obs-pages-layout", reanchor);
-    document.addEventListener("obs-pages-layout", () => {
-        if (screensWalk() && activeChapter.dataset.chapter === "home") activateChapter("home", "replace");
-    });
+    document.addEventListener("obs-pages-layout", leaveHome);
     const releaseAnchor = () => {
         anchoredHit = null;
         anchorObserver?.disconnect();

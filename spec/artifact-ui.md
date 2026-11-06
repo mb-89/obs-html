@@ -800,6 +800,7 @@ chevron; it truncates first, its full text its tooltip.
 Decided by the user, 6 Nov 2026 (work issue `feature/deck-shell-verdicts-20261106`): screens have
 no title screen. The walk holds the chapters only, and the deck opens on its first chapter. Home,
 the band's or the menu's, opens that chapter too; shown as pages, Home is the cover as before.
+Only a filter that matches no chapter shows Home, and clearing it opens the first chapter.
 
 Without a declared `obsHtml.layout`, a manifest whose listed chapters (the reading order) all
 ask for a bless opens in `screens`; any other opens in `paged`. A declared layout always wins.

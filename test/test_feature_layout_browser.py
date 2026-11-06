@@ -64,10 +64,11 @@ CHOOSER = ".chapter-breadcrumb-chooser"
 
 def test_the_home_chooser_closes_on_a_click_on_the_menu_or_a_docked_bar(opened) -> None:
     """At Home, Enter on Home opens its chooser; a click on the menu button, on a menu row's dock
-    direction or inside a docked bar closes it, as a click anywhere outside the breadcrumbs does."""
+    direction or inside a docked bar closes it, as a click anywhere outside the breadcrumbs does.
+    The fixture opens in screens, which have no Home (artifact-ui.md, Screens): shown as pages."""
     page, frame = opened
     page.evaluate("() => document.getElementById('artifact').style.width = '1100px'")
-    frame.evaluate("() => obsArtifact.activateChapter('home')")
+    frame.evaluate("() => { obsPages.setPaged(true); obsArtifact.activateChapter('home'); }")
     home = frame.locator(".chapter-home-link")
     chooser = frame.locator(f"{CHOOSER}[open]")
 
@@ -86,4 +87,4 @@ def test_the_home_chooser_closes_on_a_click_on_the_menu_or_a_docked_bar(opened) 
     open_chooser()
     click_where_visible(page, frame, "[data-toc-action]")
     assert chooser.count() == 0, "a click inside a docked bar closes the chooser"
-    frame.evaluate("() => obsArtifact.closeBar('toc')")
+    frame.evaluate("() => { obsArtifact.closeBar('toc'); obsPages.setPaged(false); }")
