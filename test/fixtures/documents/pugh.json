@@ -125,43 +125,45 @@
                   "candidates": [
                     {
                       "key": "D",
-                      "label": "The datum we run",
-                      "short": "Now",
-                      "what": "What runs today.",
+                      "label": "What runs today",
+                      "what": "The datum: nothing changes.",
                       "values": {
                         "err": 1,
                         "speed": 10,
                         "cost": 9
-                      }
+                      },
+                      "wins": "Nothing to migrate."
                     },
                     {
                       "key": "A",
-                      "label": "Option A, precise",
-                      "short": "A",
+                      "label": "Precise",
                       "what": "Precise but dear.",
                       "values": {
                         "err": 0.4,
                         "speed": 10.5,
                         "cost": 19
                       },
-                      "tieBreak": 2
+                      "tieBreak": 2,
+                      "losses": [
+                        "A new licence",
+                        "Training"
+                      ]
                     },
                     {
                       "key": "B",
-                      "label": "Option B, quick",
-                      "short": "B",
+                      "label": "Quick",
                       "what": "Quick and cheap.",
                       "values": {
                         "err": 0.85,
                         "speed": 30,
                         "cost": 4
                       },
-                      "tieBreak": 1
+                      "tieBreak": 1,
+                      "wins": "Runs on a phone."
                     },
                     {
                       "key": "C",
-                      "label": "Option C, middling",
-                      "short": "C",
+                      "label": "Middling",
                       "values": {
                         "err": 0.95,
                         "speed": 22,
@@ -178,7 +180,19 @@
                   "sensitivity": {
                     "seed": 3,
                     "draws": 2000
-                  }
+                  },
+                  "checklist": [
+                    {
+                      "item": "Does it keep the data in the EU?",
+                      "answer": "All of them do.",
+                      "pass": true
+                    },
+                    {
+                      "item": "Is there a second supplier?",
+                      "answer": "Not for this kind of system.",
+                      "pass": false
+                    }
+                  ]
                 }
               },
               "children": []
@@ -242,7 +256,6 @@
                     {
                       "key": "O0",
                       "label": "A long option name number 0",
-                      "short": "O0",
                       "values": {
                         "err": 1.0,
                         "speed": 10,
@@ -252,7 +265,6 @@
                     {
                       "key": "O1",
                       "label": "A long option name number 1",
-                      "short": "O1",
                       "values": {
                         "err": 0.95,
                         "speed": 12,
@@ -262,7 +274,6 @@
                     {
                       "key": "O2",
                       "label": "A long option name number 2",
-                      "short": "O2",
                       "values": {
                         "err": 0.9,
                         "speed": 14,
@@ -272,7 +283,6 @@
                     {
                       "key": "O3",
                       "label": "A long option name number 3",
-                      "short": "O3",
                       "values": {
                         "err": 0.85,
                         "speed": 16,
@@ -282,7 +292,6 @@
                     {
                       "key": "O4",
                       "label": "A long option name number 4",
-                      "short": "O4",
                       "values": {
                         "err": 0.8,
                         "speed": 18,
@@ -292,7 +301,6 @@
                     {
                       "key": "O5",
                       "label": "A long option name number 5",
-                      "short": "O5",
                       "values": {
                         "err": 0.75,
                         "speed": 20,
@@ -302,7 +310,6 @@
                     {
                       "key": "O6",
                       "label": "A long option name number 6",
-                      "short": "O6",
                       "values": {
                         "err": 0.7,
                         "speed": 22,
@@ -312,7 +319,6 @@
                     {
                       "key": "O7",
                       "label": "A long option name number 7",
-                      "short": "O7",
                       "values": {
                         "err": 0.65,
                         "speed": 24,
@@ -322,7 +328,6 @@
                     {
                       "key": "O8",
                       "label": "A long option name number 8",
-                      "short": "O8",
                       "values": {
                         "err": 0.6,
                         "speed": 26,
@@ -332,7 +337,6 @@
                     {
                       "key": "O9",
                       "label": "A long option name number 9",
-                      "short": "O9",
                       "values": {
                         "err": 0.55,
                         "speed": 28,
@@ -348,7 +352,19 @@
                   "sensitivity": {
                     "seed": 3,
                     "draws": 2000
-                  }
+                  },
+                  "checklist": [
+                    {
+                      "item": "Can we leave it within a month?",
+                      "answer": "Not the last two.",
+                      "pass": false,
+                      "options": [
+                        "I",
+                        "J"
+                      ]
+                    }
+                  ],
+                  "checklistWeight": 2
                 }
               },
               "children": []

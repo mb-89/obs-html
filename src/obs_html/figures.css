@@ -436,44 +436,112 @@
     }
 }
 
-/* Decision figures (pugh-figure.js): the bottom line, the matrix in its own scrolling box with the
-   criterion names held at its left, and the folded meanings and sensitivity. */
+/* Decision figures (pugh-figure.js): three tabs in the table detail tabs' look; the Matrix tab's
+   bottom line, Raised list, options one at a time and table in its own scrolling box with the
+   criterion names held at its left. */
+.obs-figure[data-figure-kind="pugh"] {
+    --pugh-criterion-width: 9rem;
+}
+
+.pugh-figure-view,
 .pugh-view {
     display: grid;
     gap: 0.6rem;
-    margin-inline: auto;
-    max-width: var(--content-inline-size);
     min-width: 0;
 }
 
-.pugh-bottom p {
-    margin: 0;
+.pugh-figure-view > .pugh-view {
+    width: 100%;
 }
 
-.pugh-bottom p + p {
-    margin-block-start: 0.35rem;
+.pugh-view[hidden] {
+    display: none;
+}
+
+.pugh-bottom p,
+.pugh-option p,
+.pugh-worlds p {
+    margin: 0;
 }
 
 .pugh-holds {
     color: var(--color-success);
 }
 
-.pugh-depends,
-.pugh-check strong,
-.pugh-unreasonable {
+.pugh-depends {
     color: var(--color-warning);
+}
+
+.pugh-letter {
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-small);
+    display: inline-block;
+    font-weight: 600;
+    min-inline-size: 1.4em;
+    text-align: center;
+}
+
+.pugh-raised {
+    border-inline-start: 0.2rem solid var(--color-warning);
+    padding-inline-start: 0.6rem;
+}
+
+.pugh-raised-title {
+    font-weight: 600;
+    margin: 0;
+}
+
+.pugh-raised ul,
+.pugh-worlds,
+.pugh-checklist {
+    margin: 0.25rem 0 0;
+    padding-inline-start: 1.2rem;
+}
+
+.pugh-options {
+    display: grid;
+    gap: 0.35rem;
+}
+
+.pugh-option {
+    background: var(--color-surface-raised);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-small);
+    padding: 0.5rem 0.75rem;
+    touch-action: pan-y;
+    user-select: none;
+}
+
+.pugh-option-count {
+    color: var(--color-text-muted);
+    font-size: 0.85em;
+}
+
+.pugh-option-name {
+    font-weight: 600;
+}
+
+.pugh-option-keys,
+.pugh-ruling {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.pugh-option-list dd {
+    margin-inline-start: 1.6rem;
 }
 
 .pugh-scroll {
     max-width: 100%;
     min-width: 0;
     overflow-x: auto;
+    /* What scrolls into view stops beside the held criterion names, never under them. */
+    scroll-padding-inline-start: var(--pugh-criterion-width);
 }
 
 .chapter-body .pugh-matrix,
-.chapter-body .pugh-sensitivity,
-.pugh-matrix,
-.pugh-sensitivity {
+.pugh-matrix {
     border-collapse: collapse;
     font-size: 0.9em;
     table-layout: auto;
@@ -481,34 +549,42 @@
 }
 
 .chapter-body .pugh-matrix :is(th, td),
-.chapter-body .pugh-sensitivity :is(th, td),
 .pugh-matrix th,
-.pugh-matrix td,
-.pugh-sensitivity th,
-.pugh-sensitivity td {
-    overflow-wrap: normal;
-    vertical-align: middle;
+.pugh-matrix td {
     border-block-end: var(--border-width) solid var(--color-border);
+    overflow-wrap: normal;
     padding: 0.25rem 0.5rem;
+    position: relative;
     text-align: center;
+    vertical-align: middle;
     white-space: nowrap;
 }
 
 .chapter-body .pugh-matrix .pugh-criterion,
-.chapter-body .pugh-sensitivity th[scope="row"],
-.pugh-matrix .pugh-criterion,
-.pugh-sensitivity th[scope="row"] {
-    text-align: start;
-}
-
 .pugh-matrix .pugh-criterion {
     background: var(--color-canvas);
+    box-sizing: border-box;
     inset-inline-start: 0;
-    max-width: 10rem;
+    max-width: var(--pugh-criterion-width);
+    min-width: var(--pugh-criterion-width);
     overflow: hidden;
     position: sticky;
+    text-align: start;
     text-overflow: ellipsis;
     z-index: 1;
+}
+
+.chapter-body .pugh-matrix .pugh-texts td,
+.pugh-matrix .pugh-texts td {
+    max-width: 14rem;
+    text-align: start;
+    vertical-align: top;
+    white-space: normal;
+}
+
+.pugh-column-name {
+    display: block;
+    font-weight: 400;
 }
 
 .pugh-matrix .pugh-winner {
@@ -536,16 +612,58 @@
     inline-size: 3.75rem;
 }
 
-.pugh-fold > summary {
+.pugh-mark-button {
+    background: transparent;
+    border: var(--border-width) dashed var(--color-border);
+    border-radius: var(--radius-small);
+    color: inherit;
     cursor: pointer;
+    font: inherit;
+    min-inline-size: 2.2em;
 }
 
-.pugh-meanings {
-    margin: 0.4rem 0 0;
+.pugh-changed,
+.pugh-changed .pugh-mark-button {
+    border-color: var(--color-accent);
+    border-style: solid;
+    font-weight: 600;
 }
 
-.pugh-meanings dd {
-    margin-inline-start: 1rem;
+.pugh-chooser {
+    background: var(--color-surface);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-small);
+    box-shadow: 0 0.25rem 0.75rem var(--color-shadow);
+    display: flex;
+    gap: 0.2rem;
+    inset-block-start: 100%;
+    inset-inline-end: 0;
+    padding: 0.25rem;
+    position: absolute;
+    z-index: 2;
+}
+
+.pugh-reset {
+    justify-self: start;
+}
+
+.pugh-fail {
+    color: var(--color-warning);
+}
+
+.pugh-answer {
+    color: var(--color-text-muted);
+}
+
+.pugh-tripwire {
+    box-sizing: border-box;
+    font: inherit;
+    inline-size: 100%;
+    margin-block-start: 0.3rem;
+}
+
+.pugh-worlds li + li {
+    margin-block-start: 0.6rem;
 }
 
 @media print {

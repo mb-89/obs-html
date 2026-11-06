@@ -751,43 +751,45 @@
                   "candidates": [
                     {
                       "key": "D",
-                      "label": "The datum we run",
-                      "short": "Now",
-                      "what": "What runs today.",
+                      "label": "What runs today",
+                      "what": "The datum: nothing changes.",
                       "values": {
                         "err": 1,
                         "speed": 10,
                         "cost": 9
-                      }
+                      },
+                      "wins": "Nothing to migrate."
                     },
                     {
                       "key": "A",
-                      "label": "Option A, precise",
-                      "short": "A",
+                      "label": "Precise",
                       "what": "Precise but dear.",
                       "values": {
                         "err": 0.4,
                         "speed": 10.5,
                         "cost": 19
                       },
-                      "tieBreak": 2
+                      "tieBreak": 2,
+                      "losses": [
+                        "A new licence",
+                        "Training"
+                      ]
                     },
                     {
                       "key": "B",
-                      "label": "Option B, quick",
-                      "short": "B",
+                      "label": "Quick",
                       "what": "Quick and cheap.",
                       "values": {
                         "err": 0.85,
                         "speed": 30,
                         "cost": 4
                       },
-                      "tieBreak": 1
+                      "tieBreak": 1,
+                      "wins": "Runs on a phone."
                     },
                     {
                       "key": "C",
-                      "label": "Option C, middling",
-                      "short": "C",
+                      "label": "Middling",
                       "values": {
                         "err": 0.95,
                         "speed": 22,
@@ -804,7 +806,19 @@
                   "sensitivity": {
                     "seed": 3,
                     "draws": 2000
-                  }
+                  },
+                  "checklist": [
+                    {
+                      "item": "Does it keep the data in the EU?",
+                      "answer": "All of them do.",
+                      "pass": true
+                    },
+                    {
+                      "item": "Is there a second supplier?",
+                      "answer": "Not for this kind of system.",
+                      "pass": false
+                    }
+                  ]
                 }
               },
               "children": []

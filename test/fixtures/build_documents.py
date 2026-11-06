@@ -556,25 +556,33 @@ DECISION = {
         {"key": "cost", "label": "Cost of ownership", "weight": 1, "better": "lower", "tolerance": 0.25, "floor": 1},
     ],
     "candidates": [
-        {"key": "D", "label": "The datum we run", "short": "Now", "what": "What runs today.",
-         "values": {"err": 1, "speed": 10, "cost": 9}},
-        {"key": "A", "label": "Option A, precise", "short": "A", "what": "Precise but dear.",
-         "values": {"err": 0.4, "speed": 10.5, "cost": 19}, "tieBreak": 2},
-        {"key": "B", "label": "Option B, quick", "short": "B", "what": "Quick and cheap.",
-         "values": {"err": 0.85, "speed": 30, "cost": 4}, "tieBreak": 1},
-        {"key": "C", "label": "Option C, middling", "short": "C", "values": {"err": 0.95, "speed": 22, "cost": 9},
-         "tieBreak": 0},
+        {"key": "D", "label": "What runs today", "what": "The datum: nothing changes.",
+         "values": {"err": 1, "speed": 10, "cost": 9}, "wins": "Nothing to migrate."},
+        {"key": "A", "label": "Precise", "what": "Precise but dear.",
+         "values": {"err": 0.4, "speed": 10.5, "cost": 19}, "tieBreak": 2, "losses": ["A new licence", "Training"]},
+        {"key": "B", "label": "Quick", "what": "Quick and cheap.",
+         "values": {"err": 0.85, "speed": 30, "cost": 4}, "tieBreak": 1, "wins": "Runs on a phone."},
+        {"key": "C", "label": "Middling", "values": {"err": 0.95, "speed": 22, "cost": 9}, "tieBreak": 0},
     ],
     "datum": {"prefer": ["D"]},
     "sensitivity": {"seed": 3, "draws": 2000},
+    "checklist": [
+        {"item": "Does it keep the data in the EU?", "answer": "All of them do.", "pass": True},
+        {"item": "Is there a second supplier?", "answer": "Not for this kind of system.", "pass": False},
+    ],
 }
-"""ctrl's test matrix with a fourth option (test/fixtures/pugh-vectors.json, small with C), with labels,
-short labels and sentences, and a chosen option that is a runner-up."""
-WIDE = {**DECISION, "title": "Many options", "chosen": "O9", "candidates": [
-    {"key": f"O{index}", "label": f"A long option name number {index}", "short": f"O{index}",
+"""ctrl's test matrix with a fourth option (test/fixtures/pugh-vectors.json, small with C), lettered A
+(the datum D), B (ctrl's A), C (ctrl's B) and D (ctrl's C), with names, sentences, wins and losses, a
+chosen option that is a runner-up, and a checklist whose failed item names no option, so the totals
+stay ctrl's."""
+WIDE = {**DECISION, "title": "Many options", "chosen": "O9", "checklist": [
+    {"item": "Can we leave it within a month?", "answer": "Not the last two.", "pass": False, "options": ["I", "J"]}],
+    "checklistWeight": 2, "candidates": [
+    {"key": f"O{index}", "label": f"A long option name number {index}",
      "values": {"err": 1 - index / 20, "speed": 10 + 2 * index, "cost": 9 + 3 * index}} for index in range(10)],
     "datum": {"prefer": ["O0"]}}
-"""Ten options, wider than a phone: the matrix scrolls in its own box (test_pugh_figures_browser.py)."""
+"""Ten options, wider than a phone: the matrix scrolls in its own box; a failed checklist item marks the
+last two on a Checklist row of weight 2 (test_pugh_figures_browser.py)."""
 
 
 def pugh(root: Path) -> None:

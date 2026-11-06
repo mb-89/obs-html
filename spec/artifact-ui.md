@@ -475,8 +475,9 @@ whose canary reports a host that does not run it. An artifact never loads it fro
 
 ### Decision figures
 
-Decided by the user, 6 Nov 2026 (work issue `feature/pugh-decision-figure-20261106`): one
-decision is a one-pager, the reader changes the weights in place, and the page decides again.
+Decided by the user, 6 Nov 2026 (work issue `feature/pugh-decision-figure-20261106` and its two
+change comments): one decision is a one-pager; the options come first; the reader changes
+weights and marks in place and plays what-if; the details sit behind tabs.
 
 A decision figure (obs capabilities/pugh-decisions) is decided in the reader's page by
 `src/obs_html/pugh-figure.js` with ctrl's Pugh engine, `src/obs_html/vendor/pugh.js`, copied
@@ -484,35 +485,59 @@ unchanged from ctrl (its header names the commit). The engine is embedded, with 
 only in an artifact that holds a decision figure: it is the reader feature `pugh`
 (`features.py`), whose canary reports a host that does not run it.
 
-The one-page view, in the figure's frame, is:
+Every option carries its letter, A, B, C and on in the order the fence lists them, wherever the
+figure names it, and one name, its label. The figure has three tabs in the adapter's tab control
+(the look of a table's detail tabs), Matrix first and shown at the start:
 
-- the bottom line: the winner, its total against the datum, and whether the choice holds or
-  depends on the weights, with the winner's share of the weight draws;
-- the matrix: the options as columns, the datum first, the winner marked, an option that does
-  not fit greyed with its reasons in its tooltip; the criteria as rows, each with its weight; and
-  the weighted total.
+- **Matrix:** the bottom line (the winner, its total against the datum, and whether the choice
+  holds or depends on the weights, with the winner's share of the weight draws); under it the
+  Raised list; then the options, one at a time; then the table.
+- **Checklist:** the fence's checklist items, each with its answer, passed or failed, and the
+  letters of the options it fails. Without items the tab is disabled.
+- **What if:** the worlds in which another option wins, which the reader rules.
 
-Folded below it, closed at first: what each option means (its `short` label and its `what`
-sentence), and the sensitivity (each runner-up's single-weight tie point, its all-weights change
-and its share of the draws, and the winner's share).
+The options view shows one option, "Option A of 5", with its letter, name and `what` sentence.
+Previous and next keys, the arrow keys while it has focus, and a horizontal swipe move between
+the options; none of them walks the chapters.
 
-The weights are fields in the matrix. A changed weight decides everything again at once; Reset
-weights, in the figure's options menu, takes the matrix's own back. The weights are a choice in a figure as
-[[artifact-ui#What counts as a change]] classifies it, kept per figure anchor while the artifact
-is open. Print and PDF show the reader's view, the weights as text; where they differ from the
-matrix's, the caption ends with the note *View changed by the reader.*
+The table has the options as columns, the datum first and the winner marked, an option that does
+not fit greyed with its reasons in its tooltip; the criteria as rows, each with its weight; the
+weighted total; then two text rows, Wins and Losses, the options' own `wins` and `losses`,
+which add nothing to the totals and are said nowhere else.
 
-The justification check: where the matrix's `chosen` option is not the winner, the bottom line
-says so. It gives the smallest single-weight change and the smallest change of all weights that
-make the chosen option tie the winner, as the engine computes them, and marks each one outside
-the reasonable band (each weight within ±1 of its own, the engine's step) where it is.
+The Checklist row: a failed item that names options gives each of them a mark of −1 per failed
+item, at most −2, on a row "Checklist" with the fence's `checklistWeight` (3 by default). The row
+is a criterion of the matrix the figure hands the engine (judged against the datum like any
+other), and shows only when such an item fails.
 
-The view keeps to the prose column inside the figure's frame, clear of the chapter controls. A
-page layout draws a decision figure when it places it, so its page holds the whole view.
+The reader changes a weight in its field and a mark by tapping it and choosing −−, −, S, + or
+++ in place, with no browser dialog. A changed weight or mark is marked as changed, everything is
+decided again at once, and Reset, in the figure and in its options menu, restores the fence's
+values. A changed mark is the engine's own cell override.
 
-At a phone's width, 390 px, the one-page view needs no sideways scrolling of the page: the matrix
-scrolls in its own box, the criterion names held at its left, and the options are labelled by
-their `short` label where they have one.
+What if: its top line is "B wins unless …" with the closest world in which another option wins,
+or "No change of weights makes another option win". Then, for each other option that may win, the
+smallest change of one weight that makes it win ("A wins if Speed weighs below 0.5 instead of
+2"), and the smallest change of all weights together, which weights from what to what. There is
+no band: the reader rules each world "could happen" or "nonsense", and a world that could happen
+asks for a tripwire, a one-line sign to watch for.
+
+The Raised list, under the bottom line, shows only when it holds something: every failed
+checklist item, every world ruled "could happen" with its tripwire, and, where the fence's
+`chosen` option is not the winner, the world in which it wins, in the same form.
+
+The changed weights and marks, the rulings and the tripwires are reader state, kept per figure
+anchor while the artifact is open, and readable by the page as `obsPugh.readerState()`, by figure
+anchor and with options by letter, for whatever sends a reader's verdict.
+
+Print and PDF show the Matrix tab as the reader left it, the options as a list and the weights
+and marks as text; where weights or marks changed, the caption ends with the note *View changed
+by the reader.*
+
+Inside its frame the view keeps to the prose around the figure, clear of the chapter controls. A
+page layout draws a decision figure when it places it, so its page holds the whole view. At a
+phone's width, 390 px, the page needs no sideways scrolling: the table scrolls in its own box,
+the criterion names held at its left.
 
 ## Reading shell
 
