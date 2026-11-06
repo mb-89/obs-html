@@ -173,14 +173,16 @@ def pytest_collection_modifyitems(config, items):
     """Keep a module's tests on one xdist worker (`--dist loadgroup`), so its module fixtures are
     built once per run. A test with its own ``xdist_group`` mark is a long one that runs on a
     worker of its own; those run first, so no worker is left with one at the end. Each test gets
-    its tier's timeout (test/bounds.py in the core). It runs before xdist's own hook, which reads
-    the groups as it collects."""
+    its tier's timeout (test/bounds.py in the core). Where the suite recorded the groups' weights,
+    the heaviest group runs first (test/suite.py in the core, heaviest_first). It runs before
+    xdist's own hook, which reads the groups as it collects."""
     bounds.mark(items)
     own = [item for item in items if item.get_closest_marker("xdist_group")]
     rest = [item for item in items if not item.get_closest_marker("xdist_group")]
     for item in rest:
         item.add_marker(pytest.mark.xdist_group(item.nodeid.split("::")[0]))
     items[:] = own + rest
+    suite.heaviest_first(ROOT, items)
 
 
 @pytest.fixture(scope="session")
