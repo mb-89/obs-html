@@ -1309,7 +1309,7 @@
         const coreKeys = !table.rows ? undefined : edited ? [...new Set(table.rows.flat())] : table.rows[viewIndex];
         const rowsByKey = coreKeys && new Map(allRows.map(row => [row.key, row]));
         let rows = coreKeys ? coreKeys.map(key => {
-            if (!rowsByKey.has(key)) throw new Error(`Register ${table.key}: the core's row ${key} is not in this artifact. Regenerate the Document with the obs core and render it again.`);
+            if (!rowsByKey.has(key)) throw new Error(`Register ${table.key}: row ${key} is not in the HTML's embedded data; the HTML was built from inputs that disagree. Rebuild it with obs-document and obs-html.`);
             return rowsByKey.get(key);
         }).filter(row => row.values.recordType === (recordType || "note")) : allRows.filter(row => row.values.recordType === (recordType || "note"));
         if (coreKeys && recordType === "documentMetadata") {
@@ -2763,7 +2763,7 @@
                     );
                 });
             } else {
-                const message = "No table in this document includes this tag.";
+                const message = "No table here includes this tag.";
                 if (globalThis.obsCapabilities?.limit("dialogs")) globalThis.obsCapabilities.note(link, message);
                 else globalThis.alert(message);
             }

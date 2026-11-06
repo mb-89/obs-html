@@ -40,7 +40,7 @@ def render() -> str:
         <button type="button" data-review-summary-state="rejected"><span>Rejected</span><strong data-review-summary-count>0</strong></button>
         <button type="button" data-review-summary-state="waiting"><span>Waiting</span><strong data-review-summary-count>0</strong></button>
     </div>
-    <p class="comment-review-guidance" data-review-modifier-guidance>Normal click affects one item. Shift-click Accept or Reject applies to still-waiting items in this section, or the chapter introduction or whole chapter when applicable. Ctrl+Shift-click applies to still-waiting items throughout the document.</p>
+    <p class="comment-review-guidance" data-review-modifier-guidance>Normal click affects one item. Shift-click Accept or Reject applies to still-waiting items in this section, or the chapter introduction or whole chapter when applicable. Ctrl+Shift-click applies to all still-waiting items.</p>
   <p class="comment-filter-state" data-comment-filter-state></p>
   <div class="comment-list" data-comment-list data-transient-content></div>
 </section>
@@ -51,7 +51,7 @@ BAR = BarDefinition(
     key="comments",
     label="Comments",
     icon="comments",
-    help="Review selected document text",
+    help="Review selected text",
     order=40,
     render=render,
 )

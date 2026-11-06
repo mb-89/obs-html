@@ -12,7 +12,7 @@ def render() -> str:
         '</select>'
         '</span></label>'
         '<div class="settings-page-export">'
-        '<label class="settings-pages" data-hover-help="View the document on the same sheets used for PDF export.">'
+        '<label class="settings-pages" data-hover-help="View the content on the same sheets used for PDF export.">'
         '<input type="checkbox" data-pages-toggle> Show as pages</label>'
         '<button type="button" data-export-pdf aria-describedby="pdf-destination-guidance" '
         'data-hover-help="Uses light colors and the global filter. '
