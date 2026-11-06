@@ -146,15 +146,16 @@ pdf-lib and js-yaml, and the maths library) is package data of `obs_html`, and t
 it only through `importlib.resources`, so an installed wheel renders what a checkout renders.
 Most are tracked files in `src/obs_html`. An asset that comes from a lockfile is built into the
 package by the adapter's build hook, `hatch_build.py`, on every build of the package, editable ones
-included: it installs the maths library from `maths/package-lock.json` with `npm ci` in a
-temporary folder and writes math.js and its licences to `src/obs_html/vendor/maths/`. Those files are
+included: it unpacks math.js and its licences from the mathjs tarball `maths/package-lock.json`
+pins (that package alone, checked against the lockfile's integrity) in a temporary folder and
+writes them to `src/obs_html/vendor/maths/`. Those files are
 generated beside the package that ships them, as the core's capability reference is
 (obs's cli.md, One-call build), and ignored. The hook's `PACKAGED` table names each generated
 folder of the package and what fills it, so another one is one entry. Besides the browser assets
 it copies this specification, `spec/`, into `src/obs_html/spec/`, which `obs-html
 --build-own-spec` builds ([[cli#Building its own specification]]). uv builds the package again
-when the hook, the lockfile or a file of this specification changes (`[tool.uv] cache-keys`). A build without npm, or whose
-`npm ci` fails, stops and names the lockfile and the remedy. `test/test_installed_wheel.py`
+when the hook, the lockfile or a file of this specification changes (`[tool.uv] cache-keys`). A build without npm, whose
+`npm pack` fails or whose tarball is not the pinned one, stops and names the lockfile and the remedy. `test/test_installed_wheel.py`
 renders and builds this specification with the installed wheel and fails when anything is read
 from the repository tree.
 

@@ -176,24 +176,45 @@ def hook(monkeypatch):
     return module
 
 
+MATHS_LOCKFILE = ROOT / "maths" / "package-lock.json"
+
+
 def test_a_build_without_npm_names_the_lockfile_and_the_remedy(hook, monkeypatch, tmp_path) -> None:
     monkeypatch.setattr(hook.shutil, "which", lambda name: None)
 
     with pytest.raises(hook.BuildError) as failure:
-        hook.npm_ci(ROOT / "maths", tmp_path)
+        hook.maths(ROOT, tmp_path, tmp_path)
 
-    assert (failure.value.source, failure.value.field) == (ROOT / "maths" / "package-lock.json", "npm ci")
+    assert (failure.value.source, failure.value.field) == (MATHS_LOCKFILE, "npm pack")
     assert "Node.js" in failure.value.remedy
 
 
-def test_a_failed_npm_ci_names_the_lockfile_and_what_npm_said(hook, monkeypatch, tmp_path) -> None:
+def test_a_failed_npm_pack_names_the_lockfile_and_what_npm_said(hook, monkeypatch, tmp_path) -> None:
+    monkeypatch.setattr(hook.shutil, "which", lambda name: "/fake/bin/npm")
+    commands = []
+
+    def npm(command, cwd, **_):
+        commands.append(command)
+        return subprocess.CompletedProcess(command, 1, stdout="", stderr="npm said why\n")
+
+    with pytest.raises(hook.BuildError) as failure:
+        hook.pinned_files(ROOT / "maths", [f"mathjs/{path}" for path in hook.MATHS_FILES.values()], tmp_path, run=npm)
+
+    assert (failure.value.source, failure.value.field) == (MATHS_LOCKFILE, "npm pack")
+    assert "npm said why" in str(failure.value)
+    # Only the pinned mathjs tarball, not its dependencies: npm ci installed them all.
+    version = json.loads(MATHS_LOCKFILE.read_text(encoding="utf-8"))["packages"]["node_modules/mathjs"]["version"]
+    assert [argument for argument in commands[0] if "@" in argument] == [f"mathjs@{version}"]
+
+
+def test_a_tarball_that_is_not_the_pinned_one_names_its_integrity(hook, monkeypatch, tmp_path) -> None:
     monkeypatch.setattr(hook.shutil, "which", lambda name: "/fake/bin/npm")
 
     def npm(command, cwd, **_):
-        return subprocess.CompletedProcess(command, 1, stdout="npm said why\n")
+        (Path(command[command.index("--pack-destination") + 1]) / "mathjs.tgz").write_bytes(b"not it")
+        return subprocess.CompletedProcess(command, 0, stdout=json.dumps([{"filename": "mathjs.tgz"}]), stderr="")
 
     with pytest.raises(hook.BuildError) as failure:
-        hook.npm_ci(ROOT / "maths", tmp_path, run=npm)
+        hook.pinned_files(ROOT / "maths", ["mathjs/LICENSE"], tmp_path, run=npm)
 
-    assert (failure.value.source, failure.value.field) == (ROOT / "maths" / "package-lock.json", "npm ci")
-    assert "npm said why" in str(failure.value)
+    assert (failure.value.source, failure.value.field) == (MATHS_LOCKFILE, "packages.node_modules/mathjs.integrity")
