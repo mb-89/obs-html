@@ -32,6 +32,7 @@ from obs_html.figure_links import FigureLink
 from obs_html.figures import FIGURE_KINDS, render_figure
 from obs_html.artifact_data import encode_artifact_data, prepare_artifact_scripts, serialize_artifact_data
 from obs_html.semantic_assets import SemanticAssets, markup
+from obs_html.declared_style import DeclaredStyles, GitFetcher, user_cache
 from obs_html.styles import load_style
 from obs_html import source_archive
 from obs_html.timings import stage
@@ -786,7 +787,11 @@ CAPABILITIES: dict[str, Renderer] = {
 def render(document: dict[str, object], config: Config,
            style_folder: Path | None = None,
            trusted_runtime: tuple[str, str] | None = None,
-           embed_attachments: bool = False) -> str:
+           embed_attachments: bool = False,
+           styles: DeclaredStyles | None = None) -> str:
+    """The artifact of ``document``, styled by ``style_folder``, else by the style the Document
+    declares (fetched through ``styles``, by default git into the user's cache), else by the packaged
+    generic module (spec/configuration.md, Declared style)."""
     if document.get("schemaVersion") != 1:
         raise InputError("Document", "schemaVersion", f"is {document.get('schemaVersion')!r}, not 1, the "
                          "version obs-html renders", "Build the Document with an obs core of schema version 1")
@@ -798,6 +803,9 @@ def render(document: dict[str, object], config: Config,
         raise InputError(_source(document), "capabilities", f"lists {', '.join(unsupported)}, which obs-html "
                          "does not render", "Build the Document for an adapter that declares them, or drop "
                          "their syntax from the notes")
+    if style_folder is None and "style" in document:
+        styles = styles or DeclaredStyles(GitFetcher(), user_cache())
+        style_folder = styles.folder(document["style"], _source(document))
     style = load_style(style_folder)
     assets = SemanticAssets(style.asset_index)
     context = Context(

@@ -26,6 +26,7 @@ from conftest import PIXEL, ROOT, built_once
 from documents import chapter, document, heading, node, paragraph
 from fixtures import build_documents
 from obs_html import cli
+from style_fetchers import fake_styles
 from obs_html.artifact_data import decode_artifact_data
 from obs_html.config import load_config
 from obs_html.errors import InputError
@@ -111,14 +112,15 @@ DECLARED = {"url": "https://example.invalid/house-style.git", "ref": "89abcdef01
             "path": "styles/house"}
 
 
-def test_build_config_records_the_declared_style_the_rebuild_resolves() -> None:
+def test_build_config_records_the_declared_style_the_rebuild_resolves(tmp_path: Path) -> None:
     """The archived build configuration names the style the manifest declares (obs's architecture,
     Declared style), so a rebuild from the archive resolves the same pinned style."""
     source = archived()
     source["style"] = DECLARED
     source["sourceArchive"]["build"]["style"] = DECLARED
+    styles = fake_styles(tmp_path, {(DECLARED["url"], DECLARED["ref"]): {"styles/house/style.css": "p {}\n"}})
 
-    config = json.loads(members(render(source, CONFIG))["build-config.json"])
+    config = json.loads(members(render(source, CONFIG, styles=styles))["build-config.json"])
 
     assert config["style"] == DECLARED
     assert "style" not in json.loads(members(render(archived(), CONFIG))["build-config.json"])

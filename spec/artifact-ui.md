@@ -100,8 +100,8 @@ failures have their form in [[input-model#Chapter content]].
 
 - A style module is a folder containing `style.css`, with optional fonts, assets, and configuration
   defaults. The converter embeds its CSS into each output. The packaged `generic` module is the
-  default; a project may select a vault-relative module with `input.styleFolder`, and `--style`
-  selects an explicit module folder for one invocation. No artifact component names a style.
+  default; a manifest may declare a module pinned to a commit, and `--style` selects an
+  explicit module folder for one invocation ([[configuration#Declared style]]). No artifact component names a style.
   Page geometry (paper size, orientation, sheet dimensions, margins, and `@page`) belongs only to
   the structural stylesheet; a style module must not declare or assume it.
 - All colors are semantic custom properties projected from [[semantic-assets]].

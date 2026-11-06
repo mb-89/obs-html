@@ -34,12 +34,40 @@ configuration design principles.
   The [[semantic-assets]] owner defines reference, inheritance, state and color
   semantics; the shared configuration/schema owns its default and path constraints.
   Do not maintain separate project icon and color registries.
-- `input.styleFolder` optionally selects a vault-relative style module for a project.
-  Its value is a folder containing `style.css`; null selects the packaged generic module.
-  A command-line style selection overrides this project setting for one build; the source
-  archive never records it ([[input-model#Optional reproduction archive]]).
+- The style is not configuration: the manifest declares it ([[#Declared style]]). The interim's
+  `input.styleFolder`, a vault-relative style module folder in its project configuration, has no
+  obs-html counterpart; a vault that set it declares the module as `obs.style` instead.
 - The `timings` section holds the relative and absolute thresholds a stage must both
   exceed before a build warns about it; baselines and stage names are owned by
   [[architecture#Build stage timings]].
+
+## Declared style
+
+obs-html styles a build with one style module, chosen in this order:
+
+1. `--style FOLDER`, for this one build. The source archive never records it
+	([[input-model#Optional reproduction archive]]), so a rebuild from the archive uses the
+	declared style.
+2. The style the Document declares: its `style`, which the core takes from the manifest's
+	`obs.style` (`url`, `ref`, a full commit SHA, and optionally `path`; obs's architecture,
+	Declared style).
+3. The packaged `generic` module.
+
+Whichever is chosen takes the same place: its `style.css` follows the packaged base stylesheet,
+and the CSS snippets the manifest lists in `obsHtml.cssSnippets` follow it
+([[input-model#Artifact presentation profile]]).
+
+The declared module is fetched once per commit: obs-html fetches `url` at `ref` with git into
+a cache folder named by the commit, `obs-html/styles/<ref>` in the user's cache folder
+(`$XDG_CACHE_HOME` or `~/.cache` on Linux, `~/Library/Caches` on macOS, `%LOCALAPPDATA%` on
+Windows), never inside a checkout. A build whose commit is cached fetches nothing, so the
+network is reached once per commit on a machine. A fetch is complete or absent: a failed one
+leaves nothing in the cache. `path` names the module's folder inside the fetched tree; an
+absolute `path` or one with `..` is refused before any fetch. Every failure is an input error
+of the Document's manifest: a fetch that fails names `style.url` and `style.ref`, with the
+remedy to check the declaration or to pass `--style FOLDER`; a `path` that leaves the tree or
+holds no `style.css` names `style.path`. No other style replaces a declared one that fails.
+`src/obs_html/declared_style.py` holds the fetcher, the one door to a style repository; tests
+replace it with a fake and never reach the network.
 
 See [[cli]] and [[architecture]].
