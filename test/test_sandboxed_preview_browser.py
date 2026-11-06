@@ -165,7 +165,7 @@ def test_a_message_without_modal_dialogs_appears_beside_its_control(tmp_path: Pa
         body.append(link);
     }""")
     frame.get_by_text("untabled tag").dispatch_event("click")
-    expect(frame.locator("[data-capability-message]")).to_have_text("No table in this document includes this tag.")
+    expect(frame.locator("[data-capability-message]")).to_have_text("No table here includes this tag.")
     assert dialogs == []
     assert errors == []
 

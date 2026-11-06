@@ -48,23 +48,15 @@
     };
 
     const isDirty = () => savedSnapshot !== null && currentSnapshot() !== savedSnapshot;
-    // A reader filter is not a content change (obs artifact-ui.md, input-model.md): the saved
-    // HTML still keeps it, but applying or clearing it never marks the HTML changed.
-    const readerSnapshot = () => {
-        const {filterExpression: _filter, ...reader} = globalThis.obsArtifact.readerState();
-        return JSON.stringify(reader);
-    };
     const currentArtifactSnapshot = () => {
         const revision = globalThis.obsArtifact.revision;
         if (archiveSnapshotRevision !== revision) {
             archiveSnapshot = document.getElementById("obs-source-archive")?.textContent || "";
             archiveSnapshotRevision = revision;
         }
-        return {
-            semantic: currentSnapshot(),
-            reader: readerSnapshot(),
-            archive: archiveSnapshot,
-        };
+        // Reader state is never a change (artifact-ui.md "What counts as a change"): the saved
+        // HTML still keeps it, but no reader action marks the HTML changed.
+        return {semantic: currentSnapshot(), archive: archiveSnapshot};
     };
     const isArtifactDirty = () => {
         if (savedArtifactSnapshot === null) return false;
@@ -680,7 +672,7 @@
             metadata["sap number"],
         ].filter(Boolean).join(" · ");
         const lines = [
-            `# Comments — ${identity || "Untitled document"}`,
+            `# Comments — ${identity || "Untitled"}`,
             "",
             `Root comments: ${data.annotations.length}`,
         ];
@@ -1116,7 +1108,7 @@
             gutter.dataset.reviewGutter = "";
             gutter.setAttribute("aria-label", `Review item: ${state}`);
 
-            const modifiers = "; Shift-click: waiting items in section/chapter; Ctrl+Shift-click: waiting items in document";
+            const modifiers = "; Shift-click: waiting items in section/chapter; Ctrl+Shift-click: all waiting items";
             const decide = (state, event) => {
                 if (event.shiftKey && event.detail !== 0) {
                     setBatchDecision(chapter, item.id, state, targetForElement(item.element), event.ctrlKey);
@@ -1253,7 +1245,7 @@
             const picker = globalThis.showSaveFilePicker
                 ? globalThis.showSaveFilePicker({
                     suggestedName: reviewedFilename(),
-                    types: [{description: "HTML document", accept: {"text/html": [".html"]}}],
+                    types: [{description: "HTML file", accept: {"text/html": [".html"]}}],
                 }).then(handle => ({handle}), error => ({error}))
                 : null;
             await globalThis.obsHtmlReady;
@@ -1423,8 +1415,6 @@
         activeReviewFilter = event.detail?.query || globalThis.obsQuery.compile("");
         updateReviewMode();
     });
-    document.addEventListener("obs-artifact-filter", updateSaveGuidance);
-    document.addEventListener("obs-reader-state-change", updateSaveGuidance);
 
     document.addEventListener("obs-canonical-property-change", () => {
         const slugs = new Set(globalThis.obsArtifact.records.map((record) => record.slug));

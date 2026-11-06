@@ -199,12 +199,35 @@ if (process.argv[7] === "--artifact-change-only") {
     click(document.querySelector('[data-notice="applied-filter"] [data-filter-clear]'));
     assert.equal(document.querySelector('[data-notice="applied-filter"]'), null);
     assert.equal(artifactDirty(), false, "Clearing a filter is not a change of the HTML.");
+    // Reader state is never a change (artifact-ui.md "What counts as a change").
+    const timestamp = () => JSON.parse(context.obsArtifact.serializeModel()).document.generation?.timestamp;
+    const opened = timestamp();
     context.obsArtifact.setViewSelection("proof", ["a"], ["a", "b"]);
-    assert.equal(artifactDirty(), true);
+    assert.equal(artifactDirty(), false, "A view selection is not a change of the HTML.");
+    navigate("one");
+    await context.obsArtifact.whenChapterReady();
+    runTimers();
+    const headers = () => [...tables()[0].querySelectorAll("thead th[data-column-key]")];
+    const columns = () => headers().map(cell => cell.dataset.columnKey);
+    click(headers()[0]);
+    runTimers();
+    assert.equal(headers()[0].getAttribute("aria-sort"), "ascending");
+    assert.equal(artifactDirty(), false, "A sort is not a change of the HTML.");
+    const opening = columns();
+    const move = new window.Event("keydown", {bubbles: true, cancelable: true});
+    Object.assign(move, {key: "ArrowRight", altKey: true});
+    headers()[0].dispatchEvent(move);
+    runTimers();
+    assert.deepEqual(columns(), [opening[1], opening[0], ...opening.slice(2)]);
+    assert.equal(artifactDirty(), false, "A column change is not a change of the HTML.");
+    context.obsFilter.setExpression("status:draft");
+    assert.equal(artifactDirty(), false, "A filter with other reader state is not a change of the HTML.");
+    context.obsFilter.setExpression("");
     assert.equal(semanticDirty(), false);
     context.obsArtifact.commitProperty("one", "explanation", "Changed");
     assert.equal(semanticDirty(), true);
-    assert.equal(artifactDirty(), true);
+    assert.equal(artifactDirty(), true, "A property edit is a change of the HTML.");
+    assert.notEqual(timestamp(), opened, "A content edit moves the timestamp.");
     let output, closed = false;
     context.showSaveFilePicker = async () => ({createWritable: async () => ({
         write: async contents => {output = contents;},
@@ -217,9 +240,32 @@ if (process.argv[7] === "--artifact-change-only") {
     assert.ok(output.includes("Changed"));
     const saved = parseHTML(output).document;
     assert.equal(saved.querySelector("[data-header-notices]"), null, "Notice DOM is never saved.");
+    const savedIsland = saved.querySelector("[data-artifact-data]");
+    assert.equal(savedIsland.dataset.encoding, "gzip");
+    const savedReader = JSON.parse(require("node:zlib").gunzipSync(
+        Buffer.from(savedIsland.textContent.trim(), "base64")).toString("utf8")).readerState;
+    assert.deepEqual(savedReader.views.proof, ["a"], "A saved copy persists the view selection.");
+    assert.deepEqual(Object.values(savedReader.tables)[0].columns, columns(),
+        "A saved copy persists the table columns.");
     context.obsFilter.setExpression("status:draft");
-    assert.equal(artifactDirty(), false, "A filter after a save is not a change of the HTML.");
     context.obsArtifact.setViewSelection("proof", ["b"], ["a", "b"]);
+    assert.equal(artifactDirty(), false, "Reader state after a save is not a change of the HTML.");
+    context.obsFilter.setExpression("");
+    // A review comment is a change, but not a content edit: the timestamp stays.
+    const reviewed = timestamp();
+    const paragraph = body.querySelector("p");
+    const range = new TextRange();
+    range.selectNodeContents(paragraph);
+    context.getSelection = () => ({
+        rangeCount: 1, isCollapsed: false, getRangeAt: () => range, removeAllRanges() {},
+    });
+    document.dispatchEvent(new window.Event("selectionchange"));
+    click(document.querySelector("[data-comment-add]"));
+    context.getSelection = () => null;
+    assert.equal(context.obsComments.data.annotations.length, 1);
+    assert.equal(artifactDirty(), true, "A review comment is a change of the HTML.");
+    assert.equal(semanticDirty(), true);
+    assert.equal(timestamp(), reviewed, "A review comment leaves the timestamp.");
     context.showSaveFilePicker = async () => {throw Object.assign(new Error("cancel"), {name: "AbortError"});};
     await context.obsComments.saveReviewedCopy();
     assert.equal(artifactDirty(), true, "Cancel is not a save.");
@@ -248,18 +294,15 @@ if (process.argv[7] === "--artifact-change-only") {
     const pending = context.obsComments.saveReviewedCopy();
     while (!resume) await new Promise(setImmediate);
     context.obsArtifact.commitProperty("one", "explanation", "Newer edit");
-    context.obsArtifact.setViewSelection("proof", ["a"], ["a", "b"]);
     resume();
     await pending;
-    assert.equal(artifactDirty(), true, "A confirmed capture cannot clean later canonical or reader edits.");
+    assert.equal(artifactDirty(), true, "A confirmed capture cannot clean a later canonical edit.");
     assert.equal(semanticDirty(), true);
     assert.ok(!output.includes("Newer edit"));
     context.obsArtifact.commitProperty("one", "explanation", "Changed");
-    assert.equal(artifactDirty(), true, "Later reader-only edits remain unsaved.");
-    assert.equal(semanticDirty(), false);
-    context.obsArtifact.setViewSelection("proof", ["b"], ["a", "b"]);
     assert.equal(artifactDirty(), false, "Reverting to the confirmed capture is clean.");
-    console.log("PASS artifact/review dirty, revert, invalid draft, save/cancel/failure/download/newer edits.");
+    assert.equal(semanticDirty(), false);
+    console.log("PASS artifact/review dirty, reader state never a change, revert, invalid draft, save/cancel/failure/download/newer edits.");
     return;
 }
 navigate("metadata-only");

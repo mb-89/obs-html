@@ -17,7 +17,7 @@
     };
     const escapeJson = (text) => text.replace(/</g, "\\u003c");
     const encode = async (serialized, compression) => {
-        if (!["gzip", "none"].includes(compression)) throw new Error("Unsupported artifact data compression.");
+        if (!["gzip", "none"].includes(compression)) throw new Error(`Saving: compression ${JSON.stringify(compression)} is neither gzip nor none; the HTML's save settings were edited. Rebuild it with obs-html or open the original file.`);
         const text = escapeJson(JSON.stringify(JSON.parse(serialized)));
         if (compression === "none") return {text, type: "application/json"};
         if (typeof CompressionStream === "undefined") throw new Error("Gzip HTML saving is not supported by this browser.");
@@ -80,21 +80,21 @@
         : Promise.resolve();
     const decode = async () => {
         const island = document.querySelector("[data-artifact-data]");
-        if (!island) throw new Error("Canonical artifact data is missing.");
+        if (!island) throw new Error("The HTML's embedded data is missing; the file was cut off or edited. Rebuild it with obs-html or open the original file.");
         let text = island.textContent;
         if (island.dataset.encoding === "gzip") {
-            if (island.type !== "application/octet-stream") throw new Error("Invalid gzip artifact data type.");
+            if (island.type !== "application/octet-stream") throw new Error("The HTML's embedded data is marked gzip but not stored as binary; the file was edited. Rebuild it with obs-html or open the original file.");
             if (typeof DecompressionStream === "undefined") throw new Error("Gzip HTML opening is not supported by this browser.");
             const binary = atob(text.replace(/\s/g, ""));
             const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
             text = new TextDecoder("utf-8", {fatal: true}).decode(await streamBytes(bytes, DecompressionStream));
         } else if (island.dataset.encoding || island.type !== "application/json") {
-            throw new Error("Unsupported artifact data encoding.");
+            throw new Error("The HTML's embedded data has an encoding this HTML cannot read; the file was edited. Rebuild it with obs-html or open the original file.");
         }
         const data = JSON.parse(text);
         if (!data || typeof data !== "object" || Array.isArray(data) ||
                 !Array.isArray(data.notes) || !Array.isArray(data.toc)) {
-            throw new Error("Invalid canonical artifact model.");
+            throw new Error("The HTML's embedded data has no chapters or contents; the file was cut off or edited. Rebuild it with obs-html or open the original file.");
         }
         island.textContent = escapeJson(text);
         island.type = "application/json";

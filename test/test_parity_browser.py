@@ -36,7 +36,11 @@ from preview import SANDBOXES, http_origin, open_preview
 from spec_artifact import run, spec_artifact, uv
 
 # step -> why this adapter may still differ from the interim reference there.
-KNOWN_DIFFERENCES: dict[str, str] = {}
+KNOWN_DIFFERENCES: dict[str, str] = {
+    "a view selection marks the HTML changed": (
+        "https://github.com/mb-89/obs/issues/148: reader state is never a change "
+        "(artifact-ui.md \"What counts as a change\"); the interim reference still marks it changed"),
+}
 
 FILTER = "file.name == 'nothing'"
 
@@ -209,6 +213,11 @@ def interact(page, frame) -> tuple[list[tuple[str, object]], list[str]]:
     steps.append(("filter cleared", (frame.locator("[data-filter-status]").inner_text(), chapter())))
     if changed():
         violations.append("clearing a filter showed the changed-HTML notice")
+    root.evaluate("() => globalThis.obsArtifact.setViewSelection('parity', ['a'], ['a', 'b'])")
+    settle()
+    steps.append(("a view selection marks the HTML changed", changed()))
+    root.evaluate("() => globalThis.obsArtifact.setViewSelection('parity', [], ['a', 'b'])")
+    settle()
 
     slugs = root.evaluate("""() => [...document.querySelectorAll("[data-toc-tree] a")]
         .map((link) => link.getAttribute("href").slice(1)).filter((slug) => !slug.includes("/"))""")
