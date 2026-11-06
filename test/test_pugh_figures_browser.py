@@ -249,6 +249,39 @@ def test_the_reader_expands_an_option_changes_weights_and_marks_and_rules_a_worl
     reader.clean()
 
 
+def test_a_print_reads_the_readers_view_and_never_writes_it(artifact, reader_browser) -> None:
+    """artifact-ui.md, Printing: Export PDF prints the reader's weights with every option expanded,
+    and afterwards the reader's view shows only the option the reader opened, on the tab they left."""
+    reader = Reader(reader_browser, artifact)
+    page, figure = reader.page, reader.page.locator(f"#{OPTION}")
+    figure.locator('.pugh-option-list [data-pugh-option="B"] summary').click()
+    reader.weigh("speed", 9)
+    figure.locator('[data-pugh-tab="checklist"]').click()
+    before = reader.view(OPTION), page.evaluate("obsPugh.readerState()")
+
+    printed = page.evaluate("""async anchor => {
+        let shown;
+        window.print = () => {
+            dispatchEvent(new Event('beforeprint'));
+            const copy = [...document.querySelectorAll('.print-book [data-figure-kind="pugh"]')]
+                .find(printed => printed.id.endsWith(anchor));
+            shown = {options: [...copy.querySelectorAll('.pugh-option-list details')].filter(item => item.open).length,
+                     speed: copy.querySelector('[data-pugh-criterion="speed"] .pugh-weight').textContent,
+                     note: copy.querySelectorAll('.figure-view-note').length};
+        };
+        await obsPages.exportPDF();
+        dispatchEvent(new Event('afterprint'));
+        await new Promise(requestAnimationFrame);
+        return shown;
+    }""", OPTION)
+    after = reader.view(OPTION), page.evaluate("obsPugh.readerState()")
+
+    assert printed == {"options": 4, "speed": "9", "note": 1}
+    assert [option for option, shown in after[0]["options"] if shown] == ["B"]
+    assert after == before and after[0]["tabs"][1][:2] == ["checklist", "true"]
+    reader.clean()
+
+
 def test_at_phone_width_the_matrix_is_rows_and_a_wide_table_scrolls_with_its_criteria_held(artifact, reader_browser) -> None:
     reader = Reader(reader_browser, artifact, width=390)
 

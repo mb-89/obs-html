@@ -380,6 +380,8 @@ failures have their form in [[input-model#Chapter content]].
   second filter or duplicate artifact records. Table-local filters remain independent.
 - Interactive figure state is view-local. A dynamic diagram's portable and print rendering
   shows the authored unfiltered default; browser filter changes update only its live view.
+- A print reads the reader's state and never writes it: what the print copy expands or draws
+  leaves the reader's view as it was.
 - The shared figure framework applies in both paged and continuous reading views.
   Ordinary figures retain readable bounds in either mode: fit the available reader width
   and viewport height while preserving aspect ratio, without stretching small source images.

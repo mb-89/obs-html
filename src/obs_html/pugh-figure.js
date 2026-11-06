@@ -46,18 +46,26 @@ globalThis.obsPugh = (() => {
     node.append(...children.filter(child => child !== null && child !== undefined && child !== false));
     return node;
   }
+  function fresh(answered) {
+    const view = {weights: {}, marks: {}, rulings: {}, open: {}, tab: "matrix", column: null,
+      ...(answered ? {...structuredClone({weights: {}, marks: {}, rulings: {}, ...answered}), locked: true} : {})};
+    delete view.winner;
+    return view;
+  }
   function state(anchor, answered) {
-    if (!states.has(anchor)) {
-      states.set(anchor, {weights: {}, marks: {}, rulings: {}, open: {}, tab: "matrix", column: null,
-        ...(answered ? {...structuredClone({weights: {}, marks: {}, rulings: {}, ...answered}), locked: true} : {})});
-      delete states.get(anchor).winner;
-    }
+    if (!states.has(anchor)) states.set(anchor, fresh(answered));
     return states.get(anchor);
   }
-  function changed(anchor) {
-    const view = states.get(anchor);
-    return Boolean(view && (Object.keys(view.weights).length || Object.values(view.marks).some(marks => Object.keys(marks).length)));
+  /** A print's view: a copy of the reader's state, which the print never writes (artifact-ui.md,
+      Printing). The reader's anchor stays on the figure, so a print copy whose id the page layout
+      prefixed ("pdf-", pages.js) still reads it. */
+  function printView(figure, answered) {
+    const anchor = figure.dataset.pughAnchor || figure.id;
+    figure.dataset.pughAnchor = anchor;
+    return structuredClone(states.get(anchor) ?? fresh(answered));
   }
+  const changed = view => Boolean(view && (Object.keys(view.weights).length
+    || Object.values(view.marks).some(marks => Object.keys(marks).length)));
   const texts = value => (value === undefined ? [] : [].concat(value));
 
   /** The options with their letters, the failed checklist items and the matrix the engine decides.
@@ -901,14 +909,13 @@ globalThis.obsPugh = (() => {
     const width = figure.clientWidth;
     return width > 0 && width < ROWS_BELOW * parseFloat(getComputedStyle(document.documentElement).fontSize);
   }
-  function draw(figure, spec, host = figure.querySelector(".figure-live"), {print = false} = {}) {
-    const view = state(figure.id, spec.answered);
+  function draw(figure, spec, host = figure.querySelector(".figure-live"), {print = false, view = state(figure.id, spec.answered)} = {}) {
     const {result, figureModel} = decide(spec, view);
     const context = {figure, spec, result, figureModel, view, print};
     const all = tabsOf(figure);
     const matrix = element("div", {className: "pugh-view"}, TABS[0].panel(context));
     view.winner = result.suggestion ? figureModel.byKey[result.suggestion.key].letter : "";
-    if (!print && !view.locked && changed(figure.id)) {
+    if (!print && !view.locked && changed(view)) {
       const reset = element("button", {type: "button", className: "filter-pill pugh-reset", textContent: "Reset"});
       reset.title = "Restore the fence's weights and marks";
       reset.addEventListener("click", () => reset_(figure, spec));
@@ -931,7 +938,7 @@ globalThis.obsPugh = (() => {
       host.replaceChildren(element("div", {className: "pugh-figure-view"}, ...top, tabs(figure, spec, view, panels, all, context), ...panels));
     }
     const menuReset = figure.querySelector(":scope > .figure-options .pugh-reset");
-    if (menuReset) menuReset.disabled = view.locked || !changed(figure.id);
+    if (menuReset) menuReset.disabled = view.locked || !changed(view);
     figure.dataset.pughWinner = view.winner;
     figure.classList.add("figure-pugh-ready");
     if (!print) fit(figure);
@@ -959,23 +966,24 @@ globalThis.obsPugh = (() => {
   function reveal(target) {
     const section = target?.closest?.(".pugh-extra");
     const figure = section?.closest('[data-figure-kind="pugh"]');
-    if (!figure) return;
+    if (!figure || figure.closest(".print-book")) return;
     const spec = JSON.parse(figure.dataset.figureSpec);
     state(figure.id, spec.answered).tab = `extra-${extras(figure).indexOf(section) + 1}`;
-    if (figure.classList.contains("figure-pugh-ready") && !figure.closest(".print-book")) draw(figure, spec);
+    if (figure.classList.contains("figure-pugh-ready")) draw(figure, spec);
   }
   /** The options menu's Reset (figures.js, FIGURE_OPTIONS): the fence's weights and marks back. */
   function option(figure) {
     const reset = element("button", {type: "button", className: "filter-pill pugh-reset", textContent: "Reset",
       title: "Restore the fence's weights and marks"});
-    reset.disabled = Boolean(states.get(figure.id)?.locked) || !changed(figure.id);
+    reset.disabled = Boolean(states.get(figure.id)?.locked) || !changed(states.get(figure.id));
     reset.addEventListener("click", () => reset_(figure, JSON.parse(figure.dataset.figureSpec)));
     return reset;
   }
   /** The print copy of a figure: the Matrix tab as the reader left it, and a caption note where it changed. */
   function print(figure, spec) {
-    draw(figure, spec, figure.querySelector(".figure-live"), {print: true});
-    if (!changed(figure.id) || figure.querySelector(".figure-view-note")) return;
+    const view = printView(figure, spec.answered);
+    draw(figure, spec, figure.querySelector(".figure-live"), {print: true, view});
+    if (!changed(view) || figure.querySelector(".figure-view-note")) return;
     const note = element("span", {className: "figure-view-note", textContent: ` ${VIEW_NOTE}`});
     let caption = figure.querySelector("figcaption");
     if (!caption) { caption = element("figcaption"); figure.append(caption); }
