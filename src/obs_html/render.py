@@ -96,6 +96,8 @@ class Context:
     """The number of each figure with a block id, by chapter and block id, "" for none."""
     conjunctions: tuple[str, ...] = ()
     """The words that may separate merged figure references (cfg.json artifact.figureReferences)."""
+    bordered_tags: tuple[str, ...] = ()
+    """The tag kinds whose paragraphs a shared card encloses (cfg.json artifact.borderedTags)."""
 
 
 def _source(document: dict[str, object]) -> str:
@@ -884,6 +886,7 @@ def _model(document: dict[str, object], config: Config, context: Context) -> dic
     context.conjunctions = tuple(config.artifact["figureReferences"]["conjunctions"])
     _number_figures(document["chapters"], context)
     settings = config.artifact
+    context.bordered_tags = tuple(settings["borderedTags"])
     title = manifest["title"]
     metadata = {key: value for key, value in manifest["metadata"].items() if key not in {"obs", "obsHtml"}}
     abstract = _note_body(manifest.get("abstract", []), "", ["manifest", "abstract"], context)  # It holds the metadata's field nodes.
@@ -1216,10 +1219,18 @@ def _paragraph(node: dict[str, object], context: Context) -> str:
         f'aria-label="{escape(_mark_description(mark), quote=True)}">{_mark_icon(kind, index, context)}</a>'
         for kind, mark, index in zip(kinds, marks, positions)
     )
-    return (f'<p class="semantic-mark {classes}" data-mark-kind="{escape(" ".join(kinds), quote=True)}" '
-            f'data-mark-label="{escape(" ".join(mark["id"] for mark in marks), quote=True)}" id="{anchor}">'
-            f'<span class="semantic-mark-content">{inner.strip()}</span>'
-            f'<span class="semantic-mark-rail" aria-label="Paragraph marks">{rail}</span></p>\n')
+    marked = (f'<p class="semantic-mark {classes}" data-mark-kind="{escape(" ".join(kinds), quote=True)}" '
+              f'data-mark-label="{escape(" ".join(mark["id"] for mark in marks), quote=True)}" id="{anchor}">'
+              f'<span class="semantic-mark-content">{inner.strip()}</span>'
+              f'<span class="semantic-mark-rail" aria-label="Paragraph marks">{rail}</span></p>\n')
+    bordered = [kind for kind in dict.fromkeys(kinds) if kind in context.bordered_tags]
+    if not bordered:
+        return marked
+    # One shared card encloses the paragraph and its rail, titled by the opted-in kinds
+    # (artifact-ui, Content sections).
+    title = " / ".join(kind.replace("_", " ").title() for kind in bordered)
+    return (f'<section class="content-card"><header class="content-card-title">{escape(title)}</header>\n'
+            f'{marked}</section>\n')
 
 
 def _mark_icon(kind: str, index: int, context: Context) -> str:

@@ -130,6 +130,31 @@ def test_marks_render_a_semantic_paragraph_with_a_named_icon_rail(document) -> N
     assert "#mark/" not in intro["html"]
 
 
+@pytest.mark.parametrize(("bordered", "titles"), [
+    ([], []),
+    (["risk"], ["Risk", "Risk"]),
+    (["risk", "decision"], ["Risk / Decision", "Risk"]),
+])
+def test_bordered_tag_kinds_draw_one_shared_card_around_their_paragraph(
+        document, tmp_path, bordered, titles) -> None:
+    import json
+    first = paragraph("First prose. ", node("marks", category="risk", id="first"),
+                      node("marks", category="decision", id="chosen"))
+    second = paragraph("Second prose. ", node("marks", category="risk", id="second"))
+    document["chapters"][0]["content"] = [first, second]
+    settings = tmp_path / "settings.json"
+    settings.write_text(json.dumps({"artifact": {"borderedTags": bordered}}), encoding="utf-8")
+    html = render(document, load_config(settings))
+    body = decode_artifact_data(html)["notes"][1]["html"]
+
+    cards = re.findall(r'<section class="content-card"><header class="content-card-title">([^<]*)</header>\n'
+                       r'<p class="semantic-mark [^"]*"[^>]*>.*?</p>\n</section>', body, re.S)
+    assert cards == titles
+    assert body.count('<section class="content-card">') == len(titles)
+    assert body.count('class="semantic-mark-rail"') == 2
+    assert re.search(r"\.content-card \{[^}]*border: var\(--border-width\) solid", html)
+
+
 def test_unknown_mark_kinds_fail(document) -> None:
     for node in document["chapters"][0]["content"]:
         for child in node["children"]:
