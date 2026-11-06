@@ -1094,6 +1094,136 @@
               "children": []
             }
           ]
+        },
+        {
+          "type": "figures",
+          "attrs": {
+            "kind": "equations"
+          },
+          "children": [
+            {
+              "type": "equations",
+              "attrs": {
+                "equations": [
+                  {
+                    "source": "y = a*x**2",
+                    "lhs": {
+                      "symbol": "y"
+                    },
+                    "rhs": {
+                      "op": "mul",
+                      "args": [
+                        {
+                          "symbol": "a"
+                        },
+                        {
+                          "op": "pow",
+                          "args": [
+                            {
+                              "symbol": "x"
+                            },
+                            {
+                              "number": 2
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                ],
+                "variables": {
+                  "x": {
+                    "quantity": {
+                      "unit": "",
+                      "dimension": {},
+                      "value": 0,
+                      "siValue": 0.0,
+                      "range": [
+                        -2,
+                        2
+                      ],
+                      "siRange": [
+                        -2.0,
+                        2.0
+                      ]
+                    }
+                  },
+                  "a": {
+                    "quantity": {
+                      "unit": "",
+                      "dimension": {},
+                      "value": 1,
+                      "siValue": 1.0,
+                      "range": [
+                        0.5,
+                        2
+                      ],
+                      "siRange": [
+                        0.5,
+                        2.0
+                      ]
+                    }
+                  },
+                  "y": {
+                    "quantity": {
+                      "unit": "",
+                      "dimension": {}
+                    }
+                  }
+                },
+                "unknowns": [
+                  "y"
+                ],
+                "solution": {
+                  "method": "exact",
+                  "branches": [
+                    {
+                      "y": {
+                        "op": "mul",
+                        "args": [
+                          {
+                            "symbol": "a"
+                          },
+                          {
+                            "op": "pow",
+                            "args": [
+                              {
+                                "symbol": "x"
+                              },
+                              {
+                                "number": 2
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                },
+                "plot": {
+                  "sweep": "x",
+                  "x": {
+                    "source": "x",
+                    "tree": {
+                      "symbol": "x"
+                    },
+                    "dimension": {}
+                  },
+                  "y": [
+                    {
+                      "source": "y",
+                      "tree": {
+                        "symbol": "y"
+                      },
+                      "dimension": {},
+                      "axis": "primary"
+                    }
+                  ]
+                }
+              },
+              "children": []
+            }
+          ]
         }
       ],
       "children": [],
@@ -2586,6 +2716,14 @@
     {
       "level": "warning",
       "message": "appendix.md:9: figure without block id. Add a line ^name after the fence so references can link it; see input-model#Figure captions and references."
+    },
+    {
+      "level": "warning",
+      "message": "appendix.md:35: figure without caption. Add a caption to the figure fence; see input-model#Figure captions and references."
+    },
+    {
+      "level": "warning",
+      "message": "appendix.md:35: figure without block id. Add a line ^name after the fence so references can link it; see input-model#Figure captions and references."
     }
   ],
   "capabilities": [
@@ -2597,6 +2735,7 @@
     "command-fences",
     "count-query",
     "embeds",
+    "equation-figures",
     "figure-descriptor",
     "figures",
     "manifest",

@@ -32,7 +32,7 @@ def test_a_command_node_renders_the_output_the_core_captured_without_running_it(
     assert cli.main([str(source), str(destination)]) == 0
 
     output = _command_output(destination)
-    assert '<pre class="command-output">&lt;b&gt;captured&lt;/b&gt;\n</pre>' in output
+    assert '<pre class="command-output"><code>&lt;b&gt;captured&lt;/b&gt;\n</code></pre>' in output
     assert output.count('class="command-output"') == 1  # The fixture's silent producer renders nothing.
 
 
