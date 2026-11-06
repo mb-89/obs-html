@@ -73,7 +73,8 @@ primitives, without hard-coded artifact names or deleting metric links.
 An optional metric value link uses the existing internal chapter and table-filter route; its
 `?tableFilter=` is the metric's conditions in the reader language (`obsQuery.conditionsExpression`
 over the metric's `from` chain and `where`, obs's cards-metrics capability, Drill-downs), so the
-table shows exactly the counted rows.
+table shows exactly the counted rows. A series metric's link is built the same way from its own
+conditions, the series' `where` and its group's label.
 Static evidence cards do not change under filtering.
 Card-body base fences use the canonical query/table runtime. Per-record Sankey
 links preserve line identity and categorical outcome/origin colors; adjacent segments share

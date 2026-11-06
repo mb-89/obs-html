@@ -75,15 +75,17 @@
       if (typeof label !== "string" || !label.trim() || labels.has(label) ||
           typeof distinct !== "string" || !distinct.trim()) throw new Error("Invalid metric series data.");
       labels.add(label);
+      // A linked series metric selects the series' where plus its group's value; its count
+      // and its drill-down both read that selection (obs capabilities/cards-metrics#Drill-downs).
+      const where = series.link
+        ? [...series.where, {field: series.link.groupProperty, equals: label}] : series.where;
       let link;
       if (series.link) {
         const target = owner(`${series.link.note}.md`);
         if (!target) throw new Error(`Missing metric destination: ${series.link.note}`);
-        const literal = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replaceAll("/", "\\/");
-        const filter = `${series.link.groupProperty}:/^${literal}$/`;
-        link = `#${target.slug}?tableFilter=${encodeURIComponent(filter)}`;
+        link = drillDown(`#${target.slug}`, {where});
       }
-      metrics.push({label, distinct, where: series.where, tone: series.tone,
+      metrics.push({label, distinct, where, tone: series.tone,
         toneRules: series.toneRules, ...(link ? {link} : {})});
     }
     return metrics;

@@ -141,6 +141,38 @@ def test_a_metric_drill_down_shows_exactly_its_counted_rows(tmp_path, reader_bro
     assert errors == []
 
 
+def test_a_metric_series_drill_down_shows_exactly_its_counted_rows(tmp_path, reader_browser) -> None:
+    """A series metric selects the series' where plus its group's value, folded as every
+    condition is (obs capabilities/cards-metrics#Drill-downs); its count and its drill-down
+    both read that selection. A service outside where shares a label, and ``STRASSE`` folds to
+    the label ``Straße``."""
+    where = [{"field": "kind", "equals": "service"}]
+    series = {"sourceNote": "groups", "property": "groups", "labelProperty": "name",
+              "distinctProperty": "identity", "where": where, "tone": "neutral",
+              "link": {"note": "chapter", "groupProperty": "region"}}
+    groups = {"groups": [{"name": "north", "identity": "identity"}, {"name": "Straße", "identity": "identity"}]}
+    cards = _cards({"title": "Regions", "body": "", "metricStyle": "pills", "obs": {"metricsFrom": series}})
+    spec = {"views": [{"type": "table", "name": "Notes", "order": ["region"]}]}
+    source = build("Cards", chapter("chapter", "Chapter", heading(1, "Operations"), node("bases", source="", spec=spec)),
+                   abstract=(cards,),
+                   records=(*_services(("four", "c", "yes", "yes", "STRASSE")), _record("groups", groups),
+                            _record("stray", {"kind": "note", "identity": "z", "region": "north"})))
+    page, errors = _open(tmp_path, reader_browser, source)
+    from playwright.sync_api import expect
+    page.evaluate("obsPages.setPaged(false)")
+    for index, (label, value) in enumerate((("north", "1"), ("Straße", "1"))):
+        page.evaluate("obsArtifact.activateChapter('home')")
+        metric = page.locator("[data-active-chapter] .record-metric-value").nth(index)
+        expect(metric.locator("strong")).to_have_text(value)
+        counted = page.evaluate("where => obsRecordMetrics.select({where}).map(record => `note:${record.slug}`).sort()",
+                                [*where, {"field": "region", "equals": label}])
+        metric.click()
+        rows = page.locator('[data-active-chapter] [data-data-table="chapter-base-1"] [data-row-key]')
+        expect(rows).to_have_count(len(counted))
+        assert sorted(rows.evaluate_all("rows => rows.map(row => row.dataset.rowKey)")) == counted, label
+    assert errors == []
+
+
 def test_quantities_count_through_their_selection_chain_and_refresh(tmp_path, reader_browser) -> None:
     total = {"kind": "quantity", "aliases": ["serviceCount"], "source": "[[chapter]]",
              "query": {"where": [{"field": "kind", "equals": "service"}], "distinct": "identity"}}
@@ -249,7 +281,8 @@ def test_every_metric_field_and_a_metric_series_count_as_the_interim_runtime_cou
     open (owners ada, lin), b closed (lin); no point has a reviewer. The expectations are the interim runtime's
     (obs cards.js): a denominator makes a percentage, the first matching tone rule wins over the
     tone, a compound value links primary and secondary, a projection counts its own fields,
-    and a series makes one metric per list entry, linked to a table filtered to its label. A
+    and a series makes one metric per list entry, selecting the series' where plus its label
+    (the drill-down derives from that selection). A
     metric link's filter derives from the conditions the metric counts, a secondary link's from
     its quantity's (the counts notes' queries in the vault)."""
     document = json.loads((ROOT / "test" / "fixtures" / "documents" / "cards.json").read_text(encoding="utf-8"))
@@ -295,5 +328,6 @@ def test_every_metric_field_and_a_metric_series_count_as_the_interim_runtime_cou
         ["record-metric record-metric--positive", "record-metric record-metric--negative"])
     assert series.locator(".record-metric-value").evaluate_all(
         "links => links.map(link => link.getAttribute('href'))") == [
-        f"#overview?tableFilter={quote(f'status:/^{label}$/', safe='')}" for label in ("open", "closed")]
+        drill_down("#overview", [{"field": "kind", "equals": "point"}, {"field": "status", "equals": label}])
+        for label in ("open", "closed")]
     assert errors == []
