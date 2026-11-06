@@ -706,7 +706,8 @@ dispatcher, 6 Nov 2026 (work issue `fix/decision-figure-follow-ups-20261106`).
   transparent when the pointer approaches, and is clearly visible on hover or focus.
 
   Reserve horizontal reader clearance for that pointer area in both continuous and
-  paged views, including narrow screens. It must not cover prose links or table
+  paged views, including narrow screens; on touch in screens the arrows are hidden and the
+  clearance goes to the content ([[#Screens]]). It must not cover prose links or table
   disclosures, resizing handles, and options. Screen clearance does not change PDF
   paper dimensions or margins.
 
