@@ -510,9 +510,8 @@ The tabs:
 - **Checklist:** the fence's checklist items, each with its answer, passed or failed, and the
   letters of the options it fails; its badge counts the failed items. Without items the tab is
   disabled.
-- **Sensitivity:** the worlds in which another option wins, which the reader rules (below);
-  flagged where the choice depends on the weights, where a world is ruled "could happen", or
-  where the fence's `chosen` option is not the winner.
+- **Sensitivity:** how far a weight must move before another option wins, as a grid
+  ([[#Sensitivity]]).
 - **Pareto:** its place only, disabled until it has content.
 
 The figure says each name once, in the options list and a letter's popover alike: where the
@@ -566,15 +565,36 @@ them read-only, as print does, and Reset is disabled.
 
 #### Sensitivity
 
-Its top line is "B wins unless …" with the closest world in which another option wins, or "No
-change of weights makes another option win". Where the fence's `chosen` option is not the
-winner, the next line says so, with the world in which it wins.
+Decided by the user, 6 Nov 2026 (work issue `feature/decision-sensitivity-pareto-views-20261106`):
+what if is a grid a decision maker reads at a glance, not prose. Every number is the engine's
+(ctrl's `pugh.js`, its sensitivity), which the figure only lays out.
 
-Then, for each other option that may win, the smallest change of one weight that makes it win
-("A wins if Speed weighs below 0.5 instead of 2"), and the smallest change of all weights
-together, which weights from what to what. There is no band: the reader rules each world "could
-happen" or "nonsense", and a world that could happen asks for a tripwire, a one-line sign to
-watch for.
+- **The top line:** a bar of the winner's share of the engine's random weight draws, each weight
+  within ±`step` of its own (1 by default), "B · Artifact wins 100.0 % of draws", with a mark at
+  the engine's hold share (`holdShare`, 75 % by default).
+- **The grid:** one row per criterion, its name and current weight on one line, and one column
+  per other option that fits, headed by its letter.
+- **A cell:** the weight at which that option ties the winner if only this weight moves, "3 → 7",
+  with a small bar from the current weight to the tie weight, on one scale per row. A dash where
+  no weight of 0 or more makes it tie.
+
+The cell holding the smallest move of an option is the engine's tie point for it (`tie`). A cell
+is within reach, and marked so, where its tie lies within ±`step` of the current weight and above
+0, the engine's `reasonable`.
+
+- **All weights together:** a last row with, per option, the engine's smallest change of all
+  weights that makes it tie (`minChange`), as a share of the weights' size, a bar and a
+  percentage; the weights it moves are the cell's tooltip.
+- **Below the grid:** where the fence's `chosen` option is not the winner, a line says so and
+  its column is marked; an option that does not fit is named with its reasons.
+
+There is no band: the reader rules each option's column "could happen" or "nonsense". Tapping a
+cell of a column, or its head, opens the column's ruling keys under the grid. A column that
+could happen asks for a tripwire, a one-line sign to watch for; its head shows the ruling.
+
+The flag shows where a cell is within reach, or the winner's share is under the engine's hold
+share; and, as before, where an option is ruled "could happen" or the fence's `chosen` option is
+not the winner.
 
 The changed weights and marks, the rulings and the tripwires are reader state, kept per figure
 anchor while the artifact is open, and readable by the page as `obsPugh.readerState()`, by figure
@@ -607,6 +627,10 @@ on tap. The Pick keys sit in one line under them.
 A cell takes up to 2.5 rem and gives way to 1.7 rem before its line wraps: five options fit
 beside the stepper in the narrowest figure, at a 360 px phone, and more wrap to a further line.
 Nothing in the figure scrolls sideways.
+
+Below the same width the Sensitivity grid is one block per option: its letter as the block's
+head, then one line per criterion (its name, current weight, tie and bar), then all weights
+together.
 
 In the rows only the letter fits, and the letter is a control. Hovering it, focusing it or
 tapping it shows the option's letter and short name, its label where that says more and its

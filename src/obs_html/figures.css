@@ -479,8 +479,7 @@
 }
 
 .pugh-bottom p,
-.pugh-whatif p,
-.pugh-worlds p {
+.pugh-sensitivity p {
     margin: 0;
 }
 
@@ -501,7 +500,6 @@
     text-align: center;
 }
 
-.pugh-worlds,
 .pugh-checklist {
     margin: 0.25rem 0 0;
     padding-inline-start: 1.2rem;
@@ -872,8 +870,143 @@
     margin-block-start: 0.3rem;
 }
 
-.pugh-worlds li + li {
-    margin-block-start: 0.6rem;
+/* The Sensitivity tab (pugh-figure.js, sensitivityPanel): the share bar, then the grid of tie
+   weights, each cell its text and a bar on its row's scale, or below ROWS_BELOW one block per
+   option. Nothing scrolls sideways: the grid's cells wrap their text over their bar. */
+.pugh-sensitivity {
+    display: grid;
+    gap: 0.6rem;
+    min-width: 0;
+}
+
+.pugh-bar {
+    background: var(--color-border);
+    block-size: 0.35rem;
+    border-radius: var(--radius-small);
+    display: block;
+    inline-size: 100%;
+    min-inline-size: 3rem;
+    position: relative;
+}
+
+.pugh-bar-fill,
+.pugh-bar-now,
+.pugh-share-hold {
+    inset-block: 0;
+    position: absolute;
+}
+
+.pugh-bar-fill {
+    background: var(--color-accent);
+    border-radius: inherit;
+    min-inline-size: 1px;
+}
+
+.pugh-bar-now,
+.pugh-share-hold {
+    background: var(--color-text);
+    inline-size: 2px;
+    inset-block: -0.15rem;
+}
+
+.pugh-share-bar {
+    block-size: 0.6rem;
+    margin-block-start: 0.3rem;
+}
+
+.pugh-share-bar.pugh-holds .pugh-bar-fill {
+    background: var(--color-success);
+}
+
+.pugh-share-bar.pugh-depends .pugh-bar-fill {
+    background: var(--color-warning);
+}
+
+.pugh-grid-box {
+    min-width: 0;
+}
+
+.pugh-grid {
+    border-collapse: collapse;
+    inline-size: 100%;
+    table-layout: fixed;
+}
+
+.pugh-grid th,
+.pugh-grid td {
+    border-block-end: var(--border-width) solid var(--color-border);
+    padding: 0.25rem 0.4rem;
+    text-align: start;
+    vertical-align: top;
+}
+
+.pugh-grid thead th:first-child {
+    inline-size: max(var(--pugh-criterion-width), 35%);
+}
+
+.pugh-grid-key {
+    background: none;
+    border: 0;
+    color: inherit;
+    display: grid;
+    font: inherit;
+    gap: 0.2rem;
+    inline-size: 100%;
+    justify-items: start;
+    padding: 0.1rem;
+    text-align: start;
+}
+
+button.pugh-grid-key {
+    cursor: pointer;
+}
+
+button.pugh-grid-key:hover,
+button.pugh-grid-key[aria-expanded="true"] {
+    background: var(--color-accent-soft);
+}
+
+.pugh-grid-weight,
+.pugh-reach {
+    color: var(--color-text-muted);
+}
+
+[data-pugh-reach] .pugh-reach {
+    color: var(--color-warning);
+    font-size: 0.85em;
+}
+
+[data-pugh-reach] .pugh-bar-fill {
+    background: var(--color-warning);
+}
+
+.pugh-grid-all th,
+.pugh-grid-all .pugh-grid-name {
+    font-style: italic;
+}
+
+.pugh-grid-blocks {
+    display: grid;
+    gap: 0.6rem;
+}
+
+.pugh-grid-block {
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-small);
+    display: grid;
+    gap: 0.2rem;
+    padding: 0.4rem;
+}
+
+.pugh-grid-line {
+    align-items: start;
+    display: grid;
+    gap: 0.4rem;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.pugh-ruled-could {
+    color: var(--color-warning);
 }
 
 @media print {

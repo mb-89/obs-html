@@ -192,7 +192,7 @@ def test_where_there_is_room_an_option_reads_as_its_letter_and_short_name(phone_
     bottom = figure.locator(".pugh-bottom").inner_text()
     listed = figure.locator(".pugh-option-list summary").first.inner_text()
     figure.locator('[data-pugh-tab="sensitivity"]').click()
-    worlds = figure.locator(".pugh-whatif").inner_text()
+    share = figure.locator("[data-pugh-share]").inner_text()
     page.evaluate("obsArtifact.activateChapter('five')")
     page.wait_for_selector(f"#{FIVE}.figure-pugh-ready")
     five = page.locator(f"#{FIVE} thead [data-pugh-option]").evaluate_all(
@@ -202,7 +202,7 @@ def test_where_there_is_room_an_option_reads_as_its_letter_and_short_name(phone_
     assert heads == ["Comment export", "Artifact", "Answers file alone"]
     assert "B · Artifact" in bottom and "A · Comment export" in bottom
     assert listed == "A · Comment export"
-    assert "B · Artifact wins unless" in worlds
+    assert share.startswith("B · Artifact wins ")
     assert five[3] == "" and five[1] == "An object bucket"
     assert errors == []
 
