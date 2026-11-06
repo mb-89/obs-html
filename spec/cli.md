@@ -34,6 +34,21 @@ attachment shows its label and vault path and its bytes stay out of the HTML. Th
 embed-attachments=true`, the option `adapter.json` declares, the evidence edition (obs's CLI,
 Adapter options: [[obs-specification|obs's specification]]).
 
+## Source archive per build
+
+The source archive follows the Document: `obs-document --embed-source` puts the vault's source
+files into it (obs's architecture, Source archive: [[obs-specification|obs's specification]]), and
+obs-html packages and embeds them whenever they are there
+([[input-model#Optional reproduction archive]]). A `.pdf` destination of such a Document carries the ZIP as a PDF attachment, so
+`obs-document --embed-source --adapter html --destination artifact.pdf` attaches it in one call.
+
+`obs-html --attach-source-to-pdf PDF --source-artifact HTML --output file.pdf` attaches the ZIP an
+artifact embeds to a PDF saved from it, as the interim adapter's option of the same name does; in
+the HTML, Settings + exports does the same ([[artifact-ui]]). It is an operation on two existing
+files, like `--export-pdf`, not a choice about rendering a Document, so `adapter.json` declares no
+option for it: through the core the PDF destination attaches already, and an option would only
+repeat what the Document says.
+
 ## Several artifacts per call
 
 A caller that builds several artifacts passes repeated `--source`/`--output` pairs in one

@@ -96,13 +96,18 @@ obsHtml:
   margin limits. It replaces the removed project `artifact.paper` setting.
 - `cssSnippets` lists CSS snippet names, without `.css`, from the vault's snippet folder
   (configuration's `input.cssSnippetFolder`, Obsidian's `.obsidian/snippets` by default).
+  obs-html reads them from the Document, whose `cssSnippets` carries every snippet of that folder
+  (obs's architecture, CSS snippets: [[obs-specification|obs's specification]]).
 
-  The HTML embeds them in list order after its own styles, so they style screen, pages and
-  PDF and win at equal specificity. Obsidian's own enabled-snippet list is a per-device
+  The HTML embeds them in list order after its own styles, every packaged stylesheet including
+  the figure styles, so they style screen, pages and PDF and win at equal specificity. Snippet CSS
+  applies page-wide by design: unlike a figure's authored styles it is the author's styling of
+  the whole artifact. Obsidian's own enabled-snippet list is a per-device
   appearance choice and is not read: the document declares what it needs.
 
-  A listed snippet that is missing, or that contains `</style`, is an input error. The
-  default is none.
+  A listed snippet that is missing, or that contains `</style`, is an input error. A missing one
+  names the manifest, the field (`obsHtml.cssSnippets[1]`) and, in its remedy, the snippets the
+  vault has; one that contains `</style` names its snippet file. The default is none.
 - Generated abstract sections are [register](#registers) embeds in the abstract Markdown.
 - Vaults that declare none of these keys keep the packaged defaults shown above, which reproduce
   the established cover, "Abstract", "Contents", and paged opening.
@@ -211,6 +216,20 @@ obsHtml:
 An explicitly requested reproduction archive captures the selected vault and generator inputs.
 CLI invocation and prerequisites are owned by [[cli]]; controls and PDF presentation by
 [[artifact-ui]]. The source boundary is defined here.
+
+obs-html packages the vault files a Document's `sourceArchive` carries; the core selects them
+(obs's architecture, Source archive: [[obs-specification|obs's specification]]) by the boundary
+below, and a file the Document holds as an asset takes that asset's bytes. The ZIP holds each file
+at `vault/<path>`, the `source-inventory.json` the reader's archive transactions update (its
+`generator` list empty) and `REPRODUCE.txt`, the `obs-document --embed-source` command that
+rebuilds it, with `--adapter-option embed-attachments=true` for an evidence edition. Every member
+has one fixed timestamp, so the same files give the same ZIP. The reader downloads it as
+`obs-html-source.zip`, the interim's name, and a PDF carries it under that name. An archived file
+naming an asset the Document lacks is an input error naming `sourceArchive.files[i].asset`.
+
+The generator's package source, its settings and the rebuild script described below are the
+interim adapter's; obs-html's archive does not carry them yet, so its rebuild needs obs and
+obs-html installed.
 
 It discloses the selected vault's explicit directory snapshot, including scripts/data not
 in the TOC, whether or not that vault has Git metadata. Installed dependency directories,

@@ -1,0 +1,250 @@
+{
+  "schemaVersion": 1,
+  "manifest": {
+    "title": "Archive",
+    "path": "manifest.md",
+    "metadata": {
+      "title": "Archive",
+      "obsHtml": {
+        "cssSnippets": [
+          "house"
+        ]
+      }
+    },
+    "abstract": [
+      {
+        "type": "markdown-frontmatter",
+        "attrs": {
+          "metadata": {
+            "title": "Archive",
+            "obsHtml": {
+              "cssSnippets": [
+                "house"
+              ]
+            }
+          }
+        },
+        "children": [
+          {
+            "type": "field",
+            "attrs": {
+              "name": "title"
+            },
+            "children": [
+              {
+                "type": "text",
+                "attrs": {},
+                "children": [],
+                "text": "Archive"
+              }
+            ]
+          },
+          {
+            "type": "field",
+            "attrs": {
+              "name": "obsHtml.cssSnippets.0"
+            },
+            "children": [
+              {
+                "type": "text",
+                "attrs": {},
+                "children": [],
+                "text": "house"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "manifest",
+        "attrs": {},
+        "children": []
+      }
+    ]
+  },
+  "chapters": [
+    {
+      "id": "intro",
+      "title": "Intro",
+      "content": [
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "intro"
+          },
+          "children": []
+        },
+        {
+          "type": "markdown",
+          "attrs": {},
+          "children": []
+        },
+        {
+          "type": "section",
+          "attrs": {
+            "level": 1
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Intro"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "attrs": {},
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Text."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "attrs": {},
+          "children": [
+            {
+              "type": "embeds",
+              "attrs": {
+                "target": "pixel.png",
+                "chapter": null,
+                "asset": "pixel-png"
+              },
+              "children": []
+            }
+          ]
+        }
+      ],
+      "children": [],
+      "metadata": {}
+    }
+  ],
+  "links": [],
+  "assets": [
+    {
+      "id": "pixel-png",
+      "href": "pixel.png",
+      "mediaType": "image/png",
+      "path": "pixel.png",
+      "data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
+    }
+  ],
+  "records": [
+    {
+      "id": "intro",
+      "type": "note",
+      "path": "intro.md",
+      "fields": {},
+      "fieldNodes": []
+    },
+    {
+      "id": "manifest",
+      "type": "note",
+      "path": "manifest.md",
+      "fields": {
+        "title": "Archive",
+        "obsHtml": {
+          "cssSnippets": [
+            "house"
+          ]
+        }
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "title"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Archive"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "obsHtml.cssSnippets.0"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "house"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "chapter-intro",
+      "type": "chapter",
+      "note": "intro",
+      "fields": {
+        "chapter": "Intro",
+        "title": "Intro",
+        "depth": "0",
+        "slug": "intro",
+        "sourcePath": "intro.md"
+      }
+    },
+    {
+      "id": "document-metadata-title",
+      "type": "documentMetadata",
+      "fields": {
+        "key": "title",
+        "value": "Archive"
+      }
+    }
+  ],
+  "semanticResources": [],
+  "diagnostics": [],
+  "capabilities": [
+    "chapter-inclusion",
+    "embeds",
+    "manifest",
+    "markdown",
+    "markdown-frontmatter"
+  ],
+  "cssSnippets": [
+    {
+      "name": "house",
+      "path": ".obsidian/snippets/house.css",
+      "text": "p { color: rgb(1, 2, 3); }\n"
+    }
+  ],
+  "sourceArchive": {
+    "files": [
+      {
+        "path": ".obsidian/snippets/house.css",
+        "data": "cCB7IGNvbG9yOiByZ2IoMSwgMiwgMyk7IH0K"
+      },
+      {
+        "path": "data/values.csv",
+        "data": "YSxiCjEsMgo="
+      },
+      {
+        "path": "intro.md",
+        "data": "IyBJbnRybwoKVGV4dC4KCiFbW3BpeGVsLnBuZ11dCg=="
+      },
+      {
+        "path": "manifest.md",
+        "data": "LS0tCnRpdGxlOiBBcmNoaXZlCm9ic0h0bWw6CiAgY3NzU25pcHBldHM6IFtob3VzZV0KLS0tCi0gW1tpbnRyb11dCg=="
+      },
+      {
+        "path": "pixel.png",
+        "asset": "pixel-png"
+      }
+    ]
+  }
+}
