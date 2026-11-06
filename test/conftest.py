@@ -43,8 +43,10 @@ bounds = _core_module("bounds")
 
 
 def pytest_sessionstart(session):
-    """A focused run installs the suite's Node test packages where they are missing or stale."""
+    """A focused run installs the suite's Node test packages where they are missing or stale; the
+    JUnit report, where the run writes one, names the part's worker count (test/suite.py)."""
     suite.set_up_focused_run(session.config)
+    suite.record_workers(session.config)
 
 
 @pytest.fixture(scope="session")

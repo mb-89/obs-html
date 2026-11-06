@@ -10,9 +10,10 @@ import conftest
 
 def test_the_session_start_sets_up_a_focused_run(monkeypatch) -> None:
     seen = []
-    monkeypatch.setattr(conftest.suite, "set_up_focused_run", lambda config: seen.append(config))
+    monkeypatch.setattr(conftest.suite, "set_up_focused_run", lambda config: seen.append(("set up", config)))
+    monkeypatch.setattr(conftest.suite, "record_workers", lambda config: seen.append(("workers", config)))
     config = SimpleNamespace()
     conftest.pytest_sessionstart(SimpleNamespace(config=config))
 
-    assert seen == [config]
+    assert seen == [("set up", config), ("workers", config)]
     assert conftest.suite.__file__ == str(conftest.CORE_ROOT / "test" / "suite.py")
