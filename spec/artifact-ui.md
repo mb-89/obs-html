@@ -923,8 +923,12 @@ separate from artifact presentation.
   Startup runs in slices: a step yields to the browser once its slice has run as long
   as a browser long task (50 ms), and only then waits until the browser has painted a
   frame; steps within a slice do not wait for frames. The first chapter is painted within 1 s of opening the
-  spec artifact on the test machine; `test_startup_browser.py` holds that budget and
-  names the slowest startup steps when it is missed.
+  spec artifact on the test machine, on the frame's own clock: the artifact marks
+  `obs-startup first chapter painted` and `obs-startup ready` (User Timing), and
+  `test_startup_browser.py` holds that budget from those marks and names the slowest
+  startup steps when it is missed. Where load on the machine slows the page itself, the
+  test scales the budget by a load factor it measures in the same run; its docstring owns
+  how.
   Initialize nonvisible/unused views when needed and reuse existing caches rather
   than moving an unchanged whole-artifact calculation onto the first interaction.
 
