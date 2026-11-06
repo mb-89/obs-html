@@ -529,3 +529,20 @@ def test_none_of_the_above_needs_a_comment_and_sends_a_none_pick(built, phone_br
     assert payload == {"verdicts": [{"chapter": "record", "version": _versions(built)["record"], "verdict": "pick",
                                      "comment": "Neither place holds it.", "pick": {"figure": FIGURE, "option": "none"}}]}
     assert errors == []
+
+
+def test_an_artifact_outside_screens_keeps_home(phone_browser, tmp_path: Path) -> None:
+    """artifact-ui.md, Screens: only screens drop Home; scrolling and paged open on it as before."""
+    from playwright.sync_api import expect
+
+    source = document("Plain", chapter("one", "One", heading(1, "One"), paragraph("Text.")))
+    (tmp_path / "plain.html").write_text(artifact_html(source), encoding="utf-8")
+    page, errors = _phone(phone_browser, (tmp_path / "plain.html").as_uri())
+    assert not page.evaluate("document.documentElement.classList.contains('screens-mode')")
+    expect(page.locator("[data-active-chapter]")).to_have_attribute("data-chapter", "home")
+    for paged in (False, True):
+        page.evaluate(f"obsPages.setPaged({str(paged).lower()})")
+        page.evaluate("obsArtifact.activateChapter('one')")
+        page.locator(".top-band a.chapter-home-link").click()
+        expect(page.locator("[data-active-chapter]")).to_have_attribute("data-chapter", "home")
+    assert errors == []
