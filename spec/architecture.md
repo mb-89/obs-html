@@ -139,6 +139,22 @@ Command execution is owned by a separate runner boundary. Markdown parsing suppl
 command and receives escaped output; it does not own process invocation, timeout policy,
 or authorization.
 
+## Packaged browser assets
+
+Every browser asset the renderer embeds (its scripts and styles, the icons, the vendored Plotly,
+pdf-lib and js-yaml, and the maths library) is package data of `obs_html`, and the renderer reads
+it only through `importlib.resources`, so an installed wheel renders what a checkout renders.
+Most are tracked files in `src/obs_html`. An asset that comes from a lockfile is built into the
+package by the adapter's build hook, `hatch_build.py`, on every build of the package, editable ones
+included: it installs the maths library from `maths/package-lock.json` with `npm ci` in a
+temporary folder and writes math.js and its licences to `src/obs_html/vendor/maths/`. Those files are
+generated beside the package that ships them, as the core's capability reference is
+(obs's cli.md, One-call build), and ignored. The hook's `PACKAGED` table names each generated
+folder of the package and what fills it, so another one is one entry. uv builds the package again
+when the hook or the lockfile changes (`[tool.uv] cache-keys`). A build without npm, or whose
+`npm ci` fails, stops and names the lockfile and the remedy. `test/test_installed_wheel.py`
+renders with the installed wheel and fails when anything is read from the repository tree.
+
 ## Artifact data ownership
 
 - The generated HTML embeds one canonical note store with identifiers, normalized frontmatter,

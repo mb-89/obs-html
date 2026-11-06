@@ -7,6 +7,7 @@ import json
 import re
 import stat
 from html import escape
+from importlib.resources import files
 from pathlib import Path
 from xml.etree import ElementTree
 
@@ -15,7 +16,7 @@ from jsonschema import Draft202012Validator
 from obs_html.errors import InputError, schema_error
 
 
-ROOT = Path(__file__).parent
+ROOT = Path(str(files("obs_html")))
 SCHEMA = json.loads((ROOT / "assets.schema.json").read_text(encoding="utf-8"))
 NAME_VALIDATOR = Draft202012Validator(SCHEMA["$defs"]["name"])
 NAME = SCHEMA["$defs"]["name"]["pattern"].removeprefix("^").removesuffix(r"(?![\s\S])")

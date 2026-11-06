@@ -366,11 +366,10 @@ An equation figure (obs capabilities/equation-figures) is plotted live from the 
 expression trees by `src/obs_html/equations.js`, with the plotting library of stored-data plots
 (Plotly) for drawing, zoom and pan, and one maths library, math.js, for complex arithmetic and
 for parsing the reader's expressions. The maths library is pinned in `maths/package-lock.json`,
-installed from it (`npm --prefix maths ci`, which the complete suite's setup runs) and embedded
-whole, with its licence, only in an artifact that holds an equation figure: it is the reader
-feature `equations` (`features.py`), whose canary reports a host that does not run it. An
-artifact never loads it from elsewhere. A build of an equation figure without it installed is an
-input error that names the lockfile and the install command.
+built from it into the package when the package is built
+([[architecture#Packaged browser assets]]) and embedded whole, with its licence, only in an
+artifact that holds an equation figure: it is the reader feature `equations` (`features.py`),
+whose canary reports a host that does not run it. An artifact never loads it from elsewhere.
 
 - Evaluation: a tree evaluates with the variables' SI values in complex arithmetic with
   principal branches; a result is a point of the plot where its imaginary part vanishes
