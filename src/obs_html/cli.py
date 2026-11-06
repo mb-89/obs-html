@@ -41,6 +41,9 @@ EPILOG = """Rendering:
   --style FOLDER selects an external style module: a folder with style.css, laid over the
   packaged base stylesheet, and an optional assets.json semantic asset index. It must not
   declare page geometry (@page, size, --paper-*, --sheet-*); the Document's profile owns it.
+  Without it, the style the manifest declares (obs.style) applies, fetched with git once per
+  commit into the user's cache folder (obs-html/styles/<commit>); without one, the packaged
+  generic style.
 
 Sources and styles:
   A Document built with obs-document --embed-source carries the vault's source files; the HTML
@@ -137,7 +140,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--check", action="store_true", help="Render without writing output.")
     parser.add_argument("--style", type=Path, metavar="FOLDER",
                         help="Style module folder containing style.css (and optionally assets.json); "
-                             "replaces the packaged generic style.")
+                             "replaces the declared or packaged generic style for this build.")
     parser.add_argument("--embed-attachments", action="store_true",
                         help="Embed files marked with ![label](file) or ![[file]] as downloads.")
     parser.add_argument("--trusted-runtime-bundle", metavar="ID=PATH",
