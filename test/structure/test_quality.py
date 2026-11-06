@@ -16,6 +16,12 @@ one can run after the artifact's own scripts (#233, #298); a stand-in goes into 
 head instead (test/browser/viewer.py, ``with_stand_in``). And it reads the artifact's timings
 from the artifact's own performance marks: it reads no clock of its own in Python, sets no
 performance mark, and takes no time in a listener of its own in the page.
+
+A test states the browser engine it needs by the fixture it takes. The bulk runs on Playwright's
+headless shell (``reader_browser`` and the other BROWSER_FIXTURES); full Chromium
+(FULL_CHROMIUM_FIXTURES) serves only the named set FULL_CHROMIUM_TESTS, the checks whose
+behaviour can differ in the shell. A test outside the set that takes full Chromium, and a named
+test that does not, both fail.
 """
 import re
 import ast
@@ -25,7 +31,31 @@ TESTS = Path(__file__).parents[1]
 # The fixtures that hand a test a browser page; test/conftest.py owns them. A test of the PDF
 # path (``pdf_browser``) runs the CLI, whose build is what it tests.
 BROWSER_FIXTURES = {"reader_browser", "shared_reader_browser", "overlay_scrollbar_browser", "page_pool",
-                    "overlay_scrollbar_pool", "worker_browser", "worker_playwright"}
+                    "overlay_scrollbar_pool", "worker_browser", "worker_playwright", "full_chromium_browser",
+                    "shared_full_chromium_browser", "full_page_pool", "full_chromium"}
+# The fixtures that run a test on full Chromium instead of the headless shell; test/conftest.py
+# owns them. The PDF path's browser (``pdf_browser``) is full Chromium too.
+FULL_CHROMIUM_FIXTURES = {"full_chromium_browser", "shared_full_chromium_browser", "full_page_pool", "full_chromium",
+                          "pdf_browser"}
+# Every test of the module.
+EVERY_TEST = "every test"
+# The named set that runs on full Chromium, by module: the checks whose behaviour can differ in the
+# headless shell (obs quality.md, Testing boundaries). Every other browser test runs on the shell.
+FULL_CHROMIUM_TESTS = {
+    # Print and PDF export: the PDF path prints with the browser it finds, and print media.
+    "test_pdf.py": EVERY_TEST,
+    "test_pdf_inspect.py": EVERY_TEST,
+    "test_notice_center_browser.py": {"test_icon_opens_its_list_an_entry_expands_and_escape_closes"},
+    # The viewer fixture's sandboxed frame: what a scripts-only, out-of-process frame limits, when a
+    # stand-in in it runs, and its print.
+    "test_features_browser.py": {"test_a_host_stand_in_is_in_place_before_the_artifacts_first_script"},
+    "test_sandboxed_preview_browser.py": {
+        "test_artifact_runs_as_srcdoc_of_a_scripts_only_sandbox", "test_canaries_find_what_a_scripts_only_sandbox_limits",
+        "test_each_canary_says_what_it_observed", "test_a_sandboxed_frame_lists_its_limits_as_warning_notices",
+        "test_print_to_pdf_in_a_sandboxed_frame_ends_in_an_inline_message"},
+    # The startup marks: the first chapter's paint in the browser a reader opens.
+    "test_startup_browser.py": {"test_the_spec_artifact_shows_its_first_chapter_within_a_second"},
+}
 # The fixtures that build an artifact once per run, wherever they are defined; a browser test
 # reads what they built, and the check does not look into them.
 SHARED_FIXTURES = {"fixture_artifact", "parity_artifacts", "spec_artifact"}
@@ -156,6 +186,37 @@ def violations(path: Path) -> list[str]:
     return found
 
 
+def engine_violations(path: Path, named=None) -> list[str]:
+    """Each test of the module on full Chromium outside the named set, and each named test that is not.
+
+    ``named`` is the module's entry in FULL_CHROMIUM_TESTS: a set of test names, EVERY_TEST or None."""
+    module = ast.parse(path.read_text(encoding="utf-8"))
+    functions = {node.name: node for node in module.body if isinstance(node, ast.FunctionDef)}
+    full = set(FULL_CHROMIUM_FIXTURES)
+    fixtures = {name: function for name, function in functions.items() if is_fixture(function)}
+    while True:  # a module fixture that takes full Chromium hands it on
+        more = {name for name, function in fixtures.items() if fixture_names(function) & full} - full
+        if not more:
+            break
+        full |= more
+    tests = {name: function for name, function in functions.items() if name.startswith("test_")}
+    found = []
+    for name, test in tests.items():
+        engine = sorted(fixture_names(test) & full)
+        listed = named == EVERY_TEST or name in (named or set())
+        if engine and not listed:
+            found.append(f"{name}: {path.name}:{test.lineno} runs on full Chromium ({', '.join(engine)}) outside "
+                         "FULL_CHROMIUM_TESTS; take reader_browser (the headless shell), or name the test there "
+                         "with why the shell differs")
+        elif listed and not engine and named != EVERY_TEST:
+            found.append(f"{name}: {path.name}:{test.lineno} is named in FULL_CHROMIUM_TESTS but runs on the "
+                         "headless shell; take full_chromium_browser, or remove it from the set")
+    if isinstance(named, set):
+        found += [f"{name}: {path.name} has no such test, which FULL_CHROMIUM_TESTS names; remove it from the set"
+                  for name in sorted(named - tests.keys())]
+    return found
+
+
 def test_no_browser_test_builds_an_artifact_or_starts_a_browser() -> None:
     found = [violation for path in sorted(TESTS.glob("test_*.py")) for violation in violations(path)]
     assert found == [], "test/structure/test_quality.py: " + "\n".join(found)
@@ -242,3 +303,47 @@ def test_own_init_script_and_clocks(reader_browser):
     assert any("reads the clock perf_counter" in line for line in found)
     assert any("takes a time in a listener of its own" in line for line in found)
     assert any("sets a performance mark of its own" in line for line in found)
+
+
+def test_only_the_named_set_runs_on_full_chromium() -> None:
+    found = [violation for path in sorted(TESTS.glob("test_*.py"))
+             for violation in engine_violations(path, FULL_CHROMIUM_TESTS.get(path.name))]
+    missing = sorted(name for name in FULL_CHROMIUM_TESTS if not (TESTS / name).is_file())
+    found += [f"{name}: FULL_CHROMIUM_TESTS names a module the tests do not have; remove it" for name in missing]
+    assert found == [], "test/structure/test_quality.py: " + "\n".join(found)
+
+
+def test_the_engine_check_names_a_full_chromium_test_outside_the_set(tmp_path: Path) -> None:
+    """The check is not vacuous: a test on full Chromium outside the set, directly or through a
+    module fixture, a named test on the shell and a named test the module lacks are each named."""
+    (tmp_path / "test_engines.py").write_text('''
+@pytest.fixture(scope="module")
+def printed(pdf_browser):
+    return None
+
+
+def test_on_the_shell(reader_browser):
+    reader_browser.new_page()
+
+
+def test_on_full_chromium(full_chromium_browser):
+    full_chromium_browser.new_page()
+
+
+def test_through_a_fixture(printed):
+    assert printed is None
+
+
+def test_named(full_chromium_browser):
+    full_chromium_browser.new_page()
+
+
+def test_named_on_the_shell(reader_browser):
+    reader_browser.new_page()
+''', encoding="utf-8")
+    found = engine_violations(tmp_path / "test_engines.py", {"test_named", "test_named_on_the_shell", "test_gone"})
+    assert [line.split(":")[0] for line in found] == [
+        "test_on_full_chromium", "test_through_a_fixture", "test_named_on_the_shell", "test_gone"]
+    assert "(full_chromium_browser) outside FULL_CHROMIUM_TESTS" in found[0]
+    assert "(printed) outside FULL_CHROMIUM_TESTS" in found[1]
+    assert engine_violations(tmp_path / "test_engines.py", EVERY_TEST) == []

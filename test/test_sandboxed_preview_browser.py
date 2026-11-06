@@ -39,12 +39,12 @@ def open_sandboxed(tmp_path: Path, reader_browser, errors: list[str]):
 
 
 @pytest.mark.browser
-def test_artifact_runs_as_srcdoc_of_a_scripts_only_sandbox(tmp_path: Path, reader_browser) -> None:
+def test_artifact_runs_as_srcdoc_of_a_scripts_only_sandbox(tmp_path: Path, full_chromium_browser) -> None:
     """Claude's preview shows HTML as srcdoc of a sandboxed frame that cannot change its URL."""
     from playwright.sync_api import expect
 
     errors: list[str] = []
-    _page, frame = open_sandboxed(tmp_path, reader_browser, errors)
+    _page, frame = open_sandboxed(tmp_path, full_chromium_browser, errors)
     chapter_element = frame.locator("[data-active-chapter]")
     expect(chapter_element).to_have_attribute("data-chapter", "home")
 
@@ -60,11 +60,11 @@ def test_artifact_runs_as_srcdoc_of_a_scripts_only_sandbox(tmp_path: Path, reade
 
 
 @pytest.fixture(scope="module")
-def shared_sandboxed(tmp_path_factory, shared_reader_browser):
+def shared_sandboxed(tmp_path_factory, shared_full_chromium_browser):
     """The preview artifact opened once in the scripts-only sandbox, and the errors it raises, for
     the module's checks that only read what its canaries found."""
     errors: list[str] = []
-    _page, frame = open_sandboxed(tmp_path_factory.mktemp("sandboxed"), shared_reader_browser, errors)
+    _page, frame = open_sandboxed(tmp_path_factory.mktemp("sandboxed"), shared_full_chromium_browser, errors)
     return frame, errors
 
 
@@ -81,11 +81,11 @@ def test_canaries_find_what_a_scripts_only_sandbox_limits(shared_sandboxed) -> N
 
 
 @pytest.mark.browser
-def test_a_sandboxed_frame_lists_its_limits_as_warning_notices(tmp_path: Path, reader_browser) -> None:
+def test_a_sandboxed_frame_lists_its_limits_as_warning_notices(tmp_path: Path, full_chromium_browser) -> None:
     from playwright.sync_api import expect
 
     errors: list[str] = []
-    page, frame = open_sandboxed(tmp_path, reader_browser, errors)
+    page, frame = open_sandboxed(tmp_path, full_chromium_browser, errors)
     keys = frame.locator("html").evaluate("() => globalThis.obsCapabilities.limits.map(({key}) => key)")
     icon = frame.locator('[data-header-notices] [data-notice-icon="warning"]')
     expect(icon.locator("[data-notice-count]")).to_have_text(str(len(keys)))
@@ -134,11 +134,11 @@ def test_the_same_artifact_opened_normally_shows_no_notice(tmp_path: Path, reade
     assert errors == []
 
 @pytest.mark.browser
-def test_print_to_pdf_in_a_sandboxed_frame_ends_in_an_inline_message(tmp_path: Path, reader_browser) -> None:
+def test_print_to_pdf_in_a_sandboxed_frame_ends_in_an_inline_message(tmp_path: Path, full_chromium_browser) -> None:
     from playwright.sync_api import expect
 
     errors: list[str] = []
-    _page, frame = open_sandboxed(tmp_path, reader_browser, errors)
+    _page, frame = open_sandboxed(tmp_path, full_chromium_browser, errors)
     frame.locator("[data-menu-button]").click()
     frame.locator('[data-dock-bar="settings"]').first.click()
     frame.locator("[data-export-pdf]").click()
