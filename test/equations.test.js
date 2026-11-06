@@ -10,7 +10,8 @@ const path = require("node:path");
 const vm = require("node:vm");
 
 const root = path.resolve(__dirname, "..");
-vm.runInThisContext(fs.readFileSync(path.join(root, "maths", "node_modules", "mathjs", "lib", "browser", "math.js"), "utf8"));
+// The maths library as the package ships it, built from maths/package-lock.json (hatch_build.py).
+vm.runInThisContext(fs.readFileSync(path.join(root, "src", "obs_html", "vendor", "maths", "math.js"), "utf8"));
 vm.runInThisContext(fs.readFileSync(path.join(root, "src", "obs_html", "equations.js"), "utf8"));
 
 const document = JSON.parse(fs.readFileSync(path.join(__dirname, "fixtures", "documents", "equations.json"), "utf8"));
