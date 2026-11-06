@@ -637,6 +637,11 @@ VAULTS = {"figures": figures, "equations": equations, "document": document, "com
 RUNS_COMMANDS = {"document"}
 EMBEDS_SOURCE = {"source-archive"}
 """The vaults the build archives (obs-document --embed-source)."""
+FIXTURE_BUILD = {"repository": "https://github.com/mb-89/obs", "commit": "0" * 40,
+                 "lockfiles": {"uv.lock": {"obs": "0.0.0"}},
+                 "arguments": ["--adapter", "html", "--destination", "document.html", "--embed-source"]}
+"""The build record an archived fixture Document carries in place of the core's: the core records
+the commit it runs from, which no committed file can hold, and this build runs without --adapter."""
 """The vaults whose cmd fences the build runs (obs-document --execute-commands): ``echo`` only."""
 DIAGNOSED = {"document", "complete", "artifact-change"}
 """The vaults whose Document keeps its diagnostics: those name vault notes only, never the build
@@ -686,6 +691,10 @@ def build(core: Path, names: list[str], output: Path, offline: bool = False) -> 
                 refused[name] = "\n".join(line for line in (result.stderr or result.stdout).splitlines()
                                           if line.strip() and not line.startswith("warning:"))
                 return
+            if name in EMBEDS_SOURCE:
+                built = json.loads(document.read_text(encoding="utf-8"))
+                built["sourceArchive"]["build"] = FIXTURE_BUILD
+                document.write_text(json.dumps(built, indent=2) + "\n", encoding="utf-8")
             diagnostics = json.loads(document.read_text(encoding="utf-8"))["diagnostics"]
             if diagnostics and (name not in DIAGNOSED or any(str(work) in item["message"] for item in diagnostics)):
                 refused[name] = (f"the {name} Document has diagnostics {diagnostics}, which a committed "

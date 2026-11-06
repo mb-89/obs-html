@@ -45,6 +45,15 @@ Until the cutover, the interim adapter stays in `src/obs_html_interim` with the 
 `obs-html-interim`; `obs-html` names the integrated adapter. The integrated adapter's parity
 gate compares its artifact against the interim one built in the same tree.
 
+### Known differences from the interim
+
+The differences the parity checks expect on purpose:
+
+- The source archive refers to the generator instead of copying it: no `generator/` folder, and
+  `build-config.json` and `reproduce.py` name obs's repository and commit
+  ([[input-model#Optional reproduction archive]]). The archive is a source reproduction bundle,
+  not an offline machine, and obs is public at every commit.
+
 ## Interim validation
 
 During the transition, the interim adapter (`obs-html-interim`) retains its existing parsing and rendering code and

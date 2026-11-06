@@ -245,6 +245,22 @@
         "path": "pixel.png",
         "asset": "pixel-png"
       }
-    ]
+    ],
+    "build": {
+      "repository": "https://github.com/mb-89/obs",
+      "commit": "0000000000000000000000000000000000000000",
+      "lockfiles": {
+        "uv.lock": {
+          "obs": "0.0.0"
+        }
+      },
+      "arguments": [
+        "--adapter",
+        "html",
+        "--destination",
+        "document.html",
+        "--embed-source"
+      ]
+    }
   }
 }
