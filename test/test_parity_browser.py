@@ -478,3 +478,52 @@ def test_the_sweep_reaches_a_self_link_whose_lines_lie_on_either_side_of_the_rea
     assert [result["chapter"] for result in results] == ["long", "short"]
     assert [fault for result in results for fault in result["faults"]] == []
     assert errors == []
+
+
+@pytest.mark.browser
+def test_the_sweep_reaches_a_control_an_earlier_scroll_brought_into_view(tmp_path: Path, coverage_browser) -> None:
+    """After a scroll the sweep looks again only at controls the scroll can have brought into view;
+    one it brought there is still reached where it then stands. Button E, far down the chapter,
+    is scrolled to the middle, under a cover; that scroll brings button B, below it in an
+    absolutely positioned box (as the review gutter's buttons are), into view uncovered, so B is
+    reached there. Scrolled to the middle itself, B would be under the cover too."""
+    from documents import chapter, document, heading, paragraph
+    from obs_html.config import load_config
+    from obs_html.render import render
+
+    artifact = render(document("Sweep", chapter("one", "One", heading(1, "One"), paragraph("Text."))),
+                      load_config())
+    errors: list[str] = []
+    page, frame = open_preview(tmp_path, coverage_browser, errors, artifact, "null-origin")
+    try:
+        frame.evaluate("""() => {
+            const open = obsArtifact.activateChapter;
+            obsArtifact.activateChapter = async (...request) => {
+                const opened = await open(...request);
+                document.querySelector("[data-chapter-body]").insertAdjacentHTML("beforeend",
+                    '<div style="height:2000px"></div>' +
+                    '<button style="display:block;width:120px" aria-label="E">E</button>' +
+                    `<div style="height:${innerHeight * 0.3}px"></div>` +
+                    '<div style="position:relative;height:24px"><div style="position:absolute;top:0;left:0">' +
+                    '<button style="display:block;width:120px" aria-label="B">B</button></div></div>' +
+                    '<div style="height:2000px"></div>');
+                const box = document.querySelector('[aria-label="E"]').getBoundingClientRect();
+                if (!document.querySelector(".cover")) {
+                    const cover = document.createElement("div");
+                    cover.className = "cover";
+                    cover.setAttribute("aria-label", "Cover");
+                    Object.assign(cover.style, {position: "fixed", left: `${box.left - 4}px`,
+                        top: `${innerHeight / 2 - 60}px`, width: `${box.width + 8}px`, height: "120px",
+                        zIndex: "2147483647"});
+                    document.body.append(cover);
+                }
+                return opened;
+            };
+        }""")
+        results = frame.locator("html").evaluate(COVERAGE.read_text(encoding="utf-8"),
+                                                 {"views": ["continuous"], "layouts": [None], "firstChapterLayouts": []})
+    finally:
+        page.close()
+    faults = [(fault["control"], fault["covering"]) for result in results for fault in result["faults"]]
+    assert faults == [('button "E"', 'div.cover "Cover"')], faults
+    assert errors == []
