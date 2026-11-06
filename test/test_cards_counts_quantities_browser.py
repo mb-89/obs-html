@@ -22,7 +22,16 @@ SERVICES = [("one", "a", "yes", "yes", "north"), ("two", "b", "no", "no", "south
 
 
 def _record(identifier: str, fields: dict, path: str = "", **extra: object) -> dict:
-    return {"id": identifier, "type": "note", "path": path or f"{identifier}.md", "fields": fields, **extra}
+    quantity = {"quantity": _quantity_of(fields)} if fields.get("kind") == "quantity" else {}
+    return {"id": identifier, "type": "note", "path": path or f"{identifier}.md", "fields": fields,
+            **quantity, **extra}
+
+
+def _quantity_of(metadata: dict) -> dict:
+    """A quantity as the core emits it (obs capabilities/quantities#Document node); these use mm or none."""
+    if "value" not in metadata:
+        return {"unit": "", "dimension": {}}
+    return {"value": metadata["value"], "unit": "mm", "siValue": metadata["value"] / 1000, "dimension": {"length": 1}}
 
 
 def _services(*extra: tuple[str, str, str, str, str]) -> list[dict]:
@@ -41,7 +50,7 @@ def _cards(*cards: dict, bodies: tuple[list[dict], ...] = ()) -> dict:
 
 
 def _quantity(identifier: str, title: str, metadata: dict) -> dict:
-    content = [node("quantities", metadata=metadata)]
+    content = [node("quantities", metadata=metadata, quantity=_quantity_of(metadata))]
     if "query" in metadata:
         content += [node("queries", query=metadata["query"]), node("count-query", query=metadata["query"])]
     result = chapter(identifier, title, *content, metadata=metadata)
