@@ -901,7 +901,23 @@
       "path": "a-point.md",
       "fields": {
         "kind": "point"
-      }
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "kind"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "point"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "b-point",
@@ -909,7 +925,23 @@
       "path": "b-point.md",
       "fields": {
         "kind": "point"
-      }
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "kind"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "point"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "c-point",
@@ -917,7 +949,23 @@
       "path": "c-point.md",
       "fields": {
         "kind": "point"
-      }
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "kind"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "point"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "d-point",
@@ -925,7 +973,23 @@
       "path": "d-point.md",
       "fields": {
         "kind": "point"
-      }
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "kind"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "point"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "datum",
@@ -935,7 +999,51 @@
         "kind": "glossary",
         "term": "Datum",
         "definition": "A reference."
-      }
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "kind"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "glossary"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "term"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Datum"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "definition"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "A reference."
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "manifest",
@@ -955,25 +1063,128 @@
             "change": "Second"
           }
         ]
-      }
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "title"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Registers"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "status"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "draft"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "history.0.version"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "1"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "history.0.date"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "2026-01-01"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "history.0.change"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "First"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "history.1.version"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "2"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "history.1.change"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Second"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "points",
       "type": "note",
       "path": "points.md",
-      "fields": {}
+      "fields": {},
+      "fieldNodes": []
     },
     {
       "id": "second",
       "type": "note",
       "path": "second.md",
-      "fields": {}
+      "fields": {},
+      "fieldNodes": []
     },
     {
       "id": "types",
       "type": "note",
       "path": "types.md",
-      "fields": {}
+      "fields": {},
+      "fieldNodes": []
     },
     {
       "id": "chapter-points",

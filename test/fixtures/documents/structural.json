@@ -491,13 +491,88 @@
           "plain"
         ],
         "count": 3
-      }
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "owner.name"
+          },
+          "children": [
+            {
+              "type": "emphasis",
+              "attrs": {},
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "Ada"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": " "
+            },
+            {
+              "type": "strong",
+              "attrs": {},
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "Lovelace"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "tags.0"
+          },
+          "children": [
+            {
+              "type": "strikethrough",
+              "attrs": {},
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "old"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "tags.1"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "plain"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "manifest",
       "type": "note",
       "path": "manifest.md",
-      "fields": {}
+      "fields": {},
+      "fieldNodes": []
     },
     {
       "id": "chapter-formatting",
