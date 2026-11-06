@@ -40,6 +40,7 @@
         "guidedCard",
         "dataCompression",
         "reading",
+        "figureReferences",
         "figures",
         "printReadyTimeoutMilliseconds",
         "print",
@@ -100,6 +101,19 @@
             "pingCount",
             "pingScale"
           ]
+        },
+        "figureReferences": {
+          "description": "How adjacent unlabelled figure references merge (obs input-model, Figure captions and references).",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["conjunctions"],
+          "properties": {
+            "conjunctions": {
+              "description": "The words that, besides whitespace and a comma, may separate references that merge into one plural reference.",
+              "type": "array", "minItems": 1, "uniqueItems": true,
+              "items": {"type": "string", "pattern": "^\\S+$", "maxLength": 32}
+            }
+          }
         },
         "figures": {
           "$ref": "#/$defs/figures",
