@@ -672,7 +672,7 @@
             metadata["sap number"],
         ].filter(Boolean).join(" · ");
         const lines = [
-            `# Comments — ${identity || "Untitled document"}`,
+            `# Comments — ${identity || "Untitled"}`,
             "",
             `Root comments: ${data.annotations.length}`,
         ];
@@ -1108,7 +1108,7 @@
             gutter.dataset.reviewGutter = "";
             gutter.setAttribute("aria-label", `Review item: ${state}`);
 
-            const modifiers = "; Shift-click: waiting items in section/chapter; Ctrl+Shift-click: waiting items in document";
+            const modifiers = "; Shift-click: waiting items in section/chapter; Ctrl+Shift-click: all waiting items";
             const decide = (state, event) => {
                 if (event.shiftKey && event.detail !== 0) {
                     setBatchDecision(chapter, item.id, state, targetForElement(item.element), event.ctrlKey);
@@ -1245,7 +1245,7 @@
             const picker = globalThis.showSaveFilePicker
                 ? globalThis.showSaveFilePicker({
                     suggestedName: reviewedFilename(),
-                    types: [{description: "HTML document", accept: {"text/html": [".html"]}}],
+                    types: [{description: "HTML file", accept: {"text/html": [".html"]}}],
                 }).then(handle => ({handle}), error => ({error}))
                 : null;
             await globalThis.obsHtmlReady;

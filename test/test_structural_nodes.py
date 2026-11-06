@@ -145,7 +145,7 @@ def test_the_notice_center_shows_one_limited_function_warning_per_unknown_type(t
     expect(entries).to_have_count(1)
     expect(entries.first).to_have_attribute("data-notice", "capability-node-sparkle")
     expect(entries.first.locator("[data-notice-title]")).to_have_text(
-        'Limited functionality: Document node type "sparkle"')
+        'Limited functionality: Node type "sparkle"')
     expect(entries.first.locator("[data-notice-details]")).to_contain_text("obs-html (src/obs_html/render.py)")
     assert page.locator('[data-notice-list="error"] [data-notice]').count() == 0
     assert errors == []

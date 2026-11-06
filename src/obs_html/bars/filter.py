@@ -4,7 +4,7 @@ from obs_html.bars._query import render_query_input
 
 def render() -> str:
     return (
-        f'{render_query_input("filter", "Filter document")}'
+        f'{render_query_input("filter", "Filter")}'
         '<p class="filter-status" data-filter-status aria-live="polite">All chapters.</p>'
         '<div class="filter-browser" data-filter-browser>'
         '<section class="filter-browser-section" data-filter-presets-section hidden>'
@@ -23,7 +23,7 @@ BAR = BarDefinition(
     key="filter",
     label="Filter",
     icon="filter",
-    help="Filter document content",
+    help="Filter the content",
     order=20,
     render=render,
 )
