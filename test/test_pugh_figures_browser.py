@@ -59,11 +59,15 @@ class Reader:
             self.page.wait_for_selector(f"#{anchor}.figure-pugh-ready")
 
     def view(self, anchor: str) -> dict:
-        """What the figure shows: winner, totals and columns by letter, changed cells, Raised, tabs, option."""
+        """What the figure shows: its parts in order, the options list, winner, totals and columns by
+        letter, the Wins and Losses counts, changed cells, and each tab with its badge."""
         return self.page.evaluate("""anchor => {
             const figure = document.getElementById(anchor);
             const number = text => Number(text.replace('\\u2212', '-').replace('\\u00d7', '').trim());
             return {
+                order: [...figure.querySelector('.pugh-figure-view').children].map(part => part.dataset.pughPart || 'panel'),
+                options: [...figure.querySelectorAll('.pugh-option-list [data-pugh-option]')].map(item =>
+                    [item.dataset.pughOption, item.querySelector('details').open]),
                 winner: figure.dataset.pughWinner,
                 totals: Object.fromEntries([...figure.querySelectorAll('[data-pugh-total]')]
                     .map(cell => [cell.dataset.pughTotal, number(cell.textContent)])),
@@ -71,14 +75,18 @@ class Reader:
                 marked: [...figure.querySelectorAll('thead .pugh-winner')].map(cell => cell.dataset.pughOption),
                 criteria: [...figure.querySelectorAll('[data-pugh-criterion]')].map(row => row.dataset.pughCriterion),
                 texts: [...figure.querySelectorAll('[data-pugh-texts]')].map(row => row.dataset.pughTexts),
+                counts: Object.fromEntries([...figure.querySelectorAll('[data-pugh-texts]')].map(row => [row.dataset.pughTexts,
+                    Object.fromEntries([...row.querySelectorAll('[data-pugh-count]')].map(count =>
+                        [count.dataset.pughCount, count.textContent.trim()]))])),
                 changed: [...figure.querySelectorAll('.pugh-changed')].map(node =>
                     node.dataset.pughMark || node.dataset.pughWeight),
                 verdict: figure.querySelector('[data-pugh-verdict]')?.dataset.pughVerdict,
-                raised: [...figure.querySelectorAll('[data-pugh-raised]')].map(item => item.dataset.pughRaised),
                 tabs: [...figure.querySelectorAll('[data-pugh-tab]')].map(tab =>
-                    [tab.dataset.pughTab, tab.getAttribute('aria-selected'), tab.disabled]),
-                option: figure.querySelector('.pugh-option-count')?.textContent,
+                    [tab.dataset.pughTab, tab.getAttribute('aria-selected'), tab.disabled,
+                     tab.querySelector('[data-tab-badge]')?.dataset.tabBadge ?? null]),
                 unless: figure.querySelector('[data-pugh-unless]')?.dataset.pughUnless,
+                chosen: figure.querySelector('[data-pugh-chosen]')?.dataset.pughChosen,
+                flagged: figure.querySelector('[data-pugh-tab="sensitivity"]').getAttribute('aria-label'),
             };
         }""", anchor)
 
@@ -126,35 +134,32 @@ def test_the_page_decides_ctrls_test_vectors_and_the_matrix_tab_shows_the_decisi
     assert view["columns"] == ["A", "B", "C", "D"] and view["marked"] == ["C"]
     assert view["verdict"] == expected["verdict"]
     assert view["criteria"] == ["err", "speed", "cost"] and view["texts"] == ["wins", "losses"]
-    # Raised: the failed checklist item (it names no option, so no Checklist row) and the chosen B's world.
-    assert view["raised"] == ["checklist", "chosen"]
-    assert view["tabs"] == [["matrix", "true", False], ["checklist", "false", False], ["whatif", "false", False]]
-    assert view["option"] == "Option A of 4"
+    # Top to bottom: the options, one line each and closed; the winner line; the tabs (artifact-ui.md, Decision figures).
+    assert view["order"][:3] == ["options", "winner", "tabs"] and set(view["order"][3:]) == {"panel"}
+    assert view["options"] == [[letter, False] for letter in "ABCD"]
+    # Wins and losses are counts in the matrix, their texts on hover or tap.
+    assert view["counts"] == {"wins": {"A": "1", "C": "1"}, "losses": {"B": "2"}}
+    # The badges replace the Raised list: the failed checklist item (it names no option, so no Checklist
+    # row) is counted on the Checklist tab, and the chosen B, not the winner, flags Sensitivity.
+    assert view["tabs"] == [["matrix", "true", False, None], ["checklist", "false", False, "1"],
+                            ["sensitivity", "false", False, "flag"], ["pareto", "false", True, None]]
+    # The chosen B's world, which the Raised list showed, is the Sensitivity tab's second line.
+    assert view["chosen"] == "B"
     wide = reader.view(WIDE)
-    assert wide["criteria"][-1] == "checklist" and wide["raised"][0] == "checklist"
+    assert wide["criteria"][-1] == "checklist" and wide["tabs"][1] == ["checklist", "false", False, "1"]
     assert reader.page.evaluate("""() => [...document.querySelectorAll(
         '#decisions--block-wide [data-pugh-criterion="checklist"] [data-pugh-mark]')].map(cell => cell.textContent)""") \
         == ["S"] * 8 + ["−"] * 2
     reader.clean()
 
 
-def test_the_reader_walks_the_options_changes_weights_and_marks_and_rules_a_world(artifact, reader_browser) -> None:
+def test_the_reader_expands_an_option_changes_weights_and_marks_and_rules_a_world(artifact, reader_browser) -> None:
     reader = Reader(reader_browser, artifact)
     page, figure = reader.page, reader.page.locator(f"#{OPTION}")
     tie = SMALL_WITH_C["expected"]["ties"]["A"]
 
-    figure.locator(".pugh-next").click()
-    card = figure.locator(".pugh-option")
-    card.focus()
-    page.keyboard.press("ArrowRight")
-    walked = reader.view(OPTION)["option"]
-    box = card.bounding_box()
-    page.mouse.move(box["x"] + box["width"] * 0.7, box["y"] + box["height"] / 2)
-    page.mouse.down()
-    page.mouse.move(box["x"] + box["width"] * 0.2, box["y"] + box["height"] / 2, steps=4)
-    page.mouse.up()
-    swiped = reader.view(OPTION)["option"]
-    chapter = page.evaluate("document.querySelector('[data-active-chapter]').dataset.chapter")
+    figure.locator('.pugh-option-list [data-pugh-option="B"] summary').click()
+    expanded = figure.locator('.pugh-option-list [data-pugh-option="B"]').inner_text()
 
     reader.weigh(tie["criterion"], tie["to"] + 0.1)
     before = reader.view(OPTION)
@@ -168,13 +173,13 @@ def test_the_reader_walks_the_options_changes_weights_and_marks_and_rules_a_worl
         book.append(copy);
         await obsFigures.preparePrint(book);
         return {fields: copy.querySelectorAll('input, button.pugh-mark-button, [role=tab]').length,
-                options: copy.querySelectorAll('.pugh-option-list dt').length,
+                options: [...copy.querySelectorAll('.pugh-option-list details')].filter(item => item.open).length,
                 caption: copy.querySelector('figcaption').textContent};
     }""", OPTION)
     figure.locator(".pugh-view .pugh-reset").click()
     reset = reader.view(OPTION)
 
-    figure.locator('[data-pugh-tab="whatif"]').click()
+    figure.locator('[data-pugh-tab="sensitivity"]').click()
     unless = reader.view(OPTION)["unless"]
     figure.locator('[data-pugh-world="B"] [data-pugh-ruling="could"]').click()
     tripwire = figure.locator('[data-pugh-tripwire="B"]')
@@ -183,15 +188,20 @@ def test_the_reader_walks_the_options_changes_weights_and_marks_and_rules_a_worl
     figure.locator('[data-pugh-tab="matrix"]').click()
     ruled = reader.view(OPTION)
 
-    assert (walked, swiped, chapter) == ("Option C of 4", "Option D of 4", "decisions")
+    # Expanding an option shows its sentence, wins and losses; the option stays open while the figure redraws.
+    assert expanded.splitlines()[0] == "B · Precise" and "Precise but dear." in expanded
+    assert "A new licence" in expanded and "Training" in expanded
     assert before["winner"] == "C" and before["changed"] == [tie["criterion"]]
-    assert after["winner"] == "B" and "chosen" not in after["raised"]
+    assert before["options"][1] == ["B", True]
+    # With B the winner the chosen option wins, so only the weights' closeness flags Sensitivity.
+    assert before["flagged"] == "Sensitivity, the choice depends on the weights; the chosen option does not win"
+    assert after["winner"] == "B" and after["flagged"] == "Sensitivity, the choice depends on the weights"
     assert marked["winner"] == "C" and marked["totals"]["B"] == -2 * 3 + 0 - 1
     assert sorted(marked["changed"]) == ["B:err", tie["criterion"]]
     assert printed == {"fields": 0, "options": 4, "caption": "The option decision. View changed by the reader."}
     assert reset["winner"] == "C" and reset["changed"] == []
     assert unless == "B"
-    assert ruled["raised"] == ["checklist", "world-B", "chosen"]
+    assert ruled["tabs"][2] == ["sensitivity", "false", False, "flag"]
     assert page.evaluate("obsPugh.readerState()") == {OPTION: {
         "weights": {}, "marks": {}, "rulings": {"B": {"ruling": "could",
                                                             "tripwire": "Error rates matter less than speed"}},

@@ -1613,6 +1613,31 @@ math {
     opacity: 0.55;
 }
 
+/* A tab's badge (artifact-ui.md, Tab badges): a count, as a messenger shows messages pending, or a
+   flag, a dot; the tab's accessible name says it. */
+.data-table-detail-tabs .tab-badge {
+    background: var(--color-warning);
+    border-radius: 0.7rem;
+    color: var(--color-canvas);
+    display: inline-block;
+    font-size: 0.75em;
+    font-weight: 600;
+    line-height: 1.4;
+    margin-inline-start: 0.35em;
+    min-inline-size: 1.4em;
+    padding-inline: 0.3em;
+    text-align: center;
+    vertical-align: 0.1em;
+}
+
+.data-table-detail-tabs .tab-badge-flag {
+    block-size: 0.55em;
+    min-inline-size: 0;
+    padding: 0;
+    inline-size: 0.55em;
+    vertical-align: 0.2em;
+}
+
 .data-table-detail-panel {
     grid-area: 1 / 1;
     min-width: 0;

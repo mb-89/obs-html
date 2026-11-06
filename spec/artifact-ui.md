@@ -489,31 +489,66 @@ only in an artifact that holds a decision figure: it is the reader feature `pugh
 
 Every option carries its letter, A, B, C and on in the order the fence lists them, wherever the
 figure names it, its label and its short name (obs input-model, Pugh decision figures). Where
-there is room, an option reads as its letter and short name, "B · Close": in the option view, the
-table's column heads, the bottom line, the Raised list, the What if lines and an answer's record.
-Without a short name the letter stands alone. The figure has three tabs in the adapter's tab control
-(the look of a table's detail tabs), Matrix first and shown at the start, then one tab for each
-of its chapter's sections after it ([[#Decision tabs from the chapter]]):
+there is room, an option reads as its letter and short name, "B · Close": in the options list,
+the table's column heads, the winner line, the Sensitivity lines and an answer's record.
+Without a short name the letter stands alone.
 
-- **Matrix:** the bottom line (the winner, its total against the datum, and whether the choice
-  holds or depends on the weights, with the winner's share of the weight draws); under it the
-  Raised list; then the options, one at a time; then the table.
+Decided by the user, 6 Nov 2026 (work issue `feature/decision-figure-layout-20261106`): a decision
+reads top to bottom, and its matrix is compact. The figure shows, in this order (the chapter's
+heading and text come before it):
+
+1. **The options:** a list, one line per option ("A · Keep open"). Expanding an option shows its
+   label where that says more, its `what` sentence, and its wins and losses.
+2. **The winner line:** always visible, outside any tab.
+3. **The tabs**, in the adapter's tab control (the look of a table's detail tabs), Matrix shown
+   at the start, then one tab for each of the chapter's sections after the figure
+   ([[#Decision tabs from the chapter]]).
+
+The tabs:
+
+- **Matrix:** the table, or below `ROWS_BELOW` its rows ([[#Decision figures on a phone]]).
 - **Checklist:** the fence's checklist items, each with its answer, passed or failed, and the
-  letters of the options it fails. Without items the tab is disabled.
-- **What if:** the worlds in which another option wins, which the reader rules.
+  letters of the options it fails; its badge counts the failed items. Without items the tab is
+  disabled.
+- **Sensitivity:** the worlds in which another option wins, which the reader rules (below);
+  flagged where the choice depends on the weights, where a world is ruled "could happen", or
+  where the fence's `chosen` option is not the winner.
+- **Pareto:** its place only, disabled until it has content.
 
-The options view shows one option, "Option A of 5", with its letter and short name, its label in
-full where that says more, and its `what` sentence. The figure says each name once, in this view,
-the options list and a letter's popover alike: where the short name's words are the label's, all
-of them or a run of them ("Two lines" of "Keep two lines"), the label is not shown; without a
-short name it always is (`pugh-figure.js`, `labelAdds`).
-Previous and next keys, the arrow keys while it has focus, and a horizontal swipe move between
-the options; none of them walks the chapters.
+The figure says each name once, in the options list and a letter's popover alike: where the
+short name's words are the label's, all of them or a run of them ("Two lines" of "Keep two
+lines"), the label is not shown; without a short name it always is (`pugh-figure.js`,
+`labelAdds`).
 
-The table has the options as columns, the datum first and the winner marked, an option that does
-not fit greyed with its reasons in its tooltip; the criteria as rows, each with its weight; the
-weighted total; then two text rows, Wins and Losses, the options' own `wins` and `losses`,
-which add nothing to the totals and are said nowhere else.
+The winner line names the winner, its total against the datum, and whether the choice holds or
+depends on the weights, with the winner's share of the weight draws.
+
+#### Tab badges
+
+A tab of the adapter's tab control can carry a badge, as a messenger shows messages pending: a
+count ("Checklist 1") or a flag (a dot), in the tab after its label, and named in the tab's
+accessible name ("Checklist, 1 failed"). A tab without anything to show has no badge.
+
+In a decision figure each tab of `TABS` (`pugh-figure.js`) names its own `badge`, a function of
+the decision that returns a count, a flag with its reason, or nothing; `tabBadge` draws it.
+The Checklist count and the Sensitivity flag use it, and a later tab sets its badge the same way.
+
+#### The decision matrix
+
+The table:
+
+- **The head:** one line per option: its letter, its short name, and "datum" or "winner" as a
+  small mark. The datum comes first. The full label shows on hover, focus or tap, in the same
+  popover as a letter on a phone. An option that does not fit is greyed, its reasons its tooltip.
+- **The rows:** the criteria, each with its weight; the weighted total; then Wins and Losses as
+  counts, the option's own `wins` and `losses` on hover, focus or tap. They add nothing to the
+  totals.
+- **Widths:** the criterion column takes the free width and shows names in full, wrapping only
+  where the names do not fit. Option columns are as narrow as their marks.
+- **Heights:** every data row is one line high, all of one height.
+
+Where the table is wider than the view, it scrolls in its own box, the criterion names held at
+its left.
 
 The Checklist row: a failed item that names options gives each of them a mark of −1 per failed
 item, at most −2, on a row "Checklist" with the fence's `checklistWeight` (3 by default). The row
@@ -525,33 +560,33 @@ The reader changes a weight in its field and a mark by tapping it and choosing �
 decided again at once, and Reset, in the figure and in its options menu, restores the fence's
 values. A changed mark is the engine's own cell override.
 
-What if: its top line is "B wins unless …" with the closest world in which another option wins,
-or "No change of weights makes another option win". Then, for each other option that may win, the
-smallest change of one weight that makes it win ("A wins if Speed weighs below 0.5 instead of
-2"), and the smallest change of all weights together, which weights from what to what. There is
-no band: the reader rules each world "could happen" or "nonsense", and a world that could happen
-asks for a tripwire, a one-line sign to watch for.
+Where the chapter asks for a bless, a last row of the matrix holds a Pick key ("Pick B") under
+each option other than the winner. Where the chapter's answer recorded changes, the figure shows
+them read-only, as print does, and Reset is disabled.
 
-The Raised list, under the bottom line, shows only when it holds something: every failed
-checklist item, every world ruled "could happen" with its tripwire, and, where the fence's
-`chosen` option is not the winner, the world in which it wins, in the same form.
+#### Sensitivity
+
+Its top line is "B wins unless …" with the closest world in which another option wins, or "No
+change of weights makes another option win". Where the fence's `chosen` option is not the
+winner, the next line says so, with the world in which it wins.
+
+Then, for each other option that may win, the smallest change of one weight that makes it win
+("A wins if Speed weighs below 0.5 instead of 2"), and the smallest change of all weights
+together, which weights from what to what. There is no band: the reader rules each world "could
+happen" or "nonsense", and a world that could happen asks for a tripwire, a one-line sign to
+watch for.
 
 The changed weights and marks, the rulings and the tripwires are reader state, kept per figure
 anchor while the artifact is open, and readable by the page as `obsPugh.readerState()`, by figure
 anchor and with options by letter, with the winner they give, for whatever sends a reader's
 verdict ([[#Bless verdicts]]).
 
-Where the chapter asks for a bless, each option's column head other than the winner's has a
-Pick key ("Pick B"). Where the chapter's answer recorded changes, the figure shows them
-read-only, as print does, and Reset is disabled.
-
-Print and PDF show the Matrix tab as the reader left it, the options as a list and the weights
-and marks as text; where weights or marks changed, the caption ends with the note *View changed
-by the reader.*
+Print and PDF show the options list with every option expanded, the winner line and the Matrix
+tab as the reader left it, the weights and marks as text, and Wins and Losses as their texts;
+where weights or marks changed, the caption ends with the note *View changed by the reader.*
 
 Inside its frame the view keeps to the prose around the figure, clear of the chapter controls. A
-page layout draws a decision figure when it places it, so its page holds the whole view. Where
-the table is wider than the view, it scrolls in its own box, the criterion names held at its left.
+page layout draws a decision figure when it places it, so its page holds the whole view.
 
 #### Decision figures on a phone
 
@@ -559,14 +594,15 @@ Decided by the user, 6 Nov 2026 (work issue `feature/decision-figure-on-phones-2
 phone a reader scrolls up and down, never sideways, so the matrix prefers rows over columns.
 
 Below 36 rem of the figure's own width (`ROWS_BELOW` in `pugh-figure.js`; the figure measures
-its frame, not the device), the table becomes rows. Each criterion is two lines:
+its frame, not the device), the table becomes rows, with the figure's order, tabs and badges
+kept. Each criterion is two lines:
 
 - its name over the full width;
 - its weight stepper (−, the weight, +, half a step a tap), then one cell per option, headed by
   the option's letter, the winner's cell marked.
 
-The weighted total follows the same pattern. Wins and Losses list one line per option, letter
-first. The Pick keys sit in one line under the total.
+The weighted total follows the same pattern, and so do Wins and Losses, as counts with the texts
+on tap. The Pick keys sit in one line under them.
 
 A cell takes up to 2.5 rem and gives way to 1.7 rem before its line wraps: five options fit
 beside the stepper in the narrowest figure, at a 360 px phone, and more wrap to a further line.
@@ -595,7 +631,7 @@ figure, named by its heading; "## The record" becomes a tab "The record". `rende
 section into the figure when it renders the chapter, so its text no longer runs below.
 
 The tab's panel carries the heading's anchor, and its deeper headings stay in it. Without such
-sections the figure has its three tabs. Print shows each section under the Matrix tab, headed by
+sections the figure has its four tabs. Print shows each section under the Matrix tab, headed by
 its name.
 
 The heading keeps its place in the chapter's contents. A link to it, or to a place inside its
@@ -718,7 +754,7 @@ dispatcher, 6 Nov 2026 (work issue `fix/decision-figure-follow-ups-20261106`).
 - On touch, a horizontal swipe of at least `artifact.reading.swipePixels` (`cfg.json`), mostly
   across, moves to the previous or next chapter of the walk: the arrows' walk, which the contents
   and the breadcrumbs share. A swipe that starts in a box that scrolls sideways (a wide table, a
-  figure's table) or in a field stays with it; the decision figure's options take their own.
+  figure's table) or in a field stays with it.
 - Scrolling toward the top or bottom boundary reveals the available previous or next chapter
   arrow at full opacity. Wheel, touch and vertical keyboard scrolling do not change chapters
   automatically. Moving away or changing chapters clears the cue; nested scrollers and editors
