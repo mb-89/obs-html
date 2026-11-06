@@ -169,6 +169,7 @@ the gate reads only the code spans.
 | Attachment downloads | Evidence-edition attachments download as the label. | Download shows label, file name, type and size. | known difference | #219 (control text); `adapters/html/test/test_attachment_editions.py::test_clicking_the_evidence_download_saves_the_asset_bytes` |
 | Fast start | The first chapter shows before the rest loads. | The same. | same | `adapters/html/test/test_startup_browser.py::test_the_spec_artifact_shows_its_first_chapter_within_a_second` |
 | No covered control | (The interim has covered controls the sweep counts.) | No control is covered in preview frames. | same | `adapters/html/test/test_parity_browser.py::test_no_control_is_covered_in_preview_frames` |
+| Answers sink | — | The page hands a reader's answers (`obsArtifact.sendAnswers`) to a sink a trusted bundle registers (`obsHtml.answers`), else to `obs-html serve`, else shows them as text with a Copy answers key. | added | `adapters/html/test/test_answers_browser.py::test_the_served_page_posts_its_answers_and_serve_wait_exits_with_them`, `adapters/html/test/test_answers_browser.py::test_a_sink_the_trusted_bundle_registers_takes_the_answers_in_place_of_the_server`, `adapters/html/test/test_answers_browser.py::test_elsewhere_the_answers_are_shown_as_text_with_a_copy_key` |
 
 ## Input and checks
 

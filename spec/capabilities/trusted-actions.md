@@ -17,4 +17,4 @@ namespace (Core and adapter namespaces, Adapter extensions). This adapter's name
 (for obs-html), so its extensions are `obsHtml.<area>`, for example `obsHtml.attachments`.
 
 obs-html's [[capabilities/attachment-replacement|attachment replacement]] note is the example to
-follow.
+follow; [[capabilities/answers|answers]] (`obsHtml.answers`) is the second extension.
