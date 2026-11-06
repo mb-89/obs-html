@@ -38,8 +38,9 @@ Editions:
   Without --embed-attachments, the light edition: a marked attachment (![label](file) or
   ![[file]]) shows its label and vault path. With it, the self-contained evidence edition: the
   attachment is a download of the bytes the Document embeds, with its name, type and size.
-  Images always render from their bytes. The core's obs-document --adapter html builds the light
-  edition.
+  Images always render from their bytes. Through the core, obs-document --adapter html builds the
+  light edition, and with --adapter-option embed-attachments=true (adapter.json declares it) the
+  evidence edition.
 
 Settings:
   --config FILE merges a JSON settings file over the packaged cfg.json, validated by
