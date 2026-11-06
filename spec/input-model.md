@@ -43,8 +43,8 @@ mapping, the same namespace that notes and Bases fences use for obs-html-only op
 core does not read it ([[#Core and adapter namespaces]]).
 
 Obsidian keeps it as ordinary frontmatter, so the author edits it in Properties or source.
-The adapter's packaged profile schema (the interim's `note-profile.schema.json`, obs-html's
-`profile.schema.json`) constrains it and owns the defaults; the converter
+The adapter's packaged profile schema, `profile.schema.json`, constrains it and owns the
+defaults; the converter
 contains no front-page titles, labels or opening mode of its own.
 
 ```yaml
@@ -259,8 +259,8 @@ arguments name no `--adapter` was written by a call without one, so no recorded 
 the artifact: that is an input error naming `sourceArchive.build.arguments`, whose remedy is the
 one-call build.
 
-The generator's package source, project manifest, lockfile, README and wrappers
-that the interim copies into `generator/` are not carried; that difference from the interim is
+The generator's package source, project manifest, lockfile, README and wrappers, which the
+interim adapter copied into `generator/`, are not carried; that difference from the interim is
 listed in [[architecture#Known differences from the interim]].
 
 It discloses the selected vault's explicit directory snapshot, including scripts/data not
@@ -782,7 +782,7 @@ An `obs.members` entry's `label` is exposed only as the derived `obsHtml.label` 
 
 Artifact-specific Base behavior is permitted only under `obsHtml`.
 
-The interim adapter evaluates Bases filters in Python too, until its cutover. The browser evaluates
+The core evaluates Bases filters in Python when it builds the Document. The browser evaluates
 again because readers can edit Base definitions and canonical values in the open HTML; the
 browser Query view reports an unsupported filter as invalid.
 

@@ -13,10 +13,11 @@ uv run obs-html --help
 uv run pytest
 ```
 
-Integrations also run the parity gate against the interim reference; its module docstring is
-its reference: `uv run pytest test/test_parity_browser.py`.
-[test/parity/features.md](test/parity/features.md) lists every interim feature and its status here;
-its gate, `test/parity/test_parity_table.py`, says what each status needs.
+The spec artifact's reading checks hold the rows of features.md that name them; the module
+docstring is their reference: `uv run pytest test/test_parity_browser.py`.
+[test/parity/features.md](test/parity/features.md) lists every feature of this adapter and how it
+differs from the interim adapter it replaced; its gate, `test/parity/test_parity_table.py`, says
+what each status needs.
 
 ## Browser tests
 

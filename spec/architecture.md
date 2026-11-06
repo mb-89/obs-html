@@ -1,6 +1,6 @@
 # HTML architecture
 
-Reader: whoever changes how the HTML adapter, or the interim adapter it replaces, renders and runs.
+Reader: whoever changes how the HTML adapter renders and runs.
 
 obs's architecture, part of obs's specification, owns the flow from vault to Document, the
 repository layout and the Document-adapter contract. This note owns the HTML adapter's rendering
@@ -48,24 +48,16 @@ adapter's one message form: the baseline file, `stages.<stage>`, the stage's tim
 and the remedy. It never fails the call.
 
 Either threshold alone stays silent, so small stages
-and small absolute changes do not cause noise. The interim adapter keeps its own registry and
-baselines in `src/obs_html_interim` until the cutover.
+and small absolute changes do not cause noise.
 
 ## The interim adapter
 
-Until the cutover, the interim adapter stays in `src/obs_html_interim` with the command
-`obs-html-interim`; `obs-html` names the integrated adapter. The integrated adapter's parity
-gate compares its artifact against the interim one built in the same tree.
+The interim adapter, which built artifacts directly from a vault, was deleted once the
+integrated adapter reached parity with it (obs#3); `obs-html` is the only HTML adapter.
 
 ### Known differences from the interim
 
 The [parity table](../test/parity/features.md) owns every difference from the interim adapter.
-
-## Interim validation
-
-During the transition, the interim adapter (`obs-html-interim`) retains its existing parsing and rendering code and
-does not import the core package. The duplicated adapter validation remains the
-compatibility owner until a later Document-rendering cutover removes it.
 
 ## Rendering and runtime
 
@@ -113,7 +105,7 @@ Figures resolve declared canonical graph owners from live records, not a second 
 graph. Cover, authored source links and Settings use one current-archive
 download action; activation resolves bytes from the existing payload owner.
 
-Dockable bars are extension modules discovered from the `obs_html_interim.bars` package. Each
+Dockable bars are extension modules discovered from the `obs_html.bars` package. Each
 module exports one definition containing its key, label, icon, help text, and content
 factory. The renderer derives both menu entries and parked bar markup from those
 definitions; it never keeps a second list. See obs's quality note ([[obs-specification|obs's specification]]).

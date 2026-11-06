@@ -30,19 +30,19 @@ renders its graph in a local allow-scripts iframe sandbox without allow-same-ori
 storage denied and zero network requests. A syntax error in an embedded variant is a build
 failure, not a host limitation; rule it out locally before blaming the host.
 
-Storage implications: current application-level localStorage use is remembered
-appearance (`src/obs_html_interim/bars/settings.js`) and reviewer name
-(`src/obs_html_interim/bars/comments.js`), both already catch access failures.
+Storage implications: application-level localStorage use goes through
+`adapters/html/src/obs_html/storage.js`, which catches access failures; the reviewer name
+(`bars/comments.js`) is stored through it.
 
 Review data is saved in downloaded HTML, not localStorage. In-memory state can support editing
 for the lifetime of the open preview but cannot survive reload. Download/save
 permission in the actual sandbox is not established by Blob URL creation alone;
 test it independently before promising review persistence there.
 
-The current generator emits an empty chapter container and stores chapter HTML in
-a JSON script island; JavaScript populates the visible artifact
-(`src/obs_html_interim/renderer.py:213-214,240`). This affects the entire artifact, not
-only Plotly or CDN-backed diagrams.
+The adapter emits an empty chapter container and stores chapter HTML in a JSON script
+island, the artifact-data island; JavaScript populates the visible artifact
+(`adapters/html/src/obs_html/render.py`). This affects the entire artifact, not only Plotly
+or CDN-backed diagrams.
 
 In Chrome with JavaScript disabled, a generated artifact exposes only the menu icon as
 visible body text. This reproduces an important failure mode locally, but does not prove
