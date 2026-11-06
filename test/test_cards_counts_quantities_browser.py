@@ -22,7 +22,16 @@ SERVICES = [("one", "a", "yes", "yes", "north"), ("two", "b", "no", "no", "south
 
 
 def _record(identifier: str, fields: dict, path: str = "", **extra: object) -> dict:
-    return {"id": identifier, "type": "note", "path": path or f"{identifier}.md", "fields": fields, **extra}
+    quantity = {"quantity": _quantity_of(fields)} if fields.get("kind") == "quantity" else {}
+    return {"id": identifier, "type": "note", "path": path or f"{identifier}.md", "fields": fields,
+            **quantity, **extra}
+
+
+def _quantity_of(metadata: dict) -> dict:
+    """A quantity as the core emits it (obs capabilities/quantities#Document node); these use mm or none."""
+    if "value" not in metadata:
+        return {"unit": "", "dimension": {}}
+    return {"value": metadata["value"], "unit": "mm", "siValue": metadata["value"] / 1000, "dimension": {"length": 1}}
 
 
 def _services(*extra: tuple[str, str, str, str, str]) -> list[dict]:
@@ -41,7 +50,7 @@ def _cards(*cards: dict, bodies: tuple[list[dict], ...] = ()) -> dict:
 
 
 def _quantity(identifier: str, title: str, metadata: dict) -> dict:
-    content = [node("quantities", metadata=metadata)]
+    content = [node("quantities", metadata=metadata, quantity=_quantity_of(metadata))]
     if "query" in metadata:
         content += [node("queries", query=metadata["query"]), node("count-query", query=metadata["query"])]
     result = chapter(identifier, title, *content, metadata=metadata)
@@ -97,28 +106,38 @@ def test_cards_follow_the_global_filter(tmp_path, reader_browser) -> None:
     assert errors == []
 
 
-def test_a_metric_link_filters_the_linked_table(tmp_path, reader_browser) -> None:
-    table_filter = "region:south"
-    link = f"#chapter?tableFilter={quote(table_filter, safe='')}"
+def test_a_metric_drill_down_shows_exactly_its_counted_rows(tmp_path, reader_browser) -> None:
+    """A metric link names its table; its filter derives from the metric's from and where
+    (obs capabilities/cards-metrics), so the table shows exactly the rows the value counts."""
+    north = {"kind": "quantity", "aliases": ["northCount"], "source": "[[chapter]]",
+             "query": {"where": [{"field": "region", "equals": "NORTH"}]}}
+    where = [{"field": "healthy", "equals": "Yes"}]
     cards = _cards({"title": "Coverage", "body": "", "metricStyle": "pills", "metrics": [
-        {"label": "Healthy", "where": [{"field": "healthy", "equals": "yes"}],
-         "denominator": [{"field": "kind", "equals": "service"}], "link": link}]})
+        {"label": "Healthy", "from": "counts/north", "where": where,
+         "denominator": [{"field": "kind", "equals": "service"}], "link": "#chapter"}]})
     spec = {"filters": {"and": ['kind == "service"']},
             "views": [{"type": "table", "name": "Services", "order": ["healthy", "region"]}]}
     source = build("Cards", chapter("chapter", "Chapter", heading(1, "Operations"),
                                     node("bases", source="", spec=spec)),
-                   abstract=(cards,), records=tuple(_services()))
+                   _quantity("counts/north", "North", north), abstract=(cards,),
+                   records=(*_services(("four", "c", "yes", "yes", "south")),
+                            _record("counts/north", north, "counts/north.md")))
     page, errors = _open(tmp_path, reader_browser, source)
     from playwright.sync_api import expect
     page.evaluate("obsPages.setPaged(false); obsArtifact.activateChapter('home')")
     metric = page.locator("[data-active-chapter] .record-metrics--pills .record-metric-value").first
-    expect(metric.locator("strong")).to_have_text("66.7%")
-    expect(metric).to_have_attribute("href", link)
-    expect(metric).to_have_attribute("aria-label", "66.7% Healthy")
+    expect(metric.locator("strong")).to_have_text("100.0%")
+    expression = page.evaluate("obsQuery.conditionsExpression(%s)" % json.dumps(north["query"]["where"] + where))
+    expect(metric).to_have_attribute("href", f"#chapter?tableFilter={quote(expression, safe='')}")
+    counted = page.evaluate("obsRecordMetrics.select({from: 'counts/north', where: %s})"
+                            ".map(record => `note:${record.slug}`).sort()" % json.dumps(where))
+    assert len(counted) == 2
     metric.click()
     table = page.locator('[data-active-chapter] [data-data-table="chapter-base-1"]')
-    expect(table.locator(".data-table-filter").first).to_have_value(table_filter)
-    expect(table.locator("[data-row-key]")).to_have_count(1)
+    expect(table.locator(".data-table-filter").first).to_have_value(expression)
+    expect(table.locator("[data-row-key]")).to_have_count(len(counted))
+    assert sorted(table.locator("[data-row-key]").evaluate_all(
+        "rows => rows.map(row => row.dataset.rowKey)")) == counted
     assert errors == []
 
 
@@ -230,9 +249,19 @@ def test_every_metric_field_and_a_metric_series_count_as_the_interim_runtime_cou
     open (owners ada, lin), b closed (lin); no point has a reviewer. The expectations are the interim runtime's
     (obs cards.js): a denominator makes a percentage, the first matching tone rule wins over the
     tone, a compound value links primary and secondary, a projection counts its own fields,
-    and a series makes one metric per list entry, linked to a table filtered to its label."""
+    and a series makes one metric per list entry, linked to a table filtered to its label. A
+    metric link's filter derives from the conditions the metric counts, a secondary link's from
+    its quantity's (the counts notes' queries in the vault)."""
     document = json.loads((ROOT / "test" / "fixtures" / "documents" / "cards.json").read_text(encoding="utf-8"))
+    queries = {record["path"]: record["fields"]["query"] for record in document["records"]
+               if str(record.get("path", "")).startswith("counts/")}
+    points, open_points = queries["counts/points.md"]["where"], queries["counts/open.md"]["where"]
     page, errors = _open(tmp_path, reader_browser, document)
+
+    def drill_down(link: str, where: list[dict]) -> str:
+        expression = page.evaluate("where => obsQuery.conditionsExpression(where)", where)
+        return f"{link}?tableFilter={quote(expression, safe='')}"
+
     from playwright.sync_api import expect
     page.evaluate("obsPages.setPaged(false); obsArtifact.activateChapter('overview')")
     cards = page.locator("[data-active-chapter] [data-record-card]")
@@ -243,13 +272,15 @@ def test_every_metric_field_and_a_metric_series_count_as_the_interim_runtime_cou
     share = metrics.locator("[data-record-metric='0']")
     expect(share).to_have_class("record-metric record-metric--warning")
     expect(share.locator(".record-metric-value")).to_have_text("66.7%")
-    expect(share.locator(".record-metric-value")).to_have_attribute("href", "#target")
+    expect(share.locator(".record-metric-value")).to_have_attribute(
+        "href", drill_down("#target", [{"field": "status", "equals": "open"}]))
     compound = metrics.locator("[data-record-metric='1']")
     expect(compound).to_have_class("record-metric record-metric--negative")
     expect(compound.locator(".record-metric-value")).to_have_text("3 (2)")
     expect(compound.locator("[data-quantity-reference]")).to_have_count(2)
     assert compound.locator("[data-quantity-reference]").evaluate_all(
-        "links => links.map(link => link.getAttribute('href'))") == ["#overview", "#target"]
+        "links => links.map(link => link.getAttribute('href'))") == [
+        drill_down("#overview", points), drill_down("#target", points + open_points)]
     reviewed = metrics.locator("[data-record-metric='2']")
     expect(reviewed).to_have_class("record-metric record-metric--positive")
     expect(reviewed.locator(".record-metric-value")).to_have_text("2")

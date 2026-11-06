@@ -144,3 +144,12 @@ def test_reader_facing_text_and_error_rules_are_stated_once() -> None:
         assert flat.count(rule) == 1
     for label in ('"Search"', '"Filter"', '"Untitled"'):
         assert label in section
+
+
+def test_artifact_ui_names_the_runtime_selection_resolver() -> None:
+    """obs's quality note leaves the runtime's selection resolver to the adapter's specification."""
+    artifact_ui = (ROOT / "spec" / "artifact-ui.md").read_text(encoding="utf-8")
+    rule = next(paragraph for paragraph in artifact_ui.split("\n\n") if "selection resolver" in paragraph)
+    assert "`obsQuery.propertyTexts`" in rule
+    for consumer in ("count", "distinct", "drill-down"):
+        assert consumer in rule

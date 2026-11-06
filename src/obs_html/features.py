@@ -8,11 +8,18 @@ scripts that hold its own code and controls (beyond the reader's shared scripts)
 ``canaries/<key>.js``, which declares the feature's name, why a host blocks it, the remedy and the
 probe that capabilities.js runs. The renderer includes a feature's code and canary only when its
 condition holds, so a feature the Document does not use has no code, control, canary or notice.
+A figure kind that needs a host ability or a library names the feature's key in its
+FigureKind.features (figures.py); the feature's condition reads those declarations, so the kind
+registry has no inclusion mechanism of its own. A library the renderer delivers itself (the
+plotting library, by artifact.figures.plotlyDelivery) ships exactly where its feature is included.
 """
 from __future__ import annotations
 
 from dataclasses import dataclass
+import re
 from typing import Callable
+
+from .figures import FIGURE_KINDS
 
 
 @dataclass(frozen=True)
@@ -61,6 +68,18 @@ def _floating_window(model: dict, trusted_runtime: bool) -> bool:
         for note in model["notes"])
 
 
+FIGURE_KIND = re.compile(r'data-figure-kind="([a-z][a-z0-9-]*)"')
+
+
+def _figures_need(key: str) -> Callable[[dict, bool], bool]:
+    """Whether a figure of the artifact is of a kind that declares the feature ``key`` (figures.py,
+    FigureKind.features): a figure kind needs a host ability or a library only through here."""
+    def included(model: dict, _trusted_runtime: bool) -> bool:
+        kinds = {kind for note in model["notes"] for kind in FIGURE_KIND.findall(note["html"])}
+        return any(key in FIGURE_KINDS[kind].features for kind in kinds if kind in FIGURE_KINDS)
+    return included
+
+
 FEATURES: tuple[Feature, ...] = (
     Feature("history", "always: every chapter has an address", _always),
     Feature("storage", "always: reader settings are kept", _always),
@@ -70,6 +89,8 @@ FEATURES: tuple[Feature, ...] = (
     Feature("clipboard", "always: the Comments bar offers Copy comments", _always),
     Feature("popups", "a guided card, a note a link opens as context, or a trusted runtime",
             _floating_window, ("guided-card.js",)),
+    Feature("plotting", "a figure of a kind that needs the plotting library (figures.py, FIGURE_KINDS): "
+            "a stored-data plot", _figures_need("plotting")),
 )
 
 

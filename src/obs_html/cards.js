@@ -14,22 +14,28 @@
     owners ||= new Map(artifact.records.map(record => [record.sourcePath, record]));
     return owners.get(path);
   }
-  function select(query, projectionKey = "", visiting = new Set()) {
+  // A query's conditions: those of its from chain, then its own where. Its count and its
+  // drill-down both read them, so a drill-down shows exactly the counted rows.
+  function conditionChain(query, visiting = new Set()) {
+    if (!query.from) return query.where || [];
+    if (visiting.has(query.from)) throw new Error(`Count query reference cycle: ${query.from}`);
+    const source = owner(`${query.from}.md`)?.frontmatter.query;
+    if (!source || !Array.isArray(source.where)) throw new Error(`Missing count query owner: ${query.from}`);
+    return [...conditionChain(source, new Set([...visiting, query.from])), ...(query.where || [])];
+  }
+  // A metric link names its table; its table filter derives from the query it counts
+  // (obs capabilities/cards-metrics), which is why the core refuses a hand-written one.
+  const drillDown = (link, query) => `${link}?tableFilter=${
+    encodeURIComponent(globalThis.obsQuery.conditionsExpression(conditionChain(query)))}`;
+  function select(query, projectionKey = "") {
     // An ignored note is never counted (artifact.js, selectable); an explicit owner still resolves.
     population ||= artifact.records.filter(record => artifact.selectable(record) && artifact.matchesFilter(record));
     const cacheKey = JSON.stringify([projectionKey, query.from || "", query.where]);
     if (selections.has(cacheKey)) return selections.get(cacheKey);
-    let upstream = population;
-    if (query.from) {
-      if (visiting.has(query.from)) throw new Error(`Count query reference cycle: ${query.from}`);
-      const source = owner(`${query.from}.md`)?.frontmatter.query;
-      if (!source || !Array.isArray(source.where)) throw new Error(`Missing count query owner: ${query.from}`);
-      upstream = select(source, projectionKey, new Set([...visiting, query.from]));
-    }
     const projection = projections.get(projectionKey);
     // Conditions match as every other artifact selection does (query.js, compileConditions).
-    const conditions = globalThis.obsQuery.compileConditions(query.where);
-    const result = upstream.filter(record => {
+    const conditions = globalThis.obsQuery.compileConditions(conditionChain(query));
+    const result = population.filter(record => {
       const fields = projection?.[record.sourcePath];
       return conditions.match(fields ? {...record, frontmatter: {...record.frontmatter, ...fields}} : record);
     });
@@ -49,8 +55,15 @@
   const inclusive = (container, selector) => [
     ...(container.matches?.(selector) ? [container] : []), ...container.querySelectorAll(selector),
   ];
+  function quantityQuery(path) {
+    const query = owner(`${path}.md`)?.frontmatter.query;
+    if (!query) throw new Error(`Missing quantity query: ${path}`);
+    return query;
+  }
   function cardMetrics(card) {
-    const metrics = JSON.parse(card.dataset.recordCard);
+    const metrics = JSON.parse(card.dataset.recordCard).map(metric => ({...metric,
+      ...(metric.link ? {link: drillDown(metric.link, {where: metric.where, ...(metric.from ? {from: metric.from} : {})})} : {}),
+      ...(metric.secondaryLink ? {secondaryLink: drillDown(metric.secondaryLink, quantityQuery(metric.secondary))} : {})}));
     if (!card.dataset.recordSeries) return metrics;
     const series = JSON.parse(card.dataset.recordSeries);
     let entries = owner(`${series.sourceNote}.md`)?.frontmatter;
@@ -99,8 +112,7 @@
         }, projection) : null;
         const value = denominator === null ? String(numerator) :
           denominator ? `${(100 * numerator / denominator).toFixed(1)}%` : "-";
-        const secondaryQuery = metric.secondary && owner(`${metric.secondary}.md`)?.frontmatter.query;
-        if (metric.secondary && !secondaryQuery) throw new Error(`Missing quantity query: ${metric.secondary}`);
+        const secondaryQuery = metric.secondary && quantityQuery(metric.secondary);
         const numbers = {primary: numerator,
           secondary: secondaryQuery ? evaluate(secondaryQuery) : undefined,
           remaining: denominator === null ? undefined : denominator - numerator};

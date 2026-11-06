@@ -70,7 +70,10 @@ content-sized compact pill block leave more width for its evidence neighbour.
 Preserve semantic light/dark metric pills at a page-fitting density through shared
 primitives, without hard-coded artifact names or deleting metric links.
 
-An optional metric value link uses the existing internal chapter and table-filter route.
+An optional metric value link uses the existing internal chapter and table-filter route; its
+`?tableFilter=` is the metric's conditions in the reader language (`obsQuery.conditionsExpression`
+over the metric's `from` chain and `where`, obs's cards-metrics capability, Drill-downs), so the
+table shows exactly the counted rows.
 Static evidence cards do not change under filtering.
 Card-body base fences use the canonical query/table runtime. Per-record Sankey
 links preserve line identity and categorical outcome/origin colors; adjacent segments share
@@ -196,6 +199,25 @@ failures have their form in [[input-model#Chapter content]].
 - A shared figure presentation owns images, screenshots, plots, and diagrams, not only
   engineering plots. Standalone content images use it; inline icons and linked title-page
   image rows retain their existing inline and cover behavior.
+- One figure frame. Every figure kind of the Document's `figures` node (obs input-model,
+  Figure input direction) renders in the same frame, `src/obs_html/figures.py` (`frame`): one
+  `figure` element whose caption, generated number, expansion button, options menu, print sizing
+  and frame style it owns, while each kind renders only its body inside it. One stylesheet rule
+  (`.obs-figure` in `figures.css`) styles every frame from the frame style tokens
+  (`--figure-frame-border-block`, `--figure-frame-border-inline`, `--figure-frame-background`,
+  `--figure-frame-padding-block`, `--figure-frame-padding-inline`), so a border set once, in a
+  style module's `:root` for example, frames every kind. A kind is one entry of the kind
+  registry (`FIGURE_KINDS`): its body renderer, its view options and the reader features it
+  needs (`features.py`); adding one never changes the frame.
+
+  A kind that registers view options gets the figure options menu below its expand button;
+  a kind without options shows none. The menu is the tables' options menu, one component
+  (`options-menu.js`) with the same control, placement and behaviour. What it changes (a plot's
+  legend, for example) is classified in [[artifact-ui#What counts as a change]].
+
+  An anchor is `<note-slug>--block-<name>` for a figure with a block id, otherwise
+  `<note-slug>--figure-<name>`, where name is a plot's descriptor id or the figure's position
+  among the note's figures.
 - Every figure has one small, always discoverable top-right expand button using the
   four-corner expand icon. It opens the figure in a viewport-filling overlay with an
   accessible close action, Escape handling, keyboard focus containment and focus return.
@@ -1189,7 +1211,8 @@ separate from artifact presentation.
 
   No feature uses a browser dialog; its messages are inline. Print to PDF never stays in
   its preparing state. The registry and its entries are owned by obs-html's
-  `features.py`; the list of abilities is not repeated here.
+  `features.py`; the list of abilities is not repeated here. A figure kind that needs a host
+  ability or a library declares it there by key, never through a second inclusion mechanism.
 
   Generic reader-facing controls and messages call the artifact HTML, not a report.
   Where its semantic name is useful, derive it from the authored document type;
@@ -1261,10 +1284,19 @@ separate from artifact presentation.
 - A field clause selects by the one rule set (obs's bases capability, Comparisons: [[obs-specification|obs's specification]]): it resolves
   a note property and tests its text as obs's queries capability (Conditions) does. Words,
   wildcards and regular expressions ignore case; a `c` after a regular expression
-  (`status: /^Open$/c`) matches case, as a condition's `matchCase` does.
+  (`status: /^Open$/c`) matches case, as a condition's `matchCase` does. Ignoring case, a
+  word or wildcard matches the text's case folding (obs's bases capability, Comparisons), and
+  a regular expression matches the text or its folding, so `street: /^strasse$/` finds
+  `Straße`.
 
   A name that is no note property falls back to the reader's own fields (title, text, slug,
-  depth, marks, query aliases); a `note.` prefix asks for the property alone.
+  depth, marks, query aliases); a `note.` prefix asks for the property alone, and on a note's
+  table row for that note's property.
+
+  The runtime's selection resolver (obs's quality note, Knowledge ownership) is
+  `obsQuery.propertyTexts` in `query.js`: a card's count and distinct count, a Sankey node's
+  `unique`, and every drill-down's `note.` clause read a note's property through it and its
+  property lookup, never through their own.
 - Every query-language help button is square and exactly the same height as its adjacent query
   input.
 - Filter narrows the chapter set represented by the table of contents and previous/next
@@ -1427,8 +1459,8 @@ change since it was opened or last saved.
   sorting, grouping, pagination, open or closed panels and bars, navigation, scrolling and
   appearance. It raises neither the changed-HTML entry nor the unload warning, also where a
   saved copy persists it; the applied filter has its own information entry.
-- A resized column width is session-only view state: it is never saved, never a change and
-  not reader state.
+- A resized column width and a choice in a figure's options menu are session-only view state:
+  never saved, never a change and not reader state.
 - Returning every change to its state when opened or last saved leaves no change.
 
 ## Content sections

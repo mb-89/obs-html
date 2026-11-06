@@ -75,7 +75,8 @@ def document(title: str, *chapters: dict, metadata: dict | None = None,
         for item in nodes:
             if item["type"] not in STRUCTURAL:
                 used.add(item["type"])
-            collect(item["children"])
+            if item["type"] != "figures":  # A figure's one child is its kind's body, no capability.
+                collect(item["children"])
 
     collect(result["manifest"]["abstract"])
     stack = list(chapters)

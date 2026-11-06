@@ -1554,6 +1554,14 @@
               ],
               "source": "[[details]]",
               "citation": "See [[details]] **sheet 2** and $x$."
+            },
+            "quantity": {
+              "unit": "\u00b5m",
+              "dimension": {
+                "length": 1
+              },
+              "value": 20,
+              "siValue": 2e-05
             }
           },
           "children": []
@@ -2313,7 +2321,15 @@
             }
           ]
         }
-      ]
+      ],
+      "quantity": {
+        "unit": "\u00b5m",
+        "dimension": {
+          "length": 1
+        },
+        "value": 20,
+        "siValue": 2e-05
+      }
     },
     {
       "id": "glossary",

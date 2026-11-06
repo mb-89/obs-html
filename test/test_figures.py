@@ -1,4 +1,4 @@
-"""Figures drawn from the Document's FigureDescriptors."""
+"""Plot figures drawn from the Document's FigureDescriptors."""
 import copy
 import html as html_module
 import json
@@ -22,12 +22,13 @@ def _appendix(document) -> str:
 
 def _descriptors(document) -> dict:
     appendix = next(chapter for chapter in document["chapters"] if chapter["id"] == "appendix")
-    return {node["attrs"]["descriptor"]["id"]: node["attrs"]["descriptor"]
-            for node in appendix["content"] if node["type"] == "figure-descriptor"}
+    descriptors = [node["children"][0]["attrs"]["descriptor"] for node in appendix["content"]
+                   if node["type"] == "figures" and node["attrs"]["kind"] == "plot"]
+    return {descriptor["id"]: descriptor for descriptor in descriptors}
 
 
 def _spec(html: str, kind: str) -> dict:
-    encoded = re.search(rf'data-figure-kind="{kind}" data-figure-spec="([^"]*)"', html).group(1)
+    encoded = re.search(rf'data-figure-kind="{kind}"[^>]*? data-figure-spec="([^"]*)"', html).group(1)
     return json.loads(html_module.unescape(encoded))
 
 
@@ -49,7 +50,7 @@ def test_plot_figures_embed_plotly_with_its_licence_only_when_needed(document) -
     assert 'id="figure-script"' in artifact and 'id="figure-styles"' in artifact
     without = copy.deepcopy(document)
     appendix = next(chapter for chapter in without["chapters"] if chapter["id"] == "appendix")
-    appendix["content"] = [node for node in appendix["content"] if node["type"] != "figure-descriptor"]
+    appendix["content"] = [node for node in appendix["content"] if node["type"] != "figures"]
     plain = render(without, CONFIG)
     assert 'id="plotly-script"' not in plain and 'id="figure-script"' not in plain
 
