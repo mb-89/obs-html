@@ -9,9 +9,10 @@ The test builds a copy of obs's spec vault with the recorded command (obs-docume
 reproduce.py composes. Their install is faked: this checkout stands for obs at the recorded
 commit, already installed, so the rebuild step runs with this checkout in place of the clone and
 the core's test/offline_obs_document.py in place of obs-document, which serves remote images
-without the network. The rebuild runs from the extracted folder, whose vault holds no generated
-file, so the file the References entry attaches is the adapter's specification the producer
-built there.
+without the network and serves the producer fence the run's one build of the adapter's
+specification (spec_build.py, ``adapter-spec``). The rebuild runs from the extracted folder, whose
+vault holds no generated file, so the file the References entry attaches is the adapter's
+specification the producer put there.
 """
 import io
 import json
@@ -43,7 +44,9 @@ def _offline(command: list[str], checkout: Path) -> list[str]:
     return [*command[:2], "--offline", *command[2:at], "python", str(OFFLINE_DOCUMENT), *command[at + 1:]]
 
 
-def test_reproduce_rebuilds_obs_spec_from_its_archive_with_the_references_entry(tmp_path: Path, capsys) -> None:
+def test_reproduce_rebuilds_obs_spec_from_its_archive_with_the_references_entry(
+        tmp_path: Path, tmp_path_factory, monkeypatch, capsys) -> None:
+    monkeypatch.setenv(spec_build.RUN_FOLDER, str(spec_build.base(tmp_path_factory)))
     vault = tmp_path / "spec"
     shutil.copytree(CORE_ROOT / "spec", vault, ignore=shutil.ignore_patterns("design_output"))
     built = tmp_path / "built" / "spec.html"
