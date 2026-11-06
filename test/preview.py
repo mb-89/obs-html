@@ -43,11 +43,35 @@ class QuietHandler(http.server.SimpleHTTPRequestHandler):
         pass
 
 
+# Resolves on the artifact's obs-html-ready event (artifact-data.js, in this adapter and in the
+# interim reference), at once if it has fired; rejects when the startup fails. The deadline only
+# bounds a startup that never ends: an attribute poll's backoff cost seconds per open, and its
+# 5 s limit failed under the complete suite's load.
+READY = """async () => {
+    const deadline = 60000;
+    if (document.documentElement.dataset.artifactStatus === "ready") return;
+    await new Promise((resolve, reject) => {
+        document.addEventListener("obs-html-ready", resolve, {once: true});
+        globalThis.obsHtmlReady?.catch((error) => reject(new Error(
+            `test/preview.py: the artifact failed to open (data-artifact-status ${document.documentElement.dataset.artifactStatus}): ${error}`)));
+        setTimeout(() => reject(new Error(
+            `test/preview.py: the artifact sent no obs-html-ready within ${deadline / 1000} s ` +
+            `(data-artifact-status ${document.documentElement.dataset.artifactStatus})`)), deadline);
+    });
+}"""
+
+
 def open_preview(tmp_path: Path, reader_browser, errors: list[str], artifact: str, frame_kind: str,
                  origin: str | None = None):
     """Open an artifact in one of the preview-like frames; same-origin frames need an http origin."""
-    from playwright.sync_api import expect
+    page, frame = load_preview(tmp_path, reader_browser, errors, artifact, frame_kind, origin)
+    frame.evaluate(READY)
+    return page, frame
 
+
+def load_preview(tmp_path: Path, reader_browser, errors: list[str], artifact: str, frame_kind: str,
+                 origin: str | None = None):
+    """As open_preview, but return while the artifact still starts; frame.evaluate(READY) awaits it."""
     wrapper = tmp_path / f"preview-{frame_kind}.html"
     wrapper.write_text(preview_wrapper(artifact, SANDBOXES[frame_kind]), encoding="utf-8")
     page = reader_browser.new_page(viewport={"width": 1200, "height": 800})
@@ -57,7 +81,6 @@ def open_preview(tmp_path: Path, reader_browser, errors: list[str], artifact: st
     # The iframe's own Frame, not a FrameLocator: its locators resolve in about 3 ms, where a
     # FrameLocator re-resolves the iframe on every call (about 50 ms).
     frame = page.locator("#artifact").element_handle().content_frame()
-    expect(frame.locator("html")).to_have_attribute("data-artifact-status", "ready")
     return page, frame
 
 

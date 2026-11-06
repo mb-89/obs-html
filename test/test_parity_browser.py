@@ -24,6 +24,7 @@ run, without the network: the core's Document through the core's test/offline_ob
 Each test runs on its own worker in the complete suite: one per frame for the interaction
 script and one per frame and pair of widths for the sweep.
 """
+import contextlib
 import json
 import re
 from concurrent.futures import ThreadPoolExecutor
@@ -32,7 +33,7 @@ from pathlib import Path
 import pytest
 
 from conftest import CORE_ROOT, FAST_FRAMES, built_once
-from preview import SANDBOXES, http_origin, open_preview
+from preview import READY, SANDBOXES, http_origin, load_preview, open_preview
 from spec_artifact import run, spec_artifact, uv
 
 # step -> why this adapter may still differ from the interim reference there.
@@ -229,18 +230,28 @@ def interact(page, frame) -> tuple[list[tuple[str, object]], list[str]]:
     return steps, violations
 
 
-def observe(tmp_path: Path, reader_browser, artifact: str, frame_kind: str, name: str):
-    errors: list[str] = []
-    folder = tmp_path / name
-    folder.mkdir()
-    with http_origin(folder) as origin:
-        page, frame = open_preview(folder, reader_browser, errors, artifact, frame_kind,
-                                   origin if frame_kind == "same-origin" else None)
-        try:
-            steps, violations = interact(page, frame)
-        finally:
-            page.close()
-    return steps, violations, errors
+def observe(tmp_path: Path, reader_browser, artifacts: dict[str, str], frame_kind: str):
+    """The interaction script on each artifact, each opened once in its own page.
+
+    Every artifact starts loading at once, so the interim reference's slower startup runs while
+    the script runs on this adapter's artifact. Returns, per artifact, its steps, design-note
+    violations and page errors.
+    """
+    observed = {}
+    with contextlib.ExitStack() as stack:
+        opened = {}
+        for name, artifact in artifacts.items():
+            folder = tmp_path / name
+            folder.mkdir()
+            origin = stack.enter_context(http_origin(folder)) if frame_kind == "same-origin" else None
+            errors: list[str] = []
+            page, frame = load_preview(folder, reader_browser, errors, artifact, frame_kind, origin)
+            stack.callback(page.close)
+            opened[name] = page, frame, errors
+        for name, (page, frame, errors) in opened.items():
+            frame.evaluate(READY)
+            observed[name] = (*interact(page, frame), errors)
+    return observed
 
 
 @pytest.mark.browser
@@ -248,10 +259,9 @@ def observe(tmp_path: Path, reader_browser, artifact: str, frame_kind: str, name
     pytest.param(frame_kind, marks=pytest.mark.xdist_group(f"parity-{frame_kind}")) for frame_kind in SANDBOXES])
 def test_the_artifact_behaves_as_the_interim_reference_in_preview_frames(
         tmp_path: Path, reader_browser, parity_artifacts: dict[str, str], frame_kind: str) -> None:
-    adapter, violations, errors = observe(tmp_path, reader_browser, parity_artifacts["adapter"],
-                                          frame_kind, "adapter")
-    reference, _reference_violations, _reference_errors = observe(
-        tmp_path, reader_browser, parity_artifacts["reference"], frame_kind, "reference")
+    observed = observe(tmp_path, reader_browser, parity_artifacts, frame_kind)
+    (adapter, violations, errors), (reference, _reference_violations, _reference_errors) = (
+        observed["adapter"], observed["reference"])
     assert [step for step, _ in adapter] == [step for step, _ in reference], (
         "test/test_parity_browser.py: the script took different steps; first steps differ at "
         + next((f"{a!r} / {r!r}" for (a, _), (r, _) in zip(adapter, reference) if a != r), "the end"))
