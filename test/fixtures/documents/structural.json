@@ -442,6 +442,52 @@
           "children": []
         },
         {
+          "type": "paragraph",
+          "attrs": {},
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "A line"
+            },
+            {
+              "type": "break",
+              "attrs": {},
+              "children": []
+            },
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "broken twice"
+            },
+            {
+              "type": "break",
+              "attrs": {},
+              "children": []
+            },
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "and a soft"
+            },
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": " "
+            },
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "line."
+            }
+          ]
+        },
+        {
           "type": "callouts",
           "attrs": {
             "kind": "note",

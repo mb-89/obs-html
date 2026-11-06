@@ -1288,6 +1288,7 @@ STRUCTURAL_NODES: dict[str, Renderer] = {
     "math": _math,
     "field": _field,
     "rule": lambda _node, _context: "<hr>\n",
+    "break": lambda _node, _context: "<br>\n",
 }
 """One renderer per structural type (STRUCTURAL); a type without one renders as an unknown node."""
 

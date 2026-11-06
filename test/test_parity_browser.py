@@ -549,6 +549,9 @@ PRINTED_FORMS: dict[str, tuple[str, str]] = {
     r'(?m)^(<pre class="command-output"><code>)?warning: .*\n': (
         r"\1", "the interim reference runs a fence through its own uv and captures uv's warnings (only "
         "where uv warns, as for a deprecated UV_* variable); the core captures the command's output alone"),
+    r"(?s)(?<!</p>)\n(?=(?:(?!<p[ >]|</p>).)*</p>)": (" ", "a soft line break inside a paragraph is a space in this adapter's Document (obs "
+                       "capabilities/markdown#Document nodes) and markdown-it's newline in the interim's; "
+                       "a browser shows both as one space"),
 }
 # A printed line that differs in content: pattern -> why. Each is a rendering difference; the print
 # path itself copies the stored chapter unchanged.

@@ -22,6 +22,8 @@ from obs_html.render import render
 CONFIG = load_config()
 SCHEMA = json.loads((CORE_ROOT / "src" / "obs" / "document.schema.json").read_text(encoding="utf-8"))
 STRUCTURAL_TYPES = SCHEMA["$defs"]["structuralType"]["enum"]
+EMPTY = {"rule": "<hr>\n", "break": "<br>\n"}
+"""The structural types without text, and their HTML."""
 STRUCTURAL = json.loads((ROOT / "test" / "fixtures" / "documents" / "structural.json").read_text(encoding="utf-8"))
 
 
@@ -41,14 +43,14 @@ def _structural_node(kind: str) -> dict:
         return {"type": kind, "attrs": {"display": False} if kind == "math" else {}, "children": [], "text": word}
     attrs = {"table-cell": {"header": False}, "field": {"name": "name"}, "section": {"level": 2},
              "list": {"ordered": False, "tight": True}}.get(kind, {})
-    return {"type": kind, "attrs": attrs, "children": [] if kind == "rule" else [text(word)]}
+    return {"type": kind, "attrs": attrs, "children": [] if kind in EMPTY else [text(word)]}
 
 
 @pytest.mark.parametrize("kind", STRUCTURAL_TYPES)
 def test_every_structural_type_of_the_core_schema_renders_its_text(kind: str, capsys) -> None:
     html = _notes(build("Doc", chapter("one", "One", _structural_node(kind))))["one"]["html"]
-    if kind == "rule":
-        assert html == "<hr>\n"  # The one type without text.
+    if kind in EMPTY:
+        assert html == EMPTY[kind]  # The types without text.
     else:
         assert _word(kind) in re.sub(r"<[^>]+>", "", html), html
     assert "unknown-node" not in html
@@ -78,6 +80,7 @@ def test_a_core_built_document_renders_every_markdown_construct(document_validat
             '<td style="text-align:left">a</td><td style="text-align:center"><em>b</em></td>'
             '<td style="text-align:right">3</td></tr>\n</tbody>\n</table>\n') in html
     assert "<hr>\n" in html
+    assert "<p>A line<br>\nbroken twice<br>\nand a soft line.</p>" in html
     # Frontmatter fields render from their field nodes, by dotted path; data-only values stay data.
     assert note["frontmatterHtml"] == {"owner.name": "<em>Ada</em> <strong>Lovelace</strong>",
                                        "tags": "<s>old</s>, plain", "count": "3"}
