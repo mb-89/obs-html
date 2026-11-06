@@ -716,21 +716,9 @@ The interim adapter evaluates Bases filters in Python too, until its cutover. Th
 again because readers can edit Base definitions and canonical values in the open HTML; the
 browser Query view reports an unsupported filter as invalid.
 
-## Reviewed copy and the next Obsidian extension as this adapter presents them
+## The next Obsidian extension as this adapter presents it
 
-The HTML adapter's part of obs's input-model sections Reviewed copy and Next Obsidian
-extension, moved from there.
-
-### Reviewed copy
-
-[[artifact-ui#What counts as a change]] owns whether reader state marks the artifact changed.
-
-How resized column widths of a reviewed copy are classified is owned by
-[[artifact-ui#What counts as a change]].
-
-The changed-HTML notice and unload confirmation follow [[artifact-ui#What counts as a change]].
-
-The batch-annotation gesture and its waiting-only scope are owned by [[artifact-ui]].
+The HTML adapter's part of obs's input-model section Next Obsidian extension, moved from there.
 
 ### Next Obsidian extension
 
@@ -745,3 +733,160 @@ Reader presentation of the side-by-side edition follows [[artifact-ui]].
 The side-by-side edition's figure numbers use `obsHtml.figures.numbering: chapter`.
 
 See [[artifact-ui]] for the side-by-side edition's presentation.
+
+## Cover metadata and history
+
+obs's input model (Cover metadata and history) owns the fields, their validation and the
+`documentMetadata` and `documentHistory` records. How this adapter presents them moved here from
+there.
+
+These values populate the cover;
+empty strings, nulls and empty lists/mappings are treated as unassigned and omitted.
+
+Title/subtitle and
+cover fields are excluded from the residual Key / Value table to avoid repeating their presentation.
+
+The organization remains manifest-owned even though its value is displayed on the cover and
+page frame rather than repeated in that table.
+
+Revision labels and dates appear in History, not on the cover.
+
+Both normal HTML
+and document/PDF views render the same canonical history through the shared query-table engine
+(`obs.records: documentHistory`, columns `version`, `date`, `author`, `change`).
+
+In document view it occupies its own section
+after the abstract and before Contents; normal Home displays it after the abstract.
+
+## Reviewed copy
+
+obs's input model (Reviewed copy) owns the property-editor contract. This adapter's reviewed
+copy, its review state and the runtime that commits edits moved here from there.
+
+The initial use is a text explanation for a finding. Edits must update dependent views
+and survive standalone HTML download and reopen,
+together with existing review comments and decisions. Serialize the current canonical
+data safely, without stale duplicate values, executable input or copied transient DOM.
+
+This extends the existing reviewed-copy export rather than adding a competing saver.
+The concrete editor declaration and validation belong to the implementation ticket.
+
+The canonical reviewed-copy model also saves the last successfully applied global filter
+expression as finite reader state, separate from notes and review annotations.
+Reopening compiles that expression through the shared query runtime and restores the actual
+Filter input and open bar. Empty or closed filters reopen unfiltered with the bar closed.
+
+Invalid input drafts never replace the last valid expression in saved state.
+If a stored expression cannot compile, show it and its error in the open Filter bar rather
+than silently discarding it. Fresh generation remains unfiltered; appearance always starts
+Light with Pages. [[artifact-ui#What counts as a change]] owns whether reader state marks
+the artifact changed.
+
+An absent trusted view selection means an empty selection. Registering that empty
+default does not add a persisted override.
+
+Returning to an implicit empty default removes its override; explicitly saved
+selections retain their loaded baseline. Initialization must not rebase genuine
+reader or canonical edits made while other startup work is still finishing.
+
+Reviewed reader state also retains visible column keys in display order, keyed by the
+table's stable identity. How resized column widths are classified is owned by
+[[artifact-ui#What counts as a change]].
+
+The table owner validates and rebuilds these settings against its current column catalog;
+saved rows or rendered DOM
+are not a second data source. Invalid settings show a table diagnostic, not silent success.
+
+Fresh artifacts keep authored defaults. Table-local filter, grouping, sorting, pagination,
+expansion and edited base definitions remain session-only in this bounded contract.
+
+Enter or leaving the editor commits text; query fields and metadata caches are refreshed.
+Saved copies replace the artifact data island from the canonical model, not rendered inputs.
+Markdown and HTML are never interpreted in
+edited text; stale per-property rendered metadata is invalidated.
+
+The runtime applies an edit and its selected projection as one transaction. It validates all
+target notes and fields, checks values against the existing field types, and rebuilds every
+affected query record before changing canonical data.
+
+Only then are all notes and records updated together, table caches invalidated, one
+canonical-change notification emitted, and
+the active artifact filter reapplied once.
+
+Object values, nested arrays, undeclared fields, note creation/deletion, and HTML or figure
+mutation are rejected. Projections serialize in the same reviewed-copy model as property edits.
+
+The browser treats review annotations, per-reviewer decisions, and changes committed
+through these canonical property editors as unsaved reviewed-copy state.
+
+An artifact opened from a generated or reviewed HTML file starts clean. A semantic change marks it dirty;
+reverting all changes to the loaded state clears that state. Edits that do not change a
+canonical value do not make semantic review state dirty. The changed-HTML notice and unload
+confirmation follow [[artifact-ui#What counts as a change]].
+
+The artifact-level comparison also covers the current embedded source archive, when present,
+through its existing archive owner rather than a second serialized payload.
+Importing reviewed copies marks it dirty only when the merged comments,
+reviewers, or decisions change.
+
+A successful File System Access write establishes the new clean baseline; opening the save picker, cancelling it, or a
+failed write does not. A browser's standard download API
+provides no signal that the user accepted, completed, or retained the downloaded file, so
+initiating a download does not establish a clean baseline.
+
+The page remains dirty after download initiation; reopening the downloaded artifact starts a new clean baseline. On unload,
+unsaved artifact state requests the browser's native confirmation without relying on custom text.
+The Comments bar persistently explains how to save and that leaving with dirty or
+unconfirmed changes risks losing them.
+
+- A reviewed copy is a generated standalone HTML artifact whose one `obs-comments` JSON island
+  contains versioned annotations and per-reviewer block decisions created through the
+  Comments bar.
+
+  New comment targets may additionally retain their canonical review-item identifier,
+  section label, and whether the context was the whole item. These optional descriptive
+  fields survive save/reopen and import without changing version 2 or the canonical text
+  and table anchors.
+
+  They are descriptive, not part of merge identity: their absence in legacy copies does not
+  duplicate an otherwise identical comment. Legacy targets remain valid;
+  clipboard export explicitly artifacts
+  unavailable context rather than inventing missing identities or page numbers.
+- Review checklist items are derived in document order from rendered list items, table data
+  rows, standalone code blocks, figures, and paragraphs that are not inside
+  one of those units.
+
+  A paragraph or code block inside another review unit does not create a
+  duplicate item.
+
+  Markdown images remain part of their containing paragraph; standalone media
+  may use a figure item.
+
+  Visual line wrapping never creates another item.
+- Rendered headings may receive exact-text comments but are not checklist items and carry no
+  Accept or Reject decision.
+- Ordinary review item identifiers are chapter-local deterministic ordinals; generated table
+  rows use their table/row keys so reordering does not change review identity.
+  Like text anchors, they are not re-anchored across regenerated artifacts.
+- Reviewer identities are stored with the reviewed copy even when that reviewer has not made a
+  decision. Missing decisions are waiting. An item's displayed state is aggregated across known
+  reviewers with precedence rejected, then accepted, then waiting: any rejection wins, otherwise
+  any acceptance overrides missing decisions.
+- The named reviewer's state is derived across every chapter and exposed to the browser query
+  model as the `review` field. Aggregate worst state remains a display property of each item;
+  neither derived state is persisted as a second copy of reviewer decisions.
+- Batch decisions use the same per-reviewer item decisions as individual actions, never
+  a parallel acceptance state store. A batch rejection may have one scoped annotation
+  associated with the exact affected stable item identities. Preserve those associations
+  safely in reviewed-copy serialization, merge and extraction; existing annotations
+  remain compatible.
+
+  The gesture and waiting-only scope are owned by [[artifact-ui]]. Version 2 annotations
+  optionally carry `batch: {scope, items}`. `scope` is
+  `section`, `chapter`, or `document`; `items` is a nonempty, duplicate-free array
+  of `{chapter, item}` review identities. This is an annotation association, not a
+  second decision store. Extraction retains the scope and exact identities.
+- Comment extraction accepts the returned HTML as untrusted data, requires exactly one valid
+  island, and never executes or imports the artifact's scripts, markup, or comments.
+- Extraction produces a deterministic text list for human or agent triage. It does not edit
+  the returned copy, source Markdown, or project configuration.
