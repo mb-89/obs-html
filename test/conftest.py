@@ -14,7 +14,7 @@ import network_guard
 network_guard.install()
 
 ROOT = Path(__file__).parents[1]
-FIXTURE = ROOT / "test" / "fixtures" / "document.json"
+FIXTURE = ROOT / "test" / "fixtures" / "documents" / "document.json"
 CORE_ROOT = ROOT.parents[1]
 
 
@@ -62,7 +62,7 @@ def fixture_artifact(tmp_path_factory) -> Path:
 
     def build(folder: Path) -> None:
         assert cli.main([str(FIXTURE), str(folder / "artifact.html")]) == 0, \
-            "test/conftest.py: obs-html could not render the fixture Document test/fixtures/document.json"
+            "test/conftest.py: obs-html could not render the fixture Document test/fixtures/documents/document.json"
 
     return built_once(tmp_path_factory, "fixture-artifact", build) / "artifact.html"
 
