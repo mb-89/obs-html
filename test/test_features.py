@@ -9,8 +9,10 @@ from importlib.resources import files
 
 import pytest
 
+import canaries
 from conftest import FIXTURE, PIXEL, ROOT
 from documents import chapter, document, heading, node, paragraph
+from obs_html import features
 from obs_html.config import load_config
 from obs_html.features import FEATURES
 from obs_html.figures import FIGURE_KINDS
@@ -170,3 +172,19 @@ def _sources():
     root = SOURCE.joinpath("")
     return [path for path in sorted(root.rglob("*")) if path.suffix in {".js", ".py"}
             and "vendor" not in path.relative_to(root).parts and "__pycache__" not in path.parts]
+
+
+def test_a_feature_added_to_the_registry_is_expected_by_the_canary_tests(monkeypatch) -> None:
+    """The browser tests of the canaries' results (test_sandboxed_preview_browser.py,
+    test_features_browser.py) take their lists from test/canaries.py, which reads the registry and
+    each canary, so a new feature's canary is expected there without a literal edit."""
+    artifacts = [render(source, CONFIG) for source in (plain(), with_context_note())]
+    before = [(canaries.canaries(html), canaries.undecided_where_flags_hidden(html)) for html in artifacts]
+    fake = features.Feature("fake", "always", lambda _model, _trusted_runtime: True)
+    shipped = canaries.canary_source
+    monkeypatch.setattr(features, "FEATURES", (*features.FEATURES, fake))
+    monkeypatch.setattr(canaries, "canary_source", lambda feature: (
+        'probe: ({sandboxAllows}) => sandboxAllows("allow-fake")' if feature is fake else shipped(feature)))
+    for html, (run, undecided) in zip(artifacts, before):
+        assert canaries.canaries(html) == [*run, "fake"]
+        assert canaries.undecided_where_flags_hidden(html) == [*undecided, "fake"]

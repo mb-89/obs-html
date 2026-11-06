@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import json
 import re
+import sys
 from pathlib import Path
 
 import pytest
@@ -218,7 +219,8 @@ def test_every_adapter_cli_option_has_a_row() -> None:
             "adapters/html/src/obs_html/cli.py build_parser or adapters/html/src/obs_html/serve.py build_parser")
 
 
-def test_every_option_a_row_names_is_one_the_integrated_cli_offers() -> None:
+def option_problems() -> list[str]:
+    """Each CLI-options row that names an option neither CLI offers, or none at all where it must."""
     offered = {"obs-html": adapter_options(), "obs-document": core_options()}
     failures = [f"{row.where()} names `{cli} {option}`, which {cli} does not offer. Correct or remove it; "
                 f"see {OWNER}"
@@ -228,8 +230,21 @@ def test_every_option_a_row_names_is_one_the_integrated_cli_offers() -> None:
                  f"option obs-html or obs-document offers. Name it; see {OWNER}"
                  for row in rows() if row.section == "CLI options" and row.status in {"same", "added"}
                  and row.key not in offered["obs-html"] | offered["obs-document"]
-                 and not any(span_row is row for span_row, _, _ in named("CLI options"))]
+                 and not any(span_row.line == row.line for span_row, _, _ in named("CLI options"))]
+    return failures
+
+
+def test_every_option_a_row_names_is_one_the_integrated_cli_offers() -> None:
+    failures = option_problems()
     assert not failures, "\n".join(failures)
+
+
+def test_a_row_whose_integrated_cell_names_an_offered_option_needs_no_option_key(monkeypatch) -> None:
+    """A row is the same row each time the table is read: its source line, not the object, is its identity."""
+    option = sorted(adapter_options())[0]
+    monkeypatch.setattr(sys.modules[__name__], "rows", lambda: [
+        Row(7, "CLI options", ["Some feature", "", f"`obs-html {option}`", "same", ""])])
+    assert option_problems() == []
 
 
 def test_every_adapter_settings_key_has_a_row() -> None:
