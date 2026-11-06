@@ -228,19 +228,22 @@
       "id": "guide",
       "type": "note",
       "path": "guide.md",
-      "fields": {}
+      "fields": {},
+      "fieldNodes": []
     },
     {
       "id": "manifest",
       "type": "note",
       "path": "manifest.md",
-      "fields": {}
+      "fields": {},
+      "fieldNodes": []
     },
     {
       "id": "target",
       "type": "note",
       "path": "target.md",
-      "fields": {}
+      "fields": {},
+      "fieldNodes": []
     },
     {
       "id": "chapter-guide",
