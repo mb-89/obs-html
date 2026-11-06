@@ -1018,6 +1018,80 @@ button.pugh-grid-key[aria-expanded="true"] {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
 }
 
+/* The Pareto tab (pugh-figure.js, paretoPanel): ctrl's plot (vendor/pugh.js, plotSvg) in the
+   page's colours, the criteria its axes, the winner bold, a dominated option dashed and grey. */
+.pugh-pareto {
+    display: grid;
+    gap: 0.4rem;
+    min-width: 0;
+}
+
+.pugh-pareto p {
+    margin: 0;
+}
+
+.pugh-pareto svg {
+    display: block;
+    font-size: 11px;
+    max-inline-size: 100%;
+    overflow: visible;
+}
+
+.pugh-pareto svg text {
+    fill: var(--color-text-muted);
+}
+
+.pugh-pareto .pl-frame {
+    fill: none;
+    stroke: none;
+}
+
+.pugh-pareto .pl-grid {
+    stroke: var(--color-border);
+    stroke-dasharray: 2 3;
+}
+
+.pugh-pareto .pl-s {
+    fill: none;
+    stroke: var(--color-accent);
+    stroke-linejoin: round;
+    stroke-width: 1.5;
+}
+
+.pugh-pareto .pl-reference {
+    stroke: var(--color-border);
+    stroke-width: 1;
+}
+
+.pugh-pareto .pl-option {
+    stroke: var(--color-text);
+    stroke-width: 3.5;
+}
+
+.pugh-pareto .pugh-dominated {
+    stroke-dasharray: 6 4;
+}
+
+.pugh-pareto .pl-other {
+    stroke: var(--color-text-muted);
+}
+
+.pugh-pareto .pugh-pareto-letters,
+.pugh-pareto .pugh-pareto-axis {
+    fill: var(--color-text);
+    font-weight: 600;
+}
+
+.pugh-pareto-criteria {
+    color: var(--color-text-muted);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 1.2rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
 .pugh-ruled-could {
     color: var(--color-warning);
 }

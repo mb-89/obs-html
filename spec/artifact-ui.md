@@ -512,7 +512,7 @@ The tabs:
   disabled.
 - **Sensitivity:** how far a weight must move before another option wins, as a grid
   ([[#Sensitivity]]).
-- **Pareto:** its place only, disabled until it has content.
+- **Pareto:** which options no other beats on every criterion, as a chart ([[#Pareto]]).
 
 The figure says each name once, in the options list and a letter's popover alike: where the
 short name's words are the label's, all of them or a run of them ("Two lines" of "Keep two
@@ -530,7 +530,8 @@ accessible name ("Checklist, 1 failed"). A tab without anything to show has no b
 
 In a decision figure each tab of `TABS` (`pugh-figure.js`) names its own `badge`, a function of
 the decision that returns a count, a flag with its reason, or nothing; `tabBadge` draws it.
-The Checklist count and the Sensitivity flag use it, and a later tab sets its badge the same way.
+The Checklist count and the Sensitivity and Pareto flags use it, and a later tab sets its badge
+the same way.
 
 #### The decision matrix
 
@@ -613,6 +614,24 @@ where weights or marks changed, the caption ends with the note *View changed by 
 Inside its frame the view keeps to the prose around the figure, clear of the chapter controls. A
 page layout draws a decision figure when it places it, so its page holds the whole view.
 
+#### Pareto
+
+Decided by the user, 6 Nov 2026 (work issue `feature/decision-sensitivity-pareto-views-20261106`):
+the tab shows which options are not beaten on every criterion by another.
+
+The chart is the engine's own plot (`plotSvg`, which every decision deck ships already), with
+no second chart library: one line per option that fits, over the criteria, each criterion an
+axis of its mark from −− to ++, the datum's marks S. Decided by the dispatcher, 6 Nov 2026, as a
+change to the work issue: not the equation figure's plot, whose figure ships Plotly.
+
+Each line ends in its letters, the criteria are numbered under the chart, the winner's line is
+bold (the engine's "option" role), a dominated option's dashed and grey ("other"), and the
+rest plain ("front"); a dominated winner is bold and dashed.
+
+One sentence under it: "Not dominated: B, C. Dominated: A (by B)." An option is dominated where
+another that fits is at least as good on every criterion and better on one. The flag shows where
+the winner is dominated.
+
 #### Decision figures on a phone
 
 Decided by the user, 6 Nov 2026 (work issue `feature/decision-figure-on-phones-20261106`): on a
@@ -635,7 +654,7 @@ Nothing in the figure scrolls sideways.
 
 Below the same width the Sensitivity grid is one block per option: its letter as the block's
 head, then one line per criterion (its name, current weight, tie and bar), then all weights
-together.
+together. The Pareto chart takes the figure's width.
 
 In the rows only the letter fits, and the letter is a control. Hovering it, focusing it or
 tapping it shows the option's letter and short name, its label where that says more and its

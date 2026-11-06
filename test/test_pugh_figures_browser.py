@@ -163,8 +163,8 @@ def test_the_page_decides_ctrls_test_vectors_and_the_matrix_tab_shows_the_decisi
     assert view["counts"] == {"wins": {"A": "1", "C": "1"}, "losses": {"B": "2"}}
     # The badges replace the Raised list: the failed checklist item (it names no option, so no Checklist
     # row) is counted on the Checklist tab, and the chosen B, not the winner, flags Sensitivity.
-    assert view["tabs"][:3] == [["matrix", "true", False, None], ["checklist", "false", False, "1"],
-                                ["sensitivity", "false", False, "flag"]]
+    assert view["tabs"] == [["matrix", "true", False, None], ["checklist", "false", False, "1"],
+                            ["sensitivity", "false", False, "flag"], ["pareto", "false", False, None]]
     assert view["flagged"] == "Sensitivity, the chosen option does not win"
     # The chosen B, not the winner, is the line under the Sensitivity grid.
     assert view["chosen"] == "B"
@@ -277,4 +277,43 @@ def test_at_phone_width_the_matrix_is_rows_and_a_wide_table_scrolls_with_its_cri
     assert layout["page"] <= layout["viewport"] == 900
     assert layout["right"] <= 900 and layout["scrolls"] and layout["held"]
     assert view["columns"] == [chr(ord("A") + index) for index in range(10)]
+    reader.clean()
+
+
+PARETO = """anchor => {
+    const figure = document.getElementById(anchor), panel = figure.querySelector('[data-pugh-pareto]');
+    return {sentence: panel.querySelector('[data-pugh-pareto-said]').textContent,
+            dominated: panel.dataset.pughPareto,
+            lines: Object.fromEntries([...panel.querySelectorAll('polyline[data-pugh-line]')].map(line =>
+                [line.dataset.pughLine, line.getAttribute('class').split(' ').filter(name => name !== 'pl-s').sort()])),
+            axes: panel.querySelectorAll('polyline.pl-reference').length,
+            flag: figure.querySelector('[data-pugh-tab="pareto"]').getAttribute('aria-label'),
+            badge: figure.querySelector('[data-pugh-tab="pareto"] [data-tab-badge]')?.dataset.tabBadge ?? null};
+}"""
+
+
+def test_the_pareto_tab_draws_the_options_with_the_engines_plot_and_flags_a_dominated_winner(artifact, reader_browser) -> None:
+    reader = Reader(reader_browser, artifact)
+    figure = reader.page.locator(f"#{OPTION}")
+    figure.locator('[data-pugh-tab="pareto"]').click()
+    front = reader.page.evaluate(PARETO, OPTION)
+    # B at ++ on speed and + on cost dominates C, and with err weighed 0 they tie, C first by its tie-break.
+    figure.locator('[data-pugh-tab="matrix"]').click()
+    for criterion, mark in (("speed", 2), ("cost", 1)):
+        figure.locator(f'[data-pugh-mark="B:{criterion}"] button').click()
+        figure.locator(f'[data-pugh-mark="B:{criterion}"] [data-pugh-choice="{mark}"]').click()
+    reader.weigh("err", 0)
+    figure.locator('[data-pugh-tab="pareto"]').click()
+    dominated = reader.page.evaluate(PARETO, OPTION)
+
+    # A (0, 0, 0), B (2, 0, −1), C (1, 2, 1), D (0, 2, 0): the winner bold, the dominated dashed and grey.
+    assert front["sentence"] == "Not dominated: B, C. Dominated: A (by C, D), D (by C)."
+    assert front["dominated"] == "A D" and front["axes"] == 3
+    assert front["lines"] == {"A": ["pl-other", "pugh-dominated"], "B": ["pl-front"], "C": ["pl-option"],
+                              "D": ["pl-other", "pugh-dominated"]}
+    assert front["flag"] is None and front["badge"] is None
+    assert reader.view(OPTION)["winner"] == "C"
+    assert dominated["sentence"] == "Not dominated: B. Dominated: A (by B, C, D), C (by B), D (by B, C)."
+    assert dominated["lines"]["C"] == ["pl-option", "pugh-dominated"] and dominated["lines"]["B"] == ["pl-front"]
+    assert dominated["flag"] == "Pareto, the winner is dominated by B" and dominated["badge"] == "flag"
     reader.clean()
