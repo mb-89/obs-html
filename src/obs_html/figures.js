@@ -1004,6 +1004,7 @@
     // A figure the page layout places (pages.js): a decision figure's height is its drawn view,
     // so it is drawn at once, as the reader sees it, or in a print copy as it prints.
     place(figure) {
+      if (figure.matches("[data-pugh-details]")) { globalThis.obsPugh.placeDetails(figure); return; }
       if (figure.dataset.figureKind !== "pugh" || figure.classList.contains("figure-pugh-ready")) return;
       if (figure.closest(".print-book")) globalThis.obsPugh.print(figure, JSON.parse(figure.dataset.figureSpec));
       else initialize(figure);

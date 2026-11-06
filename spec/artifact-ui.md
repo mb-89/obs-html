@@ -492,19 +492,56 @@ only in an artifact that holds a decision figure: it is the reader feature `pugh
 Every option carries its letter, A, B, C and on in the order the fence lists them, wherever the
 figure names it, its label and its short name (obs input-model, Pugh decision figures). Where
 there is room, an option reads as its letter and short name, "B · Close": in the options list,
-the table's column heads, the winner line, the Sensitivity lines and an answer's record.
+the table's column heads, the Y-statement, the Sensitivity lines and an answer's record.
 Without a short name the letter stands alone.
 
-Decided by the user, 6 Nov 2026 (work issue `feature/decision-figure-layout-20261106`): a decision
-reads top to bottom, and its matrix is compact. The figure shows, in this order (the chapter's
-heading and text come before it):
+Every option also has its own colour, the same wherever the page shows it: its letter chip, its
+cell heads in the rows and its Pareto line. The colours are the `color.option-1` to
+`color.option-8` tokens (`assets.json`), each with a light and a dark value, taken in letter
+order and repeated after the eighth option.
 
-1. **The options:** a list, one line per option ("A · Keep open"). Expanding an option shows its
-   label where that says more, its `what` sentence, and its wins and losses.
-2. **The winner line:** always visible, outside any tab.
-3. **The tabs**, in the adapter's tab control (the look of a table's detail tabs), Matrix shown
-   at the start, then one tab for each of the chapter's sections after the figure
-   ([[#Decision tabs from the chapter]]).
+Decided by the user, 6 Nov 2026 (work issue `feat/decision-solutions-and-details-20261106`): a
+decision page reads top to bottom as a person thinks: the current situation, the problem, the
+potential solutions with the one to pick, then the details. In a chapter whose main content is a
+decision figure (its one figure at the top level is a decision figure), the page draws two second-level
+headings around it, which fold and stand in the chapter's contents as the note's own headings
+do (`render.py`, decision chapter); the note writes only its text before the fence:
+
+1. **Potential solutions**, after the note's text: the options list, the Y-statement and the
+   confirmation, in the figure's frame.
+2. **Details**, after it: the tabs, in the adapter's tab control (the look of a table's detail
+   tabs), Matrix shown at the start, then one tab for each of the chapter's sections after the
+   figure ([[#Decision tabs from the chapter]]).
+
+A chapter with more than one decision figure has no such headings; each figure shows the same
+parts in the same order in its own frame.
+
+**The options list:** one row per option. A row is its letter chip, its short name and an
+expander; expanding it shows the option's label where that says more, its `what` sentence and its
+wins and losses. The computed winner's row carries a "winner" mark; the fence's `chosen` option,
+where it is another, a "chosen" mark.
+
+Where the chapter asks for a bless, each row carries a radio, and the list ends with a row "None
+of the above" with one too. A radio is the band's pick state ([[#Bless verdicts]],
+`obsBless.pick` and `obsBless.picked`): it picks its option, `none` for None of the above, the
+band shows it, a pick in the band checks the radio, and the checked radio chosen again clears the
+verdict to pending.
+
+**The Y-statement:** one sentence directly under the list, the decision bottom line up front:
+"In the context of ‹context›, facing ‹concern›, we decided for ‹option› and against ‹the
+others›, to achieve ‹gains›, accepting ‹losses›." ‹context› and ‹concern› are the fence's
+`context` and `concern`; without them the sentence starts at "We decided for", and without one
+of them its clause is left out. ‹option› is the winner, or the reader's pick where there is one,
+and the sentence follows a new pick at once; for None of the above it reads "we decided against
+all of …". ‹gains› are the criteria on which the option's weighted mark against the datum is
+highest, at most three; ‹losses› those where it is below the datum. A clause with nothing to name
+is left out.
+
+**The confirmation:** where the fence has `confirmation`, one line under the Y-statement,
+"Confirmation: ‹text›".
+
+**Superseded:** where the fence has `supersededBy`, the chapter shows "Superseded by ‹ref›" at its
+top, under its heading. There are no status, date or decision-maker fields.
 
 The tabs:
 
@@ -516,13 +553,16 @@ The tabs:
   ([[#Sensitivity]]).
 - **Pareto:** which options no other beats on every criterion, as a chart ([[#Pareto]]).
 
-The figure says each name once, in the options list and a letter's popover alike: where the
+The figure says each name once, in the options list and a letter's hover card alike: where the
 short name's words are the label's, all of them or a run of them ("Two lines" of "Keep two
 lines"), the label is not shown; without a short name it always is (`pugh-figure.js`,
 `labelAdds`).
 
-The winner line names the winner, its total against the datum, and whether the choice holds or
-depends on the weights, with the winner's share of the weight draws.
+**Help:** every hover or tap help in the figure is the artifact's hover card ([[#Overlays]]),
+drawn on top of the page, across the matrix's borders, never clipped and never a cause of a
+scroll bar. A letter, a column head, a Wins or Losses count, a mark with a reason and the
+Sensitivity bar show their card on hover or focus, and on a tap; a tap elsewhere hides it. A mark
+the reader can change shows its reason on hover or focus, and a tap changes it.
 
 #### Tab badges
 
@@ -540,11 +580,22 @@ the same way.
 The table:
 
 - **The head:** one line per option: its letter, its short name, and "datum" or "winner" as a
-  small mark. The datum comes first. The full label shows on hover, focus or tap, in the same
-  popover as a letter on a phone. An option that does not fit is greyed, its reasons its tooltip.
+  small mark. The datum comes first. The full label shows in its hover card, as a letter's on a
+  phone. An option that does not fit is greyed, its reasons its hover card.
 - **The rows:** the criteria, each with its weight; the weighted total; then Wins and Losses as
-  counts, the option's own `wins` and `losses` on hover, focus or tap. They add nothing to the
-  totals.
+  counts. They add nothing to the totals.
+
+Decided by the user, 6 Nov 2026 (work issue `feat/decision-solutions-and-details-20261106`): the
+arguments behind the marks show where the reader looks for them, in hovers, never as more text.
+A mark the fence gives a reason (obs input-model, Pugh decision figures) is an argument: "Good,
+because …" for a plus mark, "Neutral, because …" for S, "Bad, because …" for a minus mark, by the
+fence's mark (the mean of a rater list).
+
+- **A mark's card:** its argument, on the matrix cell. A mark without a reason, or one the reader
+  changed, has none.
+- **A count's card:** the Wins count counts the option's own `wins` and its good arguments, the
+  Losses count its `losses` and its bad arguments; its card lists them, the arguments each with
+  its criterion. An option with none has no count.
 - **Widths:** the criterion column takes the free width and shows names in full, wrapping only
   where the names do not fit. Option columns are as narrow as their marks.
 - **Heights:** every data row is one line high, all of one height.
@@ -562,14 +613,10 @@ The reader changes a weight in its field and a mark by tapping it and choosing �
 decided again at once, and Reset, in the figure and in its options menu, restores the fence's
 values. A changed mark is the engine's own cell override.
 
-Where the chapter asks for a bless, the matrix's last row is the radio row: a radio under each
-option and "None of the above" after the row's name. It is the band's pick state
-([[#Bless verdicts]], `obsBless.pick` and `obsBless.picked`): a radio picks its option, the band
-shows it, a pick in the band checks the radio, and the checked radio chosen again clears the
-verdict to pending.
+The matrix has no pick: the reader picks in the options list.
 
 Where the chapter's answer recorded changes, the figure shows them read-only, as print does,
-with no radio row, and Reset is disabled.
+with no radios, and Reset is disabled.
 
 #### Sensitivity
 
@@ -577,9 +624,12 @@ Decided by the user, 6 Nov 2026 (work issue `feature/decision-sensitivity-pareto
 what if is a grid a decision maker reads at a glance, not prose. Every number is the engine's
 (ctrl's `pugh.js`, its sensitivity), which the figure only lays out.
 
-- **The top line:** a bar of the winner's share of the engine's random weight draws, each weight
-  within ±`step` of its own (1 by default), "B · Artifact wins 100.0 % of draws", with a mark at
-  the engine's hold share (`holdShare`, 75 % by default).
+- **The top line:** a bar of the winner's share of the engine's random weight draws, "B · Artifact
+  wins 100.0 % of draws", with a mark at the engine's hold share (`holdShare`, 75 % by default).
+  The draw range, each weight within ±`step` of its own (1 by default), and the hold share are
+  the bar's hover card, not its text. Decided by the user, 6 Nov 2026 (work issue
+  `feat/decision-solutions-and-details-20261106`): the analysis is how far a weight must move for
+  another option to win, which the grid shows, not a wiggle of every weight.
 - **The grid:** one row per criterion, its name and current weight on one line, and one column
   per other option that fits, headed by its letter.
 - **A cell:** the weight at which that option ties the winner if only this weight moves, "3 → 7",
@@ -590,9 +640,6 @@ The cell holding the smallest move of an option is the engine's tie point for it
 is within reach, and marked so, where its tie lies within ±`step` of the current weight and above
 0, the engine's `reasonable`.
 
-- **All weights together:** a last row with, per option, the engine's smallest change of all
-  weights that makes it tie (`minChange`), as a share of the weights' size, a bar and a
-  percentage; the weights it moves are the cell's tooltip.
 - **Below the grid:** where the fence's `chosen` option is not the winner, a line says so and
   its column is marked; an option that does not fit is named with its reasons.
 
@@ -609,8 +656,8 @@ anchor while the artifact is open, and readable by the page as `obsPugh.readerSt
 anchor and with options by letter, with the winner they give, for whatever sends a reader's
 verdict ([[#Bless verdicts]]).
 
-Print and PDF show the options list with every option expanded, the winner line and the Matrix
-tab as the reader left it, the weights and marks as text, and Wins and Losses as their texts;
+Print and PDF show the options list with every option expanded, the Y-statement, the confirmation
+and the Matrix tab as the reader left it, the weights and marks as text, and Wins and Losses as their texts;
 where weights or marks changed, the caption ends with the note *View changed by the reader.*
 
 Inside its frame the view keeps to the prose around the figure, clear of the chapter controls. A
@@ -626,13 +673,21 @@ no second chart library: one line per option that fits, over the criteria, each 
 axis of its mark from −− to ++, the datum's marks S. Decided by the dispatcher, 6 Nov 2026, as a
 change to the work issue: not the equation figure's plot, whose figure ships Plotly.
 
-Each line ends in its letters, the criteria are numbered under the chart, the winner's line is
-bold (the engine's "option" role), a dominated option's dashed and grey ("other"), and the
-rest plain ("front"); a dominated winner is bold and dashed.
+Decided by the user, 6 Nov 2026 (work issue `feat/decision-solutions-and-details-20261106`): the
+plot must read without explanation.
 
-One sentence under it: "Not dominated: B, C. Dominated: A (by B)." An option is dominated where
-another that fits is at least as good on every criterion and better on one. The flag shows where
-the winner is dominated.
+- **Colours:** each option's line in its own colour, its letter chip's.
+- **Axes:** labelled. Above the plot, the y axis: "Mark against the datum, −− to ++"; under it,
+  the x axis: "Criterion", numbered, the numbers named in the key under the chart.
+- **Lines:** each ends in its letters; the winner's is the thickest (the engine's "option" role),
+  a dominated option's dashed, the rest plain ("front"); a dominated winner is thick and dashed.
+- **The sentence:** one, under the key, saying what dominated means and naming who dominates
+  whom: "No option is at least as good as another on every criterion and better on one, so none
+  is ruled out." or "An option is ruled out where another is at least as good on every criterion
+  and better on one: A · Keep by C · Close and D · Move; D · Move by C · Close."
+
+An option is dominated where another that fits is at least as good on every criterion and better
+on one. The flag shows where the winner is dominated.
 
 #### Decision figures on a phone
 
@@ -648,7 +703,8 @@ kept. Each criterion is two lines:
   the option's letter, the winner's cell marked.
 
 The weighted total follows the same pattern, and so do Wins and Losses, as counts with the texts
-on tap. The radio row follows the same pattern, "None of the above" after its name.
+on tap. The options list keeps one row per option, its radio, chip and short name on one line,
+its expander's text wrapping under it.
 
 A cell takes up to 2.5 rem and gives way to 1.7 rem before its line wraps: five options fit
 beside the stepper in the narrowest figure, at a 360 px phone, and more wrap to a further line.
@@ -656,16 +712,16 @@ Nothing in the figure scrolls sideways.
 
 Below the same width the Sensitivity grid is one block per option: its letter as the block's
 head, then one line per criterion (its name, current weight, tie and bar), then all weights
-together. The Pareto chart takes the figure's width.
+The Pareto chart takes the figure's width.
 
 In the rows only the letter fits, and the letter is a control. Hovering it, focusing it or
 tapping it shows the option's letter and short name, its label where that says more and its
-`what` sentence in a small popover under the line; a second tap or a tap elsewhere closes it,
-with no browser dialog. The popover is the control's description for a screen reader.
+`what` sentence in the hover card; a tap elsewhere closes it, with no browser dialog. The card is
+the control's description for a screen reader.
 
 The letter heads its cell as a control of its own, above the cell's mark key, so a tap on the
-mark changes the mark and a tap on the letter opens the popover. A mark, a weight step and a pick
-are one tap each, as in the table.
+mark changes the mark and a tap on the letter opens the card. A mark, a weight step and a pick
+are one tap each, as in the table. Nothing in any section or tab scrolls sideways.
 
 The table and the rows are drawn from one decision and one reader state: a resize across the
 width draws the other form with the reader's changes kept. Print shows the table.
@@ -675,16 +731,17 @@ width draws the other form with the reader's changes kept. Print shows the table
 Decided by the user, 6 Nov 2026 (work issue `feature/decision-figure-on-phones-20261106`): a
 decision chapter's long material sits in its own tab, not under the one-pager.
 
-In a chapter whose main content is a decision figure, its one decision figure at the top level,
-each second-level section after the figure, up to a first-level one, becomes one more tab of the
-figure, named by its heading; "## The record" becomes a tab "The record". `render.py` moves the
-section into the figure when it renders the chapter, so its text no longer runs below.
+In a chapter whose main content is a decision figure, its one figure at the top level a decision
+figure, each second-level section after the figure, up to a first-level one, becomes one more tab
+of the figure under Details, named by its heading; "## The record" becomes a tab "The record".
+`render.py` moves the section into the figure's details when it renders the chapter, so its text
+no longer runs below.
 
 The tab's panel carries the heading's anchor, and its deeper headings stay in it. Without such
 sections the figure has its four tabs. Print shows each section under the Matrix tab, headed by
 its name.
 
-The heading keeps its place in the chapter's contents. A link to it, or to a place inside its
+The heading keeps its place in the chapter's contents, under Details. A link to it, or to a place inside its
 section, opens its tab and scrolls to it: the artifact's one way of revealing a place
 (`artifact.js`, `revealSource`) asks the figure (`pugh-figure.js`, `reveal`). Decided by the
 dispatcher, 6 Nov 2026 (work issue `fix/decision-figure-follow-ups-20261106`).
@@ -845,7 +902,7 @@ On such a chapter the top band shows, left of the notice icons:
   Pick only where the chapter has a decision figure.
 - **The comment:** Decline, Ask and Pick open a one-line comment entry in the band, directly
   under the keys, and only then; Pick shows there the other options' letters ("Pick A"), as the
-  figure's radio row does, and "None of the above", which needs a comment as Decline does and
+  radios of the figure's options list do, and "None of the above", which needs a comment as Decline does and
   is sent as the pick's option `none`. There is no comment box in the page and no browser dialog.
 
 A verdict is complete as a Bless, or as another verdict with its comment (and, for Pick, its
@@ -1560,7 +1617,7 @@ separate from artifact presentation.
   Every derived paragraph, list item, table data row,
   standalone code block, and figure review item gains a left gutter with
   Accept, Reject, and Comment controls. A figure is one item: what it draws inside, such as a
-  decision figure's rows, is none. Cards stand one below the other in the prose column, so no
+  decision figure's rows, is none, nor is what a decision figure draws in its chapter's Details. Cards stand one below the other in the prose column, so no
   two items share a gutter line.
 
   Waiting items use teal, accepted items green, and

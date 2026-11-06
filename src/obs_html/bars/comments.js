@@ -851,7 +851,9 @@
     const reviewElements = (root) => [...root.querySelectorAll("p, li, tr, pre, figure")]
         .filter((element) => {
             if (element.closest(".data-table-detail-row")) return false;
-            // A figure is one review item, whatever it draws inside it (a decision figure's rows and lists).
+            // A figure is one review item, whatever it draws inside it (a decision figure's rows and lists),
+            // and so are a decision figure's details, which the figure draws beside it (render.py, decision tabs).
+            if (element.closest("[data-pugh-details]")) return false;
             if (element.matches("tr")) return !element.closest("thead, figure") &&
                 (!element.closest("[data-data-table], [data-review-table]") || element.hasAttribute("data-row-key"));
             if (element.closest("tr")) return false;

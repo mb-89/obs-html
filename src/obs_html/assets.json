@@ -425,6 +425,54 @@
           "value": {
             "ref": "color.failure"
           }
+        },
+        "option-1": {
+          "value": {
+            "light": "#1f6db5",
+            "dark": "#6cb0ee"
+          }
+        },
+        "option-2": {
+          "value": {
+            "light": "#b8520f",
+            "dark": "#f2a061"
+          }
+        },
+        "option-3": {
+          "value": {
+            "light": "#2b7d3a",
+            "dark": "#72c785"
+          }
+        },
+        "option-4": {
+          "value": {
+            "light": "#b02d6b",
+            "dark": "#ee86b8"
+          }
+        },
+        "option-5": {
+          "value": {
+            "light": "#6b4fc0",
+            "dark": "#ab97f0"
+          }
+        },
+        "option-6": {
+          "value": {
+            "light": "#007b85",
+            "dark": "#4fc4cd"
+          }
+        },
+        "option-7": {
+          "value": {
+            "light": "#8a6400",
+            "dark": "#dbb54a"
+          }
+        },
+        "option-8": {
+          "value": {
+            "light": "#8a4a2a",
+            "dark": "#d39a7c"
+          }
         }
       }
     },

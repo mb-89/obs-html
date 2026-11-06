@@ -23,6 +23,11 @@ THREE, FIVE = "three--figure-1", "five--figure-1"
 WIDTHS = (360, 390)
 
 
+def details(anchor: str) -> str:
+    """Where a decision chapter's figure draws its tabs: the chapter's Details (artifact-ui.md, Decision figures)."""
+    return f'[data-pugh-details="{anchor}"]'
+
+
 @pytest.fixture(scope="module")
 def deck(tmp_path_factory) -> Path:
     def build(folder: Path) -> None:
@@ -46,8 +51,10 @@ def _open(browser, deck: Path, width: int, chapter: str):
 
 LAYOUT = """anchor => {
     const figure = document.getElementById(anchor), width = innerWidth;
+    const parts = [figure, document.querySelector(`[data-pugh-details="${anchor}"]`)];
+    const all = selector => parts.flatMap(part => [...part.querySelectorAll(selector)]);
     const shown = node => node.getClientRects().length > 0;
-    const keys = [...figure.querySelectorAll('button, input')].filter(shown);
+    const keys = all('button, input').filter(shown);
     const outside = keys.filter(key => { const box = key.getBoundingClientRect(); return box.left < -0.5 || box.right > width + 0.5; });
     const covered = keys.filter(key => {
         key.scrollIntoView({block: 'center', inline: 'nearest'});
@@ -55,19 +62,20 @@ LAYOUT = """anchor => {
         return !(hit && (hit === key || key.contains(hit)));
     });
     scrollTo(0, 0);
-    const sideways = [...figure.querySelectorAll('*')].filter(node => node.scrollWidth > node.clientWidth + 1
+    const sideways = all('*').filter(node => node.scrollWidth > node.clientWidth + 1
         && ['auto', 'scroll'].includes(getComputedStyle(node).overflowX));
     const describe = node => node.dataset.pughMark || node.dataset.pughStep || node.dataset.pughTab || node.className || node.tagName;
-    return {page: document.scrollingElement.scrollWidth, width, form: figure.querySelector('[data-pugh-form]')?.dataset.pughForm,
+    return {page: document.scrollingElement.scrollWidth, width, form: all('[data-pugh-form]')[0]?.dataset.pughForm,
             outside: outside.map(describe), covered: covered.map(describe), sideways: sideways.map(describe),
             mobile: matchMedia('(pointer: coarse)').matches && devicePixelRatio > 1,
-            heads: [...figure.querySelectorAll('[data-pugh-form] [data-pugh-head]')].map(node => node.textContent.trim()),
-            names: [...figure.querySelectorAll('[data-pugh-form="rows"] .pugh-column-name')].length,
-            tabs: [...figure.querySelectorAll('[data-pugh-tab]')].map(tab => tab.querySelector('.tab-label').textContent),
-            order: [...figure.querySelector('.pugh-figure-view').children].slice(0, 3).map(part => part.dataset.pughPart),
-            counts: [...figure.querySelectorAll('[data-pugh-form="rows"] [data-pugh-texts] [data-pugh-count]')].map(count =>
+            heads: all('[data-pugh-form] [data-pugh-head]').map(node => node.textContent.trim()),
+            names: all('[data-pugh-form="rows"] .pugh-column-name').length,
+            tabs: all('[data-pugh-tab]').map(tab => tab.querySelector('.tab-label').textContent),
+            order: [...figure.querySelector('.pugh-figure-view').children].map(part => part.dataset.pughPart),
+            details: [...parts[1].querySelector('.pugh-figure-view').children].slice(0, 1).map(part => part.dataset.pughPart),
+            counts: all('[data-pugh-form="rows"] [data-pugh-texts] [data-pugh-count]').map(count =>
                 `${count.closest('[data-pugh-texts]').dataset.pughTexts} ${count.dataset.pughCount} ${count.textContent.trim()}`),
-            lines: [...figure.querySelectorAll('.pugh-row-cells')].map(cells =>
+            lines: all('.pugh-row-cells').map(cells =>
                 new Set([...cells.children].map(cell => Math.round(cell.getBoundingClientRect().bottom))).size)};
 }"""
 
@@ -89,18 +97,20 @@ def test_on_a_phone_the_matrix_is_rows_of_letters_and_nothing_scrolls_sideways(p
     assert layout["names"] == 0
     # Up to five options, the stepper and the cells of each line share one line.
     assert layout["lines"] and set(layout["lines"]) == {1}
-    # The figure's order and the Wins and Losses counts are the table's (artifact-ui.md, Decision figures on a phone).
-    assert layout["order"] == ["options", "winner", "tabs"]
-    assert layout["counts"] == ["wins B 1", "losses A 1", "losses C 1"] if anchor == THREE else layout["counts"]
+    # Potential solutions, then Details: the order and the Wins and Losses counts are the table's (artifact-ui.md,
+    # Decision figures on a phone); a count counts the option's own texts and its arguments.
+    assert layout["order"] == (["options", "statement", "confirmation"] if anchor == THREE else ["options", "statement"])
+    assert layout["details"] == ["tabs"]
+    assert layout["counts"] == ["wins B 2", "losses A 1", "losses C 2"] if anchor == THREE else layout["counts"]
     # Without sections after the figure, the figure has its four tabs only.
     assert anchor == THREE or layout["tabs"] == ["Matrix", "Checklist", "Sensitivity", "Pareto"]
     assert errors == []
 
 
 # What a tab shows on a phone (artifact-ui.md, Decision figures on a phone): nothing scrolls sideways,
-# and the Sensitivity grid is one block per option, its letter, then a line per criterion and all weights.
+# and the Sensitivity grid is one block per option, its letter, then a line per criterion.
 TAB = """anchor => {
-    const figure = document.getElementById(anchor), panel = figure.querySelector('[role="tabpanel"]:not([hidden])');
+    const panel = document.querySelector(`[data-pugh-details="${anchor}"] [role="tabpanel"]:not([hidden])`);
     const outside = [...panel.querySelectorAll('*')].filter(node => node.getClientRects().length
         && (node.getBoundingClientRect().left < -0.5 || node.getBoundingClientRect().right > innerWidth + 0.5));
     return {page: document.scrollingElement.scrollWidth, outside: outside.map(node => node.className.baseVal ?? node.className),
@@ -116,7 +126,7 @@ TAB = """anchor => {
 @pytest.mark.parametrize("width", WIDTHS)
 def test_on_a_phone_the_sensitivity_grid_is_a_block_per_option_and_both_tabs_fit(phone_browser, deck, width):
     page, errors = _open(phone_browser, deck, width, "five")
-    figure = page.locator(f"#{FIVE}")
+    figure = page.locator(details(FIVE))
     criteria = figure.locator("[data-pugh-form] [data-pugh-criterion]").count()
 
     figure.locator('[data-pugh-tab="sensitivity"]').tap()
@@ -130,7 +140,7 @@ def test_on_a_phone_the_sensitivity_grid_is_a_block_per_option_and_both_tabs_fit
         assert tab["page"] <= width and tab["outside"] == [] and tab["sideways"] == 0
     blocks = sensitivity["blocks"]
     assert sensitivity["grid"] == "blocks" and len(blocks) == 4 and ruling == 1
-    assert all(letter == head for letter, head, _ in blocks) and {lines for *_, lines in blocks} == {criteria + 1}
+    assert all(letter == head for letter, head, _ in blocks) and {lines for *_, lines in blocks} == {criteria}
     assert pareto["lines"] == 5
     assert errors == []
 
@@ -138,11 +148,11 @@ def test_on_a_phone_the_sensitivity_grid_is_a_block_per_option_and_both_tabs_fit
 @pytest.mark.parametrize("width", WIDTHS)
 def test_on_a_phone_a_mark_a_weight_and_a_pick_take_one_tap_each(phone_browser, deck, width):
     page, errors = _open(phone_browser, deck, width, "three")
-    figure = page.locator(f"#{THREE}")
+    figure, matrix = page.locator(f"#{THREE}"), page.locator(details(THREE))
 
-    figure.locator('[data-pugh-mark="C:readable"] .pugh-mark-button').tap()
-    figure.locator('[data-pugh-mark="C:readable"] [data-pugh-choice="2"]').tap()
-    figure.locator('[data-pugh-step="effort:+"]').tap()
+    matrix.locator('[data-pugh-mark="C:readable"] .pugh-mark-button').tap()
+    matrix.locator('[data-pugh-mark="C:readable"] [data-pugh-choice="2"]').tap()
+    matrix.locator('[data-pugh-step="effort:+"]').tap()
     figure.locator('[data-pugh-pick="C"]').tap()
     state = page.evaluate("obsPugh.readerState()")[THREE]
     picked = page.evaluate("obsBless.verdicts()")
@@ -154,13 +164,13 @@ def test_on_a_phone_a_mark_a_weight_and_a_pick_take_one_tap_each(phone_browser, 
     cleared = (page.evaluate(f"obsBless.picked('{THREE}')"), page.evaluate(radios))
 
     assert state["marks"] == {"C": {"readable": 2}} and state["weights"] == {"effort": 1.5}
-    # The radio row: one radio per option and None of the above, the band's pick state (artifact-ui.md, The decision matrix).
+    # The options list's radios, one per option and None of the above: the band's pick state (artifact-ui.md, Decision figures).
     assert picked["three"]["pick"] == {"figure": THREE, "option": "C"}
     assert shown == {"A": False, "B": False, "C": True, "none": False}
     assert none == ("none", True)
     # The active pick, chosen again, clears to pending.
     assert cleared == (None, {"A": False, "B": False, "C": False, "none": False})
-    assert sorted(figure.locator(".pugh-changed").evaluate_all("nodes => nodes.map(n => n.dataset.pughMark || n.dataset.pughWeight)")) \
+    assert sorted(matrix.locator(".pugh-changed").evaluate_all("nodes => nodes.map(n => n.dataset.pughMark || n.dataset.pughWeight)")) \
         == ["C:readable", "effort"]
     assert errors == []
 
@@ -168,11 +178,11 @@ def test_on_a_phone_a_mark_a_weight_and_a_pick_take_one_tap_each(phone_browser, 
 @pytest.mark.parametrize("width", WIDTHS)
 def test_a_chapters_sections_after_the_figure_are_its_tabs(phone_browser, deck, width):
     page, errors = _open(phone_browser, deck, width, "three")
-    figure = page.locator(f"#{THREE}")
+    figure = page.locator(details(THREE))
 
     tabs = figure.locator("[data-pugh-tab]").evaluate_all("tabs => tabs.map(tab => tab.querySelector('.tab-label').textContent)")
     below = page.evaluate("""anchor => [...document.querySelector('[data-active-chapter] .chapter-body, .chapter-body').querySelectorAll('*')]
-        .filter(node => !node.closest(`#${anchor}`) && node.childElementCount === 0 && /record of earlier verdicts/.test(node.textContent))
+        .filter(node => !node.closest(`#${anchor}, [data-pugh-details="${anchor}"]`) && node.childElementCount === 0 && /record of earlier verdicts/.test(node.textContent))
         .length""", THREE)
     figure.locator('[data-pugh-tab="extra-1"]').tap()
     shown = figure.locator('[role="tabpanel"]:not([hidden])').inner_text()
@@ -208,48 +218,46 @@ def test_a_link_to_a_section_in_a_tab_opens_the_tab_at_it_and_the_contents_lists
 @pytest.mark.parametrize("width", WIDTHS)
 def test_on_a_phone_tapping_a_letter_shows_the_options_name_and_sentence(phone_browser, deck, width):
     page, errors = _open(phone_browser, deck, width, "three")
-    head = page.locator(f'#{THREE} [data-pugh-mark="B:places"] [data-pugh-head]')
-    about = f"#{THREE}--pugh-about-B"
-    shown = f"(selector => {{ const node = document.querySelector(selector); return node && !node.hidden && node.getClientRects().length > 0; }})"
+    head = page.locator(f'{details(THREE)} [data-pugh-mark="B:places"] [data-pugh-head]')
+    card = "#hover-card"
+    shown = f"(() => {{ const node = document.querySelector('{card}'); return Boolean(node && !node.hidden && node.getClientRects().length); }})()"
 
     head.tap()
-    opened = page.evaluate(f"{shown}('{about}')")
-    text = page.locator(about).inner_text()
+    page.wait_for_selector(f"{card}:not([hidden])")
+    text = page.locator(card).inner_text()
     described = head.evaluate("node => node.getAttribute('aria-describedby')")
-    box, viewport = page.locator(about).bounding_box(), page.viewport_size
-    head.tap()
-    second = page.evaluate(f"{shown}('{about}')")
-    head.tap()
+    box, viewport = page.locator(card).bounding_box(), page.viewport_size
     page.locator("[data-chapter-body] h1").tap()
-    elsewhere = page.evaluate(f"{shown}('{about}')")
+    elsewhere = page.evaluate(shown)
 
-    assert opened and described == about[1:]
+    # The letter's card is the artifact's hover card (artifact-ui.md, Overlays), the letter's description.
+    assert described == card[1:]
     # The label "Answered artifact" says no more than the short name "Artifact", so it is not shown.
     assert "B · Artifact" in text and "Answered artifact" not in text and "obs-document --answers builds the artifact" in text
     assert box["x"] >= 0 and box["x"] + box["width"] <= viewport["width"]
-    assert second is False and elsewhere is False
+    assert elsewhere is False
     assert page.evaluate("document.querySelectorAll('dialog[open]').length") == 0
     assert errors == []
 
 
 def test_where_there_is_room_an_option_reads_as_its_letter_and_short_name(phone_browser, deck):
     page, errors = _open(phone_browser, deck, 1200, "three")
-    figure = page.locator(f"#{THREE}")
+    figure, matrix = page.locator(f"#{THREE}"), page.locator(details(THREE))
 
-    heads = figure.locator("thead [data-pugh-option]").evaluate_all(
+    heads = matrix.locator("thead [data-pugh-option]").evaluate_all(
         "cells => cells.map(cell => cell.querySelector('.pugh-column-name')?.textContent ?? '')")
-    bottom = figure.locator(".pugh-bottom").inner_text()
+    said = figure.locator('[data-pugh-part="statement"]').inner_text()
     listed = figure.locator(".pugh-option-list summary").first.inner_text()
-    figure.locator('[data-pugh-tab="sensitivity"]').click()
-    share = figure.locator("[data-pugh-share]").inner_text()
+    matrix.locator('[data-pugh-tab="sensitivity"]').click()
+    share = matrix.locator("[data-pugh-share]").inner_text()
     page.evaluate("obsArtifact.activateChapter('five')")
     page.wait_for_selector(f"#{FIVE}.figure-pugh-ready")
-    five = page.locator(f"#{FIVE} thead [data-pugh-option]").evaluate_all(
+    five = page.locator(f"{details(FIVE)} thead [data-pugh-option]").evaluate_all(
         "cells => cells.map(cell => cell.querySelector('.pugh-column-name')?.textContent ?? '')")
 
     # A short name is the fence's short, else a label of at most 5 words; a longer label leaves the letter alone.
     assert heads == ["Comment export", "Artifact", "Answers file alone"]
-    assert "B · Artifact" in bottom and "A · Comment export" in bottom
+    assert "for B · Artifact" in said and "A · Comment export" in said
     assert listed == "A · Comment export"
     assert share.startswith("B · Artifact wins ")
     assert five[3] == "" and five[1] == "An object bucket"
@@ -258,7 +266,7 @@ def test_where_there_is_room_an_option_reads_as_its_letter_and_short_name(phone_
 
 # The table's rows, heads and columns (artifact-ui.md, The decision matrix).
 MATRIX = """anchor => {
-    const table = document.querySelector(`#${anchor} .pugh-matrix`), box = node => node.getBoundingClientRect();
+    const table = document.querySelector(`[data-pugh-details="${anchor}"] .pugh-matrix`), box = node => node.getBoundingClientRect();
     // Its text's lines: the text's boxes, those whose middles lie within 8 px of each other one line.
     const lines = node => { const range = document.createRange(); range.selectNodeContents(node);
         const middles = [...range.getClientRects()].filter(rect => rect.width > 0).map(rect => rect.top + rect.height / 2).sort((a, b) => a - b);
@@ -290,8 +298,8 @@ def test_at_1100_px_criteria_read_in_full_options_are_narrow_and_every_row_is_on
 
 def test_the_readers_changes_survive_a_resize_between_the_table_and_the_rows(phone_browser, deck):
     page, errors = _open(phone_browser, deck, 1200, "three")
-    figure = page.locator(f"#{THREE}")
-    form = f"document.querySelector('#{THREE} [data-pugh-form]').dataset.pughForm"
+    figure = page.locator(details(THREE))
+    form = f"document.querySelector('{details(THREE)} [data-pugh-form]').dataset.pughForm"
 
     wide = page.evaluate(form)
     field = figure.locator('[data-pugh-weight="places"]')
@@ -299,14 +307,14 @@ def test_the_readers_changes_survive_a_resize_between_the_table_and_the_rows(pho
     field.press("Enter")
     page.set_viewport_size({"width": 360, "height": 780})
     page.wait_for_function(f"{form} === 'rows'")
-    narrow = page.evaluate(f"""() => ({{weight: document.querySelector('#{THREE} [data-pugh-weight="places"]').textContent,
+    narrow = page.evaluate(f"""() => ({{weight: document.querySelector('{details(THREE)} [data-pugh-weight="places"]').textContent,
         winner: document.getElementById('{THREE}').dataset.pughWinner}})""")
     figure.locator('[data-pugh-mark="B:effort"] .pugh-mark-button').tap()
     figure.locator('[data-pugh-mark="B:effort"] [data-pugh-choice="-2"]').tap()
     page.set_viewport_size({"width": 1200, "height": 900})
     page.wait_for_function(f"{form} === 'table'")
-    back = page.evaluate(f"""() => ({{weight: document.querySelector('#{THREE} [data-pugh-weight="places"]').value,
-        mark: document.querySelector('#{THREE} [data-pugh-mark="B:effort"]').textContent}})""")
+    back = page.evaluate(f"""() => ({{weight: document.querySelector('{details(THREE)} [data-pugh-weight="places"]').value,
+        mark: document.querySelector('{details(THREE)} [data-pugh-mark="B:effort"]').textContent}})""")
 
     assert wide == "table"
     assert narrow["weight"] == "1"
@@ -372,8 +380,8 @@ LISTED = """anchor => [...document.querySelectorAll(`#${anchor} .pugh-option-lis
 
 
 @pytest.mark.parametrize("anchor, names", [
-    (THREE, ["A · Comment export", "B · Artifact", "C · Answers file alone"]),
-    (FIVE, ["A · A local disk", "B · An object bucket", "C · The repository", "D · A page of the team wiki",
+    (THREE, ["A · Comment export", "B · Artifact winner", "C · Answers file alone"]),
+    (FIVE, ["A · A local disk", "B · An object bucket", "C · The repository winner", "D · A page of the team wiki",
             "E · Mail to the owner"])])
 def test_the_options_list_says_each_name_once(phone_browser, deck, anchor, names):
     page, errors = _open(phone_browser, deck, 390, anchor.split("--")[0])
@@ -388,15 +396,17 @@ def test_the_options_list_says_each_name_once(phone_browser, deck, anchor, names
     assert errors == []
 
 
-# The options list, read through the print projection that shows it expanded, and each letter's popover
-# (artifact-ui.md, Decision figures): a label is said only where it adds words to the short name.
+# The options list, read through the print projection that shows it expanded, and each column head's hover
+# card (artifact-ui.md, Decision figures): a label is said only where it adds words to the short name.
 SAID = """async anchor => {
     const copy = document.getElementById(anchor).cloneNode(true), book = document.createElement('div');
     book.append(copy);
     await obsFigures.preparePrint(book);
     const texts = nodes => [...nodes].map(node => node.textContent.trim());
+    const card = head => { const node = document.createElement('div'); obsPugh.hover(head).render(node); return texts(node.children); };
     return {list: texts(copy.querySelectorAll('.pugh-option-list summary')),
-            abouts: [...document.querySelectorAll(`#${anchor} .pugh-about`)].map(about => texts(about.children))};
+            abouts: [...document.querySelectorAll(`[data-pugh-details="${anchor}"] [data-pugh-form] [data-pugh-head]`)]
+                .filter((head, index, heads) => heads.findIndex(other => other.dataset.pughHead === head.dataset.pughHead) === index).map(card)};
 }"""
 
 
@@ -405,7 +415,7 @@ def test_the_options_list_and_the_popover_say_each_name_once(phone_browser, deck
 
     said = page.evaluate(SAID, THREE)
 
-    assert said["list"] == ["A · Comment export", "B · Artifact", "C · Answers file alone"]
+    assert said["list"] == ["A · Comment export", "B · Artifact winner", "C · Answers file alone"]
     assert said["abouts"] == [
         ["A · Comment export (the datum)", "A document-level comment in the comment export."],
         ["B · Artifact (the winner)", "obs-document --answers builds the artifact with the answers in it."],

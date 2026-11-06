@@ -997,25 +997,37 @@ def _note_body(nodes: list[dict[str, object]], chapter: str, where: list[object]
     return "".join(html)
 
 
-FIGURE_END = "</figure>\n"
+DECISION_SECTIONS = ("Potential solutions", "Details")
+"""The two sections a decision chapter's figure shows as (artifact-ui.md, Decision figures)."""
 
 
 def _decision_tabs(nodes: list[dict[str, object]], html: list[str], context: Context) -> None:
-    """A chapter whose main content is a decision figure, its one decision figure at the top level:
-    each second-level section after the figure, up to a first-level one, moves into the figure as
-    one more tab, named by its heading (pugh-figure.js; obs input-model, Pugh decision figures).
-    ``html`` holds each node's rendering; the moved ones are emptied."""
+    """A chapter whose main content is a decision figure, its one figure at the top level a decision,
+    reads as two sections the page draws, DECISION_SECTIONS: the figure under the first; under the
+    second the figure's details, into which each second-level section after the figure, up to a
+    first-level one, moves as one more tab, named by its heading (pugh-figure.js; obs input-model,
+    Pugh decision figures). A decision superseded says so under the chapter's heading. ``html``
+    holds each node's rendering; the moved ones are emptied."""
     figures = [index for index, node in enumerate(nodes)
                if node["type"] == "figures" and node["attrs"].get("kind") == "pugh"]
-    if len(figures) != 1:
+    for index in figures:
+        superseded = nodes[index]["children"][0]["attrs"]["matrix"].get("supersededBy")
+        if superseded:
+            note = f'<p class="pugh-superseded" data-pugh-superseded>Superseded by <strong>{escape(superseded)}</strong></p>\n'
+            top = next((at for at in range(index) if nodes[at]["type"] == "section"
+                        and int(nodes[at]["attrs"].get("level", 1)) == 1), None)
+            if top is None:
+                html[0] = note + html[0]
+            else:
+                html[top] += note
+            break
+    if len(figures) != 1 or sum(node["type"] == "figures" for node in nodes) != 1:
         return
     def level(node: dict[str, object]) -> int:
         return int(node["attrs"].get("level", 1)) if node["type"] == "section" else 0
 
     end = next((index for index in range(figures[0] + 1, len(nodes)) if level(nodes[index]) == 1), len(nodes))
     starts = [index for index in range(figures[0] + 1, end) if level(nodes[index]) == 2]
-    if not starts:
-        return
     sections = []
     for start, stop in zip(starts, [*starts[1:], end]):
         heading = nodes[start]
@@ -1026,7 +1038,15 @@ def _decision_tabs(nodes: list[dict[str, object]], html: list[str], context: Con
                         f'<p class="pugh-extra-title">{title}</p>{"".join(html[start + 1:stop])}</section>')
         html[start:stop] = [""] * (stop - start)
     figure = html[figures[0]]
-    html[figures[0]] = figure[:-len(FIGURE_END)] + "".join(sections) + FIGURE_END
+    figure_id = re.match(r'<figure\b[^>]*?\sid="([^"]+)"', figure).group(1)
+    taken = set(context.headings.values())
+    def heading(title: str) -> str:
+        anchor = f"{context.chapter or HOME}--{_identifier(title)}"
+        identifier = "" if anchor in taken else f' id="{anchor}"'
+        return f"<h2{identifier}>{title}</h2>\n"
+    figure = figure.replace(f' id="{figure_id}"', f' id="{figure_id}" data-pugh-anchor="{figure_id}"', 1)
+    html[figures[0]] = (heading(DECISION_SECTIONS[0]) + figure + heading(DECISION_SECTIONS[1])
+                        + f'<div class="pugh-details" data-pugh-details="{figure_id}">{"".join(sections)}</div>\n')
 
 
 def _note(depth: int, title: str, slug: str, generated: str, frontmatter: dict[str, object],

@@ -2,12 +2,12 @@
    requests) shows a pill with its state in the top band and, beside it, the verdict keys Bless,
    Decline, Ask and Pick. Decline, Ask and Pick take a one-line comment in the band, under the
    keys; Pick takes another option of the chapter's decision figure by its letter, here or from
-   the figure's radio row, or None of the above (option "none"). A verdict never walks: the reader walks the chapters. The
+   the radios of the figure's options list, or None of the above (option "none"). A verdict never walks: the reader walks the chapters. The
    active key or pick, chosen again, clears the verdict to pending.
    API for the decision figure (pugh-figure.js): pick(anchor, option) picks an option of a figure by
    its letter, or "none" for None of the above, toggling as the band's keys do; picked(anchor) is the
    figure's picked option, a letter, "none" or null; asks(anchor) is whether the figure's chapter
-   asks, so the figure shows its radio row. Each change of a chapter's verdict by a key or a
+   asks, so the figure's options list shows its radios. Each change of a chapter's verdict by a key or a
    pick, not by typing its comment, fires "obs-bless-change" on document, its detail
    {chapter, verdict}, the verdict a copy or null where it was cleared.
    Send hands every complete verdict to the answer sink (answers.js) as one payload whose fields
@@ -155,7 +155,7 @@ globalThis.obsBless = (() => {
     const verdict = verdicts.get(chapterOf(anchor));
     return verdict?.verdict === "pick" && verdict.pick?.figure === anchor ? verdict.pick.option : null;
   }
-  /** Pick an option of a decision figure, from the band or the figure's radio row; the active pick clears. */
+  /** Pick an option of a decision figure, from the band or the figure's options list; the active pick clears. */
   function pick(anchor, option) {
     const slug = chapterOf(anchor);
     if (!slug) return;
@@ -240,7 +240,7 @@ globalThis.obsBless = (() => {
       update();
     }
   }
-  /** Whether a decision figure's chapter asks for a bless, so the figure shows its radio row (pugh-figure.js). */
+  /** Whether a decision figure's chapter asks for a bless, so the figure's options list shows its radios (pugh-figure.js). */
   const asks = anchor => Boolean(chapterOf(anchor));
 
   document.querySelector("[data-top-band-end]").prepend(controls);

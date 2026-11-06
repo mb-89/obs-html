@@ -29,6 +29,8 @@ pytestmark = pytest.mark.browser
 DECK = CORE_ROOT / "spec" / "examples" / "bless-deck" / "manifest.md"
 ANSWERS_SCHEMA = CORE_ROOT / "src" / "obs" / "answers.schema.json"
 FIGURE = "record--figure-1"
+DETAILS = f'[data-pugh-details="{FIGURE}"]'
+"""Where the figure's tabs are: its chapter's Details (artifact-ui.md, Decision figures)."""
 PHONE = {"width": 390, "height": 800}
 PENDING = "Bless pending"
 
@@ -220,7 +222,8 @@ def test_a_swipe_walks_the_chapters_and_does_not_decide(deck, reader_browser) ->
 
     # A swipe that starts in a box that scrolls sideways stays with it. At this width the figure's
     # matrix is rows and scrolls no more (artifact-ui.md, Decision figures), so the box is built here.
-    page.wait_for_selector(f"#{FIGURE}.figure-pugh-ready [data-pugh-form='rows']")
+    page.wait_for_selector(f"#{FIGURE}.figure-pugh-ready")
+    page.wait_for_selector(f"{DETAILS} [data-pugh-form='rows']")
     assert page.evaluate("""() => {
         const box = Object.assign(document.createElement('div'), {className: 'swipe-box'});
         box.style.overflowX = 'auto';
@@ -242,7 +245,7 @@ def test_send_hands_the_payload_with_the_weights_the_reader_set(built, reader_br
     served = serving.started(artifact, "--wait", "--timeout", serving.WAIT)
     try:
         page, errors = _open(reader_browser, served.url)
-        weight = page.locator(f'#{FIGURE} [data-pugh-weight="places"]')
+        weight = page.locator(f'{DETAILS} [data-pugh-weight="places"]')
         weight.fill("1")
         weight.dispatch_event("change")
         expect(page.locator(f"#{FIGURE}")).to_have_attribute("data-pugh-winner", "B")
@@ -280,8 +283,8 @@ def test_the_answered_deck_shows_each_verdict_read_only(built, reader_browser) -
     expect(page.locator("[data-bless-pill]")).to_have_text("Picked C · Answers file alone · recorded")
     expect(page.locator("[data-bless-key]:visible")).to_have_count(0)
     expect(page.locator("[data-bless-send]")).to_be_hidden()
-    expect(page.locator(f"#{FIGURE} [data-pugh-weight]")).to_have_count(0)  # The figure shows the answer read-only.
-    expect(page.locator(f'#{FIGURE} [data-pugh-criterion="places"] .pugh-weight')).to_have_text("1")
+    expect(page.locator(f"{DETAILS} [data-pugh-weight]")).to_have_count(0)  # The figure shows the answer read-only.
+    expect(page.locator(f'{DETAILS} [data-pugh-criterion="places"] .pugh-weight')).to_have_text("1")
     assert errors == []
 
 
@@ -488,7 +491,7 @@ def test_a_verdict_never_walks_and_a_second_press_clears_it(deck, phone_browser)
     page.locator('[data-bless-key="pick"]').click()
     page.locator(f'[data-bless-pick="{FIGURE}:C"]').click()
     assert page.evaluate(f"obsBless.picked('{FIGURE}')") == "C"
-    # The figure's radio row shows the band's pick and clears with it (artifact-ui.md, The decision matrix).
+    # The options list's radios show the band's pick and clear with it (artifact-ui.md, Decision figures).
     expect(page.locator(f'#{FIGURE} [data-pugh-pick="C"]')).to_be_checked()
     page.locator(f'[data-bless-pick="{FIGURE}:C"]').click()
     expect(pill).to_have_text(PENDING)

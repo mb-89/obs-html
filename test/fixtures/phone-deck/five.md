@@ -7,6 +7,7 @@ Five places could keep the deck.
 
 ```pugh
 title: Which store keeps the deck
+supersededBy: Decision 7, the deck moves to the wiki
 criteria:
   - {key: cost, label: Monthly cost of the store, weight: 3, better: higher, kind: judged}
   - {key: reach, label: Reachable from a phone, weight: 2, better: higher, kind: judged}

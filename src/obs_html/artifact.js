@@ -382,6 +382,8 @@
             },
         };
     });
+    // A decision figure's hovers and taps (pugh-figure.js, hover): its letters, counts, arguments and bars.
+    hoverCard.register("[data-pugh-hover]", (node) => globalThis.obsPugh?.hover(node) ?? null);
     document.addEventListener("obs-chapter-change", hoverCard.hide);
     const chapterRecords = chapters.map((chapter) => recordsBySlug.get(chapter.slug));
     const activeChapter = document.querySelector("[data-active-chapter]");
@@ -433,10 +435,10 @@
         const headings = [];
         const stack = [{level: 1, children: headings}];
         // A second-level section a decision figure shows as a tab (render.py, decision tabs) keeps
-        // its heading's anchor and its place in the contents.
+        // its heading's anchor and its place in the contents, under the figure's Details.
         source.content.querySelectorAll("h2[id], h3[id], h4[id], h5[id], h6[id], [data-pugh-extra][id]").forEach((heading) => {
             const tab = heading.dataset.pughExtra;
-            const level = tab === undefined ? Number(heading.tagName.slice(1)) : 2;
+            const level = tab === undefined ? Number(heading.tagName.slice(1)) : 3;
             while (stack.length > 1 && stack.at(-1).level >= level) stack.pop();
             const node = {
                 title: tab ?? heading.textContent.trim(),

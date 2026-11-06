@@ -438,8 +438,8 @@
     }
 }
 
-/* Decision figures (pugh-figure.js): the options list, the winner line, then the tabs in the table
-   detail tabs' look; the Matrix tab's table fills the width, its criterion column taking what the
+/* Decision figures (pugh-figure.js): the options list, the Y-statement and the confirmation, then
+   the tabs in the table detail tabs' look; the Matrix tab's table fills the width, its criterion column taking what the
    narrow option columns leave, every row one line, in its own scrolling box with the criterion
    names held at its left where it is wider than the view. */
 .obs-figure[data-figure-kind="pugh"] {
@@ -461,6 +461,18 @@
     padding: 0 2.6rem 0 0;
 }
 
+/* A row: its radio, where there is one, then its expander; the expander's text wraps under its line. */
+.pugh-option {
+    align-items: start;
+    column-gap: 0.5rem;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+}
+
+.pugh-option > details:only-child {
+    grid-column: 1 / -1;
+}
+
 .pugh-option-list summary {
     cursor: pointer;
     padding-block: 0.1rem;
@@ -468,7 +480,62 @@
 
 .pugh-option-list details > p {
     margin: 0.15rem 0 0.15rem 1.6rem;
+    overflow-wrap: anywhere;
 }
+
+.pugh-option .pugh-pick {
+    accent-color: var(--color-accent);
+    block-size: 1.1rem;
+    cursor: pointer;
+    inline-size: 1.1rem;
+    margin: 0.25rem 0 0;
+}
+
+.pugh-none-line {
+    cursor: pointer;
+    padding-block: 0.1rem;
+}
+
+.pugh-tag-winner {
+    background: var(--color-success-soft);
+    border-radius: var(--radius-small);
+    color: var(--color-success);
+    font-size: 0.85em;
+    font-weight: 600;
+    padding: 0 0.35rem;
+}
+
+.pugh-statement,
+.pugh-confirmation {
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+.pugh-statement {
+    font-weight: 600;
+}
+
+/* Where a decision is superseded, under the chapter's heading (render.py, decision tabs). */
+.pugh-superseded {
+    border-inline-start: 0.25rem solid var(--color-warning);
+    padding-inline-start: 0.6rem;
+}
+
+/* A decision chapter's Details (render.py, decision tabs): the tabs the figure draws there. */
+.pugh-details {
+    min-width: 0;
+}
+
+/* Each option's colour (assets.json, color.option-1 to color.option-8), on its chip, its cell
+   heads and its Pareto line (pugh-figure.js, HUES). */
+[data-pugh-hue="1"] { --pugh-hue: var(--color-option-1); }
+[data-pugh-hue="2"] { --pugh-hue: var(--color-option-2); }
+[data-pugh-hue="3"] { --pugh-hue: var(--color-option-3); }
+[data-pugh-hue="4"] { --pugh-hue: var(--color-option-4); }
+[data-pugh-hue="5"] { --pugh-hue: var(--color-option-5); }
+[data-pugh-hue="6"] { --pugh-hue: var(--color-option-6); }
+[data-pugh-hue="7"] { --pugh-hue: var(--color-option-7); }
+[data-pugh-hue="8"] { --pugh-hue: var(--color-option-8); }
 
 .pugh-figure-view > .pugh-view {
     width: 100%;
@@ -478,7 +545,6 @@
     display: none;
 }
 
-.pugh-bottom p,
 .pugh-sensitivity p {
     margin: 0;
 }
@@ -492,8 +558,10 @@
 }
 
 .pugh-letter {
-    border: var(--border-width) solid var(--color-border);
+    background: var(--pugh-hue, transparent);
+    border: var(--border-width) solid var(--pugh-hue, var(--color-border));
     border-radius: var(--radius-small);
+    color: var(--color-canvas);
     display: inline-block;
     font-weight: 600;
     min-inline-size: 1.4em;
@@ -622,12 +690,12 @@
     text-align: center;
 }
 
-/* The letter heading a cell is a control (pugh-figure.js, aboutControl): its option's popover. */
+/* The letter heading a cell is a control: its option's hover card (pugh-figure.js, hover), in its colour. */
 .pugh-cell-head {
     background: transparent;
     border: 0;
     border-radius: var(--radius-small);
-    color: var(--color-text-muted);
+    color: var(--pugh-hue, var(--color-text-muted));
     cursor: help;
     font: inherit;
     font-size: 0.85em;
@@ -635,56 +703,13 @@
     padding: 0.1rem 0;
 }
 
-.pugh-cell-head[aria-expanded="true"] {
-    color: var(--color-text);
-    text-decoration: underline;
-}
-
-.pugh-about,
-.pugh-texts-pop {
-    background: var(--color-surface);
-    border: var(--border-width) solid var(--color-border);
-    border-radius: var(--radius-small);
-    box-shadow: 0 0.25rem 0.75rem var(--color-shadow);
-    font-weight: 400;
-    inset-block-start: 100%;
-    inset-inline: 0;
-    padding: 0.4rem 0.6rem;
-    position: absolute;
-    z-index: 3;
-}
-
-.pugh-about[hidden],
-.pugh-texts-pop[hidden] {
-    display: none;
-}
-
-.pugh-about p,
-.pugh-texts-pop p {
-    margin: 0;
-}
-
-.pugh-texts-pop ul {
+/* A count's hover card lists what it counts. */
+.pugh-card-list {
     margin: 0.2rem 0 0;
     padding-inline-start: 1.1rem;
 }
 
-/* In the table a popover opens under its cell, from the cell's start, as wide as its text needs. */
-.pugh-matrix :is(.pugh-about, .pugh-texts-pop) {
-    font-size: 0.95rem;
-    inline-size: max-content;
-    inset-inline: 0 auto;
-    max-inline-size: 18rem;
-    text-align: start;
-    white-space: normal;
-}
-
-.pugh-matrix [data-pugh-option]:last-child .pugh-about,
-.pugh-matrix td:last-child .pugh-texts-pop {
-    inset-inline: auto 0;
-}
-
-/* A column head and a count are controls for their popover: the head's letter, short name and
+/* A column head and a count are controls for their hover card: the head's letter, short name and
    mark on one line. */
 .pugh-head-key,
 .pugh-count {
@@ -701,10 +726,6 @@
 .pugh-count {
     border: var(--border-width) dotted var(--color-border);
     min-inline-size: 1.8em;
-}
-
-:is(.pugh-head-key, .pugh-count)[aria-expanded="true"] {
-    text-decoration: underline;
 }
 
 .pugh-option-label {
@@ -736,35 +757,6 @@
 /* In the rows a mark's choices open under its line, from the line's start, so all five fit. */
 .pugh-rows .pugh-chooser {
     inset-inline: 0 auto;
-}
-
-/* The radio row (pugh-figure.js, pickRadios): a radio under each option, None of the above after
-   the row's name; on a phone each radio fills its cell, one tap. */
-.pugh-picks input[type="radio"] {
-    accent-color: var(--color-accent);
-    block-size: 1.1rem;
-    cursor: pointer;
-    inline-size: 1.1rem;
-    margin: 0;
-}
-
-.pugh-pick-none {
-    cursor: pointer;
-    font-weight: 400;
-    margin-inline-start: 0.6rem;
-    white-space: nowrap;
-}
-
-.pugh-pick-none input[type="radio"] {
-    vertical-align: -0.15rem;
-}
-
-.pugh-pick-cell {
-    align-items: center;
-    block-size: 2rem;
-    cursor: pointer;
-    display: flex;
-    justify-content: center;
 }
 
 /* The total line keeps the stepper's room, so its cells stand under the marks. */
@@ -993,11 +985,6 @@ button.pugh-grid-key[aria-expanded="true"] {
     background: var(--color-warning);
 }
 
-.pugh-grid-all th,
-.pugh-grid-all .pugh-grid-name {
-    font-style: italic;
-}
-
 .pugh-grid-blocks {
     display: grid;
     gap: 0.6rem;
@@ -1018,8 +1005,8 @@ button.pugh-grid-key[aria-expanded="true"] {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
 }
 
-/* The Pareto tab (pugh-figure.js, paretoPanel): ctrl's plot (vendor/pugh.js, plotSvg) in the
-   page's colours, the criteria its axes, the winner bold, a dominated option dashed and grey. */
+/* The Pareto tab (pugh-figure.js, paretoPanel): ctrl's plot (vendor/pugh.js, plotSvg), each
+   option's line in its colour, the criteria its axes, the winner thickest, a dominated option dashed. */
 .pugh-pareto {
     display: grid;
     gap: 0.4rem;
@@ -1074,6 +1061,15 @@ button.pugh-grid-key[aria-expanded="true"] {
 
 .pugh-pareto .pl-other {
     stroke: var(--color-text-muted);
+}
+
+.pugh-pareto .pl-s[data-pugh-hue] {
+    stroke: var(--pugh-hue);
+}
+
+.pugh-pareto .pugh-pareto-label {
+    color: var(--color-text-muted);
+    font-size: 0.85em;
 }
 
 .pugh-pareto .pugh-pareto-letters,

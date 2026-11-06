@@ -3,27 +3,34 @@
    pugh-decisions); ctrl's engine (vendor/pugh.js, embedded before figures.js as
    globalThis.obsPughEngine) decides it here, unchanged. The figure hands the engine the fence's
    matrix with the reader's weights, a Checklist criterion where failed checklist items name
-   options, and the reader's changed marks as the engine's own cell overrides.
+   options, and the reader's changed marks as the engine's own cell overrides; a mark's reason
+   stays here, as an argument in its hover card.
 
-   Top to bottom (artifact-ui.md, Decision figures): the options list, one line each and
-   expandable; the winner line; then the tabs of TABS, each with its badge where it has one
-   (Matrix: the table, or below ROWS_BELOW of the figure's width its rows; Checklist; Sensitivity;
-   Pareto), and one tab for each section of the chapter the page rendered into the figure
-   (render.py, decision tabs). The reader's weights, marks, rulings and tripwires, the options
-   expanded and the tab are session-only view state, kept per figure anchor; readerState() gives
-   the first four by figure anchor, options by letter. Print shows the options expanded, the
-   winner line and the Matrix tab as the reader left it, with a caption note where weights or
-   marks changed.
+   Top to bottom (artifact-ui.md, Decision figures): Potential solutions, the options list (a row
+   an option, expandable, the winner marked, and where the chapter asks for a bless a radio each
+   and None of the above: the band's pick state, obsBless.pick, obsBless.picked,
+   obs-bless-change), the Y-statement and the confirmation; then Details, the tabs of TABS, each
+   with its badge where it has one (Matrix: the table, or below ROWS_BELOW of the figure's width
+   its rows; Checklist; Sensitivity; Pareto), and one tab for each section of the chapter the
+   page rendered into the figure's details (render.py, decision tabs). In a decision chapter the
+   details are the page's own element after the figure (detailsOf); elsewhere they follow the
+   options in the figure. Every hover or tap help is the artifact's hover card (hover-card.js;
+   artifact.js registers [data-pugh-hover] to hover()).
+
+   The reader's weights, marks, rulings and tripwires, the options expanded and the tab are
+   session-only view state, kept per figure anchor; readerState() gives the first four by figure
+   anchor, options by letter. Print shows the options expanded, the Y-statement and the Matrix
+   tab as the reader left it, with a caption note where weights or marks changed.
 
    A figure whose chapter carries an answer (obs input-model, Answers) shows the answer's weights,
-   marks and rulings read-only (its spec's ``answered``); where the chapter asks for a bless
-   (bless.js), the matrix's last row is the radio row: one radio per option and None of the
-   above, the band's pick state (obsBless.pick, obsBless.picked, obs-bless-change). */
+   marks and rulings read-only (its spec's ``answered``), with no radios. */
 globalThis.obsPugh = (() => {
   const VIEW_NOTE = "View changed by the reader.";
   const CHECKLIST = "checklist";  // The key of the row failed checklist items make (the core reserves it).
   const MARKS = [-2, -1, 0, 1, 2];
+  const HUES = 8;  // The option colours, color.option-1 to color.option-8 (assets.json), in letter order.
   const states = new Map();  // figure anchor -> the reader's view state, this session only.
+  const drawn = new WeakMap();  // figure -> what it shows: {spec, result, figureModel, view}, for hover().
   const engine = () => globalThis.obsPughEngine;
   const percent = share => `${(100 * share).toFixed(1)} %`;
   const number = value => engine().fmt(value);
@@ -74,8 +81,14 @@ globalThis.obsPugh = (() => {
   function model(spec) {
     const options = spec.matrix.candidates.map((candidate, index) => {
       const name = String(candidate.label ?? candidate.key);
-      return {key: candidate.key, letter: letterOf(index), name, short: spec.shortNames[index], what: candidate.what || "",
-        wins: texts(candidate.wins), losses: texts(candidate.losses)};
+      const reasons = {}, marks = {};
+      for (const [criterion, given] of Object.entries(candidate.marks || {})) {
+        const mark = given?.mark ?? given;
+        marks[criterion] = [].concat(mark).reduce((sum, value) => sum + value, 0) / [].concat(mark).length;
+        if (given?.because) reasons[criterion] = given.because;
+      }
+      return {key: candidate.key, letter: letterOf(index), hue: String(index % HUES + 1), name, short: spec.shortNames[index],
+        what: candidate.what || "", wins: texts(candidate.wins), losses: texts(candidate.losses), reasons, marks};
     });
     const byLetter = Object.fromEntries(options.map(option => [option.letter, option]));
     const byKey = Object.fromEntries(options.map(option => [option.key, option]));
@@ -87,7 +100,11 @@ globalThis.obsPugh = (() => {
   }
   function matrixFor(spec, figureModel, weights) {
     const matrix = structuredClone(spec.matrix);
-    delete matrix.checklist; delete matrix.checklistWeight; delete matrix.chosen;
+    for (const field of ["checklist", "checklistWeight", "chosen", "context", "concern", "confirmation", "supersededBy"]) delete matrix[field];
+    // The engine decides marks alone: a mark given with its reason hands it the mark.
+    for (const candidate of matrix.candidates) {
+      if (candidate.marks) candidate.marks = Object.fromEntries(Object.entries(candidate.marks).map(([key, given]) => [key, given?.mark ?? given]));
+    }
     if (figureModel.row) {
       matrix.criteria.push({key: CHECKLIST, label: "Checklist", weight: spec.matrix.checklistWeight ?? 3,
         better: "higher", kind: "judged"});
@@ -116,23 +133,6 @@ globalThis.obsPugh = (() => {
     const result = overrides.length ? engine().decide({...matrix, overrides}) : base;
     return {result, figureModel};
   }
-  /** The smallest change of all weights (kept >= 0) at which ``key`` draws level with the winner:
-      the weights themselves, which the engine's minChange measures but does not return, by the
-      same projection the engine makes (pugh.md, Sensitivity). */
-  function allWeights(result, key) {
-    const winner = result.candidates.find(c => c.key === result.suggestion.key);
-    const other = result.candidates.find(c => c.key === key);
-    const difference = result.criteria.map(c => (other.marks[c.key] ?? 0) - (winner.marks[c.key] ?? 0));
-    let weights = result.weights.slice();
-    for (let step = 0; step < 20; step++) {
-      const gap = difference.reduce((total, x, i) => total + x * weights[i], 0) + (other.offset ?? 0) - (winner.offset ?? 0);
-      if (gap >= -1e-12) break;
-      const free = difference.map((x, i) => (weights[i] > 0 || x > 0 ? x : 0)), size = free.reduce((t, x) => t + x * x, 0);
-      if (!size) return null;
-      weights = weights.map((x, i) => Math.max(0, x - (gap / size) * free[i]));
-    }
-    return weights;
-  }
   /** The Sensitivity grid's columns (artifact-ui.md, Sensitivity): for each option the engine
       weighs against the winner (its sensitivity's ``all``), in letter order, one cell per
       criterion: the weight at which it ties the winner where only that weight moves, by the
@@ -156,79 +156,149 @@ globalThis.obsPugh = (() => {
       return {entry, option: figureModel.byKey[entry.key], cells};
     }).sort((a, b) => a.option.letter.localeCompare(b.option.letter));
   }
+  /** An option's letter chip, in its colour. */
+  function chip(option) {
+    const node = element("span", {className: "pugh-letter", textContent: option.letter});
+    node.dataset.pughHue = option.hue;
+    return node;
+  }
   function named(option) {
-    return element("span", {className: "pugh-named"}, element("span", {className: "pugh-letter", textContent: option.letter}),
-      option.short ? ` · ${option.short}` : "");
+    return element("span", {className: "pugh-named"}, chip(option), option.short ? ` · ${option.short}` : "");
+  }
+  const list = items => (items.length < 2 ? items.join("") : `${items.slice(0, -1).join(", ")} and ${items.at(-1)}`);
+  const sentence = text => (/[.!?]$/.test(text) ? text : `${text}.`);
+  /** An option's arguments, the reasons the fence gives its marks (obs input-model, Pugh decision
+      figures): each its criterion, its side ("good", "neutral" or "bad", by the fence's mark; the
+      datum's marks are S) and its text, "Good, because …". */
+  function argumentsOf(option, result) {
+    const datum = result.candidates.find(c => c.key === option.key)?.datum;
+    return result.criteria.filter(c => option.reasons[c.key]).map(criterion => {
+      const mark = datum ? 0 : option.marks[criterion.key];
+      const side = mark > 0 ? "good" : mark < 0 ? "bad" : "neutral";
+      return {criterion, side, text: sentence(`${{good: "Good", neutral: "Neutral", bad: "Bad"}[side]}, because ${option.reasons[criterion.key]}`)};
+    });
+  }
+  /** What an option's Wins or Losses count counts: its own wins or losses, then its good or bad arguments. */
+  const counted = (option, part, result) => [...option[part].map(text => ({text})),
+    ...argumentsOf(option, result).filter(argument => argument.side === (part === "wins" ? "good" : "bad"))];
+  /** A node whose hover or tap help is the artifact's hover card (hover()): ``what`` names it. */
+  function helped(node, what) {
+    node.dataset.pughHover = what;
+    return node;
   }
 
-  /** The winner line, always shown, outside any tab. */
-  function bottomLine(spec, result, figureModel) {
-    const box = element("div", {className: "pugh-bottom"});
-    box.dataset.pughPart = "winner";
-    const suggestion = result.suggestion;
-    if (!suggestion) return box.append(element("p", {textContent: "No option fits."})), box;
-    const line = element("p");
-    line.dataset.pughWinner = figureModel.byKey[suggestion.key].letter;
-    line.append("Winner: ", element("strong", {}, named(figureModel.byKey[suggestion.key])),
-      ` (${signed(suggestion.total)} against the datum `, named(figureModel.byKey[result.datum.key]), ")");
-    const sensitivity = result.sensitivity;
-    if (sensitivity) {
-      const verdict = element("span", {className: `pugh-verdict pugh-${sensitivity.verdict}`,
-        textContent: sensitivity.verdict === "holds" ? "the choice holds" : "the choice depends on the weights"});
-      verdict.dataset.pughVerdict = sensitivity.verdict;
-      line.append("; ", verdict, `: it wins ${percent(sensitivity.share)} of the random weight draws.`);
-    } else line.append("; it is the only option to choose from.");
-    box.append(line);
-    return box;
-  }
-  /** The options, one line each ("A · Keep open"; the letter and label where there is no short
-      name): expanding one shows its label where that says more, its sentence, its wins and its
-      losses. What the reader expanded stays expanded while the figure redraws; print expands all. */
-  function optionsList(figureModel, view, print) {
-    const list = element("ul", {className: "pugh-option-list"}, ...figureModel.options.map(option => {
+  /** The options list (artifact-ui.md, Decision figures): a row an option, its radio where the
+      chapter asks for a bless (pickable), its letter chip and short name ("A · Keep open"; the
+      letter and label where there is no short name), its winner or chosen mark, and an expander
+      showing its label where that says more, its sentence, its wins and its losses; then None of
+      the above. What the reader expanded stays expanded while the figure redraws; print expands all. */
+  function solutions(figure, spec, result, figureModel, view, print) {
+    const picks = !print && !view.locked && Boolean(globalThis.obsBless?.asks(figure.id));
+    const picked = picks ? globalThis.obsBless.picked(figure.id) : null;
+    const winner = result.suggestion?.key;
+    const radio = (value, label) => {
+      const input = element("input", {type: "radio", className: "pugh-pick", name: `${figure.id}--pugh-pick`, value, checked: picked === value});
+      input.dataset.pughPick = value;
+      input.setAttribute("aria-label", label);
+      input.addEventListener("click", () => globalThis.obsBless.pick(figure.id, value));
+      return input;
+    };
+    const tagged = (name, text) => {
+      const mark = element("span", {className: `pugh-tag pugh-tag-${name}`, textContent: text});
+      mark.dataset.pughTag = name;
+      return [" ", mark];
+    };
+    const rows = figureModel.options.map(option => {
       const said = (part, label) => (option[part].length
         ? element("p", {className: `pugh-option-${part}`}, element("strong", {textContent: `${label}: `}), option[part].join("; ")) : null);
       const details = element("details", {open: print || Boolean(view.open[option.letter])},
-        element("summary", {}, named(option), !option.short ? ` · ${option.name}` : ""),
+        element("summary", {}, named(option), !option.short ? ` · ${option.name}` : "",
+          ...(option.key === winner ? tagged("winner", "winner") : []),
+          ...(spec.matrix.chosen === option.key && option.key !== winner ? tagged("chosen", "chosen") : [])),
         option.short && labelAdds(option.short, option.name) ? element("p", {className: "pugh-option-label", textContent: option.name}) : null,
         option.what ? element("p", {className: "pugh-option-what", textContent: option.what}) : null,
         said("wins", "Wins"), said("losses", "Losses"));
       if (!print) details.addEventListener("toggle", () => { view.open[option.letter] = details.open; });
-      const item = element("li", {}, details);
-      item.dataset.pughOption = option.letter;
-      return item;
-    }));
-    list.dataset.pughPart = "options";
-    return list;
+      const row = element("li", {className: "pugh-option"}, picks ? radio(option.letter, `Pick ${tag(option)}`) : null, details);
+      row.dataset.pughOption = option.letter;
+      return row;
+    });
+    if (picks) {
+      const none = element("li", {className: "pugh-option pugh-option-none"}, radio("none", "Pick none of the above"),
+        element("span", {className: "pugh-none-line", textContent: "None of the above"}));
+      none.dataset.pughOption = "none";
+      none.querySelector(".pugh-none-line").addEventListener("click", () => none.querySelector("input").click());
+      rows.push(none);
+    }
+    const box = element("ul", {className: "pugh-option-list"}, ...rows);
+    box.dataset.pughPart = "options";
+    return box;
   }
-  /** An option's popover: its letter and short name, datum or winner, its label where that says
-      more and its sentence (a column head's and a row letter's alike). */
-  function aboutOption(figure, option, candidate, winner) {
-    const pop = element("div", {className: "pugh-about", id: `${figure.id}--pugh-about-${option.letter}`, hidden: true},
-      element("p", {}, element("strong", {}, named(option)),
-        `${candidate.datum ? " (the datum)" : ""}${candidate.key === winner ? " (the winner)" : ""}`),
-      labelAdds(option.short, option.name) ? element("p", {textContent: option.name}) : null,
-      option.what ? element("p", {textContent: option.what}) : null);
-    pop.setAttribute("role", "tooltip");
-    return pop;
+  /** The Y-statement (artifact-ui.md, Decision figures): the decision in one sentence, for the
+      reader's pick where there is one, else for the winner: "In the context of ‹context›, facing
+      ‹concern›, we decided for ‹option› and against ‹the others›, to achieve ‹its three largest
+      weighted gains›, accepting ‹its losses›." */
+  function statement(spec, result, figureModel, pick) {
+    const node = element("p", {className: "pugh-statement"});
+    node.dataset.pughPart = "statement";
+    const letter = pick ?? (result.suggestion ? figureModel.byKey[result.suggestion.key].letter : null);
+    const lead = [spec.matrix.context && `In the context of ${spec.matrix.context}`, spec.matrix.concern && `facing ${spec.matrix.concern}`].filter(Boolean);
+    const decided = lead.length ? `${lead.join(", ")}, we decided` : "We decided";
+    if (!letter) node.textContent = "No option fits.";
+    else if (letter === "none") node.textContent = `${decided} against all of ${list(figureModel.options.map(tag))}.`;
+    else {
+      const option = figureModel.byLetter[letter], candidate = result.candidates.find(c => c.key === option.key);
+      const weighted = result.criteria.map((criterion, index) => ({criterion, value: (candidate.marks[criterion.key] ?? 0) * result.weights[index]}));
+      const gains = weighted.filter(item => item.value > 0).sort((a, b) => b.value - a.value).slice(0, 3);
+      const losses = weighted.filter(item => item.value < 0).sort((a, b) => a.value - b.value);
+      const others = figureModel.options.filter(other => other !== option).map(tag);
+      node.textContent = `${decided} for ${tag(option)}${others.length ? ` and against ${list(others)}` : ""}`
+        + `${gains.length ? `, to achieve ${list(gains.map(item => item.criterion.label))}` : ""}`
+        + `${losses.length ? `, accepting ${list(losses.map(item => item.criterion.label))}` : ""}.`;
+    }
+    return node;
   }
-  /** An option's wins or losses as a count, "2", its texts in a popover on hover, focus or tap;
-      nothing where it has none. */
-  function countKey(figure, option, part) {
-    const said = option[part];
+  /** The confirmation line, where the fence has one. */
+  function confirmation(spec) {
+    if (!spec.matrix.confirmation) return null;
+    const node = element("p", {className: "pugh-confirmation"}, element("strong", {textContent: "Confirmation:"}), " ", spec.matrix.confirmation);
+    node.dataset.pughPart = "confirmation";
+    return node;
+  }
+  /** The band's pick changed (bless.js): the options list's radios show it and the Y-statement follows it. */
+  document.addEventListener("obs-bless-change", () => {
+    document.querySelectorAll('[data-figure-kind="pugh"].figure-pugh-ready').forEach(figure => {
+      const shown = drawn.get(figure), picked = globalThis.obsBless.picked(figure.id);
+      figure.querySelectorAll("[data-pugh-pick]").forEach(input => { input.checked = picked === input.value; });
+      const said = figure.querySelector('[data-pugh-part="statement"]');
+      if (shown && said && !shown.print) said.replaceWith(statement(shown.spec, shown.result, shown.figureModel, picked ?? undefined));
+    });
+  });
+  /** An option's card: its letter and short name, datum or winner, its label where that says more
+      and its sentence (a column head's and a row letter's alike). */
+  function aboutCard(option, candidate, winner) {
+    return [element("p", {}, element("strong", {}, named(option)),
+      `${candidate.datum ? " (the datum)" : ""}${candidate.key === winner ? " (the winner)" : ""}`),
+    labelAdds(option.short, option.name) ? element("p", {textContent: option.name}) : null,
+    option.what ? element("p", {textContent: option.what}) : null];
+  }
+  /** An option's wins or losses as a count, "2", what it counts its hover card; nothing where it has none. */
+  function countKey(option, part, result) {
+    const said = counted(option, part, result);
     if (!said.length) return null;
     const noun = part === "wins" ? (said.length === 1 ? "win" : "wins") : (said.length === 1 ? "loss" : "losses");
-    const pop = element("div", {className: "pugh-texts-pop", id: `${figure.id}--pugh-${part}-${option.letter}`, hidden: true},
-      element("p", {}, element("strong", {}, named(option)), ` · ${said.length} ${noun}`),
-      element("ul", {}, ...said.map(text => element("li", {textContent: text}))));
-    pop.setAttribute("role", "tooltip");
-    const key = element("button", {type: "button", className: "pugh-count", textContent: String(said.length)});
+    const key = helped(element("button", {type: "button", className: "pugh-count", textContent: String(said.length)}), `count:${part}:${option.letter}`);
     key.dataset.pughCount = option.letter;
     key.setAttribute("aria-label", `${option.letter}: ${said.length} ${noun}`);
-    key.setAttribute("aria-describedby", pop.id);
-    key.setAttribute("aria-expanded", "false");
-    aboutControl(key, pop);
-    return {key, pop};
+    return key;
+  }
+  /** A count's card: its option, then what it counts, an argument with its criterion. */
+  function countCard(option, part, result) {
+    const said = counted(option, part, result);
+    const noun = part === "wins" ? (said.length === 1 ? "win" : "wins") : (said.length === 1 ? "loss" : "losses");
+    return [element("p", {}, element("strong", {}, named(option)), ` · ${said.length} ${noun}`),
+      element("ul", {className: "pugh-card-list"}, ...said.map(item => element("li", {textContent: item.criterion
+        ? `${item.criterion.label}: ${item.text}` : item.text})))];
   }
   function markChooser(figure, spec, view, letter, criterion, current, cell) {
     figure.querySelectorAll(".pugh-chooser").forEach(open => open.remove());
@@ -252,29 +322,6 @@ globalThis.obsPugh = (() => {
     cell.append(chooser);
     chooser.querySelector('[aria-pressed="true"]')?.focus();
   }
-  /** The radio row's radios, where the figure's chapter asks for a bless (bless.js) and the
-      figure is not an answer's or a print copy: one per option in the order given, then None of
-      the above, checked as the band's pick stands. Choosing the checked one again clears it. */
-  function pickRadios(figure, options) {
-    if (!globalThis.obsBless?.asks(figure.id)) return null;
-    const picked = globalThis.obsBless.picked(figure.id);
-    const radio = (value, label) => {
-      const input = element("input", {type: "radio", name: `${figure.id}--pugh-pick`, value, checked: picked === value});
-      input.dataset.pughPick = value;
-      input.setAttribute("aria-label", label);
-      input.addEventListener("click", event => { event.stopPropagation(); globalThis.obsBless.pick(figure.id, value); });
-      return input;
-    };
-    const none = element("label", {className: "pugh-pick-none"}, radio("none", "Pick none of the above"), " None of the above");
-    return {options: options.map(option => radio(option.letter, `Pick ${tag(option)}`)), none};
-  }
-  /** The band's pick changed (bless.js): every radio row shows it. */
-  document.addEventListener("obs-bless-change", () => {
-    document.querySelectorAll("[data-pugh-pick]").forEach(input => {
-      const figure = input.closest('[data-figure-kind="pugh"]');
-      input.checked = Boolean(figure) && globalThis.obsBless.picked(figure.id) === input.value;
-    });
-  });
   function table(figure, spec, result, figureModel, view, {print: shown}) {
     const print = shown || view.locked;
     const scroll = element("div", {className: "pugh-scroll", tabIndex: 0});
@@ -287,22 +334,18 @@ globalThis.obsPugh = (() => {
       element("th", {scope: "col", className: "pugh-weight", textContent: "Weight"}));
     for (const candidate of order) {
       const option = figureModel.byKey[candidate.key];
-      const said = [element("span", {className: "pugh-letter", textContent: option.letter}),
+      const said = [chip(option),
         option.short ? element("span", {className: "pugh-column-name", textContent: option.short}) : null,
         candidate.datum ? element("span", {className: "pugh-tag", textContent: "datum"}) : null,
         candidate.key === winner ? element("span", {className: "pugh-tag", textContent: "winner"}) : null];
-      const cell = element("th", {scope: "col", title: candidate.fits ? `${option.letter}: ${option.name}` : candidate.whyNot});
+      const cell = element("th", {scope: "col"});
       if (shown) cell.append(...said.filter(Boolean));
       else {
-        // The head is a control: its option's popover, with the full label, on hover, focus or tap.
-        const key = element("button", {type: "button", className: "pugh-head-key"}, ...said.filter(Boolean));
-        const pop = aboutOption(figure, option, candidate, winner);
+        // The head is a control: its option's card, with the full label, on hover, focus or tap.
+        const key = helped(element("button", {type: "button", className: "pugh-head-key"}, ...said.filter(Boolean)), `about:${option.letter}`);
         key.dataset.pughHead = option.letter;
         key.setAttribute("aria-label", `Option ${option.letter}`);
-        key.setAttribute("aria-describedby", pop.id);
-        key.setAttribute("aria-expanded", "false");
-        aboutControl(key, pop);
-        cell.append(key, pop);
+        cell.append(key);
       }
       cell.dataset.pughOption = option.letter;
       if (candidate.datum) cell.classList.add("pugh-datum");
@@ -335,6 +378,7 @@ globalThis.obsPugh = (() => {
         const markChanged = criterion.key in (view.marks[option.letter] || {}) && !candidate.datum;
         const cell = element("td", {className: `pugh-mark${markChanged ? " pugh-changed" : ""}${candidate.fits ? "" : " pugh-out"}`});
         cell.dataset.pughMark = `${option.letter}:${criterion.key}`;
+        if (!shown && !markChanged && option.reasons[criterion.key]) helped(cell, `mark:${option.letter}:${criterion.key}`);
         if (print || candidate.datum) cell.textContent = candidate.datum ? "S" : symbol(mark);
         else {
           const button = element("button", {type: "button", className: "pugh-mark-button", textContent: symbol(mark)});
@@ -351,69 +395,24 @@ globalThis.obsPugh = (() => {
     for (const candidate of order) {
       const cell = element("td", {textContent: candidate.fits ? signed(candidate.total) : `× ${signed(candidate.total)}`});
       cell.dataset.pughTotal = figureModel.byKey[candidate.key].letter;
-      if (!candidate.fits) cell.classList.add("pugh-out"), cell.title = candidate.whyNot;
+      if (!candidate.fits) cell.classList.add("pugh-out"), cell.dataset.hoverHelp = candidate.whyNot;
       total.append(cell);
     }
     body.append(total);
     for (const [part, label] of [["wins", "Wins"], ["losses", "Losses"]]) {
-      if (!figureModel.options.some(option => option[part].length)) continue;
+      if (!figureModel.options.some(option => counted(option, part, result).length)) continue;
       const row = element("tr", {className: "pugh-texts"}, element("th", {scope: "row", className: "pugh-criterion", textContent: label}),
         element("td", {className: "pugh-weight"}));
       row.dataset.pughTexts = part;
       for (const candidate of order) {
         const option = figureModel.byKey[candidate.key];
         if (shown) { row.append(element("td", {className: "pugh-said", textContent: option[part].join("; ")})); continue; }
-        const count = countKey(figure, option, part);
-        row.append(element("td", {}, ...(count ? [count.key, count.pop] : [])));
+        row.append(element("td", {}, countKey(option, part, result)));
       }
-      body.append(row);
-    }
-    const picks = print ? null : pickRadios(figure, order.map(c => figureModel.byKey[c.key]));
-    if (picks) {
-      const row = element("tr", {className: "pugh-picks"}, element("th", {scope: "row", className: "pugh-criterion"}, "Pick", picks.none),
-        element("td", {className: "pugh-weight"}));
-      for (const radio of picks.options) row.append(element("td", {}, radio));
       body.append(row);
     }
     scroll.append(element("table", {className: "pugh-matrix"}, element("thead", {}, head), body));
     return scroll;
-  }
-  /** A letter in the rows, a column head and a Wins or Losses count are controls: hovering one,
-      focusing it or tapping it shows its popover (its option's letter, label and sentence, or the
-      texts counted) under its line or cell; a second tap, or a tap elsewhere, closes it. One shows
-      at a time. */
-  let about = null;
-  function closeAbout() {
-    if (!about) return;
-    about.pop.hidden = true;
-    about.head.setAttribute("aria-expanded", "false");
-    about = null;
-  }
-  function openAbout(head, pop) {
-    if (about?.head === head) return;
-    closeAbout();
-    head.closest(".pugh-row")?.append(pop);  // In the rows, under the line; a column head's stays in its cell.
-    pop.hidden = false;
-    head.setAttribute("aria-expanded", "true");
-    about = {head, pop};
-  }
-  document.addEventListener("pointerdown", event => {
-    if (about && !about.head.contains(event.target) && !about.pop.contains(event.target)) closeAbout();
-  }, true);
-  function aboutControl(head, pop) {
-    let wasOpen = false;
-    head.addEventListener("pointerdown", () => { wasOpen = about?.head === head; });
-    head.addEventListener("click", event => {
-      // A tap focuses (which opens) before it clicks: what decides is whether it was open before the tap.
-      const open = event.detail === 0 ? about?.head === head : wasOpen;
-      if (open) closeAbout(); else openAbout(head, pop);
-      wasOpen = about?.head === head;
-    });
-    head.addEventListener("focus", () => openAbout(head, pop));
-    head.addEventListener("blur", () => { if (about?.head === head) closeAbout(); });
-    head.addEventListener("pointerenter", event => { if (event.pointerType === "mouse") openAbout(head, pop); });
-    head.addEventListener("pointerleave", event => { if (event.pointerType === "mouse" && about?.head === head) closeAbout(); });
-    head.addEventListener("keydown", event => { if (event.key === "Escape" && about?.head === head) { event.stopPropagation(); closeAbout(); } });
   }
   /** The weight a step key sets: half a step up or down, never below 0. */
   function stepped(weight, direction) {
@@ -430,26 +429,18 @@ globalThis.obsPugh = (() => {
     box.setAttribute("aria-label", "Decision matrix");
     const order = [result.candidates.find(c => c.datum), ...result.candidates.filter(c => !c.datum)];
     const winner = result.suggestion?.key;
-    const abouts = Object.fromEntries(order.map(candidate => {
-      const option = figureModel.byKey[candidate.key];
-      const about = aboutOption(figure, option, candidate, winner);
-      box.append(about);
-      return [option.letter, about];
-    }));
     const head = candidate => {
       const option = figureModel.byKey[candidate.key];
-      const letter = element("button", {type: "button", className: "pugh-cell-head", textContent: option.letter});
+      const letter = helped(element("button", {type: "button", className: "pugh-cell-head", textContent: option.letter}), `about:${option.letter}`);
       letter.dataset.pughHead = option.letter;
+      letter.dataset.pughHue = option.hue;
       letter.setAttribute("aria-label", `Option ${option.letter}`);
-      letter.setAttribute("aria-describedby", abouts[option.letter].id);
-      letter.setAttribute("aria-expanded", "false");
-      aboutControl(letter, abouts[option.letter]);
       return letter;
     };
     const cell = (candidate, className = "") => {
       const node = element("div", {className: `pugh-cell${className}${candidate.key === winner ? " pugh-winner" : ""}`
         + `${candidate.datum ? " pugh-datum" : ""}${candidate.fits ? "" : " pugh-out"}`});
-      if (!candidate.fits) node.title = candidate.whyNot;
+      if (!candidate.fits) node.dataset.hoverHelp = candidate.whyNot;
       return node;
     };
     const line = (name, className = "") => {
@@ -484,6 +475,7 @@ globalThis.obsPugh = (() => {
         const markChanged = criterion.key in (view.marks[option.letter] || {}) && !candidate.datum;
         const node = cell(candidate, markChanged ? " pugh-changed" : "");
         node.dataset.pughMark = `${option.letter}:${criterion.key}`;
+        if (!markChanged && option.reasons[criterion.key]) helped(node, `mark:${option.letter}:${criterion.key}`);
         node.append(head(candidate));
         if (locked || candidate.datum) node.append(element("span", {className: "pugh-cell-value", textContent: candidate.datum ? "S" : symbol(mark)}));
         else {
@@ -507,28 +499,16 @@ globalThis.obsPugh = (() => {
     }
     box.append(total.row);
     for (const [part, label] of [["wins", "Wins"], ["losses", "Losses"]]) {
-      if (!figureModel.options.some(option => option[part].length)) continue;
+      if (!figureModel.options.some(option => counted(option, part, result).length)) continue;
       const texts = line(label, " pugh-texts");
       texts.row.dataset.pughTexts = part;
       texts.cells.append(element("span", {className: "pugh-stepper pugh-stepper-space"}));
       for (const candidate of order) {
-        const node = cell(candidate), count = countKey(figure, figureModel.byKey[candidate.key], part);
-        node.append(head(candidate), ...(count ? [count.key, count.pop] : [element("span", {className: "pugh-cell-value"})]));
+        const node = cell(candidate), count = countKey(figureModel.byKey[candidate.key], part, result);
+        node.append(head(candidate), count ?? element("span", {className: "pugh-cell-value"}));
         texts.cells.append(node);
       }
       box.append(texts.row);
-    }
-    const picks = locked ? null : pickRadios(figure, order.map(c => figureModel.byKey[c.key]));
-    if (picks) {
-      const {row, cells} = line("Pick", " pugh-picks");
-      row.querySelector(".pugh-row-name").append(" ", picks.none);
-      cells.append(element("span", {className: "pugh-stepper pugh-stepper-space"}));
-      order.forEach((candidate, index) => {
-        const node = cell(candidate);
-        node.append(head(candidate), element("label", {className: "pugh-pick-cell"}, picks.options[index]));
-        cells.append(node);
-      });
-      box.append(row);
     }
     return box;
   }
@@ -571,26 +551,17 @@ globalThis.obsPugh = (() => {
   }
   /** A cell's text: "3 → 7", or a dash. */
   const tieText = cell => (cell.to === null ? "—" : `${number(cell.from)} → ${number(cell.to)}`);
-  /** The all-weights change of a column: the weights it moves, for the cell's tooltip. */
-  function allMoves(result, column) {
-    const weights = column.entry.minChange ? allWeights(result, column.entry.key) : null;
-    if (!weights) return "No change of all the weights together makes it tie.";
-    const moves = result.criteria.map((c, i) => [c, result.weights[i], weights[i]]).filter(([, from, to]) => Math.abs(to - from) >= 0.005);
-    return moves.length ? moves.map(([c, from, to]) => `${c.label} ${number(from)} → ${number(to)}`).join(", ")
-      : "The weights as they stand already tie it.";
-  }
   /** The Sensitivity tab (artifact-ui.md, Sensitivity): the winner's share of the draws as a bar,
-      then the grid of tie weights, a criterion a row and an option a column, below ROWS_BELOW one
-      block per option; the all-weights row; the chosen line and the options that do not fit;
-      and the ruling keys of the column the reader tapped. */
+      the draw range its hover card; then the grid of tie weights, a criterion a row and an option
+      a column, below ROWS_BELOW one block per option; the chosen line and the options that do not
+      fit; and the ruling keys of the column the reader tapped. */
   function sensitivityPanel(figure, spec, result, figureModel, view, {print}) {
     const panel = element("div", {className: "pugh-sensitivity"});
     if (!result.suggestion) return panel.append(element("p", {textContent: "No option fits."})), panel;
     const winner = figureModel.byKey[result.suggestion.key], sensitivity = result.sensitivity;
     if (!sensitivity) return panel.append(element("p", {textContent: `${tag(winner)} is the only option to choose from.`})), panel;
     const share = element("div", {className: "pugh-share"},
-      element("p", {}, element("strong", {textContent: `${tag(winner)} wins ${percent(sensitivity.share)} of draws`}),
-        ` (each weight within ±${number(sensitivity.step)}; it holds from ${percent(sensitivity.holdShare)})`),
+      element("p", {}, element("strong", {textContent: `${tag(winner)} wins ${percent(sensitivity.share)} of draws`})),
       (() => {
         const track = bar(0, sensitivity.share, 1, `pugh-share-bar pugh-${sensitivity.verdict}`);
         const hold = element("span", {className: "pugh-share-hold"});
@@ -599,6 +570,8 @@ globalThis.obsPugh = (() => {
         return track;
       })());
     share.dataset.pughShare = String(sensitivity.share);
+    share.dataset.pughVerdict = sensitivity.verdict;
+    if (!print) helped(share, "share").tabIndex = 0;
     panel.append(share);
     const columns = sensitivityGrid(result, figureModel);
     const ruled = letter => view.rulings[letter]?.ruling;
@@ -619,7 +592,7 @@ globalThis.obsPugh = (() => {
     };
     const head = column => {
       const said = ruled(column.option.letter);
-      return key(column, [element("span", {className: "pugh-letter", textContent: column.option.letter}),
+      return key(column, [chip(column.option),
         spec.matrix.chosen === column.entry.key ? element("span", {className: "pugh-tag", textContent: "chosen"}) : null,
         column.entry.tie?.now ? element("span", {className: "pugh-tag", textContent: "ties now"}) : null,
         said ? element("span", {className: `pugh-tag pugh-ruled-${said}`, textContent: said === "could" ? "could happen" : "nonsense"}) : null]
@@ -636,16 +609,6 @@ globalThis.obsPugh = (() => {
       if (cell.reach) control.dataset.pughReach = "";
       return control;
     };
-    const mostChange = Math.max(0, ...columns.map(column => column.entry.minChange?.rel ?? 0));
-    const allCell = column => {
-      const rel = column.entry.minChange?.rel ?? null;
-      const control = key(column, [element("span", {className: "pugh-tie-text", textContent: rel === null ? "—" : percent(rel)}),
-        rel === null ? null : bar(0, rel, mostChange, "pugh-tie-bar")].filter(Boolean),
-        {pughAll: column.option.letter}, `${column.option.letter}, all weights together: ${rel === null ? "no change makes it tie" : percent(rel)}; rule ${column.option.letter}`);
-      if (rel !== null) control.dataset.pughChange = String(rel);
-      control.title = allMoves(result, column);
-      return control;
-    };
     const rowScale = index => Math.max(...columns.map(column => Math.max(column.cells[index].from, column.cells[index].to ?? 0)), 0) * 1.05;
     const criterionName = (criterion, index) => [element("span", {className: "pugh-grid-criterion", textContent: criterion.label}),
       element("span", {className: "pugh-grid-weight", textContent: ` · ${number(result.weights[index])}`})];
@@ -657,8 +620,6 @@ globalThis.obsPugh = (() => {
         block.dataset.pughBlock = column.option.letter;
         column.cells.forEach((cell, index) => block.append(element("div", {className: "pugh-grid-line"},
           element("span", {className: "pugh-grid-name"}, ...criterionName(cell.criterion, index)), tieCell(column, cell, rowScale(index)))));
-        block.append(element("div", {className: "pugh-grid-line pugh-grid-all"},
-          element("span", {className: "pugh-grid-name", textContent: "All weights together"}), allCell(column)));
         blocks.append(block);
       }
       panel.append(blocks);
@@ -673,9 +634,6 @@ globalThis.obsPugh = (() => {
         for (const column of columns) row.append(element("td", {}, tieCell(column, column.cells[index], rowScale(index))));
         body.append(row);
       });
-      const all = element("tr", {className: "pugh-grid-all"}, element("th", {scope: "row", textContent: "All weights together"}));
-      for (const column of columns) all.append(element("td", {}, allCell(column)));
-      body.append(all);
       table.append(body);
       panel.append(element("div", {className: "pugh-grid-box"}, table));
     }
@@ -749,8 +707,9 @@ globalThis.obsPugh = (() => {
   }
   /** The Pareto tab (artifact-ui.md, Pareto): the engine's own plot (plotSvg), one series an option
       that fits over the criteria, x a criterion's index and y its mark, and one reference series a
-      criterion, its axis from −2 to +2; the winner's role is "option", a dominated option's "other",
-      the rest "front". Each line ends in its letters; then the sentence. */
+      criterion, its axis from −2 to +2; the winner's role is "option" (thickest), a dominated
+      option's "other" (dashed), the rest "front"; each line and its key in its option's colour.
+      The axes' labels around it; each line ends in its letters; then the key and the sentence. */
   function paretoPanel(figure, result, figureModel) {
     const panel = element("div", {className: "pugh-pareto"});
     const front = pareto(result, figureModel), winner = result.suggestion?.key;
@@ -775,11 +734,14 @@ globalThis.obsPugh = (() => {
       used.add(index);
       const {letter, by} = front[index];
       line.dataset.pughLine = letter;
+      line.dataset.pughHue = figureModel.byLetter[letter].hue;
       if (by.length) line.classList.add("pugh-dominated");
       line.append(Object.assign(document.createElementNS(svg.namespaceURI, "title"), {textContent: tag(figureModel.byLetter[letter])}));
       const [x, y] = points[points.length - 1], end = `${x},${y}`;
       ends.set(end, [...(ends.get(end) || []), letter]);
     }
+    // The engine's key draws a line for each series with a label, in their order: each in its option's colour.
+    [...svg.querySelectorAll("line.pl-s")].forEach((line, index) => { line.dataset.pughHue = figureModel.byLetter[front[index].letter].hue; });
     for (const [end, letters] of ends) {
       const [x, y] = end.split(",").map(Number);
       const text = document.createElementNS(svg.namespaceURI, "text");
@@ -801,11 +763,19 @@ globalThis.obsPugh = (() => {
       const value = Number(tick.textContent.replace("−", "-"));
       if (Number.isInteger(value) && value >= -2 && value <= 2) tick.textContent = symbol(value);
     });
-    panel.append(holder, element("ul", {className: "pugh-pareto-criteria"},
-      ...criteria.map((criterion, index) => element("li", {textContent: `${index + 1} · ${criterion.label}`}))));
-    const kept = front.filter(item => !item.by.length).map(item => item.letter), beaten = front.filter(item => item.by.length);
-    const said = element("p", {textContent: `Not dominated: ${kept.join(", ") || "none"}.`
-      + (beaten.length ? ` Dominated: ${beaten.map(item => `${item.letter} (by ${item.by.join(", ")})`).join(", ")}.` : "")});
+    const label = (which, text) => {
+      const node = element("p", {className: `pugh-pareto-label pugh-pareto-label-${which}`, textContent: text});
+      node.dataset.pughAxis = which;
+      return node;
+    };
+    panel.append(label("y", "Mark against the datum, −− to ++"), holder, label("x", "Criterion, numbered as in the key"),
+      element("ul", {className: "pugh-pareto-criteria"},
+        ...criteria.map((criterion, index) => element("li", {textContent: `${index + 1} · ${criterion.label}`}))));
+    const beaten = front.filter(item => item.by.length);
+    const said = element("p", {textContent: beaten.length
+      ? "An option is ruled out where another is at least as good on every criterion and better on one: "
+        + beaten.map(item => `${tag(figureModel.byLetter[item.letter])} by ${list(item.by.map(letter => tag(figureModel.byLetter[letter])))}`).join("; ") + "."
+      : "No option is at least as good as another on every criterion and better on one, so none is ruled out."});
     said.dataset.pughParetoSaid = "";
     panel.append(said);
     for (const candidate of result.candidates.filter(c => !c.fits)) {
@@ -841,16 +811,32 @@ globalThis.obsPugh = (() => {
     tab.replaceChildren(element("span", {className: "tab-label", textContent: label}));
     tab.removeAttribute("aria-label");
     if (!badge) return;
-    const mark = element("span", {className: `tab-badge${badge.flag ? " tab-badge-flag" : ""}`, title: badge.says,
+    const mark = element("span", {className: `tab-badge${badge.flag ? " tab-badge-flag" : ""}`,
       textContent: badge.flag ? "" : String(badge.count)});
+    mark.dataset.hoverHelp = badge.says;
     mark.dataset.tabBadge = badge.flag ? "flag" : String(badge.count);
     mark.setAttribute("aria-hidden", "true");
     tab.append(mark);
     tab.setAttribute("aria-label", `${label}, ${badge.says}`);
   }
-  /** The chapter's sections after the figure, which the page renders into the figure as one more
-      tab each (render.py, decision tabs): wherever a draw left them, so each keeps its nodes. */
-  const extras = figure => [...figure.querySelectorAll(".pugh-extra")];
+  /** A decision chapter's details (render.py, decision tabs): the page's element after the figure
+      that holds its tabs, in the same chapter body as the figure (the reading view, a page view or
+      the print book), or null where the figure holds them itself. */
+  function detailsOf(figure) {
+    const anchor = figure.dataset.pughAnchor, body = figure.closest(".chapter-body");
+    if (!anchor) return null;
+    return [...(body ?? document).querySelectorAll(`[data-pugh-details="${CSS.escape(anchor)}"]`)]
+      .find(node => node.closest(".chapter-body") === body) ?? null;
+  }
+  /** The figure whose details ``details`` are, in the same chapter body. */
+  function figureOf(details) {
+    const body = details.closest(".chapter-body");
+    return [...(body ?? document).querySelectorAll(`[data-figure-kind="pugh"][data-pugh-anchor="${CSS.escape(details.dataset.pughDetails)}"]`)]
+      .find(node => node.closest(".chapter-body") === body) ?? null;
+  }
+  /** The chapter's sections after the figure, which the page renders into the figure's details as
+      one more tab each (render.py, decision tabs): wherever a draw left them, so each keeps its nodes. */
+  const extras = figure => [...(detailsOf(figure) ?? figure).querySelectorAll(".pugh-extra")];
   const tabsOf = figure => [...TABS, ...extras(figure).map((node, index) => ({key: `extra-${index + 1}`, label: node.dataset.pughExtra, section: node}))];
   function tabs(figure, spec, view, panels, all, context) {
     const list = element("div", {className: "data-table-detail-tabs pugh-tabs"});
@@ -896,7 +882,7 @@ globalThis.obsPugh = (() => {
     fitted.add(figure);
     const observer = new ResizeObserver(() => {
       if (!figure.isConnected) return observer.disconnect();
-      const shown = figure.querySelector("[data-pugh-form]")?.dataset.pughForm;
+      const shown = (detailsOf(figure) ?? figure).querySelector("[data-pugh-form]")?.dataset.pughForm;
       if (shown && shown !== (narrow(figure) ? "rows" : "table")) draw(figure, JSON.parse(figure.dataset.figureSpec));
       else fit(figure);
     });
@@ -917,15 +903,24 @@ globalThis.obsPugh = (() => {
     view.winner = result.suggestion ? figureModel.byKey[result.suggestion.key].letter : "";
     if (!print && !view.locked && changed(view)) {
       const reset = element("button", {type: "button", className: "filter-pill pugh-reset", textContent: "Reset"});
-      reset.title = "Restore the fence's weights and marks";
+      reset.dataset.hoverHelp = "Restore the fence's weights and marks";
       reset.addEventListener("click", () => reset_(figure, spec));
       matrix.append(reset);
     }
-    const top = [optionsList(figureModel, view, print), bottomLine(spec, result, figureModel)];
+    const picked = print || view.locked ? null : globalThis.obsBless?.asks(figure.id) ? globalThis.obsBless.picked(figure.id) : null;
+    const top = [solutions(figure, spec, result, figureModel, view, print), statement(spec, result, figureModel, picked ?? undefined),
+      confirmation(spec)].filter(Boolean);
     const sections = all.filter(tab => tab.section).map(tab => tab.section);
+    const details = detailsOf(figure);
+    const place = (...below) => {
+      if (!details) return host.replaceChildren(element("div", {className: "pugh-figure-view"}, ...top, ...below));
+      host.replaceChildren(element("div", {className: "pugh-figure-view"}, ...top));
+      details.replaceChildren(element("div", {className: "pugh-figure-view"}, ...below));
+    };
+    drawn.set(figure, {spec, result, figureModel, view, print});
     if (print) {
       sections.forEach(section => { section.hidden = false; section.removeAttribute("role"); });
-      host.replaceChildren(element("div", {className: "pugh-view"}, ...top, matrix, ...sections));
+      place(matrix, ...sections);
     } else {
       if (!all.some(tab => tab.key === view.tab && !tab.disabled?.(context))) view.tab = "matrix";
       const panels = all.map((tab, index) => {
@@ -935,7 +930,7 @@ globalThis.obsPugh = (() => {
         panel.hidden = view.tab !== tab.key;
         return panel;
       });
-      host.replaceChildren(element("div", {className: "pugh-figure-view"}, ...top, tabs(figure, spec, view, panels, all, context), ...panels));
+      place(tabs(figure, spec, view, panels, all, context), ...panels);
     }
     const menuReset = figure.querySelector(":scope > .figure-options .pugh-reset");
     if (menuReset) menuReset.disabled = view.locked || !changed(view);
@@ -961,20 +956,23 @@ globalThis.obsPugh = (() => {
     draw(figure, spec, host);
   }
   /** Opens the tab that holds ``target``, a chapter section the page rendered into a decision
-      figure or a place inside one, for the artifact's one way of revealing a place (artifact.js,
-      revealSource); a figure not yet drawn opens at that tab. Elsewhere it does nothing. */
+      figure or its details, or a place inside one, for the artifact's one way of revealing a place
+      (artifact.js, revealSource); a figure not yet drawn is drawn at that tab. Elsewhere it does nothing. */
   function reveal(target) {
     const section = target?.closest?.(".pugh-extra");
-    const figure = section?.closest('[data-figure-kind="pugh"]');
+    const holder = section?.closest('[data-figure-kind="pugh"], [data-pugh-details]');
+    const figure = holder?.matches("[data-pugh-details]") ? figureOf(holder) : holder;
     if (!figure || figure.closest(".print-book")) return;
     const spec = JSON.parse(figure.dataset.figureSpec);
     state(figure.id, spec.answered).tab = `extra-${extras(figure).indexOf(section) + 1}`;
+    // Drawn now, so the place's position is the drawn page's when the caller scrolls to it.
     if (figure.classList.contains("figure-pugh-ready")) draw(figure, spec);
+    else globalThis.obsFigures?.place(figure);
   }
   /** The options menu's Reset (figures.js, FIGURE_OPTIONS): the fence's weights and marks back. */
   function option(figure) {
-    const reset = element("button", {type: "button", className: "filter-pill pugh-reset", textContent: "Reset",
-      title: "Restore the fence's weights and marks"});
+    const reset = element("button", {type: "button", className: "filter-pill pugh-reset", textContent: "Reset"});
+    reset.dataset.hoverHelp = "Restore the fence's weights and marks";
     reset.disabled = Boolean(states.get(figure.id)?.locked) || !changed(states.get(figure.id));
     reset.addEventListener("click", () => reset_(figure, JSON.parse(figure.dataset.figureSpec)));
     return reset;
@@ -1001,5 +999,48 @@ globalThis.obsPugh = (() => {
   /** A figure's options as it letters and names them: letter, name and short name (model), for the
       bless pill's "Picked B · Close" (bless.js). */
   const options = spec => model(spec).options.map(({letter, name, short}) => ({letter, name, short}));
-  return {render, print, option, reveal, decide, allWeights, readerState, options, labelAdds, VIEW_NOTE};
+  /** A page layout placed a decision chapter's details (figures.js, place): its figure draws them
+      there, as the reader sees it, or in a print copy as it prints. */
+  function placeDetails(details) {
+    const figure = figureOf(details);
+    if (!figure?.classList.contains("figure-pugh-ready")) return;
+    const spec = JSON.parse(figure.dataset.figureSpec);
+    if (figure.closest(".print-book")) print(figure, spec);
+    else draw(figure, spec);
+  }
+  /** The hover card of a node the figure marked ``data-pugh-hover`` (helped), for the artifact's
+      hover card (hover-card.js; artifact.js registers it): an option's card, a count's, a mark's
+      argument or the Sensitivity bar's draw range; null where the figure shows nothing there. */
+  function hover(node) {
+    const holder = node.closest('[data-figure-kind="pugh"], [data-pugh-details]');
+    const figure = holder?.matches("[data-pugh-details]") ? figureOf(holder) : holder;
+    const shown = figure && drawn.get(figure);
+    if (!shown) return null;
+    const {result, figureModel, view} = shown;
+    const [kind, ...parts] = node.dataset.pughHover.split(":");
+    const render = children => card => card.append(...children.filter(Boolean));
+    if (kind === "about") {
+      const option = figureModel.byLetter[parts[0]], candidate = result.candidates.find(c => c.key === option.key);
+      return {label: `Option ${option.letter}`, showOnClick: true, render: render(aboutCard(option, candidate, result.suggestion?.key))};
+    }
+    if (kind === "count") {
+      const option = figureModel.byLetter[parts[1]];
+      return {label: `${option.letter}: ${parts[0]}`, showOnClick: true, render: render(countCard(option, parts[0], result))};
+    }
+    if (kind === "mark") {
+      const option = figureModel.byLetter[parts[0]], argument = argumentsOf(option, result).find(item => item.criterion.key === parts.slice(1).join(":"));
+      if (!argument) return null;
+      const fixed = view.locked || result.candidates.find(c => c.key === option.key)?.datum;
+      return {label: `${option.letter}, ${argument.criterion.label}`, showOnClick: Boolean(fixed), render: render([element("p", {textContent: argument.text})])};
+    }
+    if (kind === "share" && result.sensitivity) {
+      const sensitivity = result.sensitivity;
+      return {label: "Share of draws", showOnClick: true, render: render([element("p", {textContent:
+        `${tag(figureModel.byKey[result.suggestion.key])} wins ${percent(sensitivity.share)} of the engine's random draws of the weights, `
+        + `each weight within ±${number(sensitivity.step)} of its own. The choice holds from ${percent(sensitivity.holdShare)}: `
+        + `${sensitivity.verdict === "holds" ? "it holds" : "it depends on the weights"}.`})])};
+    }
+    return null;
+  }
+  return {render, print, option, reveal, placeDetails, hover, decide, readerState, options, labelAdds, VIEW_NOTE};
 })();

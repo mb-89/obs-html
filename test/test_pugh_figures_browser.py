@@ -91,7 +91,7 @@ class Reader:
 
     def grid(self, anchor: str) -> dict:
         """What the Sensitivity grid shows: each cell's tie weight (None for a dash) by option letter
-        and criterion, the cells within reach, the all-weights change by letter, the winner's share,
+        and criterion, the cells within reach, the winner's share,
         and the engine's numbers for the same decision (pugh-figure.js, decide) by letter."""
         return self.page.evaluate("""anchor => {
             const figure = document.getElementById(anchor), value = text => (text === undefined ? null : Number(text));
@@ -102,13 +102,10 @@ class Reader:
                 cells: Object.fromEntries([...figure.querySelectorAll('[data-pugh-cell]')].map(cell =>
                     [cell.dataset.pughCell, value(cell.dataset.pughTie)])),
                 reach: [...figure.querySelectorAll('[data-pugh-cell][data-pugh-reach]')].map(cell => cell.dataset.pughCell),
-                all: Object.fromEntries([...figure.querySelectorAll('[data-pugh-all]')].map(cell =>
-                    [cell.dataset.pughAll, value(cell.dataset.pughChange)])),
                 share: value(figure.querySelector('[data-pugh-share]').dataset.pughShare),
                 engine: {share: result.sensitivity.share, holdShare: result.sensitivity.holdShare,
                     ties: Object.fromEntries(result.sensitivity.all.filter(entry => entry.tie && !entry.tie.now).map(entry =>
-                        [`${letter(entry.key)}:${entry.tie.criterion}`, [entry.tie.to, entry.tie.reasonable]])),
-                    all: Object.fromEntries(result.sensitivity.all.map(entry => [letter(entry.key), entry.minChange?.rel ?? null]))},
+                        [`${letter(entry.key)}:${entry.tie.criterion}`, [entry.tie.to, entry.tie.reasonable]]))},
             };
         }""", anchor)
 
@@ -138,26 +135,18 @@ def test_the_page_decides_ctrls_test_vectors_and_the_matrix_tab_shows_the_decisi
                 ties: Object.fromEntries((result.sensitivity?.all ?? []).map(x => [x.key, x.tie && {
                     criterion: x.tie.criterion, to: x.tie.to, now: x.tie.now, reasonable: x.tie.reasonable}]))};
     })""", VECTORS["matrices"])
-    # The all-weights world the figure states is the change the engine measures.
-    worlds = reader.page.evaluate("""matrices => matrices.flatMap(({matrix}) => {
-        const result = globalThis.obsPughEngine.decide(matrix);
-        return (result.sensitivity?.all ?? []).filter(entry => entry.minChange).map(entry => {
-            const weights = globalThis.obsPugh.allWeights(result, entry.key);
-            return [entry.minChange.rel, Math.hypot(...weights.map((w, i) => w - result.weights[i])) / Math.hypot(...result.weights)];
-        });
-    })""", VECTORS["matrices"])
     view = reader.view(OPTION)
     expected = SMALL_WITH_C["expected"]
 
     assert decided == [vector["expected"] for vector in VECTORS["matrices"]]
-    assert worlds and all(abs(engine - figure) < 1e-9 for engine, figure in worlds)
     assert view["winner"] == LETTERS[expected["suggestion"]] == "C"
     assert view["totals"] == {LETTERS[key]: total for key, total in expected["totals"].items()}
     assert view["columns"] == ["A", "B", "C", "D"] and view["marked"] == ["C"]
     assert view["verdict"] == expected["verdict"]
     assert view["criteria"] == ["err", "speed", "cost"] and view["texts"] == ["wins", "losses"]
-    # Top to bottom: the options, one line each and closed; the winner line; the tabs (artifact-ui.md, Decision figures).
-    assert view["order"][:3] == ["options", "winner", "tabs"] and set(view["order"][3:]) == {"panel"}
+    # Top to bottom: the options, one line each and closed; the Y-statement; the tabs (artifact-ui.md, Decision
+    # figures). Two decision figures in one chapter each hold their own tabs.
+    assert view["order"][:3] == ["options", "statement", "tabs"] and set(view["order"][3:]) == {"panel"}
     assert view["options"] == [[letter, False] for letter in "ABCD"]
     # Wins and losses are counts in the matrix, their texts on hover or tap.
     assert view["counts"] == {"wins": {"A": "1", "C": "1"}, "losses": {"B": "2"}}
@@ -170,14 +159,14 @@ def test_the_page_decides_ctrls_test_vectors_and_the_matrix_tab_shows_the_decisi
     assert view["chosen"] == "B"
     # The grid is the engine's numbers laid out (artifact-ui.md, Sensitivity): each option's smallest move
     # is the engine's tie point, its other cells move a weight as far or further; a dash where no weight
-    # ties it; the all-weights row is the engine's minChange; the bar is its share of the draws.
+    # ties it; the bar is its share of the draws.
     grid = reader.grid(OPTION)
     assert grid["cells"] == {**{f"{letter}:{key}": None for letter in "ABD" for key in ("err", "speed", "cost")},
                              "B:err": 6, "B:speed": 0.5}
     assert {cell: grid["cells"][cell] for cell in grid["engine"]["ties"]} == {
         cell: to for cell, (to, _) in grid["engine"]["ties"].items()}
     assert grid["reach"] == [cell for cell, (_, reasonable) in grid["engine"]["ties"].items() if reasonable] == []
-    assert grid["all"] == grid["engine"]["all"] and grid["share"] == grid["engine"]["share"]
+    assert grid["share"] == grid["engine"]["share"]
     wide = reader.view(WIDE)
     assert wide["criteria"][-1] == "checklist" and wide["tabs"][1] == ["checklist", "false", False, "1"]
     assert reader.page.evaluate("""() => [...document.querySelectorAll(
@@ -223,7 +212,8 @@ def test_the_reader_expands_an_option_changes_weights_and_marks_and_rules_a_worl
     ruled = reader.view(OPTION)
 
     # Expanding an option shows its sentence, wins and losses; the option stays open while the figure redraws.
-    assert expanded.splitlines()[0] == "B · Precise" and "Precise but dear." in expanded
+    # The fence's chosen B, not the winner, is marked so on its line.
+    assert expanded.splitlines()[0] == "B · Precise chosen" and "Precise but dear." in expanded
     assert "A new licence" in expanded and "Training" in expanded
     assert before["winner"] == "C" and before["changed"] == [tie["criterion"]]
     assert before["options"][1] == ["B", True]
@@ -339,14 +329,17 @@ def test_the_pareto_tab_draws_the_options_with_the_engines_plot_and_flags_a_domi
     figure.locator('[data-pugh-tab="pareto"]').click()
     dominated = reader.page.evaluate(PARETO, OPTION)
 
-    # A (0, 0, 0), B (2, 0, −1), C (1, 2, 1), D (0, 2, 0): the winner bold, the dominated dashed and grey.
-    assert front["sentence"] == "Not dominated: B, C. Dominated: A (by C, D), D (by C)."
+    # A (0, 0, 0), B (2, 0, −1), C (1, 2, 1), D (0, 2, 0): the winner thickest, the dominated dashed.
+    assert front["sentence"] == ("An option is ruled out where another is at least as good on every criterion and better on "
+                                 "one: A · What runs today by C · Quick and D · Middling; D · Middling by C · Quick.")
     assert front["dominated"] == "A D" and front["axes"] == 3
     assert front["lines"] == {"A": ["pl-other", "pugh-dominated"], "B": ["pl-front"], "C": ["pl-option"],
                               "D": ["pl-other", "pugh-dominated"]}
     assert front["flag"] is None and front["badge"] is None
     assert reader.view(OPTION)["winner"] == "C"
-    assert dominated["sentence"] == "Not dominated: B. Dominated: A (by B, C, D), C (by B), D (by B, C)."
+    assert dominated["sentence"] == ("An option is ruled out where another is at least as good on every criterion and better on "
+                                     "one: A · What runs today by B · Precise, C · Quick and D · Middling; C · Quick by B · Precise; "
+                                     "D · Middling by B · Precise and C · Quick.")
     assert dominated["lines"]["C"] == ["pl-option", "pugh-dominated"] and dominated["lines"]["B"] == ["pl-front"]
     assert dominated["flag"] == "Pareto, the winner is dominated by B" and dominated["badge"] == "flag"
     reader.clean()
