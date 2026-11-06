@@ -24,6 +24,18 @@
     width: 100%;
 }
 
+/* Where touch is the input, swipe and the band's position walk the screens and the arrows are
+   hidden (artifact-ui.md, Screens); their gutter goes to the content, which keeps a text margin. */
+@media (pointer: coarse) {
+    .screens-mode {
+        --chapter-nav-width: 0.75rem;
+    }
+
+    .screens-mode .chapter-nav-zone {
+        display: none;
+    }
+}
+
 .screens-mode .chapter-body > .document-heading {
     display: none;
 }

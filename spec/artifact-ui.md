@@ -783,7 +783,10 @@ The adapter decides this from the Document's chapters, so the core carries nothi
 example deck (`spec/examples/bless-deck`) opens in screens by this rule.
 
 - **The walk:** swipe and the arrows move between screens ([[#Reading shell]]); the contents
-  stay in the menu. The top band shows the position on the chapters of the walk, "2 / 3", as
+  stay in the menu. Where touch is the input (`pointer: coarse`), the arrows are hidden and
+  swipe, the keys and the band's position walk; their gutter goes to the content, which keeps a
+  text margin. Hidden, not moved into the band: on a phone the band has no square to spare, and
+  swipe already walks there. With a mouse, the arrows stay as they are. The top band shows the position on the chapters of the walk, "2 / 3", as
   one of its squares, first at the band's end; Home, which is not one of them, shows none. The
   bottom of the screen stays free for content.
 - **Show as pages** switches to the paged view for the session; switching it off returns to
