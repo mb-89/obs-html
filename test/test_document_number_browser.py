@@ -4,14 +4,19 @@ The design owner is obs input-model.md (Cover metadata and history): the field n
 application or vendor. The test builds the Document with the core, renders it, and opens the
 artifact file directly, where the clipboard is not limited (Claude's viewer blocks it).
 """
+import re
 import subprocess
 import sys
+from importlib.resources import files
 from pathlib import Path
 
 import pytest
 from conftest import CORE_ROOT
 
 from obs_html.cli import main as obs_html
+
+VENDOR_WORDS = re.compile(r"\bsap\b", re.IGNORECASE)
+"""Vendor words no field name may contain; a framework never names an application or vendor."""
 
 # A clipboard that keeps what the artifact writes, so the copied comments can be read back.
 CLIPBOARD = """Object.defineProperty(navigator, "clipboard", {configurable: true, value: {
@@ -67,3 +72,12 @@ def test_the_document_number_shows_in_the_running_footer_and_the_copied_comments
     assert copied[1].splitlines()[0] == "# Comments — Numbered · X-1", copied[1]
     assert errors == []
 
+
+def test_no_adapter_source_names_a_vendor_in_a_field_name() -> None:
+    package = files("obs_html")
+    sources = [path for path in Path(str(package)).rglob("*") if path.suffix in {".py", ".js", ".json"}]
+    found = [f"{path.relative_to(Path(str(package)))}:{number}: {line.strip()}" for path in sources
+             for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1)
+             if VENDOR_WORDS.search(line)]
+    assert not found, ("adapters/html/src/obs_html names a vendor; name the field generically, "
+                       f"as obs input-model.md (Cover metadata and history) does: {found}")
