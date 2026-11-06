@@ -7,6 +7,7 @@ stay out of the HTML. The download control belongs to the downloads feature (fea
 """
 import base64
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -107,3 +108,24 @@ def test_the_evidence_download_help_names_the_downloads_remedy_where_downloads_a
     control.focus()
     assert "Open the HTML file directly in a browser to download." in control.get_attribute("data-hover-help")
     assert errors == []
+
+
+def test_the_one_call_build_through_the_core_with_the_option_yields_the_evidence_edition(
+        tmp_path, core_root) -> None:
+    """obs-document --adapter html --adapter-option embed-attachments=true: the option adapter.json declares."""
+    vault = tmp_path / "vault"
+    (vault / "input").mkdir(parents=True)
+    (vault / "input" / "report.pdf").write_bytes(REPORT)
+    (vault / "manifest.md").write_text("---\ntitle: Editions\n---\n- [[chapter]]\n", encoding="utf-8")
+    (vault / "chapter.md").write_text("# Chapter\n\nSee ![the report](input/report.pdf).\n", encoding="utf-8")
+    destination = tmp_path / "evidence.html"
+
+    completed = subprocess.run(
+        [sys.executable, "-m", "obs.document", "--source", str(vault / "manifest.md"), "--adapter", "html",
+         "--adapter-config", str(core_root / "adapters.json"), "--destination", str(destination),
+         "--adapter-option", "embed-attachments=true"],
+        capture_output=True, text=True, env={**os.environ, "UV_OFFLINE": "1"}, check=False)
+
+    assert completed.returncode == 0, completed.stderr
+    match = DOWNLOAD.search(_chapter(destination))
+    assert match and base64.b64decode(match.group(1)) == REPORT

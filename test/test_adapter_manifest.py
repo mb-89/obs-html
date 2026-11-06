@@ -42,6 +42,19 @@ def test_declared_capabilities_exist_in_the_core_reference(core_root: Path) -> N
         assert re.search(rf"^  id: {re.escape(capability)}$", note, re.MULTILINE), capability
 
 
+def test_each_declared_option_is_a_flag_of_the_cli() -> None:
+    """obs-document --adapter-option NAME=true passes --NAME, so each boolean option is a flag here."""
+    import argparse
+
+    from obs_html.cli import build_parser
+
+    flags = {action.option_strings[0].removeprefix("--") for action in build_parser()._actions
+             if isinstance(action, argparse._StoreTrueAction)}
+    declared = _manifest()["options"]
+    assert declared and {name for name, option in declared.items() if option["type"] == "boolean"} <= flags
+    assert "embed-attachments" in declared  # The evidence edition (spec/design_input/cli.md, Attachments per build).
+
+
 def test_adapters_configuration_names_the_cli_as_the_executable() -> None:
     adapters = json.loads((CORE_ROOT / "adapters.json").read_text(encoding="utf-8"))
     assert adapters == {"adapters": {"html": "adapters/html/adapter.json"}}

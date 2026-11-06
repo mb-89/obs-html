@@ -2826,9 +2826,10 @@
     const initialSlug = window.location.hash.slice(1);
     const knownInitial = recordsBySlug.has(decodeURIComponent(initialSlug.split("?", 1)[0]).split("/", 1)[0]);
     activateChapter(knownInitial ? initialSlug : chapters[0].slug, "replace");
-    const protectedPropertyFields = new Set(JSON.parse(
-        document.getElementById("property-editor-schema").textContent,
-    ).$defs.editableField.not.enum);
+    // The fields a note's property editors may write: the core's attrs.writes of each editor
+    // (obs capabilities/property-editors#Document node). The runtime commits no other field.
+    const declaredPropertyWrites = (note) => new Set(Object.values(note.editableProperties || {})
+        .flatMap((definition) => definition.writes || []));
     const projectionPrimitiveType = (value) => {
         if (value === null) return "null";
         if (typeof value === "number" && !Number.isFinite(value)) return null;
@@ -2903,9 +2904,14 @@
                 frontmatterHtml: {...(note.frontmatterHtml || {})},
             };
             const fields = [];
+            const declared = declaredPropertyWrites(note);
             for (const [field, value] of fieldEntries) {
-                if (protectedPropertyFields.has(field.toLowerCase()) ||
-                    !Object.hasOwn(note.frontmatter, field) ||
+                if (!declared.has(field)) {
+                    throw new Error(`Invalid canonical projection field: ${field} of note ${update.slug}: ` +
+                        "no property editor of the note declares it in attrs.writes " +
+                        "(obs capabilities/property-editors). Write a field its editor declares.");
+                }
+                if (!Object.hasOwn(note.frontmatter, field) ||
                     !projectionValueIsValid(note.frontmatter[field], value)) {
                     throw new Error(`Invalid canonical projection field: ${field}`);
                 }
