@@ -502,7 +502,10 @@ of its chapter's sections after it ([[#Decision tabs from the chapter]]):
   letters of the options it fails. Without items the tab is disabled.
 - **What if:** the worlds in which another option wins, which the reader rules.
 
-The options view shows one option, "Option A of 5", with its letter and short name, its label in full and its `what` sentence.
+The options view shows one option, "Option A of 5", with its letter and short name, its label in
+full where that says more, and its `what` sentence. The view says each name once: where the short
+name's words are the label's, all of them or a run of them ("Two lines" of "Keep two lines"), the
+label is not shown; without a short name it always is (`pugh-figure.js`, `labelAdds`).
 Previous and next keys, the arrow keys while it has focus, and a horizontal swipe move between
 the options; none of them walks the chapters.
 

@@ -30,6 +30,14 @@ globalThis.obsPugh = (() => {
   /** An option's short name: its short, else its label where that has at most SHORT_WORDS words,
       else "" and its letter stands alone (obs input-model, Pugh decision figures; bless_record.py, short_name). */
   const shortName = (candidate, label) => candidate.short || (label.trim().split(/\s+/).length <= SHORT_WORDS ? label : "");
+  /** Whether an option's label says more than its short name, so the option card shows it under
+      it (artifact-ui.md, Decision figures): not where the short name's words are all the label's
+      words or a run of them, "Two lines" of "Keep two lines"; always where there is no short name. */
+  const labelAdds = (short, label) => {
+    const words = text => text.toLowerCase().match(/[\p{L}\p{N}]+/gu) || [];
+    const name = words(short), said = words(label);
+    return !name.length || !said.some((_, start) => name.every((word, index) => said[start + index] === word));
+  };
   /** An option where there is room: its letter and short name, "B · Close". */
   const tag = option => (option.short ? `${option.letter} · ${option.short}` : option.letter);
 
@@ -196,7 +204,7 @@ globalThis.obsPugh = (() => {
     const card = element("div", {className: "pugh-option", tabIndex: 0},
       element("p", {className: "pugh-option-count", textContent: `Option ${option.letter} of ${count}`}),
       element("p", {className: "pugh-option-name"}, named(option)),
-      option.name !== option.short ? element("p", {className: "pugh-option-label", textContent: option.name}) : null,
+      labelAdds(option.short, option.name) ? element("p", {className: "pugh-option-label", textContent: option.name}) : null,
       option.what ? element("p", {className: "pugh-option-what", textContent: option.what}) : null);
     card.dataset.pughOption = option.letter;
     card.setAttribute("aria-roledescription", "options, one at a time");
@@ -677,5 +685,5 @@ globalThis.obsPugh = (() => {
         winner: view.winner})])
       .filter(([, view]) => Object.keys(view.weights).length || Object.keys(view.marks).length || Object.keys(view.rulings).length));
   }
-  return {render, print, option, decide, allWeights, readerState, VIEW_NOTE};
+  return {render, print, option, decide, allWeights, readerState, labelAdds, VIEW_NOTE};
 })();

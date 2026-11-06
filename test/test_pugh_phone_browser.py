@@ -255,3 +255,26 @@ def test_with_a_mouse_the_walk_arrows_stay_in_screens(reader_browser, deck):
     assert page.evaluate("document.documentElement.classList.contains('screens-mode')")
     assert zones == [28, 28] and margins == "28px"
     assert errors == []
+
+
+# The option card's visible lines, and the option's short name and label (artifact-ui.md, Decision figures).
+CARD = """anchor => {
+    const card = document.querySelector(`#${anchor} .pugh-option`);
+    const line = selector => { const node = card.querySelector(selector); return node && node.getClientRects().length ? node.textContent.trim() : null; };
+    return {name: line('.pugh-option-name'), label: line('.pugh-option-label'), what: line('.pugh-option-what')};
+}"""
+
+
+@pytest.mark.parametrize("anchor, labels", [
+    (THREE, [None, None, None]),
+    (FIVE, [None, None, None, "A page of the team wiki", None])])
+def test_the_option_card_says_each_name_once(phone_browser, deck, anchor, labels):
+    page, errors = _open(phone_browser, deck, 390, anchor.split("--")[0])
+    cards = []
+    for _ in labels:
+        cards.append(page.evaluate(CARD, anchor))
+        page.locator(f"#{anchor} .pugh-next").tap()
+
+    assert [card["label"] for card in cards] == labels
+    assert all(card["what"] for card in cards)
+    assert errors == []
