@@ -1,6 +1,6 @@
 /* Screens (features.py, screens; artifact-ui.md, Screens): while the reader shows screens (not
    Show as pages), each chapter is one screen at the reader's full width inside a side gutter that
-   holds the chapter arrows, without the cover; the band shows the title. */
+   holds the chapter arrows, without the cover; the band shows the title and the position. */
 .screens-mode {
     --chapter-nav-width: 1.75rem;
     --chapter-nav-inset-end: 0rem;
@@ -23,7 +23,8 @@
     display: none;
 }
 
-:root:not(.screens-mode) .screens-title {
+:root:not(.screens-mode) .screens-title,
+:root:not(.screens-mode) .screens-position {
     display: none;
 }
 
@@ -39,6 +40,51 @@
     white-space: nowrap;
 }
 
-.screens-title[hidden] {
+.screens-title[hidden],
+.screens-position[hidden] {
     display: none;
+}
+
+/* The position is one of the band's squares, first at its end. */
+.top-band-end > .screens-position {
+    align-items: center;
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-small);
+    box-sizing: border-box;
+    color: var(--color-text-muted);
+    display: flex;
+    font: calc(var(--top-control-size) * 0.27)/1 var(--font-interface);
+    justify-content: center;
+    order: -2;
+    white-space: nowrap;
+}
+
+.screens-mode .top-band:has(.screens-position:not([hidden])) {
+    --top-band-screens: 1;
+}
+
+/* The position is one more square, so the pill becomes a square 2.7rem sooner than base.css's
+   thresholds (base.css, Bless verdicts): (n - 1) * (2.4rem + 0.3rem) + 4.6rem + 1rem. */
+@container top-band (width < 29.9rem) {
+    .screens-mode .top-band:has(.screens-position:not([hidden])) .bless-pill { --bless-pill-text: 0; }
+}
+
+@container top-band (width < 32.6rem) {
+    .screens-mode .top-band:has(.screens-position:not([hidden])):has(.notice-group:not([hidden])) .bless-pill {
+        --bless-pill-text: 0;
+    }
+}
+
+@container top-band (width < 35.3rem) {
+    .screens-mode .top-band:has(.screens-position:not([hidden])):has(
+            .notice-group:not([hidden]) ~ .notice-group:not([hidden])) .bless-pill {
+        --bless-pill-text: 0;
+    }
+}
+
+@container top-band (width < 38rem) {
+    .screens-mode .top-band:has(.screens-position:not([hidden])):has(
+            .notice-group:not([hidden]) ~ .notice-group:not([hidden]) ~ .notice-group:not([hidden])) .bless-pill {
+        --bless-pill-text: 0;
+    }
 }

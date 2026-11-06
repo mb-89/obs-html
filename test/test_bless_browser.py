@@ -85,7 +85,7 @@ def _active(page) -> str:
 
 # Each shown control of the top band: its name, its box and whether a pointer at its centre reaches it.
 BAND = """() => [...document.querySelectorAll(
-        '.top-band a.chapter-home-link, .top-band button, .top-band [data-bless-pill]')]
+        '.top-band a.chapter-home-link, .top-band button, .top-band [data-bless-pill], .top-band [data-screens-position]')]
     .filter(node => node.checkVisibility() && !node.closest('.notice-list, .bless-entry, .chapter-breadcrumb-menu'))
     .map(node => {
         const box = node.getBoundingClientRect(), hit = document.elementFromPoint(
@@ -151,7 +151,7 @@ def test_the_band_holds_every_key_in_one_row_at_phone_width_with_the_notices_sho
     page.evaluate("""() => obsNotices.severities.forEach(severity =>
         obsNotices.post({id: severity, severity, title: severity}))""")
     names = [item["name"] for item in _fits(page)]
-    assert names == ["Home", "Show frontmatter", PENDING, "Bless", "Decline", "Ask", "Pick", "Send 0 of 2 verdicts",
+    assert names == ["Home", "Show frontmatter", "Chapter 1 of 2", PENDING, "Bless", "Decline", "Ask", "Pick", "Send 0 of 2 verdicts",
                      "Errors: 1 notice", "Warnings: 1 notice", "Information: 1 notice", "Open bars menu"]
     # Short of space, the breadcrumb has shrunk and the pill is a square of the band's size showing
     # only its state colour, its label its tooltip and accessible name.
