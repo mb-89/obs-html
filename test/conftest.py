@@ -1,7 +1,9 @@
 import contextlib
 import json
 import os
+import re
 import shutil
+import sys
 import types
 from pathlib import Path
 
@@ -113,15 +115,64 @@ def worker_playwright():
         yield playwright
 
 
+# The bulk browser tier's engine (obs quality.md, Testing boundaries): Playwright's
+# chromium-headless-shell, which costs about half the CPU of full Chromium per page. Playwright
+# installs it in its browsers folder as <revision folder>/<platform folder>/<executable>; the
+# newest revision installed is used.
+HEADLESS_SHELL = ("chromium_headless_shell-*", "chrome-headless-shell-*",
+                  "chrome-headless-shell.exe" if sys.platform == "win32" else "chrome-headless-shell")
+HEADLESS_SHELL_INSTALL = "uv run playwright install chromium-headless-shell"
+
+
+class BrowserEngineError(RuntimeError):
+    """A browser engine the tests need is not installed; the message names where it was looked for and the remedy."""
+
+
+def playwright_browsers(environment=os.environ) -> Path:
+    """Playwright's browsers folder: PLAYWRIGHT_BROWSERS_PATH, else Playwright's default for this system."""
+    if environment.get("PLAYWRIGHT_BROWSERS_PATH"):
+        return Path(environment["PLAYWRIGHT_BROWSERS_PATH"])
+    if sys.platform == "win32":
+        return Path(environment["LOCALAPPDATA"]) / "ms-playwright"
+    if sys.platform == "darwin":
+        return Path.home() / "Library" / "Caches" / "ms-playwright"
+    return Path(environment.get("XDG_CACHE_HOME") or Path.home() / ".cache") / "ms-playwright"
+
+
+def headless_shell(browsers: Path) -> str:
+    """The HEADLESS_SHELL executable of the newest revision installed in ``browsers``."""
+    revision, platform, executable = HEADLESS_SHELL
+    found = sorted((int(re.sub(r"\D", "", folder.name) or 0), path)
+                   for folder in browsers.glob(revision) for path in folder.glob(f"{platform}/{executable}"))
+    if not found:
+        raise BrowserEngineError(
+            f"test/conftest.py: HEADLESS_SHELL, the browser tests' engine (Playwright's chromium-headless-shell), "
+            f"is not installed in {browsers} ({'/'.join(HEADLESS_SHELL)}). Remedy: run `{HEADLESS_SHELL_INSTALL}` "
+            "in adapters/html, or set PLAYWRIGHT_BROWSERS_PATH to the folder that holds it.")
+    return str(found[-1][1])
+
+
 @pytest.fixture(scope="session")
 def worker_browser(worker_playwright):
-    """One Chromium per test process, found as the PDF path finds it; tests lease its pages (page_pool)."""
-    from obs_html.pdf import _executable
-
+    """One headless shell (HEADLESS_SHELL) per test process; tests lease its pages (page_pool)."""
     # Frames stay capped at 60 Hz. Uncapped (--disable-frame-rate-limit), a lone test ends sooner,
     # but every animation-frame wait in the artifact and the tests draws frames as fast as the CPU
     # allows; in the complete suite, which keeps every CPU busy, that cost the adapter's part about
     # a quarter of its CPU time and the suite about 20 s.
+    browser = worker_playwright.chromium.launch(executable_path=headless_shell(playwright_browsers()))
+    try:
+        yield browser
+    finally:
+        browser.close()
+
+
+@pytest.fixture(scope="session")
+def full_chromium(worker_playwright):
+    """One full Chromium per test process that needs it, found as the PDF path finds it, for the
+    named set of checks whose behaviour can differ in the headless shell
+    (test/structure/test_quality.py, FULL_CHROMIUM_TESTS)."""
+    from obs_html.pdf import _executable
+
     browser = worker_playwright.chromium.launch(executable_path=_executable())
     try:
         yield browser
@@ -242,18 +293,16 @@ def origin(url: str) -> str:
     return f"{parts.scheme}://{parts.netloc}" if parts.scheme in ("http", "https") else ""
 
 
-# The live page pools of this test process; the Page and BrowserContext patches page_pool sets
+# The live page pools of this test process; the Page and BrowserContext patches page_patches sets
 # tell each of them what a test did to its pages.
 POOLS: list[PagePool] = []
 
 
 @pytest.fixture(scope="session")
-def page_pool(worker_browser):
-    """The test process's page pool over its browser; tests lease its pages through ``reader_browser``."""
+def page_patches():
+    """The Page and BrowserContext patches that tell each live pool (POOLS) what a test did to its pages."""
     from playwright.sync_api import BrowserContext, Page
 
-    pool = PagePool(worker_browser)
-    POOLS.append(pool)
     with pytest.MonkeyPatch.context() as patch:
         for name in ("on", "once"):
             def listen(page, event, handler, _listen=getattr(Page, name)):
@@ -279,21 +328,12 @@ def page_pool(worker_browser):
                             each.changed(page)
                     return _change(context, *arguments, **options)
                 patch.setattr(BrowserContext, name, change_context)
-        try:
-            yield pool
-        finally:
-            pool.close()
-            POOLS.remove(pool)
+        yield
 
 
-@pytest.fixture(scope="session")
-def overlay_scrollbar_pool(worker_playwright, page_pool):
-    """A page pool over a second Chromium with overlay scrollbars, as on touch devices and macOS:
-    scrollbars take no room, so the reader's clearance for the chapter arrows is at its narrowest."""
-    from obs_html.pdf import _executable
-
-    browser = worker_playwright.chromium.launch(executable_path=_executable(),
-                                                args=["--enable-features=OverlayScrollbar"])
+@contextlib.contextmanager
+def live_pool(browser):
+    """A page pool over ``browser``, in POOLS while it lives."""
     pool = PagePool(browser)
     POOLS.append(pool)
     try:
@@ -301,6 +341,32 @@ def overlay_scrollbar_pool(worker_playwright, page_pool):
     finally:
         pool.close()
         POOLS.remove(pool)
+
+
+@pytest.fixture(scope="session")
+def page_pool(worker_browser, page_patches):
+    """The test process's page pool over its headless shell; tests lease its pages through ``reader_browser``."""
+    with live_pool(worker_browser) as pool:
+        yield pool
+
+
+@pytest.fixture(scope="session")
+def full_page_pool(full_chromium, page_patches):
+    """The page pool over full Chromium; tests lease its pages through ``full_chromium_browser``."""
+    with live_pool(full_chromium) as pool:
+        yield pool
+
+
+@pytest.fixture(scope="session")
+def overlay_scrollbar_pool(worker_playwright, page_patches):
+    """A page pool over a second headless shell with overlay scrollbars, as on touch devices and
+    macOS: scrollbars take no room, so the reader's clearance for the chapter arrows is at its narrowest."""
+    browser = worker_playwright.chromium.launch(executable_path=headless_shell(playwright_browsers()),
+                                                args=["--enable-features=OverlayScrollbar"])
+    try:
+        with live_pool(browser) as pool:
+            yield pool
+    finally:
         browser.close()
 
 
@@ -329,8 +395,8 @@ class PoolChromium:
     """``chromium`` of the PDF path's Playwright in a test process: its launch leases the pool.
 
     The PDF path (obs_html/pdf.py) launches the browser ``_executable()`` finds, opens one page
-    and closes the browser; here the launch returns a lease on the worker's browser, which was
-    launched with that executable, so no second Chromium starts.
+    and closes the browser; here the launch returns a lease on the full-Chromium pool, whose
+    browser was launched with that executable, so no second Chromium starts.
     """
 
     def __init__(self, pool: PagePool):
@@ -340,17 +406,17 @@ class PoolChromium:
         from obs_html.pdf import _executable
 
         assert executable_path == _executable(), (
-            f"test/conftest.py: the PDF path launches {executable_path!r}, not the worker's browser "
-            f"{_executable()!r}; lease what it launches or launch it in worker_browser")
+            f"test/conftest.py: the PDF path launches {executable_path!r}, not the full-Chromium pool's browser "
+            f"{_executable()!r}; lease what it launches or launch it in full_chromium")
         return BrowserLease(self._pool)
 
 
 @pytest.fixture(scope="session")
-def pdf_browser(page_pool):
-    """The PDF path's browser for the rest of the test process: a lease on the page pool (PoolChromium)."""
+def pdf_browser(full_page_pool):
+    """The PDF path's browser for the rest of the test process: a lease on the full-Chromium pool (PoolChromium)."""
     from obs_html import pdf
 
-    chromium = types.SimpleNamespace(chromium=PoolChromium(page_pool))
+    chromium = types.SimpleNamespace(chromium=PoolChromium(full_page_pool))
     with pytest.MonkeyPatch.context() as patch:
         patch.setattr(pdf, "sync_playwright", lambda: contextlib.nullcontext(chromium))
         yield
@@ -358,7 +424,8 @@ def pdf_browser(page_pool):
 
 @pytest.fixture
 def reader_browser(page_pool):
-    """The native-browser tier's browser for one test: pages leased from the worker's pool."""
+    """The native-browser tier's browser for one test: pages leased from the worker's pool, on the
+    headless shell (HEADLESS_SHELL)."""
     lease = BrowserLease(page_pool)
     try:
         yield lease
@@ -371,6 +438,27 @@ def shared_reader_browser(page_pool):
     """As ``reader_browser``, for a module: several read-only checks of one artifact share the
     page it leases and so one page load; its pages go back to the pool when the module ends."""
     lease = BrowserLease(page_pool)
+    try:
+        yield lease
+    finally:
+        lease.close()
+
+
+@pytest.fixture
+def full_chromium_browser(full_page_pool):
+    """As ``reader_browser``, on full Chromium: only for the named set FULL_CHROMIUM_TESTS
+    (test/structure/test_quality.py), the checks whose behaviour can differ in the headless shell."""
+    lease = BrowserLease(full_page_pool)
+    try:
+        yield lease
+    finally:
+        lease.close()
+
+
+@pytest.fixture(scope="module")
+def shared_full_chromium_browser(full_page_pool):
+    """As ``shared_reader_browser``, on full Chromium (``full_chromium_browser``)."""
+    lease = BrowserLease(full_page_pool)
     try:
         yield lease
     finally:
