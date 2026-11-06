@@ -131,7 +131,8 @@
             "paragraphMinimumLines",
             "pingPeriodMilliseconds",
             "pingCount",
-            "pingScale"
+            "pingScale",
+            "swipePixels"
           ]
         },
         "figureReferences": {
@@ -331,6 +332,12 @@
           "minimum": 2,
           "maximum": 4,
           "description": "Minimum paragraph lines on each side of a feasible PDF split."
+        },
+        "swipePixels": {
+          "type": "integer",
+          "minimum": 30,
+          "maximum": 200,
+          "description": "On touch, the horizontal distance a swipe covers to walk to the previous or next chapter (artifact-ui.md, Reading shell)."
         },
         "pingPeriodMilliseconds": {
           "type": "integer",

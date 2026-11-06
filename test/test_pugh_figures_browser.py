@@ -194,7 +194,8 @@ def test_the_reader_walks_the_options_changes_weights_and_marks_and_rules_a_worl
     assert ruled["raised"] == ["checklist", "world-B", "chosen"]
     assert page.evaluate("obsPugh.readerState()") == {OPTION: {
         "weights": {}, "marks": {}, "rulings": {"B": {"ruling": "could",
-                                                            "tripwire": "Error rates matter less than speed"}}}}
+                                                            "tripwire": "Error rates matter less than speed"}},
+        "winner": "C"}}
     reader.clean()
 
 

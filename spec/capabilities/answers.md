@@ -30,6 +30,10 @@ The first that applies takes the payload:
 3. **The text**: elsewhere, the notice center shows the payload as text with a Copy answers key,
    saying that sending is not available here.
 
+The feature ships only where the Document has a chapter that asks for a bless, as the feature
+`bless` does ([[capabilities/bless]]), whose Send hands its payload here; an artifact without one
+carries neither the sinks nor the canary.
+
 The feature's canary (`canaries/answers.js`, registered as `answers` in `features.py`) decides
 whether the local server is reachable: the URL `obs-html serve` prints carries its `obs-answers`
 token over http. Elsewhere the canary stays silent and raises no warning, since a sink may still
@@ -38,7 +42,7 @@ be registered and the text always works.
 ## Contract
 
 ```js
-const result = await obsArtifact.sendAnswers({verdicts: [{id: "one", verdict: "bless"}]});
+const result = await obsArtifact.sendAnswers({verdicts: [{chapter: "one", version: "<sha256>", verdict: "bless"}]});
 // result: {sink: "host-save", result} | {sink: "server", written: "answers.json"} | {sink: "text"}
 ```
 

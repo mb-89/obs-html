@@ -34,6 +34,14 @@ def plain() -> dict:
     return document("Plain", chapter("one", "One", heading(1, "One"), paragraph("Text.")))
 
 
+def with_bless() -> dict:
+    """A chapter that asks for a bless (obs input-model, Bless requests), as the core carries it."""
+    source = document("Bless", chapter("one", "One", heading(1, "One"), paragraph("Bless this.")),
+                      chapter("two", "Two", heading(1, "Two"), paragraph("A record.")))
+    source["chapters"][0]["bless"] = {"version": "0" * 64}
+    return source
+
+
 def with_context_note() -> dict:
     """A note outside the reading order, which a link opens as context in the floating window."""
     source = document(
@@ -89,7 +97,8 @@ CASES = {
     "printing": ([plain()], []),
     "downloads": ([plain()], []),
     "clipboard": ([plain()], []),
-    "answers": ([plain()], []),
+    "answers": ([with_bless()], [plain()]),
+    "bless": ([with_bless()], [plain(), with_figure("pugh", PUGH)]),
     "popups": ([with_context_note(), with_non_document_note(), with_guided_card()], [plain()]),
     "plotting": ([with_figure("plot", PLOT), with_figure("equations", EQUATIONS)],
                  [plain(), with_figure("image", IMAGE)]),

@@ -188,11 +188,13 @@ def frame(kind: str, body: Body, anchor: str, caption: list[str], number: str = 
 
 @timed("figures")
 def render_figure(node: dict, chapter: str, position: int, caption: list[str], caption_text: str,
-                  source: str, number: str = "", links: dict[str, FigureLink] | None = None) -> str:
+                  source: str, number: str = "", links: dict[str, FigureLink] | None = None,
+                  answered: dict[str, dict] | None = None) -> str:
     """One figures node in its frame. ``position`` counts the chapter's figures from 1, for an
     anchor where neither a block id nor the body names one; ``caption_text`` is the caption's
     plain text, the accessible name where the figure has no alt; ``links`` are the links the
-    core resolved in the figure's SVG, with their chapter hrefs."""
+    core resolved in the figure's SVG, with their chapter hrefs; ``answered`` are the reader's changes an
+    answer recorded, by figure anchor, which an interactive body's spec carries (obs input-model, Answers)."""
     attrs = node["attrs"]
     [child] = node["children"]
     kind = FIGURE_KINDS[attrs["kind"]]
@@ -203,6 +205,8 @@ def render_figure(node: dict, chapter: str, position: int, caption: list[str], c
         anchor = f"{chapter}--figure-{body.name or position}"
     if kind.authored:
         body = Body(scope_styles(body.html, anchor, source), body.spec, body.name, body.presents)
+    if body.spec is not None and anchor in (answered or {}):
+        body = Body(body.html, {**body.spec, "answered": answered[anchor]}, body.name, body.presents)
     return frame(attrs["kind"], body, anchor, caption, number, kind.options)
 
 

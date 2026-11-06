@@ -529,7 +529,12 @@ checklist item, every world ruled "could happen" with its tripwire, and, where t
 
 The changed weights and marks, the rulings and the tripwires are reader state, kept per figure
 anchor while the artifact is open, and readable by the page as `obsPugh.readerState()`, by figure
-anchor and with options by letter, for whatever sends a reader's verdict.
+anchor and with options by letter, with the winner they give, for whatever sends a reader's
+verdict ([[#Bless verdicts]]).
+
+Where the chapter asks for a bless, each option's column head other than the winner's has a
+Pick key ("Pick B"). Where the chapter's answer recorded changes, the figure shows them
+read-only, as print does, and Reset is disabled.
 
 Print and PDF show the Matrix tab as the reader left it, the options as a list and the weights
 and marks as text; where weights or marks changed, the caption ends with the note *View changed
@@ -611,7 +616,9 @@ the criterion names held at its left.
   neither invents a TOC path nor intercepts the Home link.
 - No table of contents, filter, toolbar, or navigation bar is open initially.
 - The top band is one row and holds every top control: Home, the breadcrumbs, the
-  frontmatter chevron, the notice icons and the menu. The notice icons sit directly left of the menu.
+  frontmatter chevron, the bless controls ([[#Bless verdicts]]), the notice icons and the menu.
+  The notice icons sit directly left of the menu.
+  The bless controls sit directly left of them.
   Every control in the band is a square of one size. No control takes a row of its own.
   Breadcrumbs that do not fit truncate on that row; each keeps its full title as its text and
   tooltip.
@@ -640,6 +647,10 @@ the criterion names held at its left.
   chapter, at four widths, in both views, with no bar and with each bar open. In each view and
   at every width it opens the contents bar on the first chapter twice, its contents collapsed
   and then expanded by the bar's own actions, so no check depends on an earlier one's state.
+- On touch, a horizontal swipe of at least `artifact.reading.swipePixels` (`cfg.json`), mostly
+  across, moves to the previous or next chapter of the walk: the arrows' walk, which the contents
+  and the breadcrumbs share. A swipe that starts in a box that scrolls sideways (a wide table, a
+  figure's table) or in a field stays with it; the decision figure's options take their own.
 - Scrolling toward the top or bottom boundary reveals the available previous or next chapter
   arrow at full opacity. Wheel, touch and vertical keyboard scrolling do not change chapters
   automatically. Moving away or changing chapters clears the cue; nested scrollers and editors
@@ -663,6 +674,35 @@ the criterion names held at its left.
 - A small top-center chevron follows the side controls' restrained visual behavior when the
   active chapter has frontmatter. It toggles a field/value table above the chapter body and
   reports its expanded state; changing chapters closes the table.
+
+## Bless verdicts
+
+Decided by the user, 6 Nov 2026 (work issue `feature/bless-verdicts-20261106` and its two change
+comments): a chapter that asks for a bless (obs input-model, Bless requests) is one page of a
+deck; the reader walks the deck and gives each page a verdict with a key, never with a swipe.
+
+On such a chapter the top band shows, left of the notice icons:
+
+- **The pill:** the chapter's state: Bless pending, Blessed, Declined, Question or Picked B,
+  "· sent" once sent, "· needs a comment" while a comment is missing.
+- **The keys:** four squares of the band's size: Bless (✓), Decline (✗), Ask (?) and Pick (⇄),
+  Pick only where the chapter has a decision figure.
+- **The comment:** Decline, Ask and Pick open a one-line comment entry in the band, directly
+  under the keys, and only then; Pick shows there the other options' letters ("Pick A"), as the
+  figure's column heads do. There is no comment box in the page and no browser dialog.
+
+A complete verdict, a Bless or another verdict with its comment (and, for Pick, its letter, the
+comment confirmed with Enter), opens the next chapter of the walk.
+
+**Send** shows in the band, on every chapter, while any chapter asks: "Send 1/2", the complete
+verdicts of the asking chapters. It is disabled until one is complete, and hands one payload to
+the answer sink ([[capabilities/answers]]); [[capabilities/bless]] owns its fields. A sent
+verdict shows as sent until its chapter's version changes.
+
+A chapter whose answer the build carries (`obs-document --answers`) shows it read-only under
+its heading: the verdict, the picked option, the comment and the reader's changes, rulings and
+tripwires; its pill reads "· recorded" and it has no keys. An outdated answer shows the same way,
+marked outdated, and the chapter asks again. At 390 px the band's squares shrink so the row fits.
 
 ## Internal-link previews
 

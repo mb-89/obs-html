@@ -126,6 +126,11 @@ def _figures_need(key: str) -> Callable[[dict, bool], bool]:
     return included
 
 
+def _bless(model: dict, _trusted_runtime: bool) -> bool:
+    """A chapter of the Document asks for a bless (obs input-model, Bless requests)."""
+    return any("bless" in note for note in model["notes"])
+
+
 def _source_archive(model: dict, _trusted_runtime: bool) -> bool:
     """The Document carries its sources (obs-document --embed-source; source_archive.py)."""
     return model.get("sourceArchiveComplete") is True
@@ -140,8 +145,10 @@ FEATURES: tuple[Feature, ...] = (
                 Part("source-archive", "a source archive (obs-document --embed-source): Download source ZIP "
                      "and Attach source ZIP to PDF, with the PDF library", _source_archive, ("archive.js",)),)),
     Feature("clipboard", "always: the Comments bar offers Copy comments", _always),
-    Feature("answers", "always: the page hands a reader's answers to a sink (obsArtifact.sendAnswers; "
-            "spec/capabilities/answers.md)", _always, ("answers.js",)),
+    Feature("answers", "a chapter that asks for a bless: the page hands a reader's answers to a sink "
+            "(obsArtifact.sendAnswers; spec/capabilities/answers.md)", _bless, ("answers.js",)),
+    Feature("bless", "a chapter that asks for a bless: the top band's verdict pill and keys, and Send "
+            "(spec/capabilities/bless.md)", _bless, ("bless.js",)),
     Feature("popups", "a guided card, a note a link opens as context, or a trusted runtime",
             _floating_window, ("guided-card.js",)),
     Feature("plotting", "a figure of a kind that needs the plotting library (figures.py, FIGURE_KINDS): "
