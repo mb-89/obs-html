@@ -35,6 +35,13 @@ EPILOG = """Rendering:
   packaged base stylesheet, and an optional assets.json semantic asset index. It must not
   declare page geometry (@page, size, --paper-*, --sheet-*); the Document's profile owns it.
 
+Editions:
+  Without --embed-attachments, the light edition: a marked attachment (![label](file) or
+  ![[file]]) shows its label and vault path. With it, the self-contained evidence edition: the
+  attachment is a download of the bytes the Document embeds, with its name, type and size.
+  Images always render from their bytes. The core's obs-document --adapter html builds the light
+  edition.
+
 Settings:
   --config FILE merges a JSON settings file over the packaged cfg.json, validated by
   cfg.schema.json: execution limits and the print catalogue (paper sizes and default
@@ -71,6 +78,7 @@ Examples:
   obs-html document.json artifact.pdf
   obs-html document.json --check
   obs-html document.json artifact.html --style styles/corporate
+  obs-html document.json evidence.html --embed-attachments
   obs-html --export-pdf artifact.html --output artifact.pdf
   obs-html --check-rendered artifact.html
   obs-html --extract-comments reviewed.html
@@ -105,6 +113,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--style", type=Path, metavar="FOLDER",
                         help="Style module folder containing style.css (and optionally assets.json); "
                              "replaces the packaged generic style.")
+    parser.add_argument("--embed-attachments", action="store_true",
+                        help="Embed files marked with ![label](file) or ![[file]] as downloads.")
     parser.add_argument("--trusted-runtime-bundle", metavar="ID=PATH",
                         help="Embed one explicitly trusted local JavaScript bundle.")
     parser.add_argument("--export-figures", type=Path, metavar="FOLDER",
@@ -161,7 +171,8 @@ def _render(options: argparse.Namespace, config) -> None:
         raise InputError(PROG, "DESTINATION", "names DOCUMENT itself", "Name another output file")
     document = _read_document(options.document)
     artifact = render(document, config, style_folder=options.style,
-                    trusted_runtime=_trusted_runtime(options.trusted_runtime_bundle))
+                    trusted_runtime=_trusted_runtime(options.trusted_runtime_bundle),
+                    embed_attachments=options.embed_attachments)
     check_artifact(artifact)
     for diagnostic in document["diagnostics"]:
         print(f"{diagnostic['level'].title()}: {diagnostic['message']}", file=sys.stderr)
@@ -193,7 +204,7 @@ def _render(options: argparse.Namespace, config) -> None:
 def _browser_operation(options: argparse.Namespace, config) -> None:
     operation = "--export-pdf" if options.export_pdf else "--check-rendered"
     _alone(operation, options, "document", "destination", "check", "style", "trusted_runtime_bundle",
-           *(["check_rendered"] if options.export_pdf else []))
+           "embed_attachments", *(["check_rendered"] if options.export_pdf else []))
     from obs_html.pdf import check_rendered, export_pdf
     if options.export_pdf:
         output = options.output
@@ -238,7 +249,7 @@ def _trusted_runtime(bundle: str | None) -> tuple[str, str] | None:
 
 def _export_figures(options: argparse.Namespace) -> None:
     _alone("--export-figures", options, "destination", "check", "style", "trusted_runtime_bundle",
-           "export_pdf", "check_rendered", "output")
+           "embed_attachments", "export_pdf", "check_rendered", "output")
     if options.document is None:
         raise InputError(PROG, "DOCUMENT", "is missing",
                          "Name the Document whose figures to export: obs-html DOCUMENT --export-figures FOLDER")
@@ -260,7 +271,8 @@ def _export_figures(options: argparse.Namespace) -> None:
 
 def _extract(options: argparse.Namespace) -> None:
     _alone("--extract-comments", options, "document", "destination", "check", "style",
-           "trusted_runtime_bundle", "export_pdf", "check_rendered", "output", "export_figures")
+           "trusted_runtime_bundle", "embed_attachments", "export_pdf", "check_rendered", "output",
+           "export_figures")
     print(extract_comments(options.extract_comments.resolve()), end="")
 
 
