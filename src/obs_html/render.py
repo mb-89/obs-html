@@ -10,7 +10,6 @@ from __future__ import annotations
 import base64
 import json
 import re
-import sys
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -27,7 +26,7 @@ from latex2mathml.converter import convert as mathml
 
 from obs_html.bars import BarDefinition, discover_bars
 from obs_html.config import Config, paper
-from obs_html.errors import DOCUMENT_OF, InputError, field_path, schema_error
+from obs_html.errors import DOCUMENT_OF, InputError, field_path, schema_error, warn
 from obs_html.features import included as included_features, maths_library, maths_library_licence
 from obs_html.figure_links import FigureLink
 from obs_html.figures import FIGURE_KINDS, render_figure
@@ -1151,8 +1150,8 @@ def _unknown(node: dict[str, object], context: Context) -> str:
             "observation": f"first in chapter {context.chapter or HOME!r}",
             "remedy": f"Add a renderer for {kind!r} to src/obs_html/render.py.",
         }
-        print(f"Warning: obs-html (src/obs_html/render.py): limited function: {limit['reason']} "
-              f"Seen {limit['observation']}. Remedy: {limit['remedy']}", file=sys.stderr)
+        warn(InputError("obs-html (src/obs_html/render.py)", "limited function",
+                        f"{limit['reason']} Seen {limit['observation']}", limit["remedy"].removesuffix(".")))
     return (f'<span class="unknown-node" data-node-type="{escape(kind, quote=True)}">'
             f"{escape(_plain(node))}</span>")
 

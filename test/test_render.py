@@ -264,8 +264,8 @@ def test_an_unknown_node_type_renders_its_text_and_warns_once_naming_the_source_
     assert '<span class="unknown-node" data-node-type="shout">again</span>' in html
     warnings = [line for line in capsys.readouterr().err.splitlines() if "'shout'" in line]
     assert len(warnings) == 1
-    assert warnings[0].startswith("Warning: obs-html (src/obs_html/render.py): ")
-    assert "chapter 'one'" in warnings[0] and "Remedy:" in warnings[0]
+    assert warnings[0].split(": ")[:3] == ["Warning", "obs-html (src/obs_html/render.py)", "limited function"]
+    assert "chapter 'one'" in warnings[0] and "src/obs_html/render.py." in warnings[0]  # The remedy names the file.
 
 
 def test_the_home_slug_is_reserved(document) -> None:

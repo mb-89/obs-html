@@ -108,6 +108,44 @@ def test_every_message_the_adapter_builds_is_raised_or_warned_through_the_format
     assert unsent == [], f"{path.name} lines {unsent}: raise the InputError or pass it to errors.warn"
 
 
+def _printed_warnings(tree: ast.Module) -> list[int]:
+    """The lines that print or write a warning themselves (a text starting ``Warning``), not through
+    errors.warn: a warning that bypasses the one form and the vault-root naming."""
+    lines = []
+    for call in ast.walk(tree):
+        if not (isinstance(call, ast.Call) and call.args):
+            continue
+        name = call.func.attr if isinstance(call.func, ast.Attribute) else getattr(call.func, "id", "")
+        if name not in {"print", "write", "warn"} or (name == "warn" and not isinstance(call.func, ast.Attribute)):
+            continue
+        text = call.args[0]
+        first = text.values[0] if isinstance(text, ast.JoinedStr) and text.values else text
+        if isinstance(first, ast.Constant) and isinstance(first.value, str) and \
+                first.value.lstrip().lower().startswith("warning"):
+            lines.append(call.lineno)
+    return lines
+
+
+@pytest.mark.parametrize("path", [path for path in MODULES if path.name != "errors.py"],
+                         ids=lambda path: path.relative_to(PACKAGE).as_posix())
+def test_every_warning_the_adapter_prints_goes_through_errors_warn(path: Path) -> None:
+    """A warning printed outside errors.py would bypass the one form and its vault-root naming."""
+    printed = _printed_warnings(ast.parse(path.read_text(encoding="utf-8")))
+    assert printed == [], f"{path.name} lines {printed}: pass an InputError to errors.warn instead"
+
+
+@pytest.mark.parametrize("source", [
+    'print(f"Warning: {note}: odd", file=sys.stderr)', 'sys.stderr.write("warning: odd\\n")',
+    'warnings.warn("Warning: odd")'])
+def test_the_warning_guard_refuses_a_warning_printed_outside_errors_py(source: str) -> None:
+    assert _printed_warnings(ast.parse(source)) == [1]
+
+
+def test_the_warning_guard_lets_errors_warn_and_other_output_pass() -> None:
+    assert _printed_warnings(ast.parse('errors.warn(InputError("a.md", "b", "c", "D"))\n'
+                                       'print(f"Generated {path}.")\nprint(f"Console error: {e}", file=sys.stderr)')) == []
+
+
 def test_every_adapter_error_class_is_an_input_error() -> None:
     for path in MODULES:
         name = ".".join(("obs_html", *path.relative_to(PACKAGE).with_suffix("").parts)).removesuffix(".__init__")

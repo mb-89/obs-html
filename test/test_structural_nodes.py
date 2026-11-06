@@ -117,7 +117,9 @@ def test_an_invented_node_type_raises_one_limited_function_warning_naming_it(cap
     assert "chapter 'one'" in limits[0]["observation"]
     assert limits[0]["remedy"]
     warnings = [line for line in capsys.readouterr().err.splitlines() if "'sparkle'" in line]
-    assert len(warnings) == 1 and "Remedy:" in warnings[0]
+    assert len(warnings) == 1
+    assert warnings[0].split(": ")[:3] == ["Warning", "obs-html (src/obs_html/render.py)", "limited function"]
+    assert warnings[0].endswith(f"{limits[0]['remedy']}")  # The remedy closes the one form.
 
 
 def test_a_document_without_unknown_nodes_carries_no_limits() -> None:
