@@ -163,6 +163,7 @@ class PagePool:
         self._listeners: dict[object, list] = {}
         self._origins: dict[object, set[str]] = {}
         self._changed: set[object] = set()
+        self._emulated: set[object] = set()
         self._on = Page.on
 
     def lease(self, viewport: dict | None = None):
@@ -182,6 +183,11 @@ class PagePool:
         if page in self._listeners:
             self._listeners[page].append((event, handler))
 
+    def emulated(self, page) -> None:
+        """A test changed a leased page's media emulation; the release sets it back."""
+        if page in self._listeners:
+            self._emulated.add(page)
+
     def changed(self, page) -> None:
         """A test changed a page setting a navigation does not undo; the page is not reused."""
         if page in self._listeners:
@@ -192,6 +198,7 @@ class PagePool:
         context = page.context
         if page.is_closed() or page in self._changed:
             self._changed.discard(page)
+            self._emulated.discard(page)
             self._origins.pop(page)
             context.close()
             return
@@ -200,16 +207,20 @@ class PagePool:
         for other in context.pages:
             if other != page:
                 other.close()
-        page.emulate_media(**CONTEXT_MEDIA)
+        if page in self._emulated:
+            self._emulated.discard(page)
+            page.emulate_media(**CONTEXT_MEDIA)
         # A tab's session storage outlives navigations, and clearing an origin's data leaves it, so
         # it is cleared from the frames the page shows (an opaque origin has none and throws).
         for frame in page.frames:
             frame.evaluate("() => { try { sessionStorage.clear(); } catch (error) {} }")
         page.goto("about:blank")
-        session = context.new_cdp_session(page)
-        for shown in self._origins[page] - {""}:
-            session.send("Storage.clearDataForOrigin", {"origin": shown, "storageTypes": "all"})
-        session.detach()
+        shown = self._origins[page] - {""}
+        if shown:
+            session = context.new_cdp_session(page)
+            for each in shown:
+                session.send("Storage.clearDataForOrigin", {"origin": each, "storageTypes": "all"})
+            session.detach()
         self._origins[page].clear()
         context.clear_cookies()
         page.mouse.move(0, 0)
@@ -250,6 +261,11 @@ def page_pool(worker_browser):
                     each.listened(page, event, handler)
                 return _listen(page, event, handler)
             patch.setattr(Page, name, listen)
+        def emulate(page, *arguments, _emulate=Page.emulate_media, **options):
+            for each in POOLS:
+                each.emulated(page)
+            return _emulate(page, *arguments, **options)
+        patch.setattr(Page, "emulate_media", emulate)
         for name in PAGE_SETTINGS:
             def change(page, *arguments, _change=getattr(Page, name), **options):
                 for each in POOLS:

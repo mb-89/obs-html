@@ -4,7 +4,7 @@ artifact-ui.md, Equation figures).
 Reader: whoever changes how an equation figure is evaluated, sampled, solved or explored.
 
 One artifact of the equations fixture Document (fixtures/build_documents.py, equations) serves
-every test: the torque family over a quantity note's range with a second axis, the saturated
+every test, and the checks that only read what it plotted share one page of it: the torque family over a quantity note's range with a second axis, the saturated
 oscillator the core leaves as a differential system, and the quintic it leaves for Newton's
 method; in a second chapter, which computes only where a test opens it, a step response swept
 over a grid with computed axes and a grid of 8000 combinations above the parallel plot's cap.
@@ -88,12 +88,18 @@ class Reader:
         assert self.errors == []
 
 
+@pytest.fixture(scope="module")
+def shared_reader(artifact, shared_reader_browser) -> Reader:
+    """One page of the artifact for the module's checks that only read what it plotted and computed."""
+    return Reader(shared_reader_browser, artifact)
+
+
 def _torque(speed_rpm: float, throttle: float) -> float:
     return 250 * throttle * (1 - (speed_rpm / 6000) ** 2)
 
 
-def test_the_torque_family_renders_from_the_document_with_the_network_blocked(artifact, reader_browser) -> None:
-    reader = Reader(reader_browser, artifact)
+def test_the_torque_family_renders_from_the_document_with_the_network_blocked(shared_reader) -> None:
+    reader = shared_reader
 
     traces = reader.traces(TORQUE)
     layout = reader.layout(TORQUE)
@@ -159,8 +165,8 @@ def _saturated(times: list[float], zeta=0.3, w=2.0, u=1.5, step=1e-3) -> list[fl
     return values
 
 
-def test_the_numeric_systems_plot_through_the_integrator_and_newtons_method(artifact, reader_browser) -> None:
-    reader = Reader(reader_browser, artifact)
+def test_the_numeric_systems_plot_through_the_integrator_and_newtons_method(shared_reader) -> None:
+    reader = shared_reader
 
     [oscillator] = reader.traces(SATURATED)
     [quintic] = reader.traces(QUINTIC)
@@ -174,9 +180,9 @@ def test_the_numeric_systems_plot_through_the_integrator_and_newtons_method(arti
     reader.clean()
 
 
-def test_the_shared_test_vectors_pass_in_the_browser(artifact, reader_browser) -> None:
+def test_the_shared_test_vectors_pass_in_the_browser(shared_reader) -> None:
     vectors = json.loads(VECTORS.read_text(encoding="utf-8"))
-    reader = Reader(reader_browser, artifact)
+    reader = shared_reader
 
     results = reader.page.evaluate("""vectors => vectors.map(vector =>
         obsEquations.evaluate(vector.tree, vector.values, vector.derivatives || []))""", vectors["vectors"])
