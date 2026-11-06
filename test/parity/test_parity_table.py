@@ -1,22 +1,28 @@
-"""Parity gate: features.md lists what the interim adapter offers and whether this adapter does.
+"""Parity gate: features.md records every feature of this adapter and how it differs from the
+interim adapter obs#3 deleted.
 
-Reader: whoever changes either adapter, and obs#3, which deletes the interim adapter
-(src/obs_html_interim) once this table holds no "missing" row.
+Reader: whoever changes this adapter or the core in front of it, and the dispatcher reading the
+record.
 
-features.md has one row per interim feature: every CLI option, every settings key, every
-capability, reader control and output form. Each row's status is one of:
+features.md has one row per feature: every CLI option and settings key of this adapter (and of
+the interim, whose rows stay as the record), every capability, reader control and output form.
+Each row's status is one of:
 
 - "same", and its evidence names at least one test as `path::test_name`, a path from the
   repository root to a test file that defines that test;
+- "added", a feature the interim did not have, with the same evidence as "same";
 - "known difference", and its evidence names the issue (#n) or the design note (a path to a .md
   file with its #anchor) that decided it;
 - "missing", and its evidence names the issue (#n) that tracks the gap.
 
-A row "same (untested)" is refused: it marks parity nobody shows. The table is checked against the
-interim itself: its argparse parser (built, not run) and its settings schema name every option and
-key the table must list. A settings row that says "same" names this adapter's key, or the core's,
-in the first code span of its Integrated cell (`obs-html <key>` or `obs-document <key>`), and
-test_a_shared_setting_keeps_the_interim_default_limits_and_reader holds that key to the interim's.
+A row "same (untested)" is refused: it marks parity nobody shows. The table is checked against
+this adapter itself: its argparse parser (built, not run) and its settings schema name every
+option and key the table must list, and every option and key a row names must exist there or in
+the core's. A settings row that says "same" names this adapter's key, or the core's, in the first
+code span of its Integrated cell (`obs-html <key>` or `obs-document <key>`), and
+test_a_shared_setting_keeps_its_schema_default_limits_and_reader holds that key to its own
+schema: the reference for defaults and limits, once the interim's, is now this adapter's
+cfg.schema.json and the core's config.schema.json as they stand.
 """
 from __future__ import annotations
 
@@ -29,9 +35,8 @@ import pytest
 TABLE = Path(__file__).with_name("features.md")
 ADAPTER = Path(__file__).parents[2]
 ROOT = ADAPTER.parents[1]
-INTERIM = ROOT / "src" / "obs_html_interim"
 OWNER = "adapters/html/test/parity/test_parity_table.py"
-STATUSES = {"same", "known difference", "missing"}
+STATUSES = {"same", "added", "known difference", "missing"}
 SECTIONS = ("CLI options", "Settings", "Capabilities", "Reader controls", "Input and checks", "Output forms")
 TEST_REFERENCE = re.compile(r"`([\w./-]+\.py)::(\w+)`")
 ISSUE = re.compile(r"(?<![\w/])#\d+\b")
@@ -87,10 +92,10 @@ def defines(path: Path, name: str) -> bool:
 
 def problems(row: Row) -> list[str]:
     """What is wrong with a row's status and evidence, each with its remedy."""
-    if row.status == "same":
+    if row.status in {"same", "added"}:
         references = TEST_REFERENCE.findall(row.evidence)
         if not references:
-            return ["says same but names no test. Name the test that shows it as `path::test_name`, "
+            return [f"says {row.status} but names no test. Name the test that shows it as `path::test_name`, "
                     "or add the smallest one"]
         return [f"names {path}::{name}, which is not a test there. Correct the name or the path"
                 for path, name in references if not defines(ROOT / path, name)]
@@ -129,10 +134,23 @@ def test_every_feature_has_one_row() -> None:
     assert not failures, "\n".join(failures)
 
 
-def interim_options() -> set[str]:
-    from obs_html_interim.cli import build_parser
-    return {option for action in build_parser()._actions for option in action.option_strings
-            if option.startswith("--")}
+def options(parser) -> set[str]:
+    return {option for action in parser._actions for option in action.option_strings if option.startswith("--")}
+
+
+def adapter_options() -> set[str]:
+    from obs_html.cli import build_parser
+    return options(build_parser())
+
+
+def core_options() -> set[str]:
+    """obs-document's options, read from its help: this adapter imports nothing of the core."""
+    import subprocess
+    import sys
+
+    result = subprocess.run([sys.executable, "-m", "obs.document", "--help"], capture_output=True, text=True,
+                            encoding="utf-8", check=True)
+    return set(re.findall(r"(?<![\w-])(--[a-z][\w-]*)", result.stdout))
 
 
 def setting_keys(schema: dict, node: dict | None = None, prefix: str = "") -> set[str]:
@@ -156,42 +174,89 @@ def resolve(schema: dict, node: dict) -> dict:
     return {**resolve(schema, target), **{key: value for key, value in node.items() if key != "$ref"}}
 
 
-def interim_settings() -> set[str]:
-    return setting_keys(json.loads((INTERIM / "cfg.schema.json").read_text(encoding="utf-8")))
+ADAPTER_SCHEMA = ADAPTER / "src" / "obs_html" / "cfg.schema.json"
+CORE_SCHEMA = ROOT / "src" / "obs" / "config.schema.json"
+# A code span of an Integrated cell that names an option or a key of the integrated CLIs.
+NAMED = re.compile(r"^(obs-html|obs-document)\b(.*)$")
 
 
-def compare(listed: list[str], offered: set[str], section: str, source: str) -> None:
-    unlisted = sorted(offered - set(listed))
-    unknown = sorted(set(listed) - offered)
-    assert not unlisted and not unknown, (
-        f"{TABLE.relative_to(ROOT).as_posix()}: {section}: "
-        + (f"the interim offers {', '.join(unlisted)} ({source}), which no row lists. Add a row each. "
-           if unlisted else "")
-        + (f"rows list {', '.join(unknown)}, which {source} does not offer. Correct or remove them. "
-           if unknown else "")
-        + f"See {OWNER}")
+def setting_paths(schema: dict, node: dict | None = None, prefix: str = "") -> set[str]:
+    """Every key of a settings schema as a dotted path, branches included."""
+    node = schema if node is None else node
+    found = set()
+    for name, value in node.get("properties", {}).items():
+        value = resolve(schema, value)
+        found |= {f"{prefix}{name}"} | setting_paths(schema, value, f"{prefix}{name}.")
+    return found
 
 
-def test_every_interim_cli_option_has_a_row() -> None:
-    compare(keys("CLI options"), interim_options(), "CLI options",
-            "src/obs_html_interim/cli.py build_parser")
+def named(section: str) -> list[tuple[Row, str, str]]:
+    """Each (row, CLI, rest) for every code span of a row's Integrated cell that starts with a CLI."""
+    found = []
+    for row in rows():
+        if row.section == section:
+            for span in CODE.findall(row.integrated):
+                match = NAMED.match(span)
+                if match:
+                    found.append((row, match[1], match[2].strip()))
+    return found
 
 
-def test_every_interim_settings_key_has_a_row() -> None:
-    compare(keys("Settings"), interim_settings(), "Settings", "src/obs_html_interim/cfg.schema.json")
+def compare(listed: set[str], offered: set[str], section: str, source: str) -> None:
+    unlisted = sorted(offered - listed)
+    assert not unlisted, (
+        f"{TABLE.relative_to(ROOT).as_posix()}: {section}: {source} offers {', '.join(unlisted)}, which no "
+        f"row lists. Add a row each (status added for a feature the interim did not have); see {OWNER}")
+
+
+def test_every_adapter_cli_option_has_a_row() -> None:
+    listed = set(keys("CLI options")) | {option for _, cli, rest in named("CLI options") if cli == "obs-html"
+                                          for option in re.findall(r"--[\w-]+", rest)}
+    compare(listed, adapter_options(), "CLI options", "adapters/html/src/obs_html/cli.py build_parser")
+
+
+def test_every_option_a_row_names_is_one_the_integrated_cli_offers() -> None:
+    offered = {"obs-html": adapter_options(), "obs-document": core_options()}
+    failures = [f"{row.where()} names `{cli} {option}`, which {cli} does not offer. Correct or remove it; "
+                f"see {OWNER}"
+                for row, cli, rest in named("CLI options") for option in re.findall(r"--[\w-]+", rest)
+                if option not in offered[cli]]
+    failures += [f"{row.where()} says {row.status} but neither its feature nor its Integrated cell names an "
+                 f"option obs-html or obs-document offers. Name it; see {OWNER}"
+                 for row in rows() if row.section == "CLI options" and row.status in {"same", "added"}
+                 and row.key not in offered["obs-html"] | offered["obs-document"]
+                 and not any(span_row is row for span_row, _, _ in named("CLI options"))]
+    assert not failures, "\n".join(failures)
+
+
+def test_every_adapter_settings_key_has_a_row() -> None:
+    listed = {rest for _, cli, rest in named("Settings") if cli == "obs-html"}
+    compare(listed, setting_keys(load(ADAPTER_SCHEMA)), "Settings", "adapters/html/src/obs_html/cfg.schema.json")
+
+
+def test_every_settings_key_a_row_names_is_one_the_integrated_schemas_hold() -> None:
+    held = {"obs-html": setting_paths(load(ADAPTER_SCHEMA)), "obs-document": setting_paths(load(CORE_SCHEMA))}
+    failures = [f"{row.where()} names `{cli} {rest}`, which {cli}'s settings schema does not hold. Correct or "
+                f"remove it; see {OWNER}"
+                for row, cli, rest in named("Settings") if rest and not rest.startswith("-")
+                and rest.split(" ")[0].rstrip(":,") not in held[cli]]
+    assert not failures, "\n".join(failures)
 
 
 def test_every_capability_has_a_row() -> None:
     ids = {re.search(r"^  id: (\S+)$", note.read_text(encoding="utf-8"), re.MULTILINE)[1]
            for note in (ROOT / "spec" / "capabilities").glob("*.md")}
-    compare(keys("Capabilities"), ids, "Capabilities", "spec/capabilities")
+    compare(set(keys("Capabilities")), ids, "Capabilities", "spec/capabilities")
+    unknown = sorted(set(keys("Capabilities")) - ids)
+    assert not unknown, (f"{TABLE.relative_to(ROOT).as_posix()}: Capabilities: rows list {', '.join(unknown)}, "
+                         f"which spec/capabilities does not hold. Correct or remove them; see {OWNER}")
 
 
 # The shared settings: each "same" settings row and the key its Integrated cell names.
 def shared_settings() -> list[tuple[Row, str, str]]:
     shared = []
     for row in rows():
-        if row.section != "Settings" or row.status != "same":
+        if row.section != "Settings" or row.status not in {"same", "added"}:
             continue
         match = CODE.search(row.integrated)
         owner, _, key = (match[1] if match else "").partition(" ")
@@ -232,34 +297,42 @@ def load(path: Path) -> dict:
 
 
 @pytest.mark.parametrize("row, owner, key", shared_settings(), ids=lambda value: getattr(value, "key", value))
-def test_a_shared_setting_keeps_the_interim_default_limits_and_reader(row, owner, key) -> None:
-    """The key that holds an interim setting here has the interim's default and, where this
-    adapter holds it, the interim's limits; and code outside the settings files reads it."""
-    interim_schema = load(INTERIM / "cfg.schema.json")
-    default = lookup(load(INTERIM / "cfg.json"), row.key)
+def test_a_shared_setting_keeps_its_schema_default_limits_and_reader(row, owner, key) -> None:
+    """The key that holds a setting here is constrained by its own schema, its default satisfies
+    those limits, and code outside the settings files reads it. The schema as it stands is the
+    reference: this adapter's cfg.schema.json with its packaged cfg.json, or the core's
+    config.schema.json with the default it declares."""
+    from jsonschema import Draft202012Validator
+
     if owner == "obs-html":
         package = ADAPTER / "src" / "obs_html"
-        schema = load(package / "cfg.schema.json")
-        assert lookup(load(package / "cfg.json"), key) == default, (
-            f"{row.where()}: adapters/html/src/obs_html/cfg.json {key} is not the interim's default "
-            f"{default!r}. Restore it, or say known difference with its decision; see {OWNER}")
-        assert constraints(schema, schema_node(schema, key)) == \
-            constraints(interim_schema, schema_node(interim_schema, row.key)), (
-            f"{row.where()}: adapters/html/src/obs_html/cfg.schema.json {key} accepts other values "
-            f"than the interim's {row.key}. Restore the limits, or say known difference; see {OWNER}")
+        schema, where = load(ADAPTER_SCHEMA), "adapters/html/src/obs_html/cfg.schema.json"
+        default = lookup(load(package / "cfg.json"), key)
         sources = [path for path in package.rglob("*") if path.suffix in {".py", ".js"}]
     else:
         package = ROOT / "src" / "obs"
-        node = schema_node(load(package / "config.schema.json"), key)
-        assert node.get("default") == default, (
-            f"{row.where()}: src/obs/config.schema.json {key} defaults to {node.get('default')!r}, "
-            f"not the interim's {default!r}. Restore it, or say known difference; see {OWNER}")
+        schema, where = load(CORE_SCHEMA), "src/obs/config.schema.json"
+        default = schema_node(schema, key).get("default")
+        assert "default" in schema_node(schema, key), (
+            f"{row.where()}: {where} {key} declares no default. Declare it; see {OWNER}")
         sources = list(package.glob("*.py"))
+    limits = constraints(schema, schema_node(schema, key))
+    assert {"type", "enum", "const", "pattern"} & set(limits) or name_only(key), (
+        f"{row.where()}: {where} {key} accepts any value. Give it a type and its limits; see {OWNER}")
+    errors = [error.message for error in Draft202012Validator({**limits, "$defs": schema.get("$defs", {})})
+              .iter_errors(default)]
+    assert not errors, (f"{row.where()}: the default of {key}, {default!r}, is outside {where}'s limits: "
+                        f"{'; '.join(errors)}. Correct the default or the limits; see {OWNER}")
     name = key.rsplit(".", 1)[-1]
     readers = [path for path in sources if name in path.read_text(encoding="utf-8")]
-    assert readers or name in {"$schema", "schemaVersion"}, (
+    assert readers or name_only(key), (
         f"{row.where()}: no code of {package.relative_to(ROOT).as_posix()} reads {key}: the setting "
         f"is accepted but changes nothing. Read it, or say missing; see {OWNER}")
+
+
+def name_only(key: str) -> bool:
+    """The settings file's own bookkeeping keys, which no renderer reads."""
+    return key in {"$schema", "schemaVersion"}
 
 
 @pytest.mark.parametrize("status, evidence, refused", [
@@ -284,3 +357,11 @@ def test_the_gate_refuses_a_row_without_the_evidence_its_status_needs(status, ev
 ])
 def test_the_gate_accepts_a_row_with_the_evidence_its_status_needs(status, evidence) -> None:
     assert problems(Row(1, "CLI options", ["`--example`", "", "", status, evidence])) == []
+
+
+def test_the_coverage_check_names_an_option_no_row_lists() -> None:
+    """A new adapter option or key without a row fails, naming it and its source."""
+    with pytest.raises(AssertionError) as refused:
+        compare({"--listed"}, {"--listed", "--new-option"}, "CLI options", "cli.py build_parser")
+    assert "cli.py build_parser offers --new-option, which no row lists" in str(refused.value)
+    compare({"--listed", "--extra"}, {"--listed"}, "CLI options", "cli.py build_parser")

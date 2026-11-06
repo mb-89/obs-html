@@ -1,8 +1,8 @@
 """Figure numbers and references: a block link to a figure shows its current label and number,
 and adjacent references merge (obs input-model, Figure captions and references;
 artifact-ui.md One figure frame). The Document is the core-built ``figure-references`` fixture
-(fixtures/build_documents.py); its figure fences are the syntax the interim reference reads too,
-so the parity test renders the same vault both ways.
+(fixtures/build_documents.py). EXPECTED_TEXT holds every number and paragraph the fixture shows,
+as the interim adapter showed them on the same vault until obs#3 deleted it.
 
 Reader: whoever changes figure numbering or how a reference to a figure renders.
 """
@@ -14,13 +14,11 @@ from pathlib import Path
 
 import pytest
 
-from conftest import CORE_ROOT, ROOT, built_once
-from fixtures.build_documents import figure_references
+from conftest import ROOT
 from obs_html.artifact_data import decode_artifact_data
 from obs_html.config import load_config
 from obs_html.errors import InputError
 from obs_html.render import render
-from spec_artifact import run, uv
 
 
 FIXTURE = ROOT / "test" / "fixtures" / "documents" / "figure-references.json"
@@ -146,28 +144,31 @@ def _text(html: str) -> list[str]:
             for paragraph in re.findall(r"<p>(.*?)</p>", html, re.S)]
 
 
-def test_numbers_and_references_match_the_interim_reference(tmp_path_factory) -> None:
-    """The fixture's vault rendered by the interim reference (obs-html-interim of the obs checkout
-    this adapter sits in) and its Document by this adapter: every figure number and every
-    paragraph's text and link targets agree."""
-    if not (CORE_ROOT / "src" / "obs_html_interim" / "cli.py").is_file():
-        pytest.fail(f"test/test_figure_references.py: no interim reference at {CORE_ROOT / 'src' / 'obs_html_interim'}. "
-                    "Remedy: remove this parity test once obs no longer carries the interim adapter.", pytrace=False)
+# Per note: its figure numbers in order, and each paragraph's text and link targets (_text).
+EXPECTED_TEXT = {
+    "one": {"numbers": [], "text": ["Across Figure 2.2. #two/block-b"]},
+    "two": {
+        "numbers": [f"Figure 2.{index}" for index in range(1, 7)],
+        "text": [
+            "Single Figure 2.4. #two/block-d",
+            "Pair Figures 2.4 and 2.5. #two/block-d #two/block-e",
+            "Run Figures 2.4–2.6. #two/block-d #two/block-f",
+            "Mixed Figures 2.1–2.3, and 2.5 or the second Figure 2.3. "
+            "#two/block-a #two/block-c #two/block-e #two/block-b #two/block-c",
+            "Siehe Figures 2.1 und 2.2. #two/block-a #two/block-b",
+            "See Figure 2.1 plus Figures 2.2 and 2.3. #two/block-a #two/block-b #two/block-c",
+            "Labelled the first. #two/block-a",
+            "Broken Figure 2.4\nFigure 2.5. #two/block-d #two/block-e",
+        ],
+    },
+}
 
-    def build(folder: Path) -> None:
-        (folder / "vault").mkdir()
-        figure_references(folder / "vault")
-        run([uv(), "run", "--offline", "--project", str(CORE_ROOT), "obs-html-interim", "--source",
-             str(folder / "vault" / "manifest.md"), "--output", str(folder / "reference.html")],
-            CORE_ROOT, "rendering the figure-references vault with the interim reference")
 
-    folder = built_once(tmp_path_factory, "figure-references-interim", build)
-    data = decode_artifact_data((folder / "reference.html").read_text(encoding="utf-8"))
-    reference = {note["slug"]: note["html"] for note in data["notes"]}
+def test_every_number_and_reference_reads_as_expected() -> None:
+    """The fixture's Document rendered by this adapter: every figure number and every paragraph's
+    text and link targets are EXPECTED_TEXT's."""
     ours = _notes(_document())
-
     number = re.compile(r'data-figure-number="([^"]+)"')
-    assert number.findall(ours["two"]) == [f"Figure 2.{index}" for index in range(1, 7)]
-    for slug in ("one", "two"):
-        assert number.findall(ours[slug]) == number.findall(reference[slug]), slug
-        assert _text(ours[slug]) == _text(reference[slug]), slug
+    for slug, expected in EXPECTED_TEXT.items():
+        assert number.findall(ours[slug]) == expected["numbers"], slug
+        assert _text(ours[slug]) == expected["text"], slug

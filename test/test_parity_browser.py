@@ -1,60 +1,44 @@
-"""Parity gate: this adapter's artifact against the interim reference, in Claude-preview-like frames.
+"""The spec artifact held to features.md's reading rows, in Claude-preview-like frames.
 
-Until obs removes its interim adapter, obs's spec is built both ways: the Document from the
-core of this repository rendered by this adapter, and the same spec sources rendered by the
-interim adapter in the same tree (`obs-html-interim`). One interaction script then runs against both
-artifacts in both preview-like frames (test/preview.py): Home, previous/next by pointer and
-keyboard, the contents menu, the filter, a figure reference (its figure's block anchor in view
-once activated), and icon counts per region in every chapter. Any
-difference fails and names the step and both observations.
+Reader: whoever changes how the artifact reads, navigates or prints, and the dispatcher reading
+[parity/features.md](parity/features.md), whose rows name these tests.
 
-KNOWN_DIFFERENCES lists the differences that are accepted for now, each with its reason. It only
-shrinks: a listed step that no longer differs fails too, so its entry is removed with the fix.
-Where the reference itself is wrong by obs's design notes, the step is checked against the notes
-for this adapter alone: Home by pointer (the reference's arrow area covers Home) and the filter
-(the reference marks the HTML changed).
+obs's spec, as this adapter renders the core's Document of it (test/spec_artifact.py), is opened
+in both preview-like frames (test/preview.py). One interaction script walks it: Home,
+previous/next by pointer and keyboard, the contents menu, the filter, a view selection, a figure
+reference, and icon counts per region in every chapter. Each step is held to what the design
+notes and the artifact's own contents say: the arrows and keys walk the contents' chapters in
+order, Home returns to the first, a contents link opens its chapter, a filter that matches
+nothing disables both arrows, reader state is never a change, and every icon is painted. The
+expectations were the interim adapter's observations on the same spec until obs#3 deleted it.
 
-A second check sweeps this adapter's artifact in the same frames for covered controls
+A second check sweeps the artifact in the same frames for covered controls
 (test/browser/control-coverage.js) at four widths, in both views and with the bars open and
-closed. It holds this adapter to the design notes alone: a covered control fails, and the failure
-says where the reference, swept then in the same frame, has the same fault, which is not a parity
-difference.
+closed: a covered control fails.
 
-Each test opens each artifact once, in one page its checks reuse. Pointer and keyboard steps are
+Each test opens the artifact once, in one page its checks reuse. Pointer and keyboard steps are
 real input, one round trip each; every other observation is computed in the page and returned as
-one structure (the icon counts of every chapter in one evaluation), and Python compares them.
+one structure (the icon counts of every chapter in one evaluation), and Python checks them.
 
-A third check prints one spec chapter from both artifacts with --print-chapter, in both formats,
-and compares them; PRINTED_FORMS and PRINTED_LINES list the accepted differences with their reasons.
+A third check prints one spec chapter with --print-chapter, in both formats: the HTML form is the
+chapter as the artifact stores it, and the text form is its blocks without markup.
 
-Run it alone with `uv run pytest test/test_parity_browser.py`; it builds the artifacts once per
+Run it alone with `uv run pytest test/test_parity_browser.py`; it builds the artifact once per
 run, without the network: the core's Document through the core's test/offline_obs_document.py.
 Each test runs on its own worker in the complete suite: one per frame for the interaction
 script and one per frame and pair of widths for the sweep.
 """
-import contextlib
-import difflib
 import json
-import os
 import re
-import subprocess
-from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import pytest
 
 from artifacts import artifact_html
-from conftest import CORE_ROOT, spec_build
+from obs_html.artifact_data import decode_artifact_data
 from preview import READY, SANDBOXES, http_origin, load_preview, open_preview
-from spec_artifact import spec_artifact, uv
+from spec_artifact import spec_artifact
 from obs_html.cli import main as obs_html
-
-# step -> why this adapter may still differ from the interim reference there.
-KNOWN_DIFFERENCES: dict[str, str] = {
-    "a view selection marks the HTML changed": (
-        "https://github.com/mb-89/obs/issues/148: reader state is never a change "
-        "(artifact-ui.md \"What counts as a change\"); the interim reference still marks it changed"),
-}
 
 FILTER = "file.name == 'nothing'"
 
@@ -66,7 +50,7 @@ const icons = () => {
     const region = (element) => {
         const bar = element.closest("[data-bar]");
         if (bar) return `bar ${bar.dataset.bar}`;
-        // The notice center is newer than the interim reference; its own tests own its icons.
+        // The notice center's own tests own its icons.
         if (element.closest("[data-header-notices]")) return null;
         if (element.closest("[data-bars-menu]")) return "bars menu";
         if (element.closest(".chapter-nav-zone")) return "chapter arrows";
@@ -174,34 +158,17 @@ IN_VIEW = """(_root, id) => {
 }"""
 
 
-def require_reference(core: Path) -> Path:
-    """obs still carries the interim adapter; once obs removes it, this gate goes too."""
-    if not (core / "src" / "obs_html_interim" / "cli.py").is_file():
-        pytest.fail(
-            f"test/test_parity_browser.py: interim reference not found, no "
-            f"{core / 'src' / 'obs_html_interim' / 'cli.py'}. obs no longer carries the interim "
-            "adapter; remedy: remove this parity gate and its line in AGENTS.md.",
-            pytrace=False,
-        )
-    return core
-
-
 @pytest.fixture(scope="session")
-def parity_artifacts(tmp_path_factory) -> dict[str, str]:
-    """obs's spec rendered by this adapter (test/spec_artifact.py) and by the interim reference, each the
-    run's one shared build (obs test/spec_build.py)."""
-    require_reference(CORE_ROOT)
-    # The interim reference builds alongside this adapter's spec artifact.
-    with ThreadPoolExecutor(1) as alongside:
-        reference = alongside.submit(spec_build.built, spec_build.base(tmp_path_factory), "interim")
-        adapter = spec_artifact(tmp_path_factory)
-        folder = reference.result()
-    return {"adapter": adapter.read_text(encoding="utf-8"),
-            "reference": (folder / spec_build.INTERIM).read_text(encoding="utf-8")}
+def spec_html(tmp_path_factory) -> str:
+    """obs's spec rendered by this adapter, the run's one shared build (test/spec_artifact.py)."""
+    return spec_artifact(tmp_path_factory).read_text(encoding="utf-8")
 
 
 def interact(page, frame) -> tuple[list[tuple[str, object]], list[str]]:
-    """The interaction script: ordered (step, observation) pairs, and design-note violations."""
+    """The interaction script: ordered (step, observation) pairs, and design-note violations.
+
+    The first step, "chapters", is the chapter Home links to, then the contents' top-level
+    chapters in order; the navigation steps are checked against it (expected_steps)."""
     from playwright.sync_api import expect
 
     steps: list[tuple[str, object]] = []
@@ -223,9 +190,14 @@ def interact(page, frame) -> tuple[list[tuple[str, object]], list[str]]:
         return frame.locator(selector).first.is_visible()
 
     def changed() -> bool:
-        """The changed-HTML notice, in this adapter's notice center or the reference's banner."""
-        return frame.locator('[data-notice="changed-html"]').count() > 0 or visible("[data-artifact-warning]")
+        """Whether the notice center shows the changed-HTML notice."""
+        return frame.locator('[data-notice="changed-html"]').count() > 0
 
+    steps.append(("chapters", root.evaluate("""() => {
+        const home = document.querySelector(".chapter-home-link").getAttribute("href").slice(1);
+        const listed = [...document.querySelectorAll("[data-toc-tree] a")].map((link) => link.getAttribute("href").slice(1));
+        return [home, ...listed.filter((slug) => !slug.includes("/") && slug !== home)];
+    }""")))
     steps.append(("start", chapter()))
     steps.append(("icons on start", root.evaluate(ICONS)))
     for count in range(1, 5):
@@ -282,7 +254,9 @@ def interact(page, frame) -> tuple[list[tuple[str, object]], list[str]]:
         violations.append("clearing a filter showed the changed-HTML notice")
     root.evaluate("() => globalThis.obsArtifact.setViewSelection('parity', ['a'], ['a', 'b'])")
     settle()
-    steps.append(("a view selection marks the HTML changed", changed()))
+    if changed():
+        violations.append("a view selection showed the changed-HTML notice; reader state is never a change "
+                          "(artifact-ui.md, What counts as a change)")
     root.evaluate("() => globalThis.obsArtifact.setViewSelection('parity', [], ['a', 'b'])")
     settle()
 
@@ -299,53 +273,89 @@ def interact(page, frame) -> tuple[list[tuple[str, object]], list[str]]:
     return steps, violations
 
 
-def observe(tmp_path: Path, reader_browser, artifacts: dict[str, str], frame_kind: str):
-    """The interaction script on each artifact, each opened once in its own page.
-
-    Every artifact starts loading at once, so the interim reference's slower startup runs while
-    the script runs on this adapter's artifact. Returns, per artifact, its steps, design-note
-    violations and page errors.
-    """
-    observed = {}
-    with contextlib.ExitStack() as stack:
-        opened = {}
-        for name, artifact in artifacts.items():
-            folder = tmp_path / name
-            folder.mkdir()
-            origin = stack.enter_context(http_origin(folder)) if frame_kind == "same-origin" else None
-            errors: list[str] = []
-            page, frame = load_preview(folder, reader_browser, errors, artifact, frame_kind, origin)
-            opened[name] = page, frame, errors
-        for name, (page, frame, errors) in opened.items():
+def observe(tmp_path: Path, reader_browser, artifact: str, frame_kind: str):
+    """The interaction script on the artifact, opened once: its steps, design-note violations and
+    page errors."""
+    errors: list[str] = []
+    if frame_kind == "same-origin":
+        with http_origin(tmp_path) as origin:
+            page, frame = load_preview(tmp_path, reader_browser, errors, artifact, frame_kind, origin)
             frame.evaluate(READY)
-            observed[name] = (*interact(page, frame), errors)
-    return observed
+            return (*interact(page, frame), errors)
+    page, frame = load_preview(tmp_path, reader_browser, errors, artifact, frame_kind, None)
+    frame.evaluate(READY)
+    return (*interact(page, frame), errors)
+
+
+# The regions outside the chapter body: the same icons in every chapter.
+CHROME = ("toolbar", "chapter arrows", "breadcrumbs", "bars menu")
+
+
+def expected_steps(steps: list[tuple[str, object]]) -> dict[str, object]:
+    """What each navigation step must observe, from the chapters in order (the first step): the
+    arrows and keys walk them one by one, Home is the first, a contents link opens the
+    chapter it names, a filter matching nothing disables both arrows and clearing it keeps the
+    chapter. Steps it does not name are checked in check_steps."""
+    order = dict(steps)["chapters"]
+    home = order[0]
+    walk = {f"next {count} by pointer": order[count] for count in range(1, 5)}
+    walk |= {"previous 1 by pointer": order[3], "previous 2 by pointer": order[2],
+             "key 1 ArrowRight": order[3], "key 2 ArrowRight": order[4], "key 3 ArrowLeft": order[3]}
+    expected: dict[str, object] = {"start": home, **walk}
+    for step, _ in steps:
+        if step.startswith("Home by keyboard"):
+            expected[step] = home
+        elif step.startswith("contents link #"):
+            expected[step] = step.removeprefix("contents link #").split("/")[0].removesuffix(" by pointer")
+    expected |= {"menu button by pointer": [home, True], "contents dock by pointer": home,
+                 "contents shown": True, "filter applied": ["0 chapters.", [True, True]],
+                 "filter cleared": ["All chapters.", home],
+                 "figure reference by pointer": [FIGURE_REFERENCE[1].split("/")[0].lstrip("#"), True]}
+    return expected
+
+
+def check_steps(steps: list[tuple[str, object]]) -> list[str]:
+    """Each step against expected_steps; every icon painted, and the chrome's icons the same in
+    every chapter as on start."""
+    expected = expected_steps(steps)
+    observed = {step: json.loads(json.dumps(value)) for step, value in steps}
+    problems = [f"{step}: observed {observed.get(step)!r}, expected {value!r}"
+                for step, value in expected.items() if observed.get(step) != value]
+    icons = {step: value for step, value in observed.items() if step.startswith("icons ")}
+    if len(icons) < 3:
+        problems.append(f"icons: observed in {sorted(icons)} only, not on start and in every chapter")
+    start = icons.get("icons on start", {})
+    for step, regions in icons.items():
+        problems += [f"{step}: {region} has {counts['icons'] - counts['painted']} of {counts['icons']} icons unpainted"
+                     for region, counts in regions.items() if counts["painted"] != counts["icons"]]
+        problems += [f"{step}: {region} shows {regions.get(region)}, on start {start.get(region)}"
+                     for region in CHROME if regions.get(region) != start.get(region)]
+    problems += [f"icons on start: no icon in {region}" for region in CHROME if not start.get(region, {}).get("icons")]
+    return problems
 
 
 @pytest.mark.browser
 @pytest.mark.parametrize("frame_kind", [
     pytest.param(frame_kind, marks=pytest.mark.xdist_group(f"parity-{frame_kind}")) for frame_kind in SANDBOXES])
-def test_the_artifact_behaves_as_the_interim_reference_in_preview_frames(
-        tmp_path: Path, reader_browser, parity_artifacts: dict[str, str], frame_kind: str) -> None:
-    observed = observe(tmp_path, reader_browser, parity_artifacts, frame_kind)
-    (adapter, violations, errors), (reference, _reference_violations, _reference_errors) = (
-        observed["adapter"], observed["reference"])
-    assert [step for step, _ in adapter] == [step for step, _ in reference], (
-        "test/test_parity_browser.py: the script took different steps; first steps differ at "
-        + next((f"{a!r} / {r!r}" for (a, _), (r, _) in zip(adapter, reference) if a != r), "the end"))
-    problems = []
-    for (step, ours), (_, theirs) in zip(adapter, reference):
-        differs = json.dumps(ours, sort_keys=True) != json.dumps(theirs, sort_keys=True)
-        if differs and step not in KNOWN_DIFFERENCES:
-            if isinstance(ours, dict) and isinstance(theirs, dict):
-                keys = sorted(key for key in ours.keys() | theirs.keys() if ours.get(key) != theirs.get(key))
-                ours, theirs = ({key: side.get(key) for key in keys} for side in (ours, theirs))
-            problems.append(f"{step}: this adapter observed {ours!r}; the interim reference observed {theirs!r}")
-        if not differs and step in KNOWN_DIFFERENCES:
-            problems.append(f"{step}: no longer differs; remove it from KNOWN_DIFFERENCES")
+def test_the_artifact_reads_as_its_contents_and_design_notes_say_in_preview_frames(
+        tmp_path: Path, reader_browser, spec_html: str, frame_kind: str) -> None:
+    steps, violations, errors = observe(tmp_path, reader_browser, spec_html, frame_kind)
+    problems = check_steps(steps)
     problems += [f"design notes: {violation}" for violation in violations]
     problems += [f"page error: {error}" for error in errors]
-    assert not problems, f"Parity gate, {frame_kind} frame:\n" + "\n".join(problems)
+    assert not problems, f"test/test_parity_browser.py, {frame_kind} frame:\n" + "\n".join(problems)
+
+
+def test_the_step_check_names_a_step_that_went_elsewhere() -> None:
+    """The check is not vacuous: an arrow that skips a chapter and an unpainted icon are named."""
+    regions = {region: {"icons": 1, "painted": 1} for region in CHROME}
+    steps = [("chapters", ["home", "a", "b", "c", "d"]), ("start", "home"), ("icons on start", regions),
+             ("next 1 by pointer", "b"), ("icons in a", {**regions, "prose": {"icons": 2, "painted": 1}}),
+             ("icons in b", regions)]
+    problems = check_steps(steps)
+    assert "next 1 by pointer: observed 'b', expected 'a'" in problems
+    assert "icons in a: prose has 1 of 2 icons unpainted" in problems
+    assert not any(problem.startswith("start:") for problem in problems)
 
 
 COVERAGE = Path(__file__).parent / "browser" / "control-coverage.js"
@@ -404,20 +414,13 @@ def covered_controls(tmp_path: Path, browser, artifact: str, frame_kind: str, na
                  marks=pytest.mark.xdist_group(f"coverage-{frame_kind}-{widths[0]}"))
     for frame_kind in SANDBOXES for widths in WIDTHS])
 def test_no_control_is_covered_in_preview_frames(
-        tmp_path: Path, overlay_scrollbar_browser, parity_artifacts: dict[str, str], frame_kind: str,
+        tmp_path: Path, overlay_scrollbar_browser, spec_html: str, frame_kind: str,
         widths: tuple[int, ...]) -> None:
-    """No visible control lies under another element's pointer area (test/browser/control-coverage.js).
-
-    Where this adapter has a fault, the interim reference is swept in the same frame too: its
-    faults are not parity differences, and the failure says which ones this adapter shares.
-    """
-    ours = covered_controls(tmp_path, overlay_scrollbar_browser, parity_artifacts["adapter"], frame_kind, "adapter", widths)
-    theirs = covered_controls(tmp_path, overlay_scrollbar_browser, parity_artifacts["reference"], frame_kind,
-                              "reference", widths) if ours else {}
+    """No visible control lies under another element's pointer area (test/browser/control-coverage.js)."""
+    ours = covered_controls(tmp_path, overlay_scrollbar_browser, spec_html, frame_kind, "adapter", widths)
     problems = [
-        (f"page error: {where}" if control == "page error" else f"{control} is covered {where} by "
-         + "; ".join(f"{covering} (in {', '.join(chapters)})" for covering, chapters in coverings.items()))
-        + ("; the interim reference has the same fault" if (control, where) in theirs else "")
+        f"page error: {where}" if control == "page error" else f"{control} is covered {where} by "
+        + "; ".join(f"{covering} (in {', '.join(chapters)})" for covering, chapters in coverings.items())
         for (control, where), coverings in ours.items()
     ]
     assert not problems, (
@@ -530,47 +533,28 @@ def test_the_sweep_reaches_a_control_an_earlier_scroll_brought_into_view(tmp_pat
     assert errors == []
 
 
-
-
-# The spec chapter whose printed form is compared with the interim reference's --print-chapter.
+# The spec chapter --print-chapter prints, and what its source note shows: its heading and the
+# live help its command fence captured.
 PRINTED_CHAPTER = "design-input-cli"
-# A difference in form, not content: pattern -> (replacement, why). Both printed chapters are
-# brought to the same form by each substitution before they are compared.
-PRINTED_FORMS: dict[str, tuple[str, str]] = {
-    "&#x27;": ("'", "this adapter escapes apostrophes in text (html.escape); the text is the same"),
-    ' class="internal-link"': ("", "this adapter marks a link to a chapter of the artifact for its runtime"),
-    r'(?m)^(<pre class="command-output"><code>)?warning: .*\n': (
-        r"\1", "the interim reference runs a fence through its own uv and captures uv's warnings (only "
-        "where uv warns, as for a deprecated UV_* variable); the core captures the command's output alone"),
-    r"(?s)(?<!</p>)\n(?=(?:(?!<p[ >]|</p>).)*</p>)": (" ", "a soft line break inside a paragraph is a space in this adapter's Document (obs "
-                       "capabilities/markdown#Document nodes) and markdown-it's newline in the interim's; "
-                       "a browser shows both as one space"),
-}
-# A printed line that differs in content: pattern -> why. Each is a rendering difference; the print
-# path itself copies the stored chapter unchanged.
-PRINTED_LINES: dict[str, str] = {}
+PRINTED_TEXT = ("CLI", "usage: obs-document")
 
 
 @pytest.mark.parametrize("chapter_format", ["html", "text"])
-def test_a_printed_chapter_is_the_interim_references(parity_artifacts, tmp_path: Path, chapter_format,
-                                                     capsys) -> None:
-    """obs-html --print-chapter prints a spec chapter as obs-html-interim --print-chapter does,
-    up to the differences PRINTED_FORMS and PRINTED_LINES list."""
-    for name, text in parity_artifacts.items():
-        (tmp_path / f"{name}.html").write_text(text, encoding="utf-8")
-    environment = {key: value for key, value in os.environ.items() if key != "VIRTUAL_ENV"}
-    reference = subprocess.run(
-        [uv(), "run", "--offline", "--quiet", "--project", str(CORE_ROOT), "obs-html-interim", "--print-chapter",
-         str(tmp_path / "reference.html"), PRINTED_CHAPTER, "--chapter-format", chapter_format],
-        cwd=CORE_ROOT, env=environment, capture_output=True, text=True, encoding="utf-8", check=False)
-    assert reference.returncode == 0, f"obs-html-interim --print-chapter failed: {reference.stderr}"
-    assert obs_html(["--print-chapter", str(tmp_path / "adapter.html"), PRINTED_CHAPTER,
-                     "--chapter-format", chapter_format]) == 0
-    ours, theirs = capsys.readouterr().out, reference.stdout
-    assert ours and theirs
-    for pattern, (replacement, _why) in PRINTED_FORMS.items():
-        ours, theirs = re.sub(pattern, replacement, ours), re.sub(pattern, replacement, theirs)
-    unexplained = [line for line in difflib.ndiff(ours.splitlines(), theirs.splitlines())
-                   if line[:2] in {"- ", "+ "}
-                   and not any(re.match(pattern, line[2:]) for pattern in PRINTED_LINES)]
-    assert not unexplained, "\n".join(unexplained)
+def test_a_printed_spec_chapter_is_the_stored_chapter(spec_html: str, tmp_path: Path, chapter_format,
+                                                      capsys) -> None:
+    """obs-html --print-chapter prints a spec chapter as the artifact stores it: the HTML form is the
+    stored HTML, the text form one line per block without markup, and both show the note's heading
+    and its command fence's output."""
+    artifact = tmp_path / "spec.html"
+    artifact.write_text(spec_html, encoding="utf-8")
+    assert obs_html(["--print-chapter", str(artifact), PRINTED_CHAPTER, "--chapter-format", chapter_format]) == 0
+    printed = capsys.readouterr().out
+    stored = next(note["html"] for note in decode_artifact_data(spec_html)["notes"] if note["slug"] == PRINTED_CHAPTER)
+    if chapter_format == "html":
+        assert printed == stored
+        assert '<pre class="command-output"><code>' in printed
+    else:
+        assert not re.search(r"</?(p|h\d|pre|code|a)[ >]", printed), printed[:400]
+        assert printed.count("\n") > 10
+    lines = [line.strip() for line in re.sub(r"<[^>]+>", "\n", printed).splitlines()]
+    assert all(any(line.startswith(text) for line in lines) for text in PRINTED_TEXT), printed[:400]

@@ -5,9 +5,9 @@ embeds the CSS snippets its manifest lists (render.py); input-model.md, "Optiona
 archive" and "Artifact presentation profile", owns the behaviour.
 
 Each check reads the HTML or the PDF in Python: the archive's bytes from its island, unzipped;
-the snippets' style elements in document order; the PDF's attachment through pypdf. The parity
-check builds the source-archive fixture vault with the interim adapter as well and compares what
-both offer.
+the snippets' style elements in document order; the PDF's attachment through pypdf. One check
+holds the source-archive fixture to what the interim adapter offered for the same vault until
+obs#3 deleted it: its vault files, top-level members, snippets and download names.
 """
 import base64
 import hashlib
@@ -256,7 +256,7 @@ def blank_pdf() -> bytes:
     return output.getvalue()
 
 
-def test_the_archive_attaches_to_a_saved_pdf_as_the_interim_does(tmp_path: Path) -> None:
+def test_the_archive_attaches_to_a_saved_pdf(tmp_path: Path) -> None:
     html = tmp_path / "artifact.html"
     html.write_text(render(archived(), CONFIG), encoding="utf-8")
     pdf = tmp_path / "saved.pdf"
@@ -305,7 +305,7 @@ def test_a_pdf_destination_of_an_archived_document_carries_the_archive(tmp_path:
 
 
 def test_export_pdf_of_an_archived_artifact_carries_the_archive(tmp_path: Path, monkeypatch) -> None:
-    """--export-pdf attaches the ZIP the HTML embeds, as the interim's --export-pdf does, and
+    """--export-pdf attaches the ZIP the HTML embeds, as the interim's --export-pdf did, and
     prints an HTML without one with no attachment; printing itself is the browser's (test_pdf.py)."""
     from obs_html import pdf as printing
 
@@ -369,41 +369,38 @@ def test_an_unknown_snippet_is_named_below_the_vault_root(tmp_path: Path, capsys
 
 
 @pytest.fixture(scope="module")
-def interim(tmp_path_factory) -> str:
-    """The source-archive fixture vault built by the interim adapter with --embed-source."""
-    from obs_html_interim.cli import main as interim_main
-
+def fixture_vault(tmp_path_factory) -> Path:
+    """The source-archive fixture's vault (fixtures/build_documents.py), whose files its archive holds."""
     def build(folder: Path) -> None:
-        vault = folder / "vault"
-        vault.mkdir()
-        build_documents.VAULTS["source-archive"](vault)
-        assert interim_main(["--source", str(vault / "manifest.md"), "--output", str(folder / "interim.html"),
-                             "--embed-source"]) == 0
+        (folder / "vault").mkdir()
+        build_documents.VAULTS["source-archive"](folder / "vault")
 
-    return (built_once(tmp_path_factory, "source-archive-interim", build) / "interim.html").read_text(encoding="utf-8")
+    return built_once(tmp_path_factory, "source-archive-vault", build) / "vault"
 
 
 SNIPPET = re.compile(r'<style data-css-snippet="([^"]*)">(.*?)</style>', re.DOTALL)
 
 
-def test_the_fixture_vault_offers_what_the_interim_offers(interim: str) -> None:
-    """Parity on one vault both adapters accept: the same vault files in the ZIP, the same
-    top-level members (build configuration, rebuild script and instructions, source inventory),
-    the same snippets in the same order, the same download and PDF attachment names. The interim's
-    ZIP adds its generator/ copy, which this adapter's archive refers to instead (architecture.md,
-    Known differences from the interim)."""
-    ours = render(json.loads(FIXTURE.read_text(encoding="utf-8")), CONFIG)
-    our_members, interim_members = members(ours), members(interim)
+# The archive's top-level members: build configuration, rebuild script and instructions, inventory.
+TOP_LEVEL_MEMBERS = {"REPRODUCE.txt", "build-config.json", "reproduce.py", "source-inventory.json"}
 
-    assert {name: data for name, data in our_members.items() if name.startswith("vault/")} == \
-        {name: data for name, data in interim_members.items() if name.startswith("vault/")}
-    assert {name for name in our_members if "/" not in name} == {name for name in interim_members if "/" not in name}
-    assert any(name.startswith("generator/") for name in interim_members)
+
+def test_the_fixture_archive_holds_its_vault_members_snippets_and_downloads(fixture_vault: Path) -> None:
+    """The fixture's archive holds every file of its vault byte for byte under vault/, the
+    top-level members TOP_LEVEL_MEMBERS and no generator/ copy (architecture.md, Known differences
+    from the interim); the manifest's snippet is applied, and the download and PDF attachment carry
+    the archive's name."""
+    ours = render(json.loads(FIXTURE.read_text(encoding="utf-8")), CONFIG)
+    our_members = members(ours)
+    files = {f"vault/{path.relative_to(fixture_vault).as_posix()}": path.read_bytes()
+             for path in fixture_vault.rglob("*") if path.is_file()}
+
+    assert {name: data for name, data in our_members.items() if name.startswith("vault/")} == files
+    assert {name for name in our_members if "/" not in name} == TOP_LEVEL_MEMBERS
     assert not any(name.startswith("generator/") for name in our_members)
     assert json.loads(our_members["build-config.json"])["command"][:3] == ["obs-document", "--source", "vault/manifest.md"]
-    assert SNIPPET.findall(ours) == SNIPPET.findall(interim) != []
+    snippet = files["vault/.obsidian/snippets/house.css"].decode("utf-8")
+    assert [(name, css.strip()) for name, css in SNIPPET.findall(ours)] == [("house", snippet.strip())]
     for marker in ("data-source-download", "data-source-attach", 'id="pdf-library-script"'):
-        assert marker in ours and marker in interim, marker
-    names = {"obs-html-source.zip"}
-    assert names <= set(re.findall(r'"(obs-html-[a-z-]+\.zip)"', interim))
-    assert names <= set(re.findall(r'"(obs-html-[a-z-]+\.zip)"', ours)) and ARCHIVE_NAME in names
+        assert marker in ours, marker
+    assert "obs-html-source.zip" in set(re.findall(r'"(obs-html-[a-z-]+\.zip)"', ours)) and ARCHIVE_NAME == "obs-html-source.zip"

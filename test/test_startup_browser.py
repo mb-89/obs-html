@@ -27,7 +27,7 @@ build of the spec (test/test_parity_browser.py), made once per run.
 from pathlib import Path
 
 from preview import open_preview
-from test_parity_browser import parity_artifacts  # noqa: F401  (the spec, built once per run)
+from test_parity_browser import spec_html  # noqa: F401  (the spec, built once per run)
 
 FIRST_CHAPTER_MILLISECONDS = 1000
 FIRST_CHAPTER_MARK = "obs-startup first chapter painted"
@@ -68,9 +68,9 @@ READ = """async ([firstChapterMark, readyMark, samples]) => {
 
 
 def test_the_spec_artifact_shows_its_first_chapter_within_a_second(
-        tmp_path: Path, full_chromium_browser, parity_artifacts: dict[str, str], record_property) -> None:
+        tmp_path: Path, full_chromium_browser, spec_html: str, record_property) -> None:
     errors: list[str] = []
-    _page, frame = open_preview(tmp_path, full_chromium_browser, errors, parity_artifacts["adapter"], "null-origin")
+    _page, frame = open_preview(tmp_path, full_chromium_browser, errors, spec_html, "null-origin")
     measured = frame.evaluate(READ, [FIRST_CHAPTER_MARK, READY_MARK, REFERENCE_SAMPLES])
     assert not errors, f"test/test_startup_browser.py: the spec artifact raised errors while opening: {errors}"
 
