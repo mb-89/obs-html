@@ -34,6 +34,13 @@ EPILOG = """Rendering:
   packaged base stylesheet, and an optional assets.json semantic asset index. It must not
   declare page geometry (@page, size, --paper-*, --sheet-*); the Document's profile owns it.
 
+Editions:
+  Without --embed-attachments, the light edition: a marked attachment (![label](file) or
+  ![[file]]) shows its label and vault path. With it, the self-contained evidence edition: the
+  attachment is a download of the bytes the Document embeds, with its name, type and size.
+  Images always render from their bytes. The core's obs-document --adapter html builds the light
+  edition.
+
 Settings:
   --config FILE merges a JSON settings file over the packaged cfg.json, validated by
   cfg.schema.json: execution limits and the print catalogue (paper sizes and default
@@ -70,6 +77,7 @@ Examples:
   obs-html document.json artifact.pdf
   obs-html document.json --check
   obs-html document.json artifact.html --style styles/corporate
+  obs-html document.json evidence.html --embed-attachments
   obs-html --export-pdf artifact.html --output artifact.pdf
   obs-html --check-rendered artifact.html
   obs-html --extract-comments reviewed.html
@@ -96,6 +104,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--style", type=Path, metavar="FOLDER",
                         help="Style module folder containing style.css (and optionally assets.json); "
                              "replaces the packaged generic style.")
+    parser.add_argument("--embed-attachments", action="store_true",
+                        help="Embed files marked with ![label](file) or ![[file]] as downloads.")
     parser.add_argument("--trusted-runtime-bundle", metavar="ID=PATH",
                         help="Embed one explicitly trusted local JavaScript bundle.")
     parser.add_argument("--export-figures", type=Path, metavar="FOLDER",
@@ -149,7 +159,8 @@ def _render(parser: argparse.ArgumentParser, options: argparse.Namespace, config
     except json.JSONDecodeError as error:
         raise RenderError(f"Invalid Document {options.document}: {error}") from error
     artifact = render(document, config, style_folder=options.style,
-                    trusted_runtime=_trusted_runtime(parser, options.trusted_runtime_bundle))
+                    trusted_runtime=_trusted_runtime(parser, options.trusted_runtime_bundle),
+                    embed_attachments=options.embed_attachments)
     check_artifact(artifact)
     for diagnostic in document["diagnostics"]:
         print(f"{diagnostic['level'].title()}: {diagnostic['message']}", file=sys.stderr)
@@ -180,7 +191,8 @@ def _render(parser: argparse.ArgumentParser, options: argparse.Namespace, config
 
 def _browser_operation(parser: argparse.ArgumentParser, options: argparse.Namespace, config) -> None:
     if (options.document or options.destination or options.check or options.style
-            or options.trusted_runtime_bundle or options.check_rendered and options.export_pdf):
+            or options.trusted_runtime_bundle or options.embed_attachments
+            or options.check_rendered and options.export_pdf):
         parser.error("--export-pdf and --check-rendered are separate operations without DOCUMENT.")
     from obs_html.pdf import check_rendered, export_pdf
     if options.export_pdf:
@@ -223,7 +235,7 @@ def _trusted_runtime(parser: argparse.ArgumentParser, bundle: str | None) -> tup
 
 def _export_figures(parser: argparse.ArgumentParser, options: argparse.Namespace) -> None:
     if (options.document is None or options.destination or options.check
-            or options.style or options.trusted_runtime_bundle
+            or options.style or options.trusted_runtime_bundle or options.embed_attachments
             or options.export_pdf or options.check_rendered or options.output):
         parser.error("--export-figures takes only DOCUMENT: obs-html DOCUMENT --export-figures FOLDER.")
     try:
@@ -247,7 +259,7 @@ def _export_figures(parser: argparse.ArgumentParser, options: argparse.Namespace
 
 def _extract(parser: argparse.ArgumentParser, options: argparse.Namespace) -> None:
     if any((options.document, options.destination, options.check,
-            options.style, options.trusted_runtime_bundle,
+            options.style, options.trusted_runtime_bundle, options.embed_attachments,
             options.export_pdf, options.check_rendered, options.output, options.export_figures)):
         parser.error("--extract-comments is a separate operation without DOCUMENT.")
     print(extract_comments(options.extract_comments.resolve()), end="")

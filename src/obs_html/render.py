@@ -7,6 +7,7 @@ runtime (artifact.js and its companions) reads to build the reader, the bars and
 """
 from __future__ import annotations
 
+import base64
 import json
 import math
 import re
@@ -79,6 +80,9 @@ class Context:
     unknown: dict[str, dict[str, str]] = field(default_factory=dict)
     fields: dict[str, dict[str, str]] = field(default_factory=dict)
     row_keys: dict[str, str] = field(default_factory=dict)
+    embed_attachments: bool = False
+    """The evidence edition (obs-html --embed-attachments): a marked attachment is a download of
+    its asset's bytes; otherwise (the light edition) it is provenance text."""
     phrasing: bool = False
     """Whether the node being rendered sits where HTML allows only phrasing content (inside a
     paragraph or a heading), so it may write no block element."""
@@ -250,18 +254,19 @@ def _embed(node: dict[str, object], context: Context) -> str:
     target, chapter = node["attrs"]["target"], node["attrs"]["chapter"]
     if "asset" in node["attrs"]:
         identifier = node["attrs"]["asset"]
-        return _file(_document_asset(identifier, f"embed {target!r} names asset {identifier!r}, which", context), "")
+        return _file(_document_asset(identifier, f"embed {target!r} names asset {identifier!r}, which", context), "",
+                     context)
     if chapter is None:
         return f'<span class="unresolved embed" title="{escape(target, quote=True)}">{escape(target)}</span>'
     return f'<a class="internal-link embed" href="#{chapter}">{escape(_chapter_title(chapter, context))}</a>'
 
 
 def _attachment(node: dict[str, object], context: Context) -> str:
-    """An attachment names a Document asset: an image is document content, any other file is
-    provenance text (its label and path), as the interim adapter rendered it without
-    --embed-attachments."""
+    """An attachment names a Document asset: an image is document content, any other file is a
+    download in the evidence edition and provenance text (its label and path) in the light one."""
     identifier, label = node["attrs"]["asset"], node["attrs"]["label"]
-    return _file(_document_asset(identifier, f"attachment names asset {identifier!r}, which", context), label)
+    return _file(_document_asset(identifier, f"attachment names asset {identifier!r}, which", context), label,
+                 context)
 
 
 def _document_asset(identifier: str, what: str, context: Context) -> dict[str, str]:
@@ -282,7 +287,7 @@ def _image(asset: dict[str, str], alt: str) -> str:
     return f'<span class="image-unavailable" role="img" aria-label="{shown}">{shown}</span>'
 
 
-def _file(asset: dict[str, str], label: str) -> str:
+def _file(asset: dict[str, str], label: str, context: Context) -> str:
     """The core checked that a vault file exists inside the vault; its provenance is its
     vault-relative path, never the reference as authored. An asset without a path is a URL."""
     if asset["mediaType"].startswith("image/"):
@@ -291,8 +296,30 @@ def _file(asset: dict[str, str], label: str) -> str:
         return f'<a href="{escape(asset["href"], quote=True)}">{escape(label or asset["href"])}</a>'
     path = asset["path"]
     name = label or PurePosixPath(path).name
+    if context.embed_attachments:
+        return _download(asset, label)
     return (f'<span class="source-reference" data-source-path="{escape(path, quote=True)}">{escape(name)}</span>'
             f' ({_code({"attrs": {}, "text": path})})')
+
+
+def _download(asset: dict[str, str], label: str) -> str:
+    """The evidence edition's attachment: a download of the asset's embedded bytes, named like the
+    vault file and showing its type and size. Its help on use is the downloads feature's
+    (features.py, downloads)."""
+    filename = PurePosixPath(asset["path"]).name
+    size = len(base64.b64decode(asset["data"]))
+    kind = PurePosixPath(filename).suffix.removeprefix(".").upper() or asset["mediaType"]
+    details = ", ".join(([filename] if label else []) + [kind, _size(size)])
+    return (f'<a class="attachment-download" href="data:{escape(asset["mediaType"], quote=True)};base64,'
+            f'{asset["data"]}" download="{escape(filename, quote=True)}" data-attachment-download>'
+            f'<span class="attachment-name">{escape(label or filename)}</span> '
+            f'<span class="attachment-details">({escape(details)})</span></a>')
+
+
+def _size(size: int) -> str:
+    if size < 1024:
+        return f"{size} B"
+    return f"{size / 1024:.1f} KB" if size < 1024 * 1024 else f"{size / 1024 / 1024:.1f} MB"
 
 
 # Canonical callout kind: its tone, the shared semantic card colour (obs artifact-ui.md).
@@ -585,7 +612,8 @@ CAPABILITIES: dict[str, Renderer] = {
 @stage("render")
 def render(document: dict[str, object], config: Config,
            style_folder: Path | None = None,
-           trusted_runtime: tuple[str, str] | None = None) -> str:
+           trusted_runtime: tuple[str, str] | None = None,
+           embed_attachments: bool = False) -> str:
     if document.get("schemaVersion") != 1:
         raise RenderError(f"Unsupported Document schema version: {document.get('schemaVersion')!r}.")
     unsupported = sorted(set(document["capabilities"]) - set(CAPABILITIES))
@@ -602,6 +630,7 @@ def render(document: dict[str, object], config: Config,
                for record in document["records"] if record.get("type") == "note"},
         records={record["id"]: record for record in document["records"] if record.get("type") == "note"},
         row_keys=_row_keys(document["records"]),
+        embed_attachments=embed_attachments,
     )
     for record in context.records.values():
         aliases = record["fields"].get("aliases")
