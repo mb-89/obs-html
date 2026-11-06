@@ -35,8 +35,9 @@ def viewer_page(artifact: str, width: int = 1100, height: int = 700) -> str:
 
 
 def open_viewer(tmp_path: Path, reader_browser, errors: list[str], artifact: str, host_scheme: str,
-                width: int = 1100):
-    """Open an artifact in a viewer `width` pixels wide with the host in `host_scheme`; return (page, frame)."""
+                width: int = 1100, init_script: str = ""):
+    """Open an artifact in a viewer `width` pixels wide with the host in `host_scheme`; return (page, frame).
+    `init_script`, where given, runs in every frame before its own scripts, to stand in for a host's APIs."""
     from playwright.sync_api import expect
 
     assert host_scheme in HOST_SCHEMES, f"test/browser/viewer.py: host_scheme {host_scheme!r} is not one of {HOST_SCHEMES}"
@@ -45,6 +46,8 @@ def open_viewer(tmp_path: Path, reader_browser, errors: list[str], artifact: str
     page = reader_browser.new_page(viewport={"width": width + 100, "height": 800}, color_scheme=host_scheme)
     page.on("pageerror", lambda error: errors.append(str(error)))
     page.on("console", lambda message: errors.append(message.text) if message.type == "error" else None)
+    if init_script:
+        page.add_init_script(init_script)
     page.goto(host.as_uri())
     frame = page.locator("#artifact").element_handle().content_frame()
     expect(frame.locator("html")).to_have_attribute("data-artifact-status", "ready")
