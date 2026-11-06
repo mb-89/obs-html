@@ -32,7 +32,10 @@ def _vault_document(folder, core_root) -> None:
         'product:\n  name: "**Widget**"\nconfidentiality: "`internal`"\nauthors: ["**Ada**", Lin]\n'
         'organization: Org & Co\n---\n- [[chapter]]\n', encoding="utf-8")
     (vault / "chapter.md").write_text(
-        '---\nformula: "$a+b$"\nraw: "<b>raw</b>"\nrank: 2\n---\n# Chapter\n\nText.\n', encoding="utf-8")
+        '---\nformula: "$a+b$"\nraw: "<b>raw</b>"\nrank: 2\nsource: "https://example.org/a?b=1&c=2"\n---\n'
+        '# Chapter\n\nText.\n', encoding="utf-8")
+    (vault / "extra.md").write_text(  # A note no chapter includes: a record-only note.
+        '---\nrelated: "see [[chapter]]"\nbadge: "![Mark](media/pixel.png)"\n---\nExtra.\n', encoding="utf-8")
     run = [sys.executable, "-m"]
     subprocess.run([*run, "obs.capabilities", "--notes", str(core_root / "spec" / "capabilities"),
                     "--output", str(folder / "capabilities.json")], check=True)
@@ -52,6 +55,10 @@ def _model(tmp_path_factory, core_root) -> dict:
     chapter = document["chapters"][0]
     for metadata in (chapter["metadata"], chapter["content"][0]["attrs"]["metadata"]):
         metadata["formula"] = "tampered"
+    for record in document["records"]:
+        if record["type"] == "note":
+            record["fields"] = {name: "tampered" if isinstance(value, str) else value
+                                for name, value in record["fields"].items()}
     return decode_artifact_data(render(document, CONFIG))
 
 
@@ -83,6 +90,14 @@ def test_the_frontmatter_panel_renders_field_nodes_and_values_without_one_as_tex
     assert panel["formula"].startswith('<span class="math inline"><math') and "<mi>a</mi>" in panel["formula"]
     assert panel["raw"] == "&lt;b&gt;raw&lt;/b&gt;"
     assert panel["rank"] == "2"
+    assert panel["source"] == '<a href="https://example.org/a?b=1&amp;c=2">https://example.org/a?b=1&amp;c=2</a>'
+
+
+def test_a_record_only_note_renders_its_values_from_its_record_field_nodes(tmp_path_factory, core_root) -> None:
+    note = next(note for note in _model(tmp_path_factory, core_root)["notes"] if note["slug"] == "extra")
+    panel = note["frontmatterHtml"]
+    assert panel["related"] == 'see <a class="internal-link" href="#chapter">Chapter</a>'
+    assert panel["badge"] == f'<img src="data:image/png;base64,{PIXEL}" alt="Mark">'
 
 
 METADATA_RENDERERS = ("_frontmatter", "_cover", "_frontmatter_html", "_field_html", "_definition_html")

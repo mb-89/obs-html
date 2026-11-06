@@ -43,12 +43,15 @@ def test_a_glossary_note_carries_its_definition_for_hover_cards_and_registers() 
     assert notes["one"]["definitionHtml"] == ""
 
 
-def test_a_glossary_record_without_a_chapter_carries_its_definition_as_text() -> None:
-    """A record's fields carry no field nodes, so they are data: the adapter parses no Markdown."""
-    record = {"id": "term", "type": "note", "path": "term.md",
-              "fields": {"kind": "glossary", "term": "Term", "definition": "Said *once* & <b>twice</b>."}}
+def test_a_glossary_record_without_a_chapter_carries_its_definition_from_its_field_nodes() -> None:
+    fields = {"kind": "glossary", "term": "Term", "definition": "Said *once* & <b>twice</b>."}
+    record = {"id": "term", "type": "note", "path": "term.md", "fields": fields, "fieldNodes": [
+        {"type": "field", "attrs": {"name": "kind"}, "children": [text("glossary")]},
+        {"type": "field", "attrs": {"name": "term"}, "children": [text("Term")]},
+        {"type": "field", "attrs": {"name": "definition"}, "children": [
+            text("Said "), {"type": "emphasis", "attrs": {}, "children": [text("once")]}, text(" & <b>twice</b>.")]}]}
     notes = _notes(build("Doc", chapter("one", "One"), records=(record,)))
-    assert notes["term"]["definitionHtml"] == "Said *once* &amp; &lt;b&gt;twice&lt;/b&gt;."
+    assert notes["term"]["definitionHtml"] == "Said <em>once</em> &amp; &lt;b&gt;twice&lt;/b&gt;."
 
 
 def test_a_reference_note_keeps_its_url_for_the_hover_card() -> None:

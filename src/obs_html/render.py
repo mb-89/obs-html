@@ -775,6 +775,10 @@ def _attach_records(records: list[dict[str, object]], notes: list[dict[str, obje
             continue  # A projected row reaches a register through its rows (_register), not as a note.
         fields = dict(record["fields"])
         note = by_slug.get(record["id"])
+        rendered = context.fields.setdefault(record["id"], {})  # A chapter's frontmatter node rendered first.
+        for child in record.get("fieldNodes", []):
+            if child["attrs"]["name"] not in rendered:
+                rendered[child["attrs"]["name"]] = _nodes(child["children"], context)
         source_path = record.get("path") or f"{record['id']}.md"
         if note is not None and record.get("ignored"):
             note["ignored"] = True  # Runtime selections skip it (artifact.js, selectable).
@@ -1398,9 +1402,9 @@ def _frontmatter_html(metadata: dict[str, object], slug: str, context: Context) 
 
 
 def _field_html(slug: str, name: str, value: object, context: Context) -> str:
-    """A field's display HTML: its field node where the note's frontmatter carries one (a nonempty
-    string), else its value as text. A value without a field node (a number, a boolean, a record's
-    field) is not Markdown: nothing here parses a metadata string."""
+    """A field's display HTML: its field node where the note's frontmatter or record carries one (a
+    nonempty string), else its value as text. A value without a field node (a number, a boolean) is
+    not Markdown: nothing here parses a metadata string."""
     fields = context.fields.get(slug, {})
     return fields[name] if name in fields else escape("null" if value is None else _text(value))
 
