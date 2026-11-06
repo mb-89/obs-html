@@ -1,10 +1,8 @@
 import contextlib
 import json
 import os
-import re
 import shutil
 import subprocess
-import sys
 import types
 from pathlib import Path
 
@@ -201,41 +199,21 @@ def worker_playwright():
         yield playwright
 
 
-# The bulk browser tier's engine (obs quality.md, Testing boundaries): Playwright's
-# chromium-headless-shell, which costs about half the CPU of full Chromium per page. Playwright
-# installs it in its browsers folder as <revision folder>/<platform folder>/<executable>; the
-# newest revision installed is used.
-HEADLESS_SHELL = ("chromium_headless_shell-*", "chrome-headless-shell-*",
-                  "chrome-headless-shell.exe" if sys.platform == "win32" else "chrome-headless-shell")
-HEADLESS_SHELL_INSTALL = "uv run playwright install chromium-headless-shell"
-
-
 class BrowserEngineError(RuntimeError):
     """A browser engine the tests need is not installed; the message names where it was looked for and the remedy."""
 
 
-def playwright_browsers(environment=os.environ) -> Path:
-    """Playwright's browsers folder: PLAYWRIGHT_BROWSERS_PATH, else Playwright's default for this system."""
-    if environment.get("PLAYWRIGHT_BROWSERS_PATH"):
-        return Path(environment["PLAYWRIGHT_BROWSERS_PATH"])
-    if sys.platform == "win32":
-        return Path(environment["LOCALAPPDATA"]) / "ms-playwright"
-    if sys.platform == "darwin":
-        return Path.home() / "Library" / "Caches" / "ms-playwright"
-    return Path(environment.get("XDG_CACHE_HOME") or Path.home() / ".cache") / "ms-playwright"
-
-
 def headless_shell(browsers: Path) -> str:
-    """The HEADLESS_SHELL executable of the newest revision installed in ``browsers``."""
-    revision, platform, executable = HEADLESS_SHELL
-    found = sorted((int(re.sub(r"\D", "", folder.name) or 0), path)
-                   for folder in browsers.glob(revision) for path in folder.glob(f"{platform}/{executable}"))
-    if not found:
+    """The bulk browser tier's engine (obs quality.md, Testing boundaries): test/suite.py's
+    HEADLESS_SHELL, the newest revision installed in ``browsers``."""
+    shell = suite.headless_shell(browsers)
+    if shell is None:
         raise BrowserEngineError(
-            f"test/conftest.py: HEADLESS_SHELL, the browser tests' engine (Playwright's chromium-headless-shell), "
-            f"is not installed in {browsers} ({'/'.join(HEADLESS_SHELL)}). Remedy: run `{HEADLESS_SHELL_INSTALL}` "
-            "in adapters/html, or set PLAYWRIGHT_BROWSERS_PATH to the folder that holds it.")
-    return str(found[-1][1])
+            f"test/conftest.py: the browser tests' engine, test/suite.py's HEADLESS_SHELL (Playwright's "
+            f"chromium-headless-shell), is not installed in {browsers} ({'/'.join(suite.HEADLESS_SHELL)}). "
+            f"Remedy: run `{suite.SETUP_COMMAND}` from the repository root, or set PLAYWRIGHT_BROWSERS_PATH "
+            "to the folder that holds it.")
+    return shell
 
 
 # The pools' engines, as a crash or a failed launch names them.
@@ -502,7 +480,7 @@ def page_pool(worker_playwright, page_patches):
     # but every animation-frame wait in the artifact and the tests draws frames as fast as the CPU
     # allows; in the complete suite, which keeps every CPU busy, that cost the adapter's part about
     # a quarter of its CPU time and the suite about 20 s.
-    shell = headless_shell(playwright_browsers())
+    shell = headless_shell(suite.playwright_browsers())
     with live_pool(HEADLESS_SHELL_ENGINE, launcher(worker_playwright, HEADLESS_SHELL_ENGINE, shell)) as pool:
         yield pool
 
@@ -523,7 +501,7 @@ def overlay_scrollbar_pool(worker_playwright, page_patches):
     """A page pool over a second headless shell with overlay scrollbars, as on touch devices and
     macOS: scrollbars take no room, so the reader's clearance for the chapter arrows is at its narrowest."""
     engine = f"{HEADLESS_SHELL_ENGINE} (overlay scrollbars)"
-    launch = launcher(worker_playwright, engine, headless_shell(playwright_browsers()),
+    launch = launcher(worker_playwright, engine, headless_shell(suite.playwright_browsers()),
                       ("--enable-features=OverlayScrollbar",))
     with live_pool(engine, launch) as pool:
         yield pool
@@ -539,7 +517,7 @@ def phone_pool(worker_playwright, page_patches):
     """A page pool over a second headless shell whose pages are phones (PHONE_CONTEXT); tests lease
     its pages through ``phone_browser``."""
     engine = f"{HEADLESS_SHELL_ENGINE} (phone)"
-    launch = launcher(worker_playwright, engine, headless_shell(playwright_browsers()))
+    launch = launcher(worker_playwright, engine, headless_shell(suite.playwright_browsers()))
     with live_pool(engine, launch, PHONE_CONTEXT) as pool:
         yield pool
 
