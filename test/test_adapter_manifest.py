@@ -38,9 +38,17 @@ def test_adapters_configuration_names_the_cli_as_the_executable() -> None:
     assert scripts["obs-html"] == "obs_html.cli:main"  # Other scripts, such as obs-html-inspect, are tools.
 
 
-def test_fixture_is_a_contract_valid_document_using_every_capability(document, document_validator) -> None:
+def test_fixture_is_a_contract_valid_document_using_every_capability(
+        document, document_validator, core_root: Path) -> None:
+    """The fixture, which the core builds from its vault, uses every capability a Document can
+    list: an adapter behavior (kind adapter-behavior) is no Document capability, and no vault
+    yields an extensions node, which has no input-model contract yet (capabilities/extensions)."""
     document_validator.validate(document)
-    assert document["capabilities"] == _manifest()["capabilities"]
+    notes = core_root / "spec" / "capabilities"
+    listed = [capability for capability in _manifest()["capabilities"] if capability != "extensions"
+              and re.search(r"^kind: capability$", (notes / f"{capability}.md").read_text(encoding="utf-8"),
+                            re.MULTILINE)]
+    assert document["capabilities"] == listed
 
 
 def test_no_module_imports_the_core_package() -> None:

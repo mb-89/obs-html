@@ -356,6 +356,60 @@ def cards(root: Path) -> None:
         (root / f"{name}-point.md").write_text(
             f"---\nkind: point\nstatus: {status}\nowner: {owner}\n---\n# Point {name}\n", encoding="utf-8")
 
+RESPONSE = {"schemaVersion": 1, "id": "response", "data": {"traces": [{"label": "measured", "x": [0, 1, 2], "y": [1, 4, 9]}, {"label": "model", "x": [0, 1, 2], "y": [1, 3, 8], "mode": "lines+markers"}]}, "panels": [{"id": "main", "bounds": {"x": 0, "y": 0, "width": 720, "height": 320}, "grid": {"row": 0, "column": 0, "rowSpan": 1, "columnSpan": 1}, "axes": [{"id": "time", "scale": "linear", "limits": {"minimum": 0, "maximum": 2}, "label": "Time"}, {"id": "value", "scale": "log", "limits": {"minimum": 1, "maximum": 10}, "label": "Value"}]}], "provenance": {"command": ["generate-response"]}}
+FLOW = {"schemaVersion": 1, "id": "flow", "data": {"sankey": {"version": 1, "nodes": [{"id": "in", "label": "Input", "stage": 0}, {"id": "out", "label": "Output", "stage": 1}, {"id": "loss", "label": "Loss", "stage": 1}], "links": [{"source": "in", "target": "out", "value": 8}, {"source": "in", "target": "loss", "value": 2}]}}, "panels": [{"id": "flow", "bounds": {"x": 0, "y": 0, "width": 700, "height": 680}, "grid": {"row": 0, "column": 0, "rowSpan": 1, "columnSpan": 1}, "axes": [{"id": "stage", "scale": "linear", "limits": {"minimum": 0, "maximum": 1}, "label": "Stage"}]}], "provenance": {"command": ["generate-flow"]}}
+CARDS = '{"version": 1, "cards": [{"title": "Items", "body": "Ranked: [[rankedItems]].", "metrics": [{"label": "Items", "where": [{"field": "kind", "equals": "item"}]}, {"label": "Ranks", "from": "ranked", "where": [], "distinct": "rank"}]}]}'
+
+
+def document(root: Path) -> None:
+    """The adapter's main fixture (conftest.py's FIXTURE): a paged manifest with a cover, a chapter
+    with a nested chapter, a Base and command fences, an appendix with figures, a callout, cards
+    and a register, a count quantity and a glossary note with a property editor. Its one
+    diagnostic, the link to the missing note, is the one the CLI test reads on stderr."""
+    (root / "images").mkdir()
+    (root / "images" / "logo.png").write_bytes(base64.b64decode(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="))
+    (root / "guide").mkdir()
+    (root / "manifest.md").write_text(
+        "---\ntitle: Fixture document\ndocument type: Specification\norganization: Example org\n"
+        "product: {name: Widget, version: '2'}\nauthors: [Ada, Lin]\n"
+        "obsHtml:\n  layout: paged\n  print: {paper: Letter, margin: 15mm}\n"
+        "  pages: [{page: cover}, {page: contents, title: Contents}, {page: abstract, title: Abstract}]\n"
+        "obs: {document: true}\n---\n"
+        "- [[intro]]\n  - [[guide/usage]]\n- [[appendix]]\n\nA short <abstract>.\n", encoding="utf-8")
+    (root / "intro.md").write_text(
+        "---\nowner: Ada\ntags: [a, b]\n---\n# Intro\n\n"
+        "See [[guide/usage#Details|the details]], [the site](https://example.org/?a=1&b=2) and "
+        "![a logo](images/logo.png). [[missing|gone]] `x < y` #mark/risk/limit\n\n"
+        "![[guide/usage]]\n\n1. one\n2. two\n\n"
+        "```base\nfilters:\n  and: ['kind == \"item\"', 'rank != null']\n"
+        "properties:\n  item.name: {displayName: Name}\n"
+        "views:\n  - type: table\n    name: Items\n    order: [file.name, item.name, rank]\n"
+        "    sort: [{property: rank, direction: DESC}]\n```\n\n"
+        "```cmd\necho derived\n```\n\n```cmd silent\necho produced > produced.txt\n```\n", encoding="utf-8")
+    (root / "guide" / "usage.md").write_text("## Usage\n\n### Details\n\nBody.\n", encoding="utf-8")
+    (root / "appendix.md").write_text(
+        "No heading here. See [[datum]] and [[other]].\n\n"
+        f"```figure\n{json.dumps(RESPONSE)}\n```\n\n```figure\n{json.dumps(FLOW)}\n```\n\n"
+        "> [!warning] Check the limits\n> The badge ![Logo](images/logo.png) marks it.\n\n"
+        f"```cards\n{CARDS}\n```\n\n![[items.base]]\n", encoding="utf-8")
+    (root / "items.base").write_text(
+        "filters: 'kind == \"item\"'\nviews:\n"
+        "  - {type: table, name: Items, order: [file.name, rank]}\n"
+        "  - {type: table, name: Ranked, filters: 'rank != null', order: [file.name, rank]}\n", encoding="utf-8")
+    (root / "ranked.md").write_text(
+        "---\nkind: quantity\naliases: [rankedItems]\nsource: '[[intro]]'\n"
+        "query: {where: [{field: kind, equals: item}], distinct: rank}\n---\n# Ranked items\n", encoding="utf-8")
+    (root / "datum.md").write_text(
+        "---\nkind: glossary\nterm: Datum\ndefinition: A **reference** point, see [[intro]].\n"
+        "status: approved\n---\n```property-editor\nversion: 1\nfield: status\nlabel: Status\n```\n\n"
+        "# Datum\n", encoding="utf-8")
+    for name, fields in (("alpha", "rank: 1\nitem: {name: Alpha}"), ("beta", "rank: 2\nitem: {name: Beta}"),
+                         ("gamma", "item: {name: Unranked}")):
+        (root / f"{name}.md").write_text(f"---\nkind: item\n{fields}\n---\n", encoding="utf-8")
+    (root / "other.md").write_text("---\nkind: other\nrank: 3\n---\n", encoding="utf-8")
+
+
 def property_editor_projection(root: Path) -> None:
     """A property editor with a static projection (obs capabilities/property-editors), which the
     core carries in the node's attrs.spec."""
@@ -369,10 +423,15 @@ def property_editor_projection(root: Path) -> None:
     )
 
 
-VAULTS = {"complete": complete, "artifact-change": artifact_change, "projections": projections,
+VAULTS = {"document": document, "complete": complete, "artifact-change": artifact_change, "projections": projections,
           "table-help": table_help, "structural": structural, "callouts": callouts,
           "registers": registers, "cards": cards,
           "property-editor-projection": property_editor_projection}
+RUNS_COMMANDS = {"document"}
+"""The vaults whose cmd fences the build runs (obs-document --execute-commands): ``echo`` only."""
+DIAGNOSED = {"document"}
+"""The vaults whose Document keeps its diagnostics: those name vault notes only, never the build
+machine's folders, which the build checks."""
 
 
 # Runs obs-document in the core's environment with the core's one network read refused.
@@ -408,7 +467,8 @@ def build(core: Path, names: list[str], output: Path, offline: bool = False) -> 
             document = output / f"{name}.json"
             result = subprocess.run([*uv, "python", "-c", DRIVER, "--document", str(document),
                                      "--source", str(root / "manifest.md"),
-                                     "--capability-reference", str(capabilities)],
+                                     "--capability-reference", str(capabilities),
+                                     *(["--execute-commands"] if name in RUNS_COMMANDS else [])],
                                     cwd=core, capture_output=True, text=True)
             if result.returncode:
                 # uv's own notices start with "warning:"; the core's lines name the core.
@@ -416,7 +476,7 @@ def build(core: Path, names: list[str], output: Path, offline: bool = False) -> 
                                           if line.strip() and not line.startswith("warning:"))
                 return
             diagnostics = json.loads(document.read_text(encoding="utf-8"))["diagnostics"]
-            if diagnostics:
+            if diagnostics and (name not in DIAGNOSED or any(str(work) in item["message"] for item in diagnostics)):
                 refused[name] = (f"the {name} Document has diagnostics {diagnostics}, which a committed "
                                  f"fixture must not carry. Remedy: change the {name} vault so the core "
                                  "builds it without them.")

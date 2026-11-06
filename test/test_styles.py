@@ -4,6 +4,7 @@ import pytest
 
 from obs_html.cli import main
 from obs_html.config import load_config
+from obs_html.errors import InputError
 from obs_html.render import render
 
 
@@ -42,16 +43,20 @@ def test_explicit_style_module_overrides_the_default(document, tmp_path: Path) -
 def test_style_module_cannot_declare_page_geometry(document, tmp_path: Path, geometry: str) -> None:
     style = _style(tmp_path, geometry)
 
-    with pytest.raises(ValueError, match="page geometry"):
+    with pytest.raises(InputError) as failure:
         render(document, CONFIG, style_folder=style)
+    assert failure.value.source == str((style / "style.css").resolve())
+    assert failure.value.field == geometry.split()[0 if geometry.startswith("@") else 2].rstrip(":")
 
 
 def test_style_module_must_be_a_folder_with_a_stylesheet(document, tmp_path: Path) -> None:
-    with pytest.raises(ValueError, match="must be a folder"):
+    with pytest.raises(InputError) as failure:
         render(document, CONFIG, style_folder=tmp_path / "missing")
+    assert (failure.value.source, failure.value.field) == (str((tmp_path / "missing").resolve()), "top level")
     (tmp_path / "empty").mkdir()
-    with pytest.raises(ValueError, match="missing style.css"):
+    with pytest.raises(InputError) as failure:
         render(document, CONFIG, style_folder=tmp_path / "empty")
+    assert (failure.value.source, failure.value.field) == (str((tmp_path / "empty").resolve()), "style.css")
 
 
 def test_cli_style_option_selects_an_external_style_folder(document, tmp_path: Path) -> None:

@@ -7,6 +7,7 @@ import pytest
 
 from obs_html.cli import main
 from obs_html.config import load_config
+from obs_html.errors import InputError
 from obs_html.render import RenderError, render
 from obs_html.artifact_data import decode_artifact_data
 from obs_html.semantic_assets import SemanticAssets
@@ -69,9 +70,10 @@ def test_style_catalog_overrides_framework_icons_and_reaches_base_columns(docume
     assert definition["properties"]["evidence"]["obsHtml"]["icon"]["name"] == "project.evidence"
 
 
-def test_unknown_base_icons_fail(document) -> None:
-    with pytest.raises(RenderError, match="unknown reference"):
+def test_unknown_base_icons_name_the_note_and_the_obshtml_key(document) -> None:
+    with pytest.raises(InputError) as failure:
         render(with_icon_column(document, "project.evidence"), CONFIG)
+    assert (failure.value.source, failure.value.field) == ("intro.md", "properties.evidence.obsHtml.icon.name")
 
 
 @pytest.mark.parametrize("case,expected", [
