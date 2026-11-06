@@ -9,10 +9,12 @@ import ast
 import builtins
 import importlib
 import inspect
+import json
 from pathlib import Path
 
 import pytest
 
+from obs_html import cli
 from obs_html.errors import InputError
 from obs_html.render import render
 
@@ -91,3 +93,31 @@ def test_a_document_integrity_failure_names_the_document_the_node_path_and_the_r
     assert (failure.value.source, failure.value.field) == ("Document of manifest.md",
                                                            "chapters[0].content[1].attrs.kind")
     assert "obs-document" in failure.value.remedy and "manifest.md" in failure.value.remedy
+
+
+def _stale_document(tmp_path: Path) -> Path:
+    """A Document whose callout kind the core never writes, so rendering it fails naming the Document."""
+    callout = {"type": "callouts", "attrs": {"kind": "shout", "title": ""}, "children": [paragraph("Inside.")]}
+    path = tmp_path / "document.json"
+    path.write_text(json.dumps(document("Doc", chapter("one", "One", callout))), encoding="utf-8")
+    return path
+
+
+def _note_error_document(tmp_path: Path) -> Path:
+    """A Document whose manifest profile is invalid, so rendering it fails naming the manifest note."""
+    source = document("Doc", chapter("one", "One", paragraph("Text.")), metadata={"obsHtml": {"layout": "sideways"}})
+    path = tmp_path / "document.json"
+    path.write_text(json.dumps(source), encoding="utf-8")
+    return path
+
+
+@pytest.mark.parametrize(("build", "source"), [(_stale_document, "Document of {}"), (_note_error_document, "{}")])
+@pytest.mark.parametrize(("arguments", "root"), [(["--vault-root", "spec"], "spec/"), ([], "")])
+def test_the_vault_root_the_core_passes_prefixes_the_vault_relative_paths_of_a_message(
+        tmp_path, capsys, build, source, arguments, root) -> None:
+    """The core passes the vault root as its user gave it, only for messages (architecture.md,
+    Adapter call); a direct call on a Document names vault-relative paths."""
+    with pytest.raises(SystemExit):
+        cli.main([str(build(tmp_path)), str(tmp_path / "out.html"), *arguments])
+
+    assert capsys.readouterr().err.splitlines()[-1].startswith(f"{source.format(root + 'manifest.md')}: ")

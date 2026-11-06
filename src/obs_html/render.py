@@ -28,7 +28,7 @@ from markdown_it import MarkdownIt
 
 from obs_html.bars import BarDefinition, discover_bars
 from obs_html.config import Config, paper
-from obs_html.errors import InputError, field_path, schema_error
+from obs_html.errors import DOCUMENT_OF, InputError, field_path, schema_error
 from obs_html.features import included as included_features
 from obs_html.figures import render_descriptor
 from obs_html.artifact_data import encode_artifact_data, prepare_artifact_scripts, serialize_artifact_data
@@ -89,7 +89,7 @@ class Context:
 
 def _source(document: dict[str, object]) -> str:
     """The Document as a message names it: by the manifest note it was built from."""
-    return f"Document of {document['manifest']['path']}"
+    return f"{DOCUMENT_OF}{document['manifest']['path']}"
 
 
 def _rebuild(document: dict[str, object], option: str = "") -> str:
