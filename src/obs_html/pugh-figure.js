@@ -17,7 +17,8 @@
 
    A figure whose chapter carries an answer (obs input-model, Answers) shows the answer's weights,
    marks and rulings read-only (its spec's ``answered``); where the chapter asks for a bless
-   (bless.js), the matrix's last row has a Pick key under each option other than the winner. */
+   (bless.js), the matrix's last row is the radio row: one radio per option and None of the
+   above, the band's pick state (obsBless.pick, obsBless.picked, obs-bless-change). */
 globalThis.obsPugh = (() => {
   const VIEW_NOTE = "View changed by the reader.";
   const CHECKLIST = "checklist";  // The key of the row failed checklist items make (the core reserves it).
@@ -243,6 +244,29 @@ globalThis.obsPugh = (() => {
     cell.append(chooser);
     chooser.querySelector('[aria-pressed="true"]')?.focus();
   }
+  /** The radio row's radios, where the figure's chapter asks for a bless (bless.js) and the
+      figure is not an answer's or a print copy: one per option in the order given, then None of
+      the above, checked as the band's pick stands. Choosing the checked one again clears it. */
+  function pickRadios(figure, options) {
+    if (!globalThis.obsBless?.asks(figure.id)) return null;
+    const picked = globalThis.obsBless.picked(figure.id);
+    const radio = (value, label) => {
+      const input = element("input", {type: "radio", name: `${figure.id}--pugh-pick`, value, checked: picked === value});
+      input.dataset.pughPick = value;
+      input.setAttribute("aria-label", label);
+      input.addEventListener("click", event => { event.stopPropagation(); globalThis.obsBless.pick(figure.id, value); });
+      return input;
+    };
+    const none = element("label", {className: "pugh-pick-none"}, radio("none", "Pick none of the above"), " None of the above");
+    return {options: options.map(option => radio(option.letter, `Pick ${tag(option)}`)), none};
+  }
+  /** The band's pick changed (bless.js): every radio row shows it. */
+  document.addEventListener("obs-bless-change", () => {
+    document.querySelectorAll("[data-pugh-pick]").forEach(input => {
+      const figure = input.closest('[data-figure-kind="pugh"]');
+      input.checked = Boolean(figure) && globalThis.obsBless.picked(figure.id) === input.value;
+    });
+  });
   function table(figure, spec, result, figureModel, view, {print: shown}) {
     const print = shown || view.locked;
     const scroll = element("div", {className: "pugh-scroll", tabIndex: 0});
@@ -336,11 +360,11 @@ globalThis.obsPugh = (() => {
       }
       body.append(row);
     }
-    const picks = print ? [] : order.map(c => (c.key === winner ? null : globalThis.obsBless?.columnKey(figure.id, figureModel.byKey[c.key].letter)));
-    if (picks.some(Boolean)) {
-      const row = element("tr", {className: "pugh-picks"}, element("th", {scope: "row", className: "pugh-criterion", textContent: "Pick"}),
+    const picks = print ? null : pickRadios(figure, order.map(c => figureModel.byKey[c.key]));
+    if (picks) {
+      const row = element("tr", {className: "pugh-picks"}, element("th", {scope: "row", className: "pugh-criterion"}, "Pick", picks.none),
         element("td", {className: "pugh-weight"}));
-      for (const pick of picks) row.append(element("td", {}, pick));
+      for (const radio of picks.options) row.append(element("td", {}, radio));
       body.append(row);
     }
     scroll.append(element("table", {className: "pugh-matrix"}, element("thead", {}, head), body));
@@ -486,9 +510,18 @@ globalThis.obsPugh = (() => {
       }
       box.append(texts.row);
     }
-    const picks = locked ? [] : order.filter(c => c.key !== winner)
-      .map(c => globalThis.obsBless?.columnKey(figure.id, figureModel.byKey[c.key].letter)).filter(Boolean);
-    if (picks.length) box.append(element("div", {className: "pugh-picks"}, ...picks));
+    const picks = locked ? null : pickRadios(figure, order.map(c => figureModel.byKey[c.key]));
+    if (picks) {
+      const {row, cells} = line("Pick", " pugh-picks");
+      row.querySelector(".pugh-row-name").append(" ", picks.none);
+      cells.append(element("span", {className: "pugh-stepper pugh-stepper-space"}));
+      order.forEach((candidate, index) => {
+        const node = cell(candidate);
+        node.append(head(candidate), element("label", {className: "pugh-pick-cell"}, picks.options[index]));
+        cells.append(node);
+      });
+      box.append(row);
+    }
     return box;
   }
   function checklistPanel(figureModel) {

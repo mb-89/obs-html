@@ -559,9 +559,14 @@ The reader changes a weight in its field and a mark by tapping it and choosing â
 decided again at once, and Reset, in the figure and in its options menu, restores the fence's
 values. A changed mark is the engine's own cell override.
 
-Where the chapter asks for a bless, a last row of the matrix holds a Pick key ("Pick B") under
-each option other than the winner. Where the chapter's answer recorded changes, the figure shows
-them read-only, as print does, and Reset is disabled.
+Where the chapter asks for a bless, the matrix's last row is the radio row: a radio under each
+option and "None of the above" after the row's name. It is the band's pick state
+([[#Bless verdicts]], `obsBless.pick` and `obsBless.picked`): a radio picks its option, the band
+shows it, a pick in the band checks the radio, and the checked radio chosen again clears the
+verdict to pending.
+
+Where the chapter's answer recorded changes, the figure shows them read-only, as print does,
+with no radio row, and Reset is disabled.
 
 #### Sensitivity
 
@@ -622,7 +627,7 @@ kept. Each criterion is two lines:
   the option's letter, the winner's cell marked.
 
 The weighted total follows the same pattern, and so do Wins and Losses, as counts with the texts
-on tap. The Pick keys sit in one line under them.
+on tap. The radio row follows the same pattern, "None of the above" after its name.
 
 A cell takes up to 2.5 rem and gives way to 1.7 rem before its line wraps: five options fit
 beside the stepper in the narrowest figure, at a 360 px phone, and more wrap to a further line.
@@ -638,7 +643,7 @@ tapping it shows the option's letter and short name, its label where that says m
 with no browser dialog. The popover is the control's description for a screen reader.
 
 The letter heads its cell as a control of its own, above the cell's mark key, so a tap on the
-mark changes the mark and a tap on the letter opens the popover. A mark, a weight step and a Pick
+mark changes the mark and a tap on the letter opens the popover. A mark, a weight step and a pick
 are one tap each, as in the table.
 
 The table and the rows are drawn from one decision and one reader state: a resize across the
@@ -819,7 +824,7 @@ On such a chapter the top band shows, left of the notice icons:
   Pick only where the chapter has a decision figure.
 - **The comment:** Decline, Ask and Pick open a one-line comment entry in the band, directly
   under the keys, and only then; Pick shows there the other options' letters ("Pick A"), as the
-  figure's column heads do, and "None of the above", which needs a comment as Decline does and
+  figure's radio row does, and "None of the above", which needs a comment as Decline does and
   is sent as the pick's option `none`. There is no comment box in the page and no browser dialog.
 
 A verdict is complete as a Bless, or as another verdict with its comment (and, for Pick, its
@@ -828,7 +833,7 @@ user, 6 Nov 2026 (work issue `feature/deck-shell-verdicts-20261106`), the reader
 swipe, the keys or the arrows, so the chapter stays after a verdict.
 
 Verdicts toggle, by the same decision: the active key (Bless, Decline, Ask or Pick) or the
-active pick ("Pick B", the band's or the figure's), chosen again, clears the verdict back to
+active pick ("Pick B" in the band, or the figure's checked radio), chosen again, clears the verdict back to
 "Bless pending". The comment entry closes, and Send's count drops.
 
 **Send** shows in the band, on every chapter, while any chapter asks: "Send 1/2", the complete

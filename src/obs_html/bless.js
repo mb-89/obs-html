@@ -2,11 +2,12 @@
    requests) shows a pill with its state in the top band and, beside it, the verdict keys Bless,
    Decline, Ask and Pick. Decline, Ask and Pick take a one-line comment in the band, under the
    keys; Pick takes another option of the chapter's decision figure by its letter, here or from
-   the option's column head ("Pick B"), or None of the above (option "none"). A verdict never walks: the reader walks the chapters. The
+   the figure's radio row, or None of the above (option "none"). A verdict never walks: the reader walks the chapters. The
    active key or pick, chosen again, clears the verdict to pending.
    API for the decision figure (pugh-figure.js): pick(anchor, option) picks an option of a figure by
    its letter, or "none" for None of the above, toggling as the band's keys do; picked(anchor) is the
-   figure's picked option, a letter, "none" or null. Each change of a chapter's verdict by a key or a
+   figure's picked option, a letter, "none" or null; asks(anchor) is whether the figure's chapter
+   asks, so the figure shows its radio row. Each change of a chapter's verdict by a key or a
    pick, not by typing its comment, fires "obs-bless-change" on document, its detail
    {chapter, verdict}, the verdict a copy or null where it was cleared.
    Send hands every complete verdict to the answer sink (answers.js) as one payload whose fields
@@ -154,7 +155,7 @@ globalThis.obsBless = (() => {
     const verdict = verdicts.get(chapterOf(anchor));
     return verdict?.verdict === "pick" && verdict.pick?.figure === anchor ? verdict.pick.option : null;
   }
-  /** Pick an option of a decision figure, from the band, its column head or the figure; the active pick clears. */
+  /** Pick an option of a decision figure, from the band or the figure's radio row; the active pick clears. */
   function pick(anchor, option) {
     const slug = chapterOf(anchor);
     if (!slug) return;
@@ -213,11 +214,6 @@ globalThis.obsBless = (() => {
     send.textContent = `Send ${done}/${asking.length}`;
     send.setAttribute("aria-label", `Send ${done} of ${asking.length} verdicts`);
     send.title = send.getAttribute("aria-label");
-    document.querySelectorAll("[data-bless-column-pick]").forEach(key => {
-      const [anchor, letter] = key.dataset.blessColumnPick.split(":");
-      const current = verdicts.get(active)?.pick;
-      key.setAttribute("aria-pressed", String(current?.figure === anchor && current.option === letter));
-    });
   }
   /** The payload: each complete verdict with the chapter's version and the reader's changes to its decision figures. */
   function payload() {
@@ -244,17 +240,8 @@ globalThis.obsBless = (() => {
       update();
     }
   }
-  /** A decision figure's column-head key, "Pick B", where its chapter asks; null elsewhere (pugh-figure.js). */
-  function columnKey(anchor, letter) {
-    const slug = chapterOf(anchor);
-    if (!slug || slug !== active) return null;
-    const key = element("button", {type: "button", className: "filter-pill bless-column-pick", textContent: `Pick ${letter}`});
-    key.dataset.blessColumnPick = `${anchor}:${letter}`;
-    const current = verdicts.get(slug)?.pick;
-    key.setAttribute("aria-pressed", String(current?.figure === anchor && current.option === letter));
-    key.addEventListener("click", event => { event.stopPropagation(); pick(anchor, letter); });
-    return key;
-  }
+  /** Whether a decision figure's chapter asks for a bless, so the figure shows its radio row (pugh-figure.js). */
+  const asks = anchor => Boolean(chapterOf(anchor));
 
   document.querySelector("[data-top-band-end]").prepend(controls);
   document.addEventListener("obs-chapter-change", ({detail}) => {
@@ -263,5 +250,5 @@ globalThis.obsBless = (() => {
     update();
   });
   update();
-  return Object.freeze({columnKey, payload, pick, picked, verdicts: () => structuredClone(Object.fromEntries(verdicts))});
+  return Object.freeze({asks, payload, pick, picked, verdicts: () => structuredClone(Object.fromEntries(verdicts))});
 })();

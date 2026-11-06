@@ -105,12 +105,23 @@ def test_on_a_phone_a_mark_a_weight_and_a_pick_take_one_tap_each(phone_browser, 
     figure.locator('[data-pugh-mark="C:readable"] .pugh-mark-button').tap()
     figure.locator('[data-pugh-mark="C:readable"] [data-pugh-choice="2"]').tap()
     figure.locator('[data-pugh-step="effort:+"]').tap()
-    figure.locator(f'[data-bless-column-pick="{THREE}:C"]').tap()
+    figure.locator('[data-pugh-pick="C"]').tap()
     state = page.evaluate("obsPugh.readerState()")[THREE]
     picked = page.evaluate("obsBless.verdicts()")
+    radios = f"Object.fromEntries([...document.querySelectorAll('#{THREE} [data-pugh-pick]')].map(radio => [radio.value, radio.checked]))"
+    shown = page.evaluate(radios)
+    figure.locator('[data-pugh-pick="none"]').tap()
+    none = (page.evaluate(f"obsBless.picked('{THREE}')"), page.evaluate(radios)["none"])
+    figure.locator('[data-pugh-pick="none"]').tap()
+    cleared = (page.evaluate(f"obsBless.picked('{THREE}')"), page.evaluate(radios))
 
     assert state["marks"] == {"C": {"readable": 2}} and state["weights"] == {"effort": 1.5}
+    # The radio row: one radio per option and None of the above, the band's pick state (artifact-ui.md, The decision matrix).
     assert picked["three"]["pick"] == {"figure": THREE, "option": "C"}
+    assert shown == {"A": False, "B": False, "C": True, "none": False}
+    assert none == ("none", True)
+    # The active pick, chosen again, clears to pending.
+    assert cleared == (None, {"A": False, "B": False, "C": False, "none": False})
     assert sorted(figure.locator(".pugh-changed").evaluate_all("nodes => nodes.map(n => n.dataset.pughMark || n.dataset.pughWeight)")) \
         == ["C:readable", "effort"]
     assert errors == []

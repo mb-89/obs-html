@@ -2099,12 +2099,6 @@ math {
     padding: 0.3rem 0.4rem;
 }
 
-.bless-column-pick {
-    display: block;
-    font-size: 0.7rem;
-    margin: 0.2rem auto 0;
-}
-
 .bless-record {
     background: var(--color-surface-raised);
     border-inline-start: 0.25rem solid var(--color-success);
