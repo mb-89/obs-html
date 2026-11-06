@@ -720,7 +720,7 @@
         path.addEventListener("focus", () => highlight(true));
         path.addEventListener("blur", () => highlight(false));
         const select = () => {
-          if (link.where) selectSankey(spec, [link.where]);
+          if (link.where) globalThis.obsFilter.selectExpression(sankeySelection(spec, [link.where]));
         };
         path.addEventListener("click", select);
         path.addEventListener("keydown", event => {
@@ -755,11 +755,12 @@
       element("title", {}, text).textContent = node.label;
       const membership = spec.links.filter(link => link.source === node.id || link.target === node.id)
         .map(link => link.where).filter(Boolean);
-      if (membership.length) {
+      const selection = node.selection ?? (membership.length ? sankeySelection(spec, membership) : "");
+      if (selection) {
         group.setAttribute("tabindex", "0");
         group.setAttribute("role", "button");
         group.setAttribute("aria-label", `Filter ${node.label}`);
-        const select = () => selectSankey(spec, membership);
+        const select = () => globalThis.obsFilter.selectExpression(selection);
         group.addEventListener("click", select);
         group.addEventListener("keydown", event => {
           if (event.key === "Enter" || event.key === " ") { event.preventDefault(); select(); }
@@ -770,13 +771,16 @@
     return svg;
   }
   function figureCaption(spec) { return spec.alt || spec.caption || spec.source || "Figure"; }
-  function selectSankey(spec, membership) {
+  // One selection: the population, the OR of the membership's conditions and the node's own
+  // records.where. A counted node's label counts what this expression matches, and its
+  // drill-down selects the same expression.
+  function sankeySelection(spec, membership, own = []) {
     const expression = globalThis.obsQuery.conditionsExpression;
     const branches = [...new Set(membership.map(conditions => `(${expression(conditions)})`))];
     const population = expression(spec.data?.where);
-    globalThis.obsFilter.selectExpression(
-      [population && `(${population})`, `(${branches.join(" OR ")})`].filter(Boolean).join(" AND "),
-    );
+    const narrowing = expression(own);
+    return [population && `(${population})`, `(${branches.join(" OR ")})`, narrowing && `(${narrowing})`]
+      .filter(Boolean).join(" AND ");
   }
   const projections = new Map();
   function updateDynamicSankey(figure, spec) {
@@ -802,8 +806,8 @@
     const nodes = spec.nodes.filter(node => activeNodes.has(node.id)).map(node => {
       if (!node.records) return node;
       const incident = links.filter(link => link.source === node.id || link.target === node.id);
-      const selected = records.filter(record => sankeyConditionsMatch(record, node.records.where) &&
-        incident.some(link => sankeyConditionsMatch(record, link.where)));
+      const selection = sankeySelection(spec, incident.map(link => link.where), node.records.where);
+      const selected = records.filter(globalThis.obsQuery.compile(selection).match);
       const contributions = incident.filter(link => link.target === node.id && link.unique);
       const unique = new Set(selected.flatMap(record => {
         const fields = contributions.length ? contributions.filter(link =>
@@ -813,7 +817,8 @@
         });
       })).size;
       const words = sankeyCountLabels(spec);
-      return {...node, label: `${node.label}\n${Math.max(selected.length, unique)} ${words.unit}\n${unique} ${words.unique}`};
+      return {...node, selection,
+        label: `${node.label}\n${Math.max(selected.length, unique)} ${words.unit}\n${unique} ${words.unique}`};
     });
     figure.querySelector(".sankey-canvas").replaceWith(sankeySvg({...spec, nodes}, links));
     figure.dispatchEvent(new CustomEvent("obs-figure-render"));
