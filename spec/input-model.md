@@ -66,7 +66,7 @@ obsHtml:
 - `heading` presents the cover metadata at the top of Home. `cover` (default) is the title box,
   which `pages` can also place as the title sheet. `compact` is one line: organization, product
   name and version, document type and title (subtitle last), separated by `·`; the other cover
-  fields (template, people, SAP number, legal entity, copyright, confidentiality) are not shown.
+  fields (template, people, document number, legal entity, copyright, confidentiality) are not shown.
   The compact line is never a sheet of its own: in the paged and PDF projections it opens the
   first declared front page, so `pages` must declare at least one page and no `cover`.
 - `pages` is the ordered list of generated front pages of the paged and PDF projections.

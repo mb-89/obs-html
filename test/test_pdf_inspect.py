@@ -41,8 +41,13 @@ def test_render_names_the_pages_a_pdf_has(printed, tmp_path, capsys) -> None:
     with pytest.raises(SystemExit) as exit_info:
         pdf_inspect.main(["render", str(printed), "--page", "99", "--output", str(tmp_path / "x.png")])
     assert exit_info.value.code == 2
+    _refused(capsys, printed, "--page")
+
+
+def _refused(capsys, source: object, field: str) -> None:
+    """A refusal names where it comes from: the message starts with the source and the field."""
     error = capsys.readouterr().err
-    assert error.startswith(f"obs-html-inspect render: {printed} has ") and "Remedy: pass --page from 1 to" in error
+    assert f"\n{source}: {field}: " in f"\n{error}", error
 
 
 def test_crop_renders_a_region_in_points_from_the_top_left(printed, tmp_path, capsys) -> None:
@@ -64,16 +69,12 @@ def _mean_difference(first: Image.Image, second: Image.Image) -> float:
     return sum(level * count for level, count in enumerate(histogram)) / sum(histogram)
 
 
-@pytest.mark.parametrize("box, problem", [
-    ("1,2,3", "expected X0,Y0,X1,Y1"),
-    ("300,50,100,250", "X0 < X1 and Y0 < Y1"),
-    ("0,0,700,100", "inside the page (0,0,612,792 pt)"),
-])
-def test_crop_refuses_a_box_it_cannot_cut(printed, tmp_path, capsys, box, problem) -> None:
+@pytest.mark.parametrize("box, in_pdf", [("1,2,3", False), ("300,50,100,250", False), ("0,0,700,100", True)])
+def test_crop_refuses_a_box_it_cannot_cut(printed, tmp_path, capsys, box, in_pdf) -> None:
+    """A malformed box is the argument's fault; one outside the page names the PDF."""
     with pytest.raises(SystemExit):
         pdf_inspect.main(["crop", str(printed), "--page", "1", "--box", box, "--output", str(tmp_path / "x.png")])
-    error = capsys.readouterr().err
-    assert "obs-html-inspect crop: --box" in error and problem in error and "Remedy:" in error
+    _refused(capsys, printed if in_pdf else "obs-html-inspect", "--box")
     assert not (tmp_path / "x.png").exists()
 
 
@@ -125,19 +126,15 @@ def test_annotate_draws_labelled_boxes_onto_a_raster(printed, tmp_path, capsys) 
     assert f"Wrote {marked} (2 marks on {page})." in capsys.readouterr().out
 
 
-@pytest.mark.parametrize("option, value, problem", [
-    ("--colour", "reddish", "--colour 'reddish' is not a colour"),
-    ("--box", "0,0,9999,10", "is not inside the raster (0,0,1224,1584 px)"),
-])
-def test_annotate_refuses_marks_it_cannot_draw(printed, tmp_path, capsys, option, value, problem) -> None:
+@pytest.mark.parametrize("option, value", [("--colour", "reddish"), ("--box", "0,0,9999,10")])
+def test_annotate_refuses_marks_it_cannot_draw(printed, tmp_path, capsys, option, value) -> None:
     page = tmp_path / "page.png"
     pdf_inspect.main(["render", str(printed), "--page", "1", "--output", str(page)])
     arguments = {"--box": "1,1,2,2", "--colour": "red", option: value}
     with pytest.raises(SystemExit):
         pdf_inspect.main(["annotate", str(page), "--box", arguments["--box"], "--colour", arguments["--colour"],
                           "--output", str(tmp_path / "marked.png")])
-    error = capsys.readouterr().err
-    assert error.startswith("obs-html-inspect annotate: ") and problem in error and "Remedy:" in error
+    _refused(capsys, page if option == "--box" else "obs-html-inspect", option)
 
 
 def test_every_tool_writes_only_the_files_it_is_named(printed, tmp_path, capsys) -> None:
@@ -155,26 +152,24 @@ def test_every_tool_writes_only_the_files_it_is_named(printed, tmp_path, capsys)
 def test_raster_tools_need_an_output(printed, capsys) -> None:
     with pytest.raises(SystemExit) as exit_info:
         pdf_inspect.main(["render", str(printed), "--page", "1"])
-    assert exit_info.value.code == 2 and "--output" in capsys.readouterr().err
+    assert exit_info.value.code == 2
+    _refused(capsys, "obs-html-inspect render", "arguments")
 
 
-@pytest.mark.parametrize("arguments, problem", [
-    (["text", "{tmp}/missing.pdf", "--page", "1"], "input {tmp}/missing.pdf does not exist"),
-    (["render", "{pdf}", "--page", "1", "--output", "{tmp}/absent/page.png"],
-     "the folder of output {tmp}/absent/page.png does not exist"),
-    (["render", "{pdf}", "--page", "1", "--output", "{tmp}/page.raster"],
-     "output {tmp}/page.raster has no image suffix Pillow writes"),
-    (["paths", "{pdf}", "--page", "1", "--output", "{pdf}"], "output {pdf} is the input"),
+@pytest.mark.parametrize("arguments, source, field", [
+    (["text", "{tmp}/missing.pdf", "--page", "1"], "{tmp}/missing.pdf", "PDF"),
+    (["render", "{pdf}", "--page", "1", "--output", "{tmp}/absent/page.png"], "{tmp}/absent/page.png", "--output"),
+    (["render", "{pdf}", "--page", "1", "--output", "{tmp}/page.raster"], "{tmp}/page.raster", "--output"),
+    (["paths", "{pdf}", "--page", "1", "--output", "{pdf}"], "{pdf}", "--output"),
 ])
-def test_paths_are_explicit_and_checked(printed, tmp_path, capsys, arguments, problem) -> None:
+def test_paths_are_explicit_and_checked(printed, tmp_path, capsys, arguments, source, field) -> None:
     def fill(text: str) -> str:
         return text.format(tmp=tmp_path, pdf=printed)
 
     with pytest.raises(SystemExit) as exit_info:
         pdf_inspect.main([fill(argument) for argument in arguments])
     assert exit_info.value.code == 2
-    error = capsys.readouterr().err
-    assert error.startswith(f"obs-html-inspect {arguments[0]}: {fill(problem)}") and "Remedy:" in error
+    _refused(capsys, fill(source), field)
     assert sorted(path.name for path in tmp_path.iterdir()) == []
     assert printed.stat().st_size > 0
 
@@ -205,6 +200,4 @@ def test_a_file_that_is_no_pdf_is_named(tmp_path, capsys) -> None:
     html.write_text("<!doctype html>", encoding="utf-8")
     with pytest.raises(SystemExit):
         pdf_inspect.main(["text", str(html), "--page", "1"])
-    error = capsys.readouterr().err
-    assert error.startswith(f"obs-html-inspect text: cannot read {html} as a PDF (") and ". Remedy:" in error
-    assert ".)." not in error
+    _refused(capsys, html, "PDF")

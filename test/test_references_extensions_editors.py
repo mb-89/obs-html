@@ -10,7 +10,8 @@ import json
 import pytest
 
 from obs_html.config import load_config
-from obs_html.render import RenderError, render
+from obs_html.errors import InputError
+from obs_html.render import render
 from obs_html.artifact_data import decode_artifact_data
 
 from documents import chapter, document as build, heading, node, paragraph, text
@@ -61,23 +62,25 @@ def test_a_reference_note_keeps_its_url_for_the_hover_card() -> None:
     assert notes["spec"]["frontmatter"]["url"] == "https://example.org/spec"
 
 
-@pytest.mark.parametrize("metadata,message", [
-    ({"kind": "glossary", "term": "Datum"}, "glossary note has no text definition.*definition: <text>"),
-    ({"kind": "reference", "url": "file:///home/me/spec.pdf"}, "reference url .* is not an http\\(s\\) URL.*https://"),
+@pytest.mark.parametrize("metadata,field", [
+    ({"kind": "glossary", "term": "Datum"}, "definition"),
+    ({"kind": "reference", "url": "file:///home/me/spec.pdf"}, "url"),
 ])
-def test_invalid_reference_notes_fail_naming_the_chapter_and_the_remedy(metadata, message) -> None:
-    with pytest.raises(RenderError, match=f"Chapter bad: {message}"):
+def test_invalid_reference_notes_fail_naming_the_note_and_the_field(metadata, field) -> None:
+    with pytest.raises(InputError) as failure:
         render(build("Doc", chapter("bad", "Bad", node("references", metadata=metadata), metadata=metadata)),
                CONFIG)
+    assert (failure.value.source, failure.value.field) == ("chapter bad", field)
 
 
 @pytest.mark.parametrize("syntax", ["callout", "diagram"])
 def test_a_syntax_extension_fails_naming_the_syntax_its_source_and_the_remedy(syntax) -> None:
     """No syntax extension has an input-model contract yet (the core's extensions.md), so the core
     emits none; a callout is a ``callouts`` node, never an ``extensions`` marker."""
-    with pytest.raises(RenderError, match=f"Chapter one: syntax extension {syntax!r} .*obs-html \\(src/obs_html/"
-                                          "render.py\\).*extensions.md.*Remedy: regenerate the Document"):
+    with pytest.raises(InputError) as failure:
         render(build("Doc", chapter("one", "One", node("extensions", syntax=syntax))), CONFIG)
+    assert (failure.value.source, failure.value.field) == ("Document of manifest.md", "chapters[0].content[0].attrs.syntax")
+    assert "obs-document" in failure.value.remedy and "extensions.md" in failure.value.problem
 
 
 def test_property_editor_is_explicit_and_canonical() -> None:
@@ -119,20 +122,18 @@ def test_property_editor_projection_rejects_protected_fields(field, branch) -> N
     value, replacement = (["Original"], ["Changed"]) if field == "aliases" else ("Original", "Changed")
     projection = {"blank": {field: replacement} if branch == "blank" else {"status": "Initial"},
                   "nonblank": {field: replacement} if branch == "nonblank" else {"status": "Initial"}}
-    with pytest.raises(RenderError, match="Chapter one: property editor"):
+    with pytest.raises(InputError) as failure:
         render(_editor({"version": 1, "field": "explanation", "label": "Review", "projection": projection},
                        {"explanation": "Original", "status": "Initial", field: value}), CONFIG)
+    assert (failure.value.source, failure.value.field) == ("chapter one", f"property-editor.projection.{branch}.{field}")
 
 
-@pytest.mark.parametrize("field,value,remedy", [
-    ("missing", "text", "add 'missing: <text>'"),
-    ("explanation", 42, "add 'explanation: <text>'"),
-    ("title", "semantic", "protected field 'title'"),
-])
-def test_property_editor_rejects_missing_nontext_or_semantic_fields(field, value, remedy) -> None:
-    with pytest.raises(RenderError, match=f"Chapter one: property editor.*{remedy}"):
+@pytest.mark.parametrize("field,value", [("missing", "text"), ("explanation", 42), ("title", "semantic")])
+def test_property_editor_rejects_missing_nontext_or_semantic_fields(field, value) -> None:
+    with pytest.raises(InputError) as failure:
         render(_editor({"version": 1, "field": field, "label": "Review"},
                        {"explanation": value, "title": value}), CONFIG)
+    assert (failure.value.source, failure.value.field) == ("chapter one", "property-editor.field")
 
 
 @pytest.mark.parametrize("projection", [
@@ -143,27 +144,32 @@ def test_property_editor_rejects_missing_nontext_or_semantic_fields(field, value
     {"blank": {"status": 5}, "nonblank": {"status": "ok"}},
 ])
 def test_property_editor_rejects_unsafe_or_type_mismatched_projection(projection) -> None:
-    with pytest.raises(RenderError, match="Chapter one: property editor"):
+    with pytest.raises(InputError) as failure:
         render(_editor({"version": 1, "field": "explanation", "label": "Review", "projection": projection},
                        {"explanation": "Original", "status": "explained", "accepted": "yes"}), CONFIG)
+    [name] = projection["blank"]
+    assert (failure.value.source, failure.value.field) == ("chapter one", f"property-editor.projection.blank.{name}")
 
 
-@pytest.mark.parametrize("fence,message", [
-    ({"version": 2, "field": "explanation", "label": "Review"}, "Remedy: declare version: 1"),
-    ({"version": 1, "field": "explanation", "label": "Review", "maxLength": 3}, "longer than maxLength 3"),
+@pytest.mark.parametrize("fence,field", [
+    ({"version": 2, "field": "explanation", "label": "Review"}, "property-editor.version"),
+    ({"version": 1, "field": "explanation", "label": "Review", "maxLength": 3}, "explanation"),
 ])
-def test_invalid_or_oversized_editors_fail_with_a_remedy(fence, message) -> None:
-    with pytest.raises(RenderError, match=f"Chapter one: property editor.*{message}"):
+def test_invalid_or_oversized_editors_fail_naming_the_note_and_the_field(fence, field) -> None:
+    with pytest.raises(InputError) as failure:
         render(_editor(fence, {"explanation": "Original"}), CONFIG)
+    assert (failure.value.source, failure.value.field) == ("chapter one", field)
 
 
 def test_a_field_has_one_editor_and_home_has_none() -> None:
     fence = node("property-editors", source="version: 1\nfield: explanation\nlabel: Review\n",
                  spec={"version": 1, "field": "explanation", "label": "Review"})
-    with pytest.raises(RenderError, match="declares 'explanation' more than once"):
+    with pytest.raises(InputError) as failure:
         render(build("Doc", chapter("one", "One", fence, fence, metadata={"explanation": "x"})), CONFIG)
-    with pytest.raises(RenderError, match="Chapter home: property editor needs an existing text field"):
+    assert (failure.value.source, failure.value.field) == ("chapter one", "property-editor.field")
+    with pytest.raises(InputError) as failure:
         render(build("Doc", abstract=(fence,)), CONFIG)
+    assert (failure.value.source, failure.value.field) == ("manifest.md", "property-editor.field")
 
 
 def test_a_markdown_link_to_a_note_is_an_internal_link_in_prose_and_metadata() -> None:

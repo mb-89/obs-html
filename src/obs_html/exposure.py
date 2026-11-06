@@ -8,11 +8,14 @@ from pathlib import Path
 from typing import Iterator
 
 from obs_html.artifact_data import ARTIFACT_PATTERN, decode_artifact_data
+from obs_html.errors import InputError
 
 
-REMEDY = ("Remedy: write the path relative to the vault, or with ~ for the home folder, in the "
-          "source; the core replaces them in captured command output (capabilities/command-fences), "
-          "so a hit there is an obs defect to report.")
+SOURCE = "obs-html artifact"
+"""The finished artifact, before it is written: a hit names where in it."""
+REMEDY = ("Write the path relative to the vault, or with ~ for the home folder, in the source note; "
+          "the core replaces them in captured command output (capabilities/command-fences), so a hit "
+          "there is an obs defect to report")
 _BASE64 = re.compile(r"base64,[A-Za-z0-9+/=]+")
 SEGMENT = r"""[^\s/\\:*?"'<>|`,;()\[\]{}=]"""
 ABSOLUTE_PATH = re.compile(
@@ -20,10 +23,6 @@ ABSOLUTE_PATH = re.compile(
     rf"(?:{SEGMENT}+[/\\])*{SEGMENT}+"
 )
 """An absolute path, as the core recognises one in captured output; an adapter imports no core module."""
-
-
-class ExposureError(ValueError):
-    """Raised when a finished artifact contains the build machine's home folder or user name."""
 
 
 def check_artifact(artifact: str) -> None:
@@ -40,11 +39,10 @@ def check_artifact(artifact: str) -> None:
         text = _BASE64.sub("base64,", text)
         for what, pattern in patterns:
             if pattern.search(text):
-                raise ExposureError(f"obs-html: the artifact exposes {what} in {where}. {REMEDY}")
+                raise InputError(SOURCE, where, f"exposes {what}", REMEDY)
         if user and any(user.casefold() in (part.casefold() for part in re.split(r"[/\\]", path[0]))
                         for path in ABSOLUTE_PATH.finditer(text)):
-            raise ExposureError(f"obs-html: the artifact exposes the build machine's user name "
-                                f"'{user}' in a path in {where}. {REMEDY}")
+            raise InputError(SOURCE, where, f"exposes the build machine's user name '{user}' in a path", REMEDY)
 
 
 def path_spellings(folder: Path) -> list[str]:

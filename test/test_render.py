@@ -4,7 +4,7 @@ import pytest
 
 from obs_html.config import load_config
 from obs_html.errors import InputError
-from obs_html.render import RenderError, render
+from obs_html.render import render
 from obs_html.artifact_data import decode_artifact_data
 
 from conftest import PIXEL
@@ -69,8 +69,7 @@ def test_an_invalid_presentation_profile_names_the_manifest_field_and_the_remedy
     document["manifest"]["metadata"]["obsHtml"] = profile
     with pytest.raises(InputError) as failure:
         _model(document)
-    assert (failure.value.source, failure.value.field) == ("manifest note", field)
-    assert str(failure.value).startswith(f"manifest note: {field}: ")
+    assert (failure.value.source, failure.value.field) == (document["manifest"]["path"], field) == ("manifest.md", field)
 
 
 @pytest.mark.parametrize(("choice", "field"), [({"paper": "B5"}, "obsHtml.print.paper"),
@@ -79,7 +78,7 @@ def test_an_invalid_print_choice_names_the_manifest_field(document, choice, fiel
     document["manifest"]["metadata"]["obsHtml"]["print"] = choice
     with pytest.raises(InputError) as failure:
         _model(document)
-    assert (failure.value.source, failure.value.field) == ("manifest note", field)
+    assert (failure.value.source, failure.value.field) == ("manifest.md", field)
 
 
 def test_profile_print_choice_sets_the_paper(document) -> None:
@@ -136,8 +135,10 @@ def test_unknown_mark_kinds_fail(document) -> None:
         for child in node["children"]:
             if child["type"] == "marks":
                 child["attrs"]["category"] = "nonsense"
-    with pytest.raises(RenderError, match="mark kind 'nonsense'"):
+    with pytest.raises(InputError) as failure:
         _render(document)
+    assert failure.value.source == "Document of manifest.md"
+    assert re.fullmatch(r"chapters\[\d+\]\.content\[\d+\]\.children\[\d+\]\.attrs\.category", failure.value.field)
 
 
 def test_base_views_become_runtime_tables(document) -> None:
@@ -200,20 +201,18 @@ def _filtered(filters: object, view_filters: object = None) -> dict:
     return build("Filters", chapter("items", "Items", base))
 
 
-@pytest.mark.parametrize(("filters", "view_filters", "expression"), [
-    ("rank > 1", None, "rank > 1"),
-    ({"and": ['kind == "item"', 'file.size == 1']}, None, "file.size == 1"),
-    ('kind == "item"', {"or": ['formula.total == 1']}, "formula.total == 1"),
-    ({"xor": ['kind == "item"']}, None, '{"xor": ["kind == \\"item\\""]}'),
+@pytest.mark.parametrize(("filters", "view_filters", "field", "expression"), [
+    ("rank > 1", None, "base.filters", "rank > 1"),
+    ({"and": ['kind == "item"', 'file.size == 1']}, None, "base.filters", "file.size == 1"),
+    ('kind == "item"', {"or": ['formula.total == 1']}, "base.views[0].filters", "formula.total == 1"),
+    ({"xor": ['kind == "item"']}, None, "base.filters", '{"xor": ["kind == \\"item\\""]}'),
 ])
-def test_a_filter_the_adapter_cannot_evaluate_names_the_base_the_expression_and_what_is_supported(
-        filters, view_filters, expression) -> None:
-    with pytest.raises(RenderError) as failure:
+def test_a_filter_the_adapter_cannot_evaluate_names_the_note_the_field_and_the_expression(
+        filters, view_filters, field, expression) -> None:
+    with pytest.raises(InputError) as failure:
         _render(_filtered(filters, view_filters))
-    message = str(failure.value)
-    assert 'Base "Items" (items-base-1) in chapter items' in message
-    assert f"cannot evaluate the filter: {expression}. " in message
-    assert "Supported:" in message and "file.name, file.path, file.folder, file.ext" in message
+    assert (failure.value.source, failure.value.field) == ("chapter items", field)
+    assert expression in failure.value.problem  # The expression as authored.
 
 
 def test_the_filter_check_accepts_and_refuses_what_the_shared_conformance_fixture_says(core_root) -> None:
@@ -223,8 +222,9 @@ def test_the_filter_check_accepts_and_refuses_what_the_shared_conformance_fixtur
     for case in fixture["cases"]:
         _render(_filtered(case["filter"]))
     for filters in fixture["unsupported"]:
-        with pytest.raises(RenderError, match="cannot evaluate the filter"):
+        with pytest.raises(InputError) as failure:
             _render(_filtered(filters))
+        assert (failure.value.source, failure.value.field) == ("chapter items", "base.filters")
 
 
 def test_an_ignored_record_marks_its_note_and_an_ignored_chapter_stays_in_the_reading_order() -> None:
@@ -243,8 +243,10 @@ def test_an_ignored_record_marks_its_note_and_an_ignored_chapter_stays_in_the_re
 
 def test_unsupported_capabilities_are_refused(document) -> None:
     document["capabilities"].append("figures")
-    with pytest.raises(RenderError, match="does not render: figures"):
+    with pytest.raises(InputError) as failure:
         _render(document)
+    assert (failure.value.source, failure.value.field) == ("Document of manifest.md", "capabilities")
+    assert "figures" in failure.value.problem  # The capability it does not render.
 
 
 def test_an_unknown_node_type_renders_its_text_and_warns_once_naming_the_source_and_the_remedy(
@@ -268,12 +270,13 @@ def test_an_unknown_node_type_renders_its_text_and_warns_once_naming_the_source_
 
 def test_the_home_slug_is_reserved(document) -> None:
     document["chapters"][1]["id"] = "home"
-    with pytest.raises(RenderError, match="reserved"):
+    with pytest.raises(InputError) as failure:
         _render(document)
+    assert (failure.value.source, failure.value.field) == ("Document of manifest.md", "chapters[1].id")
 
 
 def test_a_minimal_document_renders(document) -> None:
-    minimal = {"schemaVersion": 1, "manifest": {"title": "Only", "metadata": {}}, "chapters": [],
+    minimal = {"schemaVersion": 1, "manifest": {"title": "Only", "path": "manifest.md", "metadata": {}}, "chapters": [],
                "links": [], "assets": [], "records": [], "semanticResources": [], "diagnostics": [],
                "capabilities": []}
     model = decode_artifact_data(render(minimal, CONFIG))
@@ -382,8 +385,11 @@ def test_an_embed_links_to_its_chapter_or_renders_unresolved() -> None:
 
 def test_a_link_to_a_chapter_the_document_lacks_names_its_chapter_and_the_remedy() -> None:
     link = node("wikilinks", target="gone", chapter="gone", heading="", label="gone")
-    with pytest.raises(RenderError, match="Chapter index: a link names chapter 'gone'.*regenerate"):
+    with pytest.raises(InputError) as failure:
         _render(_linking(link))
+    assert failure.value.source == "Document of manifest.md"
+    assert re.fullmatch(r"chapters\[\d+\]\.content\[\d+\]\.children\[\d+\]\.attrs\.chapter", failure.value.field)
+    assert "obs-document" in failure.value.remedy
 
 
 def _unlisted(*links: dict) -> dict:

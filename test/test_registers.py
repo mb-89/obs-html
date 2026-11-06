@@ -5,6 +5,7 @@ The core-built Document ``fixtures/documents/registers.json`` (vault ``registers
 ``types.base``, which has one view per record type. The DOM tier shows each view's rows as the
 reader sees them; the core selected them, and the adapter evaluates no selection.
 """
+import re
 import copy
 import json
 from pathlib import Path
@@ -15,7 +16,8 @@ from conftest import CORE_ROOT, ROOT
 from documents import chapter, document as build, node, paragraph
 from obs_html.artifact_data import decode_artifact_data
 from obs_html.config import load_config
-from obs_html.render import RenderError, render
+from obs_html.errors import InputError
+from obs_html.render import render
 from test_dom import run_artifact_dom_contract
 
 
@@ -149,21 +151,19 @@ def test_no_members_evaluation_remains_in_the_adapter() -> None:
 def test_a_register_row_the_records_do_not_hold_fails_naming_the_register_and_the_remedy() -> None:
     document = copy.deepcopy(REGISTERS)
     _register(document, "second")["attrs"]["rows"][1] = ["gone"]
-    with pytest.raises(RenderError) as error:
+    with pytest.raises(InputError) as failure:
         render(document, CONFIG)
-    assert "Register points.base#Second in chapter second" in str(error.value)
-    assert "rows.1" in str(error.value)
-    assert "Remedy:" in str(error.value)
+    assert failure.value.source == "Document of manifest.md"
+    assert re.fullmatch(r"chapters\[\d+\]\.content\[\d+\]\.attrs\.rows\[1\]", failure.value.field), failure.value.field
+    assert "obs-document" in failure.value.remedy
 
 
 def test_a_base_fence_with_members_fails_naming_the_field_and_the_remedy() -> None:
     spec = {"views": [{"type": "table", "order": ["file.name"],
                        "obs": {"members": [{"path": "a.md", "label": "A"}]}}]}
-    with pytest.raises(RenderError) as error:
+    with pytest.raises(InputError) as failure:
         render(build("Doc", chapter("one", "One", node("bases", source="", spec=spec))), CONFIG)
-    assert "Base in chapter one" in str(error.value)
-    assert "views.0.obs.members" in str(error.value)
-    assert "Remedy:" in str(error.value)
+    assert (failure.value.source, failure.value.field) == ("chapter one", "base.views[0].obs.members")
 
 
 def test_the_base_schema_leaves_the_cores_keys_to_the_core() -> None:

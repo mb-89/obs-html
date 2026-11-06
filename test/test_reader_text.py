@@ -35,6 +35,7 @@ READER_ATTRIBUTES = frozenset({"aria-label", "aria-description", "title", "alt",
 # phrase -> why a reader-facing string may contain it.
 ALLOWED: dict[str, str] = {
     "document type": "the manifest field the author fills in; the runtime reads it by that name",
+    "document number": "the manifest field the author fills in; the runtime reads it by that name",
     "document.schema.json": "the core's schema file a limited-function notice names as its source",
     "obs-document": "the core's command an error's remedy names",
 }

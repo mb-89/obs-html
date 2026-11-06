@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "manifest": {
     "title": "Test document",
+    "path": "manifest.md",
     "metadata": {
       "title": "Test document",
       "subtitle": "Bridge **subtitle** ![Obsidian](obsidian.svg) ![HTML](html.svg)",
