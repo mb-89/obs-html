@@ -926,10 +926,16 @@
             card.append(link);
             heading.prepend(card);
         }
+        // A blocked download cannot be observed, so where the canary could not decide, the help names the remedy.
+        const downloadHint = globalThis.obsCapabilities?.hint("downloads");
         document.querySelectorAll('[data-source-download], a[href="obs-source:archive"]').forEach(control => {
             control.dataset.sourceDownload = "";
             control.setAttribute("aria-disabled", String(!info.available));
             control.title = info.label;
+            if (downloadHint) {
+                control.dataset.sourceHelp ??= control.dataset.hoverHelp || "";
+                control.dataset.hoverHelp = `${control.dataset.sourceHelp} ${downloadHint}`.trim();
+            }
             if (!info.complete || !control.textContent.trim()) control.textContent = info.label;
             if (control.tagName === "BUTTON") control.disabled = !info.available;
         });
@@ -958,7 +964,7 @@
         try {
             await downloadSourceArchive();
             const limited = globalThis.obsCapabilities?.explain("downloads");
-            if (limited) globalThis.obsCapabilities.note(link, limited);
+            if (limited) globalThis.obsCapabilities?.note(link, limited);
         } catch (error) {
             if (globalThis.obsPayload) globalThis.obsPayload.fail(error);
             else showApplicationError(error);
@@ -2764,7 +2770,7 @@
                     );
                 });
             } else {
-                globalThis.obsCapabilities.note(link, "No table here includes this tag.");
+                globalThis.obsCapabilities?.note(link, "No table here includes this tag.");
             }
             return;
         }

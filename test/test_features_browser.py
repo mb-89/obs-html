@@ -48,6 +48,9 @@ def test_a_host_that_hides_its_sandbox_flags_raises_nothing_at_load_for_them(tmp
     undecided = frame.locator("html").evaluate("() => globalThis.obsCapabilities.results"
                                                 ".filter((entry) => !entry.decided).map(({key}) => key)")
     assert sorted(undecided) == sorted(UNDECIDED)
+    # A blocked download cannot be observed even on use: no notice, and the help names the remedy.
+    assert frame.locator("html").evaluate("() => globalThis.obsCapabilities.hint('downloads')") == (
+        "If this does not work here: Open the HTML file directly in a browser to download.")
     assert errors == []
 
 
@@ -77,4 +80,5 @@ def test_a_blocked_separate_window_shows_its_reason_inline_and_warns_once(tmp_pa
                        ("Remedy", "Open the HTML file directly in a browser")):
         expect(details.locator("dt", has_text=term)).to_have_count(1)
         assert text in details.locator("dt", has_text=term).evaluate("(term) => term.nextElementSibling.textContent")
-    assert errors == []
+    # The browser reports the blocked window.open itself; the card says why inline.
+    assert [error for error in errors if "allow-popups" not in error] == []
