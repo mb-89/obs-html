@@ -168,11 +168,13 @@ def pytest_runtest_makereport(item, call):
     return report
 
 
+@pytest.hookimpl(tryfirst=True)
 def pytest_collection_modifyitems(config, items):
     """Keep a module's tests on one xdist worker (`--dist loadgroup`), so its module fixtures are
     built once per run. A test with its own ``xdist_group`` mark is a long one that runs on a
     worker of its own; those run first, so no worker is left with one at the end. Each test gets
-    its tier's timeout (test/bounds.py in the core)."""
+    its tier's timeout (test/bounds.py in the core). It runs before xdist's own hook, which reads
+    the groups as it collects."""
     bounds.mark(items)
     own = [item for item in items if item.get_closest_marker("xdist_group")]
     rest = [item for item in items if not item.get_closest_marker("xdist_group")]

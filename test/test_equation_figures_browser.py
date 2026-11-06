@@ -37,9 +37,11 @@ def artifact(tmp_path_factory) -> Path:
 
 
 class Reader:
-    """A page of the artifact whose requests beyond the file itself are refused and recorded."""
+    """A page of the artifact whose requests beyond the file itself are refused and recorded, opened
+    on ``chapter`` once its figures ``anchors`` have plotted; a chapter computes only once opened."""
 
-    def __init__(self, reader_browser, artifact: Path):
+    def __init__(self, reader_browser, artifact: Path, chapter: str = "curves",
+                 anchors: tuple[str, ...] = (TORQUE, SATURATED, QUINTIC)):
         self.page = reader_browser.new_page(viewport={"width": 1200, "height": 1000})
         self.requests: list[str] = []
 
@@ -53,8 +55,8 @@ class Reader:
         self.page.on("pageerror", lambda error: self.errors.append(str(error)))
         self.page.goto(artifact.as_uri())
         self.page.wait_for_function("document.documentElement.dataset.artifactStatus === 'ready'")
-        self.page.evaluate("obsPages.setPaged(false); obsArtifact.activateChapter('curves')")
-        for anchor in (TORQUE, SATURATED, QUINTIC):
+        self.page.evaluate(f"obsPages.setPaged(false); obsArtifact.activateChapter('{chapter}')")
+        for anchor in anchors:
             self.page.wait_for_selector(f"#{anchor}.figure-plot-ready")
 
     def traces(self, anchor: str) -> list[dict]:
@@ -351,10 +353,8 @@ def _drawn(reader: Reader, anchor: str) -> set[str]:
 
 
 def test_parallel_coordinates_select_curves_by_computed_axes_and_cap_the_grid(artifact, reader_browser) -> None:
-    reader = Reader(reader_browser, artifact)
+    reader = Reader(reader_browser, artifact, "sweeps", (STEP,))
     page = reader.page
-    page.evaluate("obsArtifact.activateChapter('sweeps')")
-    page.wait_for_selector(f"#{STEP}.figure-plot-ready")
     times = [10 * index / 240 for index in range(241)]
     zetas, ws = (0.2, 0.5, 0.8, 1.3), (1, 1.5, 2, 2.5, 3)
     combinations = {f"zeta = {zeta:g}, w = {w:g} 1/s": _step_response(zeta, w, times) for zeta in zetas for w in ws}
