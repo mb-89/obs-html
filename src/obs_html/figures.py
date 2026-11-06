@@ -31,6 +31,7 @@ from xml.etree import ElementTree
 from jsonschema import Draft202012Validator
 
 from .errors import InputError, schema_error
+from .figure_links import FigureLink, inline_svg
 from .sankey import COUNT_LABELS
 from .timings import stage as timed
 
@@ -62,8 +63,9 @@ class Body:
 class FigureKind:
     """One figure kind: its body renderer, its options and the reader features it needs."""
 
-    body: Callable[[dict, str, str], Body]
-    """The body from the kind's node attrs, the figure's accessible name and its note."""
+    body: Callable[[dict, str, str, dict[str, FigureLink]], Body]
+    """The body from the kind's node attrs, the figure's accessible name, its note and the links
+    the core resolved in its SVG (figure_links.py), keyed by the link as the SVG holds it."""
     options: tuple[str, ...] = ()
     """The view options of the figure's options menu: keys of figures.js's FIGURE_OPTIONS, whose
     changes are session-only view state. A kind without options shows no menu."""
@@ -71,17 +73,23 @@ class FigureKind:
     """The keys of the reader features (features.py) a figure of this kind needs."""
 
 
-def _image_body(attrs: dict, alt: str, _source: str) -> Body:
+def _image_body(attrs: dict, alt: str, _source: str, links: dict[str, FigureLink]) -> Body:
     alt = alt or "Figure"
+    if links:
+        return Body(inline_svg(base64.b64decode(attrs["data"]).decode("utf-8"), links, alt))
     return Body(f'<img class="figure-visual" src="data:{escape(attrs["mediaType"], quote=True)};base64,'
                 f'{attrs["data"]}" alt="{escape(alt, quote=True)}">')
 
 
-def _svg_body(attrs: dict, alt: str, source: str) -> Body:
-    """The exact drawing as an image; with panels, the runtime's panel inspector."""
+def _svg_body(attrs: dict, alt: str, source: str, links: dict[str, FigureLink]) -> Body:
+    """The exact drawing as an image, or inline where it has links; with panels, the runtime's
+    panel inspector."""
     markup, alt = attrs["svg"], alt or "Figure"
-    uri = "data:image/svg+xml;base64," + base64.b64encode(markup.encode("utf-8")).decode("ascii")
-    image = f'<img class="figure-default figure-visual" src="{uri}" alt="{escape(alt, quote=True)}">'
+    if links:
+        image = inline_svg(markup, links, alt)
+    else:
+        uri = "data:image/svg+xml;base64," + base64.b64encode(markup.encode("utf-8")).decode("ascii")
+        image = f'<img class="figure-default figure-visual" src="{uri}" alt="{escape(alt, quote=True)}">'
     if "panels" not in attrs:
         return Body(image)
     view_box = ElementTree.fromstring(markup).get("viewBox")
@@ -92,12 +100,12 @@ def _svg_body(attrs: dict, alt: str, source: str) -> Body:
                 {"kind": "svg", "panels": attrs["panels"], "viewBox": view_box, "alt": alt})
 
 
-def _sankey_body(attrs: dict, alt: str, source: str) -> Body:
+def _sankey_body(attrs: dict, alt: str, source: str, _links: dict[str, FigureLink]) -> Body:
     graph, nodes = _sankey_graph(attrs["graph"], source, "graph")
     return _sankey(graph, nodes, alt or "Figure", COUNT_LABELS | attrs.get("countLabels", {}))
 
 
-def _plot_body(attrs: dict, alt: str, source: str) -> Body:
+def _plot_body(attrs: dict, alt: str, source: str, _links: dict[str, FigureLink]) -> Body:
     descriptor = attrs["descriptor"]
     data, name = descriptor["data"], descriptor["id"]
     if "sankey" in data:
@@ -154,14 +162,15 @@ def frame(kind: str, body: Body, anchor: str, caption: list[str], number: str = 
 
 @timed("figures")
 def render_figure(node: dict, chapter: str, position: int, caption: list[str], caption_text: str,
-                  source: str, number: str = "") -> str:
+                  source: str, number: str = "", links: dict[str, FigureLink] | None = None) -> str:
     """One figures node in its frame. ``position`` counts the chapter's figures from 1, for an
     anchor where neither a block id nor the body names one; ``caption_text`` is the caption's
-    plain text, the accessible name where the figure has no alt."""
+    plain text, the accessible name where the figure has no alt; ``links`` are the links the
+    core resolved in the figure's SVG, with their chapter hrefs."""
     attrs = node["attrs"]
     [child] = node["children"]
     kind = FIGURE_KINDS[attrs["kind"]]
-    body = kind.body(child["attrs"], attrs.get("alt") or caption_text, source)  # "" leaves the kind's default.
+    body = kind.body(child["attrs"], attrs.get("alt") or caption_text, source, links or {})  # "" leaves the kind's default.
     if "block" in attrs:
         anchor = f"{chapter}--block-{attrs['block']}"
     else:

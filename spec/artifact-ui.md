@@ -224,6 +224,17 @@ failures have their form in [[input-model#Chapter content]].
   image, like an `svg` figure without panels; no diagram library ships in the artifact and the
   kind needs no reader feature.
 
+  Links inside a figure. A figure whose body has links (obs capabilities/wikilinks, Links
+  inside a figure) shows its SVG inline instead of as an image, since an image cannot be
+  clicked into (decided 6 Nov 2026); a figure without links stays an image.
+  `src/obs_html/figure_links.py` owns it: each resolved link becomes the same chapter link as
+  in prose, with its hover card and navigation, in the frame, in the expanded view, which
+  closes as the link navigates, and in the panel inspector, which shows a copy of the inline
+  drawing. Wikilink text shows its label; a link whose note is missing is shown unlinked. The
+  inline SVG is never executable: scripts, embedded documents, event and animation elements,
+  event-handler attributes and every target but a resolved link, a fragment of the drawing, a
+  web or mail address or a data image are removed.
+
   An anchor is `<note-slug>--block-<name>` for a figure with a block id, otherwise
   `<note-slug>--figure-<name>`, where name is a plot's descriptor id or the figure's position
   among the note's figures.

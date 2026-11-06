@@ -30,6 +30,7 @@ from obs_html.bars import BarDefinition, discover_bars
 from obs_html.config import Config, paper
 from obs_html.errors import DOCUMENT_OF, InputError, field_path, schema_error
 from obs_html.features import included as included_features
+from obs_html.figure_links import FigureLink
 from obs_html.figures import FIGURE_KINDS, render_figure
 from obs_html.artifact_data import encode_artifact_data, prepare_artifact_scripts, serialize_artifact_data
 from obs_html.semantic_assets import SemanticAssets, markup
@@ -161,9 +162,13 @@ def _internal_link(chapter: str, heading: str, label: str, context: Context) -> 
         quantity = _quantity_link(chapter, context)
         if quantity:
             return quantity
+    return f'<a class="internal-link" href="{_internal_href(chapter, heading, context)}">{escape(label or title)}</a>'
+
+
+def _internal_href(chapter: str, heading: str, context: Context) -> str:
+    """The href of a link to a chapter, at its heading where it names one."""
     anchor = context.headings.get(f"{chapter}#{_identifier(heading)}") if heading else None
-    href = f"#{chapter}/{anchor.removeprefix(f'{chapter}--')}" if anchor else f"#{chapter}"
-    return f'<a class="internal-link" href="{href}">{escape(label or title)}</a>'
+    return f"#{chapter}/{anchor.removeprefix(f'{chapter}--')}" if anchor else f"#{chapter}"
 
 
 def _quantity_link(chapter: str, context: Context) -> str:
@@ -488,8 +493,15 @@ def _figure(node: dict[str, object], context: Context) -> str:
         with _at(context, "attrs", "caption", index):
             paragraphs.append(_phrasing(paragraph["children"], context))
     caption_text = " ".join(_plain_text(paragraph) for paragraph in paragraphs)
+    links = {  # The links the core resolved in the figure's SVG (obs capabilities/wikilinks).
+        link["attrs"]["svg"]: FigureLink(
+            None if link["attrs"]["chapter"] is None
+            else _internal_href(link["attrs"]["chapter"], link["attrs"]["heading"], context),
+            link["attrs"]["label"])
+        for link in node["children"][0]["children"]
+    }
     return render_figure(node, context.chapter or HOME, context.figure_position, paragraphs, caption_text,
-                         _note_source(context), _figure_number(bool(paragraphs), context))
+                         _note_source(context), _figure_number(bool(paragraphs), context), links)
 
 
 def _figure_number(captioned: bool, context: Context) -> str:
