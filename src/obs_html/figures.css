@@ -8,11 +8,13 @@
     --figure-frame-padding-inline: 0;
 }
 
-/* The one frame rule: every kind's figure is an .obs-figure. */
+/* The one frame rule: every kind's figure is an .obs-figure. It extends within the reader (the
+   chapter scroll's width, 100cqw, which a docked bar narrows), clear of the chapter controls. */
 .obs-figure {
+    --figure-reader-width: calc(100cqw - 2 * max(var(--figure-viewport-gutter), var(--chapter-clearance-end)));
     --figure-width: min(
         calc(var(--content-inline-size) * var(--figure-prose-width-multiplier)),
-        calc(100vw - 2 * var(--figure-viewport-gutter))
+        var(--figure-reader-width)
     );
     background: var(--figure-frame-background);
     border-block: var(--figure-frame-border-block);
@@ -21,7 +23,7 @@
     break-inside: avoid;
     margin-block: 1.25rem;
     margin-inline: calc((100% - var(--figure-width)) / 2);
-    max-width: calc(100vw - 2 * var(--figure-viewport-gutter));
+    max-width: var(--figure-reader-width);
     min-width: 0;
     padding-block: var(--figure-frame-padding-block);
     padding-inline: var(--figure-frame-padding-inline);

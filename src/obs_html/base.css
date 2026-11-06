@@ -228,6 +228,8 @@ a:focus-visible {
 }
 
 .chapter-scroll {
+    /* The figures' width reads the reader's (figures.css, .obs-figure). */
+    container-type: inline-size;
     height: 100%;
     overflow: auto;
     overscroll-behavior: contain;
