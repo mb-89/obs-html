@@ -421,6 +421,7 @@ def test_every_drill_down_shows_exactly_the_rows_its_count_counted(tmp_path, rea
     assert figure.locator(".sankey-link").evaluate_all("links => links.map(link => link.dataset.flowValue)") == [
         str(len(link["rows"])) for link in links if link["rows"]]
     narrowing: set[bool] = set()
+    exceeding: set[bool] = set()
     for node_spec in graph["nodes"]:
         incident = [link for link in links if node_spec["id"] in (link["source"], link["target"])]
         counted = sorted({row for link in incident for row in link["rows"]})
@@ -432,13 +433,18 @@ def test_every_drill_down_shows_exactly_the_rows_its_count_counted(tmp_path, rea
                                                                         node_spec["records"]["where"]])))
             narrowing.add(narrowed != counted)
             counted = narrowed
-            unit = node.locator(".sankey-label tspan").nth(-2).text_content()
+            unit, unique = node.locator(".sankey-label tspan").evaluate_all(
+                "lines => lines.slice(-2).map(line => line.textContent)")
             assert unit == f"{len(counted)} records", node_spec["id"]
+            # The unique line counts distinct items over those same rows; a row may hold several,
+            # so it can exceed the row count without changing the first line.
+            exceeding.add(int(unique.split()[0]) > len(counted))
         node.click()
         page.wait_for_function(f"(counted => JSON.stringify(({retained})()) === JSON.stringify(counted))", arg=counted)
         kinds.add("sankey")
         # The reader's filter hides the overview chapter itself, so the reader returns to it.
         page.evaluate("obsFilter.setExpression(''); obsArtifact.activateChapter('overview')")
     assert narrowing == {True, False}
+    assert True in exceeding
     assert kinds == {"card metric", "projected metric", "count query", "series", "sankey"}
     assert errors == []
