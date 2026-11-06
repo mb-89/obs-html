@@ -25,6 +25,7 @@ DECK = CORE_ROOT / "spec" / "examples" / "bless-deck" / "manifest.md"
 ANSWERS_SCHEMA = CORE_ROOT / "src" / "obs" / "answers.schema.json"
 FIGURE = "record--figure-1"
 PHONE = {"width": 390, "height": 800}
+PENDING = "Bless pending"
 
 
 def _artifact(folder: Path, name: str, answers: Path | None = None) -> Path:
@@ -82,13 +83,31 @@ def _active(page) -> str:
     return page.locator("[data-active-chapter]").get_attribute("data-chapter")
 
 
-def _fits(page) -> None:
-    """No sideways page scroll, and every shown control of the band inside the viewport."""
-    over = page.evaluate("""() => ({page: document.documentElement.scrollWidth - innerWidth,
-        band: [...document.querySelectorAll('.top-band button, .top-band [data-bless-pill]')]
-            .filter(node => node.offsetParent && node.getBoundingClientRect().right > innerWidth + 0.5)
-            .map(node => node.getAttribute('aria-label') || node.textContent)})""")
-    assert over == {"page": 0, "band": []}, over
+# Each shown control of the top band: its name, its box and whether a pointer at its centre reaches it.
+BAND = """() => [...document.querySelectorAll(
+        '.top-band a.chapter-home-link, .top-band button, .top-band [data-bless-pill]')]
+    .filter(node => node.checkVisibility() && !node.closest('.notice-list, .bless-entry, .chapter-breadcrumb-menu'))
+    .map(node => {
+        const box = node.getBoundingClientRect(), hit = document.elementFromPoint(
+            box.left + box.width / 2, box.top + box.height / 2);
+        return {name: node.getAttribute('aria-label') || node.textContent.trim(), pill: node.matches('[data-bless-pill]'),
+                left: box.left, right: box.right, width: box.width, height: box.height,
+                reached: Boolean(hit) && node.contains(hit)};
+    })"""
+
+
+def _fits(page) -> list[dict]:
+    """No sideways page scroll, and every shown control of the band inside the viewport, reached by a
+    pointer at its centre (none lies under another), and every control but the pill a square of one
+    size; returns the controls."""
+    controls = page.evaluate(BAND)
+    width = page.evaluate("innerWidth")
+    assert page.evaluate("document.documentElement.scrollWidth") == width
+    assert [item["name"] for item in controls if item["left"] < -0.5 or item["right"] > width + 0.5
+            or not item["reached"]] == []
+    squares = {(round(item["width"]), round(item["height"])) for item in controls if not item["pill"]}
+    assert len(squares) == 1 and len({*squares.pop()}) == 1, controls
+    return controls
 
 
 SWIPE = """([selector, across]) => {
@@ -120,6 +139,37 @@ def test_the_pill_and_keys_show_only_on_asking_chapters_and_the_page_fits_a_phon
     expect(page.locator("[data-bless-pill]")).to_be_hidden()
     expect(page.locator("[data-bless-key]:visible")).to_have_count(0)
     expect(page.locator("[data-bless-send]")).to_be_visible()
+    _fits(page)
+    assert errors == []
+
+
+@pytest.mark.parametrize("width", [360, 390])
+def test_the_band_holds_every_key_in_one_row_at_phone_width_with_the_notices_shown(deck, reader_browser,
+                                                                                   width: int) -> None:
+    """The band of a chapter with a decision figure, all three notice icons shown, as in a real deck."""
+    page, errors = _open(reader_browser, deck.as_uri(), {"width": width, "height": 800})
+    page.evaluate("""() => obsNotices.severities.forEach(severity =>
+        obsNotices.post({id: severity, severity, title: severity}))""")
+    names = [item["name"] for item in _fits(page)]
+    assert names == ["Home", "Show frontmatter", PENDING, "Bless", "Decline", "Ask", "Pick", "Send 0 of 2 verdicts",
+                     "Errors: 1 notice", "Warnings: 1 notice", "Information: 1 notice", "Open bars menu"]
+    # Short of space, the breadcrumb has shrunk and the pill is a square of the band's size showing
+    # only its state colour, its label its tooltip and accessible name.
+    pill = page.locator("[data-bless-pill]")
+    assert pill.get_attribute("title") == PENDING
+    box, menu = pill.bounding_box(), page.locator("[data-menu-button]").bounding_box()
+    assert (round(box["width"]), round(box["height"])) == (round(menu["width"]), round(menu["height"]))
+    assert pill.evaluate("node => parseFloat(getComputedStyle(node).fontSize)") == 0
+    assert errors == []
+
+
+def test_the_pill_keeps_its_text_while_the_band_has_room(deck, reader_browser) -> None:
+    """The breadcrumb shrinks first: on a wide band the pill shows its label."""
+    page, errors = _open(reader_browser, deck.as_uri(), {"width": 1100, "height": 800})
+    pill = page.locator("[data-bless-pill]")
+    assert pill.evaluate(
+        "node => node.scrollWidth <= node.clientWidth && parseFloat(getComputedStyle(node).fontSize) > 0")
+    assert pill.bounding_box()["width"] > page.locator("[data-menu-button]").bounding_box()["width"] * 1.5
     _fits(page)
     assert errors == []
 
