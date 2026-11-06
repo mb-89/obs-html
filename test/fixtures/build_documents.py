@@ -15,7 +15,8 @@ which test_moved_dom_contracts.py checks)::
 
 Name vaults to rebuild only those (the keys of ``VAULTS``); without one it rebuilds all. A build
 never reaches the network: a remote image fails it, and so does a Document with diagnostics, so
-nothing environment-specific is committed.
+nothing environment-specific is committed; the fields that hold the build machine's state are set
+in one place, ``normalised`` (MACHINE_FIELDS).
 """
 from __future__ import annotations
 
@@ -635,6 +636,7 @@ VAULTS = {"figures": figures, "equations": equations, "document": document, "com
           "property-editor-projection": property_editor_projection, "self-link": self_link,
           "figure-references": figure_references, "source-archive": source_archive}
 RUNS_COMMANDS = {"document"}
+"""The vaults whose cmd fences the build runs (obs-document --execute-commands): ``echo`` only."""
 EMBEDS_SOURCE = {"source-archive"}
 """The vaults the build archives (obs-document --embed-source)."""
 FIXTURE_BUILD = {"repository": "https://github.com/mb-89/obs", "commit": "0" * 40,
@@ -642,7 +644,9 @@ FIXTURE_BUILD = {"repository": "https://github.com/mb-89/obs", "commit": "0" * 4
                  "arguments": ["--adapter", "html", "--destination", "document.html", "--embed-source"]}
 """The build record an archived fixture Document carries in place of the core's: the core records
 the commit it runs from, which no committed file can hold, and this build runs without --adapter."""
-"""The vaults whose cmd fences the build runs (obs-document --execute-commands): ``echo`` only."""
+MACHINE_FIELDS = {("sourceArchive", "build"): FIXTURE_BUILD}
+"""Each Document field that holds the build machine's state (its paths, times or commits), by its
+JSON path, with the value a committed fixture carries instead; ``normalised`` sets them."""
 DIAGNOSED = {"document", "complete", "artifact-change"}
 """The vaults whose Document keeps its diagnostics: those name vault notes only, never the build
 machine's folders, which the build checks. complete and artifact-change keep the interim vaults'
@@ -659,6 +663,18 @@ def fetch(url):
 vault.fetch_remote = fetch
 sys.exit(document.main(sys.argv[1:]))
 """
+
+
+def normalised(document: dict) -> dict:
+    """The built Document with every field of MACHINE_FIELDS it has set to the fixture's value: the
+    one place that keeps the build machine out of a committed Document."""
+    for path, value in MACHINE_FIELDS.items():
+        parent = document
+        for key in path[:-1]:
+            parent = parent.get(key) if isinstance(parent, dict) else None
+        if isinstance(parent, dict) and path[-1] in parent:
+            parent[path[-1]] = value
+    return document
 
 
 def build(core: Path, names: list[str], output: Path, offline: bool = False) -> dict[str, str]:
@@ -691,11 +707,9 @@ def build(core: Path, names: list[str], output: Path, offline: bool = False) -> 
                 refused[name] = "\n".join(line for line in (result.stderr or result.stdout).splitlines()
                                           if line.strip() and not line.startswith("warning:"))
                 return
-            if name in EMBEDS_SOURCE:
-                built = json.loads(document.read_text(encoding="utf-8"))
-                built["sourceArchive"]["build"] = FIXTURE_BUILD
-                document.write_text(json.dumps(built, indent=2) + "\n", encoding="utf-8")
-            diagnostics = json.loads(document.read_text(encoding="utf-8"))["diagnostics"]
+            built = normalised(json.loads(document.read_text(encoding="utf-8")))
+            document.write_text(json.dumps(built, indent=2) + "\n", encoding="utf-8")
+            diagnostics = built["diagnostics"]
             if diagnostics and (name not in DIAGNOSED or any(str(work) in item["message"] for item in diagnostics)):
                 refused[name] = (f"the {name} Document has diagnostics {diagnostics}, which a committed "
                                  f"fixture must not carry. Remedy: change the {name} vault so the core "

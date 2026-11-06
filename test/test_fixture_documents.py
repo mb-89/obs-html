@@ -70,3 +70,14 @@ def test_a_stale_document_names_the_first_differing_path() -> None:
     assert first_difference({"a": [1, {"b": 2}]}, {"a": [1, {"b": 3}]}) == "$.a[1].b: committed 2, built 3"
     assert first_difference({"a": [1]}, {"a": [1, 2]}) == "$.a: committed 1 items, built 2"
     assert first_difference({"a": 1}, {"a": 1}) is None
+
+
+def test_the_build_machines_fields_are_normalised_in_one_place() -> None:
+    """A committed Document cannot hold the commit, paths or times of the machine that built it;
+    build_documents.normalised sets each such field (MACHINE_FIELDS) to the value a fixture carries."""
+    built = {"sourceArchive": {"files": [], "build": {"commit": "1" * 40, "lockfiles": {"uv.lock": {"obs": "9"}}}},
+             "manifest": {"path": "manifest.md"}}
+
+    assert build_documents.normalised(built) == {
+        "sourceArchive": {"files": [], "build": build_documents.FIXTURE_BUILD}, "manifest": {"path": "manifest.md"}}
+    assert build_documents.normalised({"manifest": {}}) == {"manifest": {}}
