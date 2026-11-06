@@ -432,11 +432,14 @@
         source.innerHTML = recordsBySlug.get(chapter.slug).html;
         const headings = [];
         const stack = [{level: 1, children: headings}];
-        source.content.querySelectorAll("h2[id], h3[id], h4[id], h5[id], h6[id]").forEach((heading) => {
-            const level = Number(heading.tagName.slice(1));
+        // A second-level section a decision figure shows as a tab (render.py, decision tabs) keeps
+        // its heading's anchor and its place in the contents.
+        source.content.querySelectorAll("h2[id], h3[id], h4[id], h5[id], h6[id], [data-pugh-extra][id]").forEach((heading) => {
+            const tab = heading.dataset.pughExtra;
+            const level = tab === undefined ? Number(heading.tagName.slice(1)) : 2;
             while (stack.length > 1 && stack.at(-1).level >= level) stack.pop();
             const node = {
-                title: heading.textContent.trim(),
+                title: tab ?? heading.textContent.trim(),
                 href: `#${chapter.slug}/${heading.id.startsWith(`${chapter.slug}--`)
                     ? heading.id.slice(chapter.slug.length + 2) : `@${heading.id}`}`,
                 children: [],
@@ -1973,6 +1976,7 @@
             if (button?.getAttribute("aria-expanded") === "false") button.click();
             section = section.parentElement.closest("[data-heading-section]");
         }
+        globalThis.obsPugh?.reveal(element);  // A place inside a decision figure's tab opens that tab.
         element?.scrollIntoView({block});
     };
 

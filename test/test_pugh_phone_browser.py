@@ -133,6 +133,23 @@ def test_a_chapters_sections_after_the_figure_are_its_tabs(phone_browser, deck, 
     assert errors == []
 
 
+def test_a_link_to_a_section_in_a_tab_opens_the_tab_at_it_and_the_contents_lists_it(phone_browser, deck):
+    page, errors = _open(phone_browser, deck, 390, "five")
+    contents = page.evaluate("""[...document.querySelectorAll('a[href^="#three/"]')].map(link => [link.textContent.trim(), link.getAttribute('href')])""")
+
+    page.evaluate("obsArtifact.activateChapter('three/the-record')")
+    page.wait_for_selector(f"#{THREE}.figure-pugh-ready")
+    shown = page.evaluate("""() => { const section = document.getElementById('three--the-record'), box = section.getBoundingClientRect();
+        return {tab: document.querySelector('[data-pugh-tab][aria-selected="true"]').dataset.pughTab,
+                hidden: section.hidden, top: box.top, bottom: box.bottom, height: innerHeight}; }""")
+
+    # The heading stays in the chapter's contents, and the one link-following path opens its tab.
+    assert ["The record", "#three/the-record"] in contents and ["Earlier attempts", "#three/earlier-attempts"] in contents
+    assert shown["tab"] == "extra-1"
+    assert shown["hidden"] is False and 0 <= shown["top"] < shown["height"] and shown["bottom"] > shown["top"]
+    assert errors == []
+
+
 @pytest.mark.parametrize("width", WIDTHS)
 def test_on_a_phone_tapping_a_letter_shows_the_options_label_and_sentence(phone_browser, deck, width):
     page, errors = _open(phone_browser, deck, width, "three")

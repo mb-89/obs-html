@@ -649,6 +649,17 @@ globalThis.obsPugh = (() => {
     }
     draw(figure, spec, host);
   }
+  /** Opens the tab that holds ``target``, a chapter section the page rendered into a decision
+      figure or a place inside one, for the artifact's one way of revealing a place (artifact.js,
+      revealSource); a figure not yet drawn opens at that tab. Elsewhere it does nothing. */
+  function reveal(target) {
+    const section = target?.closest?.(".pugh-extra");
+    const figure = section?.closest('[data-figure-kind="pugh"]');
+    if (!figure) return;
+    const spec = JSON.parse(figure.dataset.figureSpec);
+    state(figure.id, spec.answered).tab = `extra-${extras(figure).indexOf(section) + 1}`;
+    if (figure.classList.contains("figure-pugh-ready") && !figure.closest(".print-book")) draw(figure, spec);
+  }
   /** The options menu's Reset (figures.js, FIGURE_OPTIONS): the fence's weights and marks back. */
   function option(figure) {
     const reset = element("button", {type: "button", className: "filter-pill pugh-reset", textContent: "Reset",
@@ -675,5 +686,5 @@ globalThis.obsPugh = (() => {
         winner: view.winner})])
       .filter(([, view]) => Object.keys(view.weights).length || Object.keys(view.marks).length || Object.keys(view.rulings).length));
   }
-  return {render, print, option, decide, allWeights, readerState, VIEW_NOTE};
+  return {render, print, option, reveal, decide, allWeights, readerState, VIEW_NOTE};
 })();
