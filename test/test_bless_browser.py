@@ -229,10 +229,6 @@ def test_a_swipe_walks_the_chapters_and_does_not_decide(deck, reader_browser) ->
     }""")
     page.evaluate(SWIPE, [".swipe-box p", -120])
     assert _active(page) == "record"
-    # The decision figure's options take their own swipe.
-    page.evaluate(SWIPE, [".pugh-option", -120])
-    assert _active(page) == "record"
-    expect(page.locator(".pugh-option-count")).to_have_text("Option B of 3")
     assert errors == []
 
 

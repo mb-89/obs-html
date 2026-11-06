@@ -63,7 +63,10 @@ LAYOUT = """anchor => {
             mobile: matchMedia('(pointer: coarse)').matches && devicePixelRatio > 1,
             heads: [...figure.querySelectorAll('[data-pugh-form] [data-pugh-head]')].map(node => node.textContent.trim()),
             names: [...figure.querySelectorAll('[data-pugh-form="rows"] .pugh-column-name')].length,
-            tabs: [...figure.querySelectorAll('[data-pugh-tab]')].map(tab => tab.textContent),
+            tabs: [...figure.querySelectorAll('[data-pugh-tab]')].map(tab => tab.querySelector('.tab-label').textContent),
+            order: [...figure.querySelector('.pugh-figure-view').children].slice(0, 3).map(part => part.dataset.pughPart),
+            counts: [...figure.querySelectorAll('[data-pugh-form="rows"] [data-pugh-texts] [data-pugh-count]')].map(count =>
+                `${count.closest('[data-pugh-texts]').dataset.pughTexts} ${count.dataset.pughCount} ${count.textContent.trim()}`),
             lines: [...figure.querySelectorAll('.pugh-row-cells')].map(cells =>
                 new Set([...cells.children].map(cell => Math.round(cell.getBoundingClientRect().bottom))).size)};
 }"""
@@ -86,8 +89,11 @@ def test_on_a_phone_the_matrix_is_rows_of_letters_and_nothing_scrolls_sideways(p
     assert layout["names"] == 0
     # Up to five options, the stepper and the cells of each line share one line.
     assert layout["lines"] and set(layout["lines"]) == {1}
-    # Without sections after the figure, the figure has its three tabs only.
-    assert anchor == THREE or layout["tabs"] == ["Matrix", "Checklist", "What if"]
+    # The figure's order and the Wins and Losses counts are the table's (artifact-ui.md, Decision figures on a phone).
+    assert layout["order"] == ["options", "winner", "tabs"]
+    assert layout["counts"] == ["wins B 1", "losses A 1", "losses C 1"] if anchor == THREE else layout["counts"]
+    # Without sections after the figure, the figure has its four tabs only.
+    assert anchor == THREE or layout["tabs"] == ["Matrix", "Checklist", "Sensitivity", "Pareto"]
     assert errors == []
 
 
@@ -115,7 +121,7 @@ def test_a_chapters_sections_after_the_figure_are_its_tabs(phone_browser, deck, 
     page, errors = _open(phone_browser, deck, width, "three")
     figure = page.locator(f"#{THREE}")
 
-    tabs = figure.locator("[data-pugh-tab]").evaluate_all("tabs => tabs.map(tab => tab.textContent)")
+    tabs = figure.locator("[data-pugh-tab]").evaluate_all("tabs => tabs.map(tab => tab.querySelector('.tab-label').textContent)")
     below = page.evaluate("""anchor => [...document.querySelector('[data-active-chapter] .chapter-body, .chapter-body').querySelectorAll('*')]
         .filter(node => !node.closest(`#${anchor}`) && node.childElementCount === 0 && /record of earlier verdicts/.test(node.textContent))
         .length""", THREE)
@@ -125,7 +131,7 @@ def test_a_chapters_sections_after_the_figure_are_its_tabs(phone_browser, deck, 
     page.set_viewport_size({"width": 1200, "height": 900})
     wide = figure.locator('[role="tabpanel"]:not([hidden])').inner_text()
 
-    assert tabs == ["Matrix", "Checklist", "What if", "The record", "Earlier attempts"]
+    assert tabs == ["Matrix", "Checklist", "Sensitivity", "Pareto", "The record", "Earlier attempts"]
     assert below == 0
     assert "record of earlier verdicts" in shown and "Kept answers" in shown and "comment export was tried" not in shown
     assert layout["page"] <= width and layout["outside"] == [] and layout["sideways"] == []
@@ -184,8 +190,8 @@ def test_where_there_is_room_an_option_reads_as_its_letter_and_short_name(phone_
     heads = figure.locator("thead [data-pugh-option]").evaluate_all(
         "cells => cells.map(cell => cell.querySelector('.pugh-column-name')?.textContent ?? '')")
     bottom = figure.locator(".pugh-bottom").inner_text()
-    card = figure.locator(".pugh-option-name").inner_text()
-    figure.locator('[data-pugh-tab="whatif"]').click()
+    listed = figure.locator(".pugh-option-list summary").first.inner_text()
+    figure.locator('[data-pugh-tab="sensitivity"]').click()
     worlds = figure.locator(".pugh-whatif").inner_text()
     page.evaluate("obsArtifact.activateChapter('five')")
     page.wait_for_selector(f"#{FIVE}.figure-pugh-ready")
@@ -195,9 +201,41 @@ def test_where_there_is_room_an_option_reads_as_its_letter_and_short_name(phone_
     # A short name is the fence's short, else a label of at most 5 words; a longer label leaves the letter alone.
     assert heads == ["Comment export", "Artifact", "Answers file alone"]
     assert "B · Artifact" in bottom and "A · Comment export" in bottom
-    assert card == "A · Comment export"
+    assert listed == "A · Comment export"
     assert "B · Artifact wins unless" in worlds
     assert five[3] == "" and five[1] == "An object bucket"
+    assert errors == []
+
+
+# The table's rows, heads and columns (artifact-ui.md, The decision matrix).
+MATRIX = """anchor => {
+    const table = document.querySelector(`#${anchor} .pugh-matrix`), box = node => node.getBoundingClientRect();
+    // Its text's lines: the text's boxes, those whose middles lie within 8 px of each other one line.
+    const lines = node => { const range = document.createRange(); range.selectNodeContents(node);
+        const middles = [...range.getClientRects()].filter(rect => rect.width > 0).map(rect => rect.top + rect.height / 2).sort((a, b) => a - b);
+        return middles.filter((middle, index) => !index || middle - middles[index - 1] > 8).length; };
+    const names = [...table.querySelectorAll('tbody th.pugh-criterion')];
+    const heads = [...table.querySelectorAll('thead [data-pugh-option]')];
+    return {heights: [...table.querySelectorAll('tbody tr')].map(row => Math.round(box(row).height)),
+            names: names.map(name => [name.textContent, name.scrollWidth <= name.clientWidth + 1 && lines(name) === 1]),
+            heads: heads.map(head => lines(head.querySelector('[data-pugh-head]') || head)),
+            criterion: box(names[0]).width, options: heads.map(head => box(head).width)};
+}"""
+
+
+def test_at_1100_px_criteria_read_in_full_options_are_narrow_and_every_row_is_one_line(reader_browser, deck):
+    page, errors = _open(reader_browser, deck, 1100, "three")
+
+    matrix = page.evaluate(MATRIX, THREE)
+
+    # Every criterion name in full, on one line ("Readable as the decision it answers").
+    assert [name for name, _ in matrix["names"]][:3] == [
+        "Places that hold the verdict", "Readable as the decision it answers", "Effort for the reader"]
+    assert all(full for _, full in matrix["names"])
+    # One line each: every data row of one height, and each option's head one line.
+    assert len(set(matrix["heights"])) == 1 and set(matrix["heads"]) == {1}
+    # The criterion column takes the free width; the option columns are narrow.
+    assert all(matrix["criterion"] > 1.5 * width for width in matrix["options"])
     assert errors == []
 
 
@@ -275,37 +313,40 @@ def test_with_a_mouse_the_walk_arrows_stay_in_screens(reader_browser, deck):
     assert errors == []
 
 
-# The option card's visible lines, and the option's short name and label (artifact-ui.md, Decision figures).
-CARD = """anchor => {
-    const card = document.querySelector(`#${anchor} .pugh-option`);
-    const line = selector => { const node = card.querySelector(selector); return node && node.getClientRects().length ? node.textContent.trim() : null; };
-    return {name: line('.pugh-option-name'), label: line('.pugh-option-label'), what: line('.pugh-option-what')};
-}"""
+# Each option of the options list, expanded: its line, and the label and sentence it shows
+# (artifact-ui.md, Decision figures).
+LISTED = """anchor => [...document.querySelectorAll(`#${anchor} .pugh-option-list details`)].map(item => {
+    item.open = true;
+    const line = selector => { const node = item.querySelector(selector); return node && node.getClientRects().length ? node.textContent.trim() : null; };
+    return {name: line('summary'), label: line('.pugh-option-label'), what: line('.pugh-option-what')};
+})"""
 
 
-@pytest.mark.parametrize("anchor, labels", [
-    (THREE, [None, None, None]),
-    (FIVE, [None, None, None, "A page of the team wiki", None])])
-def test_the_option_card_says_each_name_once(phone_browser, deck, anchor, labels):
+@pytest.mark.parametrize("anchor, names", [
+    (THREE, ["A · Comment export", "B · Artifact", "C · Answers file alone"]),
+    (FIVE, ["A · A local disk", "B · An object bucket", "C · The repository", "D · A page of the team wiki",
+            "E · Mail to the owner"])])
+def test_the_options_list_says_each_name_once(phone_browser, deck, anchor, names):
     page, errors = _open(phone_browser, deck, 390, anchor.split("--")[0])
-    cards = []
-    for _ in labels:
-        cards.append(page.evaluate(CARD, anchor))
-        page.locator(f"#{anchor} .pugh-next").tap()
 
-    assert [card["label"] for card in cards] == labels
-    assert all(card["what"] for card in cards)
+    listed = page.evaluate(LISTED, anchor)
+
+    # Without a short name the line carries the label ("D · A page of the team wiki"), so no option
+    # here says its label again inside.
+    assert [item["name"] for item in listed] == names
+    assert [item["label"] for item in listed] == [None] * len(names)
+    assert all(item["what"] for item in listed)
     assert errors == []
 
 
-# The options list, read through the print projection that shows it, and each letter's popover
+# The options list, read through the print projection that shows it expanded, and each letter's popover
 # (artifact-ui.md, Decision figures): a label is said only where it adds words to the short name.
 SAID = """async anchor => {
     const copy = document.getElementById(anchor).cloneNode(true), book = document.createElement('div');
     book.append(copy);
     await obsFigures.preparePrint(book);
     const texts = nodes => [...nodes].map(node => node.textContent.trim());
-    return {list: texts(copy.querySelectorAll('.pugh-option-list dt')),
+    return {list: texts(copy.querySelectorAll('.pugh-option-list summary')),
             abouts: [...document.querySelectorAll(`#${anchor} .pugh-about`)].map(about => texts(about.children))};
 }"""
 
