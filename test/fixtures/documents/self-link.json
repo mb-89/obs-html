@@ -552,5 +552,6 @@
     "manifest",
     "markdown",
     "wikilinks"
-  ]
+  ],
+  "cssSnippets": []
 }

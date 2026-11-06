@@ -67,7 +67,7 @@ def document(title: str, *chapters: dict, metadata: dict | None = None,
         "chapters": list(chapters), "links": [], "assets": [],
         "records": [{**record, "fieldNodes": field_nodes(record["fields"])}
                     if record["type"] == "note" and "fieldNodes" not in record else record for record in records],
-        "semanticResources": [], "diagnostics": [], "capabilities": [],
+        "semanticResources": [], "diagnostics": [], "capabilities": [], "cssSnippets": [],
     }
     used: set[str] = set()
 
