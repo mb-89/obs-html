@@ -313,7 +313,7 @@ def callouts(root: Path) -> None:
 
 
 POINT_FLOW = {"version": 1, "data": {"where": [{"field": "kind", "equals": "point"}]}, "nodes": [
-    {"id": "points", "label": "Points", "stage": 0},
+    {"id": "points", "label": "Points", "stage": 0, "records": {"where": [{"field": "owner", "equals": "lin"}]}},
     {"id": "open", "label": "Open", "stage": 1, "records": {"where": [{"field": "status", "equals": "open"}]},
      "unique": "owner"},
     {"id": "closed", "label": "Closed", "stage": 1}], "links": [
@@ -325,7 +325,8 @@ def cards(root: Path) -> None:
     """test_cards_counts_quantities.py's vault: a card whose body holds a Base fence and a nested
     cards fence; a card with every metric field (two quantity notes for ``from`` and
     ``secondary``, a trusted projection); a card whose metrics are a series from a note's list;
-    and a dynamic Sankey over the same points, so every kind of count has a drill-down."""
+    and a dynamic Sankey over the same points, one node of which narrows its incident links by its
+    own ``records``, so every kind of count has a drill-down."""
     point = [{"field": "kind", "equals": "point"}]
     inner = {"version": 1, "cards": [{"title": "Inner", "body": "Nested **body** with [[target]]."}]}
     outer = {"version": 1, "cards": [

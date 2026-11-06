@@ -306,7 +306,15 @@
                     {
                       "id": "points",
                       "label": "Points",
-                      "stage": 0
+                      "stage": 0,
+                      "records": {
+                        "where": [
+                          {
+                            "field": "owner",
+                            "equals": "lin"
+                          }
+                        ]
+                      }
                     },
                     {
                       "id": "open",
