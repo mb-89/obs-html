@@ -438,12 +438,14 @@
     }
 }
 
-/* Decision figures (pugh-figure.js): the options list, the Y-statement and the confirmation, then
-   the tabs in the table detail tabs' look; the Matrix tab's table fills the width, its criterion column taking what the
+/* Decision figures (pugh-figure.js): the options list, the Proposed winner box, then
+   the tabs in the table detail tabs' look, each chart after its question; the Matrix tab's table fills the width, its criterion column taking what the
    narrow option columns leave, every row one line, in its own scrolling box with the criterion
    names held at its left where it is wider than the view. */
 .obs-figure[data-figure-kind="pugh"] {
     --pugh-criterion-width: 9rem;
+    /* One options row's line: its radio, arrow, letter chip and short name centre on it. */
+    --pugh-line: 1.6rem;
 }
 
 .pugh-figure-view,
@@ -461,7 +463,9 @@
     padding: 0 2.6rem 0 0;
 }
 
-/* A row: its radio, where there is one, then its expander; the expander's text wraps under its line. */
+/* A row: its radio, where there is one, then its expander; the expander's text wraps under its line.
+   The radio, the arrow, the letter chip and the short name (or None of the above) centre on the
+   row's first line, --pugh-line high. */
 .pugh-option {
     align-items: start;
     column-gap: 0.5rem;
@@ -474,8 +478,43 @@
 }
 
 .pugh-option-list summary {
+    align-items: center;
+    column-gap: 0.35rem;
     cursor: pointer;
-    padding-block: 0.1rem;
+    display: flex;
+    line-height: var(--pugh-line);
+    list-style: none;
+}
+
+.pugh-option-list summary::-webkit-details-marker {
+    display: none;
+}
+
+/* The expander's arrow, drawn as the notice entries' (base.css, .notice-entry-title), so it stays out
+   of the row's text. */
+.pugh-arrow {
+    color: var(--color-text-muted);
+    flex: none;
+    inline-size: 0.8rem;
+    line-height: 1;
+    text-align: center;
+}
+
+.pugh-arrow::before {
+    content: "\25b8";
+}
+
+details[open] > summary > .pugh-arrow::before {
+    content: "\25be";
+}
+
+.pugh-summary-line {
+    min-width: 0;
+}
+
+/* On the text's baseline, with equal leading above and below, the chip centres on the name. */
+.pugh-summary-line .pugh-letter {
+    line-height: 1.3;
 }
 
 .pugh-option-list details > p {
@@ -488,12 +527,12 @@
     block-size: 1.1rem;
     cursor: pointer;
     inline-size: 1.1rem;
-    margin: 0.25rem 0 0;
+    margin: calc((var(--pugh-line) - 1.1rem) / 2) 0 0;
 }
 
 .pugh-none-line {
     cursor: pointer;
-    padding-block: 0.1rem;
+    line-height: var(--pugh-line);
 }
 
 .pugh-tag-winner {
@@ -505,14 +544,15 @@
     padding: 0 0.35rem;
 }
 
-.pugh-statement,
-.pugh-confirmation {
-    margin: 0;
+/* The Proposed winner box is the bottom-line-up-front box (base.css, .content-emphasis); its lines wrap. */
+.pugh-proposed-box > p {
     overflow-wrap: anywhere;
 }
 
-.pugh-statement {
-    font-weight: 600;
+/* The question a chart answers, its first line. */
+.pugh-question {
+    color: var(--color-text-muted);
+    margin: 0;
 }
 
 /* Where a decision is superseded, under the chapter's heading (render.py, decision tabs). */

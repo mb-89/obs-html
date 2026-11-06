@@ -997,14 +997,15 @@ def _note_body(nodes: list[dict[str, object]], chapter: str, where: list[object]
     return "".join(html)
 
 
-DECISION_SECTIONS = ("Potential solutions", "Details")
-"""The two sections a decision chapter's figure shows as (artifact-ui.md, Decision figures)."""
+DECISION_SECTIONS = ("Potential solutions", "Proposed winner", "Details")
+"""The sections a decision chapter's figure shows as (artifact-ui.md, Decision figures)."""
 
 
 def _decision_tabs(nodes: list[dict[str, object]], html: list[str], context: Context) -> None:
     """A chapter whose main content is a decision figure, its one figure at the top level a decision,
-    reads as two sections the page draws, DECISION_SECTIONS: the figure under the first; under the
-    second the figure's details, into which each second-level section after the figure, up to a
+    reads as the sections the page draws, DECISION_SECTIONS: the figure under the first; under the
+    second the place the figure draws its proposed winner's box; under the third the figure's
+    details, into which each second-level section after the figure, up to a
     first-level one, moves as one more tab, named by its heading (pugh-figure.js; obs input-model,
     Pugh decision figures). A decision superseded says so under the chapter's heading. ``html``
     holds each node's rendering; the moved ones are emptied."""
@@ -1046,6 +1047,7 @@ def _decision_tabs(nodes: list[dict[str, object]], html: list[str], context: Con
         return f"<h2{identifier}>{title}</h2>\n"
     figure = figure.replace(f' id="{figure_id}"', f' id="{figure_id}" data-pugh-anchor="{figure_id}"', 1)
     html[figures[0]] = (heading(DECISION_SECTIONS[0]) + figure + heading(DECISION_SECTIONS[1])
+                        + f'<div class="pugh-proposed" data-pugh-proposed="{figure_id}"></div>\n' + heading(DECISION_SECTIONS[2])
                         + f'<div class="pugh-details" data-pugh-details="{figure_id}">{"".join(sections)}</div>\n')
 
 

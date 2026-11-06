@@ -10,7 +10,6 @@ title: Where the answer is kept
 chosen: html
 context: a deck read on phones
 concern: where a verdict is kept
-confirmation: The answers check refuses an artifact without its answers.
 criteria:
   - {key: places, label: Places that hold the verdict, weight: 3, better: lower}
   - {key: readable, label: Readable as the decision it answers, weight: 2, better: higher, kind: judged}
@@ -22,9 +21,10 @@ candidates:
   - {key: html, label: Answered artifact, short: Artifact, what: obs-document --answers builds the artifact with the answers in it.,
      values: {places: 1},
      marks: {readable: {mark: 2, because: the verdict sits in the decision it answers}, effort: 1},
-     wins: The changed artifact is its own record.}
+     wins: The changed artifact is its own record., success: The answers check refuses an artifact without its answers.}
   - {key: json, label: Answers file alone, what: The answers.json the server writes., values: {places: 1},
-     marks: {readable: {mark: -1, because: the file holds no decision}, effort: 1}, losses: Read without the decision it answers.}
+     marks: {readable: {mark: -1, because: the file holds no decision}, effort: 1}, losses: Read without the decision it answers.,
+     success: The server keeps every answers file it writes.}
 datum: {prefer: [export]}
 ```
 

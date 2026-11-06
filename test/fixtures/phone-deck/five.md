@@ -10,8 +10,8 @@ title: Which store keeps the deck
 supersededBy: Decision 7, the deck moves to the wiki
 criteria:
   - {key: cost, label: Monthly cost of the store, weight: 3, better: higher, kind: judged}
-  - {key: reach, label: Reachable from a phone, weight: 2, better: higher, kind: judged}
-  - {key: ops, label: Ease of operation, weight: 1, better: higher, kind: judged}
+  - {key: reach, label: "`serve` reach from a phone", weight: 2, better: higher, kind: judged}
+  - {key: ops, label: CI upkeep, weight: 1, better: higher, kind: judged}
 candidates:
   - {key: disk, label: A local disk, what: A folder on the build machine., marks: {cost: 0, reach: 0, ops: 0}}
   - {key: bucket, label: An object bucket, what: A bucket we rent., marks: {cost: -2, reach: 2, ops: 1},

@@ -384,8 +384,8 @@
             const copy = live ? node : node.cloneNode(true);
             parent().append(copy);
             // A figure whose kind draws its body in the page is drawn now, so its page holds its height;
-            // so are a decision figure's details (pugh-figure.js, placeDetails).
-            if (copy.nodeType === 1 && copy.matches("figure, [data-pugh-details]")) globalThis.obsFigures?.place(copy);
+            // so are a decision figure's details and Proposed winner box (pugh-figure.js, placeDetails).
+            if (copy.nodeType === 1 && copy.matches("figure, [data-pugh-details], [data-pugh-proposed]")) globalThis.obsFigures?.place(copy);
             if (copy.nodeType === 1 && copy.matches("figure")) {
                 const image = copy.querySelector(":scope > img, :scope > svg.figure-visual");
                 if (image && getComputedStyle(image).display !== "none") {

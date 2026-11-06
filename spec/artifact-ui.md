@@ -503,22 +503,28 @@ order and repeated after the eighth option.
 Decided by the user, 6 Nov 2026 (work issue `feat/decision-solutions-and-details-20261106`): a
 decision page reads top to bottom as a person thinks: the current situation, the problem, the
 potential solutions with the one to pick, then the details. In a chapter whose main content is a
-decision figure (its one figure at the top level is a decision figure), the page draws two second-level
-headings around it, which fold and stand in the chapter's contents as the note's own headings
-do (`render.py`, decision chapter); the note writes only its text before the fence:
+decision figure (its one figure at the top level is a decision figure), the page draws
+second-level headings around it, which fold and stand in the chapter's contents as the note's own
+headings do (`render.py`, decision chapter); the note writes only its text before the fence.
+Decided by the user, 6 Nov 2026 (work issue `feat/decision-success-and-winner-box-20261106`): the
+proposed winner is a sub-section of its own, so the page reads Current situation, The problem
+(the note's text), then:
 
-1. **Potential solutions**, after the note's text: the options list, the Y-statement and the
-   confirmation, in the figure's frame.
-2. **Details**, after it: the tabs, in the adapter's tab control (the look of a table's detail
+1. **Potential solutions**, after the note's text: the options list, in the figure's frame.
+2. **Proposed winner**, after it: one box drawn as the report's bottom-line-up-front box (the
+   `> [!important]` emphasis box, [[#Takeaways and orientation]]), holding the Y-statement and, under it, the
+   proposed option's success criterion, "Success criterion: ‹text›", where it has one.
+3. **Details**, after it: the tabs, in the adapter's tab control (the look of a table's detail
    tabs), Matrix shown at the start, then one tab for each of the chapter's sections after the
    figure ([[#Decision tabs from the chapter]]).
 
 A chapter with more than one decision figure has no such headings; each figure shows the same
-parts in the same order in its own frame.
+parts in the same order in its own frame, the box under its options list.
 
 **The options list:** one row per option. A row is its letter chip, its short name and an
-expander; expanding it shows the option's label where that says more, its `what` sentence and its
-wins and losses. The computed winner's row carries a "winner" mark; the fence's `chosen` option,
+expander; expanding it shows the option's label where that says more, its `what` sentence, its
+wins and losses, and its success criterion, "Success criterion: ‹text›", where the fence gives
+the option a `success` (obs input-model, Pugh decision figures). The computed winner's row carries a "winner" mark; the fence's `chosen` option,
 where it is another, a "chosen" mark.
 
 Where the chapter asks for a bless, each row carries a radio, and the list ends with a row "None
@@ -527,7 +533,10 @@ of the above" with one too. A radio is the band's pick state ([[#Bless verdicts]
 band shows it, a pick in the band checks the radio, and the checked radio chosen again clears the
 verdict to pending.
 
-**The Y-statement:** one sentence directly under the list, the decision bottom line up front:
+In every row, the None of the above row included, the radio, the expander's arrow, the letter
+chip and the short name sit on one vertical centre line, at phone width and on a desktop alike.
+
+**The Y-statement:** one sentence in the Proposed winner box, not bold, the decision bottom line up front:
 "In the context of ‹context›, facing ‹concern›, we decided for ‹option› and against ‹the
 others›, to achieve ‹gains›, accepting ‹losses›." ‹context› and ‹concern› are the fence's
 `context` and `concern`; without them the sentence starts at "We decided for", and without one
@@ -535,13 +544,30 @@ of them its clause is left out. ‹option› is the winner, or the reader's pick
 and the sentence follows a new pick at once; for None of the above it reads "we decided against
 all of …". ‹gains› are the criteria on which the option's weighted mark against the datum is
 highest, at most three; ‹losses› those where it is below the datum. A clause with nothing to name
-is left out.
+is left out. The box follows the pick as the sentence does: its success criterion is the picked
+option's, and None of the above has none.
 
-**The confirmation:** where the fence has `confirmation`, one line under the Y-statement,
-"Confirmation: ‹text›".
+A criterion's label spliced into the sentence starts lower-case ("to achieve places that hold the
+verdict"), unless it is an acronym or a code span. An acronym is a first word (up to the first
+space) of two or more characters with a capital and no lower-case letter: "CI checks" and "P99
+latency" keep their case, "A second line" does not. A code span is a label that starts with a
+backtick. Decided by the integrator's
+review of work issue `feat/decision-solutions-and-details-20261106`, carried into work issue
+`feat/decision-success-and-winner-box-20261106`.
 
 **Superseded:** where the fence has `supersededBy`, the chapter shows "Superseded by ‹ref›" at its
 top, under its heading. There are no status, date or decision-maker fields.
+
+Decided by the user, 6 Nov 2026 (work issue `feat/decision-success-and-winner-box-20261106`):
+every chart or table in Details whose meaning is not obvious opens with one plain line, the
+question it answers, so a reader who did not build it knows what it is for:
+
+- the matrix, table or rows: "How does each option compare with the datum, criterion by
+  criterion?";
+- the Sensitivity bar: "Does the winner still win when every weight shifts a little at random?";
+- the Sensitivity grid: "How far must each weight move before another option wins?".
+
+The Checklist is a list of questions already, and Pareto keeps its sentence.
 
 The tabs:
 
@@ -656,7 +682,7 @@ anchor while the artifact is open, and readable by the page as `obsPugh.readerSt
 anchor and with options by letter, with the winner they give, for whatever sends a reader's
 verdict ([[#Bless verdicts]]).
 
-Print and PDF show the options list with every option expanded, the Y-statement, the confirmation
+Print and PDF show the options list with every option expanded, the Proposed winner box
 and the Matrix tab as the reader left it, the weights and marks as text, and Wins and Losses as their texts;
 where weights or marks changed, the caption ends with the note *View changed by the reader.*
 

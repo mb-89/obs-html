@@ -9,12 +9,13 @@
    Top to bottom (artifact-ui.md, Decision figures): Potential solutions, the options list (a row
    an option, expandable, the winner marked, and where the chapter asks for a bless a radio each
    and None of the above: the band's pick state, obsBless.pick, obsBless.picked,
-   obs-bless-change), the Y-statement and the confirmation; then Details, the tabs of TABS, each
-   with its badge where it has one (Matrix: the table, or below ROWS_BELOW of the figure's width
-   its rows; Checklist; Sensitivity; Pareto), and one tab for each section of the chapter the
-   page rendered into the figure's details (render.py, decision tabs). In a decision chapter the
-   details are the page's own element after the figure (detailsOf); elsewhere they follow the
-   options in the figure. Every hover or tap help is the artifact's hover card (hover-card.js;
+   obs-bless-change); Proposed winner, the box of the Y-statement and the proposed option's success
+   criterion, which follows the pick; then Details, the tabs of TABS, each with its badge where it
+   has one and each chart with the question it answers (Matrix: the table, or below ROWS_BELOW of
+   the figure's width its rows; Checklist; Sensitivity; Pareto), and one tab for each section of
+   the chapter the page rendered into the figure's details (render.py, decision tabs). In a decision
+   chapter the box and the details are the page's own elements after the figure (proposedOf,
+   detailsOf); elsewhere they follow the options in the figure. Every hover or tap help is the artifact's hover card (hover-card.js;
    artifact.js registers [data-pugh-hover] to hover()).
 
    The reader's weights, marks, rulings and tripwires, the options expanded and the tab are
@@ -47,6 +48,17 @@ globalThis.obsPugh = (() => {
   };
   /** An option where there is room: its letter and short name, "B · Close". */
   const tag = option => (option.short ? `${option.letter} · ${option.short}` : option.letter);
+  /** The question each chart of Details answers, its first line (artifact-ui.md, Decision figures). */
+  const QUESTIONS = {
+    matrix: "How does each option compare with the datum, criterion by criterion?",
+    share: "Does the winner still win when every weight shifts a little at random?",
+    grid: "How far must each weight move before another option wins?",
+  };
+  function question(key) {
+    const line = element("p", {className: "pugh-question", textContent: QUESTIONS[key]});
+    line.dataset.pughQuestion = key;
+    return line;
+  }
 
   function element(tag, properties = {}, ...children) {
     const node = Object.assign(document.createElement(tag), properties);
@@ -88,7 +100,7 @@ globalThis.obsPugh = (() => {
         if (given?.because) reasons[criterion] = given.because;
       }
       return {key: candidate.key, letter: letterOf(index), hue: String(index % HUES + 1), name, short: spec.shortNames[index],
-        what: candidate.what || "", wins: texts(candidate.wins), losses: texts(candidate.losses), reasons, marks};
+        what: candidate.what || "", success: candidate.success || "", wins: texts(candidate.wins), losses: texts(candidate.losses), reasons, marks};
     });
     const byLetter = Object.fromEntries(options.map(option => [option.letter, option]));
     const byKey = Object.fromEntries(options.map(option => [option.key, option]));
@@ -100,9 +112,11 @@ globalThis.obsPugh = (() => {
   }
   function matrixFor(spec, figureModel, weights) {
     const matrix = structuredClone(spec.matrix);
-    for (const field of ["checklist", "checklistWeight", "chosen", "context", "concern", "confirmation", "supersededBy"]) delete matrix[field];
-    // The engine decides marks alone: a mark given with its reason hands it the mark.
+    for (const field of ["checklist", "checklistWeight", "chosen", "context", "concern", "supersededBy"]) delete matrix[field];
+    // The engine decides marks alone: a mark given with its reason hands it the mark; an option's
+    // success criterion is the figure's.
     for (const candidate of matrix.candidates) {
+      delete candidate.success;
       if (candidate.marks) candidate.marks = Object.fromEntries(Object.entries(candidate.marks).map(([key, given]) => [key, given?.mark ?? given]));
     }
     if (figureModel.row) {
@@ -187,11 +201,21 @@ globalThis.obsPugh = (() => {
     return node;
   }
 
+  /** An option's success criterion, "Success criterion: …", where the fence gives it one; ``part``
+      names it for the page (the expander's or the Proposed winner box's). */
+  function successLine(option, part) {
+    if (!option?.success) return null;
+    const node = element("p", {className: "pugh-success"}, element("strong", {textContent: "Success criterion:"}), " ", option.success);
+    node.dataset.pughPart = part;
+    return node;
+  }
   /** The options list (artifact-ui.md, Decision figures): a row an option, its radio where the
-      chapter asks for a bless (pickable), its letter chip and short name ("A · Keep open"; the
-      letter and label where there is no short name), its winner or chosen mark, and an expander
-      showing its label where that says more, its sentence, its wins and its losses; then None of
-      the above. What the reader expanded stays expanded while the figure redraws; print expands all. */
+      chapter asks for a bless (pickable), its expander's arrow, its letter chip and short name
+      ("A · Keep open"; the letter and label where there is no short name), its winner or chosen
+      mark, and an expander showing its label where that says more, its sentence, its wins, its
+      losses and its success criterion; then None of the above. The radio, the arrow, the chip and
+      the name share one centre line (figures.css). What the reader expanded stays expanded while
+      the figure redraws; print expands all. */
   function solutions(figure, spec, result, figureModel, view, print) {
     const picks = !print && !view.locked && Boolean(globalThis.obsBless?.asks(figure.id));
     const picked = picks ? globalThis.obsBless.picked(figure.id) : null;
@@ -211,13 +235,16 @@ globalThis.obsPugh = (() => {
     const rows = figureModel.options.map(option => {
       const said = (part, label) => (option[part].length
         ? element("p", {className: `pugh-option-${part}`}, element("strong", {textContent: `${label}: `}), option[part].join("; ")) : null);
+      const arrow = element("span", {className: "pugh-arrow"});
+      arrow.dataset.pughArrow = "";
+      arrow.setAttribute("aria-hidden", "true");
       const details = element("details", {open: print || Boolean(view.open[option.letter])},
-        element("summary", {}, named(option), !option.short ? ` · ${option.name}` : "",
+        element("summary", {}, arrow, element("span", {className: "pugh-summary-line"}, named(option), !option.short ? ` · ${option.name}` : "",
           ...(option.key === winner ? tagged("winner", "winner") : []),
-          ...(spec.matrix.chosen === option.key && option.key !== winner ? tagged("chosen", "chosen") : [])),
+          ...(spec.matrix.chosen === option.key && option.key !== winner ? tagged("chosen", "chosen") : []))),
         option.short && labelAdds(option.short, option.name) ? element("p", {className: "pugh-option-label", textContent: option.name}) : null,
         option.what ? element("p", {className: "pugh-option-what", textContent: option.what}) : null,
-        said("wins", "Wins"), said("losses", "Losses"));
+        said("wins", "Wins"), said("losses", "Losses"), successLine(option, "option-success"));
       if (!print) details.addEventListener("toggle", () => { view.open[option.letter] = details.open; });
       const row = element("li", {className: "pugh-option"}, picks ? radio(option.letter, `Pick ${tag(option)}`) : null, details);
       row.dataset.pughOption = option.letter;
@@ -234,6 +261,17 @@ globalThis.obsPugh = (() => {
     box.dataset.pughPart = "options";
     return box;
   }
+  /** A criterion's label spliced into the Y-statement: lower-case at its start, unless it starts
+      with an acronym, a first word of two or more characters with a capital and no lower-case
+      letter ("CI upkeep"), or is a code span, starting with a backtick (artifact-ui.md, Decision figures). */
+  function spliced(label) {
+    const first = label.split(" ")[0];
+    const acronym = first.length > 1 && /\p{Lu}/u.test(first) && !/\p{Ll}/u.test(first);
+    return acronym || label.startsWith("`") ? label : label.charAt(0).toLowerCase() + label.slice(1);
+  }
+  /** The option the Proposed winner box speaks for: the reader's pick where there is one ("none"
+      for None of the above), else the winner's letter, else null where no option fits. */
+  const proposedLetter = (result, figureModel, pick) => pick ?? (result.suggestion ? figureModel.byKey[result.suggestion.key].letter : null);
   /** The Y-statement (artifact-ui.md, Decision figures): the decision in one sentence, for the
       reader's pick where there is one, else for the winner: "In the context of ‹context›, facing
       ‹concern›, we decided for ‹option› and against ‹the others›, to achieve ‹its three largest
@@ -241,7 +279,7 @@ globalThis.obsPugh = (() => {
   function statement(spec, result, figureModel, pick) {
     const node = element("p", {className: "pugh-statement"});
     node.dataset.pughPart = "statement";
-    const letter = pick ?? (result.suggestion ? figureModel.byKey[result.suggestion.key].letter : null);
+    const letter = proposedLetter(result, figureModel, pick);
     const lead = [spec.matrix.context && `In the context of ${spec.matrix.context}`, spec.matrix.concern && `facing ${spec.matrix.concern}`].filter(Boolean);
     const decided = lead.length ? `${lead.join(", ")}, we decided` : "We decided";
     if (!letter) node.textContent = "No option fits.";
@@ -253,25 +291,29 @@ globalThis.obsPugh = (() => {
       const losses = weighted.filter(item => item.value < 0).sort((a, b) => a.value - b.value);
       const others = figureModel.options.filter(other => other !== option).map(tag);
       node.textContent = `${decided} for ${tag(option)}${others.length ? ` and against ${list(others)}` : ""}`
-        + `${gains.length ? `, to achieve ${list(gains.map(item => item.criterion.label))}` : ""}`
-        + `${losses.length ? `, accepting ${list(losses.map(item => item.criterion.label))}` : ""}.`;
+        + `${gains.length ? `, to achieve ${list(gains.map(item => spliced(item.criterion.label)))}` : ""}`
+        + `${losses.length ? `, accepting ${list(losses.map(item => spliced(item.criterion.label)))}` : ""}.`;
     }
     return node;
   }
-  /** The confirmation line, where the fence has one. */
-  function confirmation(spec) {
-    if (!spec.matrix.confirmation) return null;
-    const node = element("p", {className: "pugh-confirmation"}, element("strong", {textContent: "Confirmation:"}), " ", spec.matrix.confirmation);
-    node.dataset.pughPart = "confirmation";
-    return node;
+  /** The Proposed winner box (artifact-ui.md, Decision figures): the report's bottom-line-up-front
+      box (render.py, the important callout's content-emphasis card) holding the Y-statement, then
+      the proposed option's success criterion where it has one. */
+  function proposed(spec, result, figureModel, pick) {
+    const letter = proposedLetter(result, figureModel, pick);
+    const box = element("aside", {className: "content-card content-emphasis pugh-proposed-box"},
+      statement(spec, result, figureModel, pick), successLine(letter && figureModel.byLetter[letter], "success"));
+    box.dataset.pughPart = "proposed";
+    box.setAttribute("aria-label", "Proposed winner");
+    return box;
   }
-  /** The band's pick changed (bless.js): the options list's radios show it and the Y-statement follows it. */
+  /** The band's pick changed (bless.js): the options list's radios show it and the Proposed winner box follows it. */
   document.addEventListener("obs-bless-change", () => {
     document.querySelectorAll('[data-figure-kind="pugh"].figure-pugh-ready').forEach(figure => {
       const shown = drawn.get(figure), picked = globalThis.obsBless.picked(figure.id);
       figure.querySelectorAll("[data-pugh-pick]").forEach(input => { input.checked = picked === input.value; });
-      const said = figure.querySelector('[data-pugh-part="statement"]');
-      if (shown && said && !shown.print) said.replaceWith(statement(shown.spec, shown.result, shown.figureModel, picked ?? undefined));
+      const box = (proposedOf(figure) ?? figure).querySelector('[data-pugh-part="proposed"]');
+      if (shown && box && !shown.print) box.replaceWith(proposed(shown.spec, shown.result, shown.figureModel, picked ?? undefined));
     });
   });
   /** An option's card: its letter and short name, datum or winner, its label where that says more
@@ -552,7 +594,7 @@ globalThis.obsPugh = (() => {
   /** A cell's text: "3 → 7", or a dash. */
   const tieText = cell => (cell.to === null ? "—" : `${number(cell.from)} → ${number(cell.to)}`);
   /** The Sensitivity tab (artifact-ui.md, Sensitivity): the winner's share of the draws as a bar,
-      the draw range its hover card; then the grid of tie weights, a criterion a row and an option
+      the draw range its hover card; then the grid of tie weights, each after its question, a criterion a row and an option
       a column, below ROWS_BELOW one block per option; the chosen line and the options that do not
       fit; and the ruling keys of the column the reader tapped. */
   function sensitivityPanel(figure, spec, result, figureModel, view, {print}) {
@@ -572,7 +614,7 @@ globalThis.obsPugh = (() => {
     share.dataset.pughShare = String(sensitivity.share);
     share.dataset.pughVerdict = sensitivity.verdict;
     if (!print) helped(share, "share").tabIndex = 0;
-    panel.append(share);
+    panel.append(question("share"), share);
     const columns = sensitivityGrid(result, figureModel);
     const ruled = letter => view.rulings[letter]?.ruling;
     const open = letter => {
@@ -622,7 +664,7 @@ globalThis.obsPugh = (() => {
           element("span", {className: "pugh-grid-name"}, ...criterionName(cell.criterion, index)), tieCell(column, cell, rowScale(index)))));
         blocks.append(block);
       }
-      panel.append(blocks);
+      panel.append(question("grid"), blocks);
     } else {
       const table = element("table", {className: "pugh-grid"});
       table.dataset.pughGrid = "table";
@@ -635,7 +677,7 @@ globalThis.obsPugh = (() => {
         body.append(row);
       });
       table.append(body);
-      panel.append(element("div", {className: "pugh-grid-box"}, table));
+      panel.append(question("grid"), element("div", {className: "pugh-grid-box"}, table));
     }
     const chosen = chosenLine(spec, result, figureModel);
     if (chosen) {
@@ -819,19 +861,22 @@ globalThis.obsPugh = (() => {
     tab.append(mark);
     tab.setAttribute("aria-label", `${label}, ${badge.says}`);
   }
-  /** A decision chapter's details (render.py, decision tabs): the page's element after the figure
-      that holds its tabs, in the same chapter body as the figure (the reading view, a page view or
-      the print book), or null where the figure holds them itself. */
-  function detailsOf(figure) {
+  /** A decision chapter's ``part`` (render.py, decision tabs): the page's element after the figure
+      that holds its Proposed winner box ("proposed") or its tabs ("details"), in the same chapter
+      body as the figure (the reading view, a page view or the print book), or null where the figure
+      holds it itself. */
+  function partOf(figure, part) {
     const anchor = figure.dataset.pughAnchor, body = figure.closest(".chapter-body");
     if (!anchor) return null;
-    return [...(body ?? document).querySelectorAll(`[data-pugh-details="${CSS.escape(anchor)}"]`)]
+    return [...(body ?? document).querySelectorAll(`[data-pugh-${part}="${CSS.escape(anchor)}"]`)]
       .find(node => node.closest(".chapter-body") === body) ?? null;
   }
-  /** The figure whose details ``details`` are, in the same chapter body. */
-  function figureOf(details) {
-    const body = details.closest(".chapter-body");
-    return [...(body ?? document).querySelectorAll(`[data-figure-kind="pugh"][data-pugh-anchor="${CSS.escape(details.dataset.pughDetails)}"]`)]
+  const detailsOf = figure => partOf(figure, "details");
+  const proposedOf = figure => partOf(figure, "proposed");
+  /** The figure whose details or Proposed winner box ``holder`` holds, in the same chapter body. */
+  function figureOf(holder) {
+    const body = holder.closest(".chapter-body"), anchor = holder.dataset.pughDetails ?? holder.dataset.pughProposed;
+    return [...(body ?? document).querySelectorAll(`[data-figure-kind="pugh"][data-pugh-anchor="${CSS.escape(anchor)}"]`)]
       .find(node => node.closest(".chapter-body") === body) ?? null;
   }
   /** The chapter's sections after the figure, which the page renders into the figure's details as
@@ -899,7 +944,7 @@ globalThis.obsPugh = (() => {
     const {result, figureModel} = decide(spec, view);
     const context = {figure, spec, result, figureModel, view, print};
     const all = tabsOf(figure);
-    const matrix = element("div", {className: "pugh-view"}, TABS[0].panel(context));
+    const matrix = element("div", {className: "pugh-view"}, question("matrix"), TABS[0].panel(context));
     view.winner = result.suggestion ? figureModel.byKey[result.suggestion.key].letter : "";
     if (!print && !view.locked && changed(view)) {
       const reset = element("button", {type: "button", className: "filter-pill pugh-reset", textContent: "Reset"});
@@ -908,8 +953,9 @@ globalThis.obsPugh = (() => {
       matrix.append(reset);
     }
     const picked = print || view.locked ? null : globalThis.obsBless?.asks(figure.id) ? globalThis.obsBless.picked(figure.id) : null;
-    const top = [solutions(figure, spec, result, figureModel, view, print), statement(spec, result, figureModel, picked ?? undefined),
-      confirmation(spec)].filter(Boolean);
+    const box = proposed(spec, result, figureModel, picked ?? undefined), holder = proposedOf(figure);
+    if (holder) holder.replaceChildren(box);
+    const top = [solutions(figure, spec, result, figureModel, view, print), holder ? null : box].filter(Boolean);
     const sections = all.filter(tab => tab.section).map(tab => tab.section);
     const details = detailsOf(figure);
     const place = (...below) => {
@@ -999,10 +1045,10 @@ globalThis.obsPugh = (() => {
   /** A figure's options as it letters and names them: letter, name and short name (model), for the
       bless pill's "Picked B · Close" (bless.js). */
   const options = spec => model(spec).options.map(({letter, name, short}) => ({letter, name, short}));
-  /** A page layout placed a decision chapter's details (figures.js, place): its figure draws them
-      there, as the reader sees it, or in a print copy as it prints. */
-  function placeDetails(details) {
-    const figure = figureOf(details);
+  /** A page layout placed a decision chapter's details or its Proposed winner box (figures.js, place):
+      its figure draws them there, as the reader sees it, or in a print copy as it prints. */
+  function placeDetails(holder) {
+    const figure = figureOf(holder);
     if (!figure?.classList.contains("figure-pugh-ready")) return;
     const spec = JSON.parse(figure.dataset.figureSpec);
     if (figure.closest(".print-book")) print(figure, spec);

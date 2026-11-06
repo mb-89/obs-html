@@ -99,7 +99,7 @@ def test_on_a_phone_the_matrix_is_rows_of_letters_and_nothing_scrolls_sideways(p
     assert layout["lines"] and set(layout["lines"]) == {1}
     # Potential solutions, then Details: the order and the Wins and Losses counts are the table's (artifact-ui.md,
     # Decision figures on a phone); a count counts the option's own texts and its arguments.
-    assert layout["order"] == (["options", "statement", "confirmation"] if anchor == THREE else ["options", "statement"])
+    assert layout["order"] == ["options"]
     assert layout["details"] == ["tabs"]
     assert layout["counts"] == ["wins B 2", "losses A 1", "losses C 2"] if anchor == THREE else layout["counts"]
     # Without sections after the figure, the figure has its four tabs only.
@@ -246,7 +246,7 @@ def test_where_there_is_room_an_option_reads_as_its_letter_and_short_name(phone_
 
     heads = matrix.locator("thead [data-pugh-option]").evaluate_all(
         "cells => cells.map(cell => cell.querySelector('.pugh-column-name')?.textContent ?? '')")
-    said = figure.locator('[data-pugh-part="statement"]').inner_text()
+    said = page.locator(f'[data-pugh-proposed="{THREE}"] [data-pugh-part="statement"]').inner_text()
     listed = figure.locator(".pugh-option-list summary").first.inner_text()
     matrix.locator('[data-pugh-tab="sensitivity"]').click()
     share = matrix.locator("[data-pugh-share]").inner_text()

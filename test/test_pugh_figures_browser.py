@@ -144,9 +144,9 @@ def test_the_page_decides_ctrls_test_vectors_and_the_matrix_tab_shows_the_decisi
     assert view["columns"] == ["A", "B", "C", "D"] and view["marked"] == ["C"]
     assert view["verdict"] == expected["verdict"]
     assert view["criteria"] == ["err", "speed", "cost"] and view["texts"] == ["wins", "losses"]
-    # Top to bottom: the options, one line each and closed; the Y-statement; the tabs (artifact-ui.md, Decision
-    # figures). Two decision figures in one chapter each hold their own tabs.
-    assert view["order"][:3] == ["options", "statement", "tabs"] and set(view["order"][3:]) == {"panel"}
+    # Top to bottom: the options, one line each and closed; the Proposed winner box; the tabs (artifact-ui.md,
+    # Decision figures). Two decision figures in one chapter each hold their own box and tabs.
+    assert view["order"][:3] == ["options", "proposed", "tabs"] and set(view["order"][3:]) == {"panel"}
     assert view["options"] == [[letter, False] for letter in "ABCD"]
     # Wins and losses are counts in the matrix, their texts on hover or tap.
     assert view["counts"] == {"wins": {"A": "1", "C": "1"}, "losses": {"B": "2"}}

@@ -5,8 +5,9 @@ Reader: whoever changes what a decision page shows above its tabs, its Y-stateme
 its Pareto and Sensitivity framing.
 
 The artifact is the phone deck (fixtures/phone-deck), built through the core once per run, as
-test_pugh_phone_browser.py builds it: "three" has context, concern, confirmation and marks with
-reasons, and two ``##`` sections after its figure; "five" is superseded. Pages are a desktop reader
+test_pugh_phone_browser.py builds it: "three" has context, concern, success criteria and marks with
+reasons, and two ``##`` sections after its figure; "five" is superseded, and one of its criteria's
+labels starts with an acronym, another with a code span. Pages are a desktop reader
 (1200 px) or an emulated phone (390 px, conftest.py, PHONE_CONTEXT).
 """
 import subprocess
@@ -74,35 +75,41 @@ def test_a_decision_chapter_reads_potential_solutions_then_details(reader_browse
     folded = page.evaluate(f"""() => document.querySelector('[data-pugh-details="{THREE}"] [data-pugh-part="tabs"]')
         .getClientRects().length""")
 
-    # The note's text, then the two sections the page draws, which fold like the note's own headings.
+    # The note's text, then the three sections the page draws, which fold like the note's own headings.
     assert [heading for heading in sections["headings"] if heading[0] == "H2"] == [
-        ["H2", "Potential solutions", True], ["H2", "Details", True]]
+        ["H2", "Potential solutions", True], ["H2", "Proposed winner", True], ["H2", "Details", True]]
     assert sections["figure"] == "three--potential-solutions" and sections["options"]
     assert sections["tabs"] == "three--details"
     assert sections["winnerLine"] == 0
     # They stand in the chapter's contents; the sections after the figure, now tabs, under Details.
     assert ["Potential solutions", "Three options and the record"] in sections["contents"]
+    assert ["Proposed winner", "Three options and the record"] in sections["contents"]
     assert ["Details", "Three options and the record"] in sections["contents"]
     assert ["The record", "Details"] in sections["contents"] and ["Earlier attempts", "Details"] in sections["contents"]
     assert folded == 0
     assert errors == []
 
 
-# The options list: each row's letter, short name, radio and marks; then the Y-statement and the confirmation.
+# The options list: each row's letter, short name, radio and marks; then the Proposed winner box: the
+# Y-statement and the success criterion.
 SOLUTIONS = """anchor => {
     const figure = document.getElementById(anchor), list = figure.querySelector('[data-pugh-part="options"]');
+    const box = document.querySelector(`[data-pugh-proposed="${anchor}"]`) ?? figure;
     return {rows: [...list.querySelectorAll('[data-pugh-option]')].map(row => ({option: row.dataset.pughOption,
                 line: row.querySelector('summary, .pugh-none-line')?.textContent.trim().replace(/\\s+/g, ' '),
                 radio: row.querySelector('input[type="radio"][data-pugh-pick]')?.value ?? null,
                 checked: row.querySelector('[data-pugh-pick]')?.checked ?? null,
                 tags: [...row.querySelectorAll('[data-pugh-tag]')].map(tag => tag.dataset.pughTag)})),
-            statement: figure.querySelector('[data-pugh-part="statement"]')?.textContent.trim(),
-            confirmation: figure.querySelector('[data-pugh-part="confirmation"]')?.textContent.trim() ?? null,
+            statement: box.querySelector('[data-pugh-part="statement"]')?.textContent.trim(),
+            success: box.querySelector('[data-pugh-part="success"]')?.textContent.trim() ?? null,
+            inFigure: figure.querySelectorAll('[data-pugh-part="statement"], [data-pugh-part="proposed"]').length,
             matrixPicks: document.querySelectorAll(`[data-pugh-details="${anchor}"] [data-pugh-pick], #${anchor} .pugh-matrix [data-pugh-pick], #${anchor} [data-pugh-form] [data-pugh-pick]`).length};
 }"""
 STATEMENT = ("In the context of a deck read on phones, facing where a verdict is kept, we decided for B · Artifact "
-             "and against A · Comment export and C · Answers file alone, to achieve Readable as the decision it answers, "
-             "Places that hold the verdict and Effort for the reader.")
+             "and against A · Comment export and C · Answers file alone, to achieve readable as the decision it answers, "
+             "places that hold the verdict and effort for the reader.")
+SUCCESS_B = "Success criterion: The answers check refuses an artifact without its answers."
+SUCCESS_C = "Success criterion: The server keeps every answers file it writes."
 
 
 def test_the_options_list_carries_the_pick_the_winner_mark_and_the_y_statement(phone_browser, deck):
@@ -124,18 +131,20 @@ def test_the_options_list_carries_the_pick_the_winner_mark_and_the_y_statement(p
     assert [row["tags"] for row in shown["rows"]] == [[], ["winner"], [], []]
     assert shown["matrixPicks"] == 0
     assert shown["statement"] == STATEMENT
-    assert shown["confirmation"] == "Confirmation: The answers check refuses an artifact without its answers."
+    assert shown["success"] == SUCCESS_B and shown["inFigure"] == 0
     # A pick is the band's pick; the sentence follows it; the band's pick checks its radio.
     assert picked[1] == "C" and [row["checked"] for row in picked[0]["rows"]] == [False, False, True, False]
     assert picked[0]["statement"] == (
         "In the context of a deck read on phones, facing where a verdict is kept, we decided for C · Answers file alone "
-        "and against A · Comment export and B · Artifact, to achieve Places that hold the verdict and Effort for the reader, "
-        "accepting Readable as the decision it answers.")
+        "and against A · Comment export and B · Artifact, to achieve places that hold the verdict and effort for the reader, "
+        "accepting readable as the decision it answers.")
+    assert picked[0]["success"] == SUCCESS_C
     assert [row["checked"] for row in none["rows"]] == [False, False, False, True]
     assert none["statement"] == ("In the context of a deck read on phones, facing where a verdict is kept, we decided "
                                  "against all of A · Comment export, B · Artifact and C · Answers file alone.")
+    assert none["success"] is None
     assert cleared[1] is None and not any(row["checked"] for row in cleared[0]["rows"])
-    assert cleared[0]["statement"] == STATEMENT
+    assert cleared[0]["statement"] == STATEMENT and cleared[0]["success"] == SUCCESS_B
     assert errors == []
 
 
@@ -146,11 +155,13 @@ def test_a_superseded_decision_says_so_at_its_top_and_its_statement_needs_no_con
         const note = body.querySelector('[data-pugh-superseded]'), heading = body.querySelector('h1');
         return {text: note?.textContent.trim(), after: Boolean(note && heading.compareDocumentPosition(note) & Node.DOCUMENT_POSITION_FOLLOWING),
                 before: Boolean(note && [...body.querySelectorAll('p')].indexOf(note) === 0)}; }""")
-    statement = page.locator(f'#{FIVE} [data-pugh-part="statement"]').inner_text()
+    statement = page.locator(f'[data-pugh-proposed="{FIVE}"] [data-pugh-part="statement"]').inner_text()
 
     assert top == {"text": "Superseded by Decision 7, the deck moves to the wiki", "after": True, "before": True}
     assert statement.startswith("We decided for C · The repository and against ")
-    assert page.locator(f'#{FIVE} [data-pugh-part="confirmation"]').count() == 0
+    # A label spliced in keeps its case where it starts with an acronym or a code span.
+    assert statement.endswith(", to achieve `serve` reach from a phone and CI upkeep.")
+    assert page.locator(f'[data-pugh-proposed="{FIVE}"] [data-pugh-part="success"]').count() == 0
     assert errors == []
 
 
@@ -274,8 +285,8 @@ def test_the_pareto_plot_colours_each_option_as_its_chip_and_labels_its_axes(rea
 
 
 def test_a_print_shows_the_solutions_expanded_and_the_matrix_under_details(reader_browser, deck):
-    """artifact-ui.md, Decision figures: print shows every option expanded, the Y-statement and the
-    confirmation, then under Details the Matrix tab and the chapter's sections, with no tabs; the
+    """artifact-ui.md, Decision figures: print shows every option expanded, the Proposed winner box,
+    then under Details the Matrix tab and the chapter's sections, with no tabs; the
     reader's view is as before afterwards."""
     page, errors = _open(reader_browser, deck, 1200, "three")
     page.locator(f'[data-pugh-details="{THREE}"] [data-pugh-tab="pareto"]').click()
@@ -287,8 +298,10 @@ def test_a_print_shows_the_solutions_expanded_and_the_matrix_under_details(reade
             const book = document.querySelector('.print-book');
             const copy = [...book.querySelectorAll('[data-figure-kind="pugh"]')].find(node => node.dataset.pughAnchor === anchor);
             const details = [...book.querySelectorAll(`[data-pugh-details="${anchor}"]`)];
+            const boxes = [...book.querySelectorAll(`[data-pugh-proposed="${anchor}"] [data-pugh-part="proposed"]`)];
             shown = {open: [...copy.querySelectorAll('.pugh-option-list details')].filter(item => item.open).length,
                      parts: [...copy.querySelector('.pugh-figure-view').children].map(part => part.dataset.pughPart),
+                     proposed: boxes.map(box => [...box.children].map(part => part.dataset.pughPart)),
                      details: details.length, matrix: details.reduce((total, node) => total + node.querySelectorAll('.pugh-matrix').length, 0),
                      tabs: book.querySelectorAll('[data-pugh-tab], [data-pugh-pick]').length,
                      record: book.textContent.split('Every answer is kept with the version').length - 1};
@@ -303,6 +316,111 @@ def test_a_print_shows_the_solutions_expanded_and_the_matrix_under_details(reade
     # Details may run over more than one sheet; the matrix and each section print once.
     assert printed["details"] >= 1
     assert {key: value for key, value in printed.items() if key != "details"} == {
-        "open": 3, "parts": ["options", "statement", "confirmation"], "matrix": 1, "tabs": 0, "record": 1}
+        "open": 3, "parts": ["options"], "proposed": [["statement", "success"]], "matrix": 1, "tabs": 0, "record": 1}
     assert after == "pareto"
+    assert errors == []
+
+
+# The Proposed winner section: its box, how it is drawn beside a real bottom-line-up-front box, and
+# an option's success criterion in its expander.
+PROPOSED = """anchor => {
+    const holder = document.querySelector(`[data-pugh-proposed="${anchor}"]`);
+    const box = holder?.querySelector('[data-pugh-part="proposed"]'), statement = box?.querySelector('[data-pugh-part="statement"]');
+    const bluf = Object.assign(document.createElement('aside'), {className: 'content-card content-emphasis'});
+    bluf.append(Object.assign(document.createElement('p'), {textContent: 'Bottom line.'}));
+    holder.closest('[data-chapter-body]').append(bluf);
+    const look = node => { const style = getComputedStyle(node);
+        return [style.backgroundColor, style.borderTopColor, style.borderTopWidth, style.borderRadius, style.paddingTop]; };
+    const said = {section: holder?.closest('[data-heading-section]')?.dataset.headingSection ?? null,
+            classes: box ? [...box.classList].filter(name => name.startsWith('content-')) : [],
+            sameLook: Boolean(box) && JSON.stringify(look(box)) === JSON.stringify(look(bluf)),
+            parts: box ? [...box.children].map(part => part.dataset.pughPart) : [],
+            bold: statement ? Number(getComputedStyle(statement).fontWeight) >= 600 || Boolean(statement.querySelector('strong, b')) : null,
+            expanded: Object.fromEntries([...document.getElementById(anchor).querySelectorAll('[data-pugh-option] details')].map(details =>
+                [details.closest('[data-pugh-option]').dataset.pughOption,
+                 details.querySelector('[data-pugh-part="option-success"]')?.textContent.trim() ?? null]))};
+    bluf.remove();
+    return said;
+}"""
+
+
+def test_the_proposed_winner_is_a_box_like_the_bottom_line_and_each_option_says_its_success(phone_browser, deck):
+    """artifact-ui.md, Decision figures: after Potential solutions, the Proposed winner section holds
+    one box drawn as the report's bottom-line-up-front box, the Y-statement, not bold, then the
+    proposed option's success criterion; each option's expander shows its own."""
+    page, errors = _open(phone_browser, deck, 390, "three")
+
+    shown = page.evaluate(PROPOSED, THREE)
+
+    assert shown["section"] == "three--proposed-winner"
+    assert shown["classes"] == ["content-card", "content-emphasis"] and shown["sameLook"]
+    assert shown["parts"] == ["statement", "success"] and shown["bold"] is False
+    assert shown["expanded"] == {"A": None, "B": SUCCESS_B, "C": SUCCESS_C}
+    assert errors == []
+
+
+# Each options row's centre lines: the radio, the expander's arrow, the letter chip and the short
+# name (the text after the chip), or the None of the above line; in px from the row's top.
+CENTRES = """anchor => {
+    const centre = node => { const box = node.getBoundingClientRect(); return (box.top + box.bottom) / 2; };
+    const textCentre = (node, after) => {
+        const range = document.createRange();
+        range.setStartAfter(after);
+        range.setEnd(node, node.childNodes.length);
+        const box = range.getClientRects()[0];
+        return box ? (box.top + box.bottom) / 2 : null;
+    };
+    return [...document.getElementById(anchor).querySelectorAll('[data-pugh-option]')].map(row => {
+        const chip = row.querySelector('summary .pugh-letter'), arrow = row.querySelector('summary [data-pugh-arrow]');
+        const parts = {radio: centre(row.querySelector('[data-pugh-pick]'))};
+        if (chip) Object.assign(parts, {arrow: arrow ? centre(arrow) : null, chip: centre(chip), name: textCentre(chip.parentElement, chip)});
+        else parts.line = centre(row.querySelector('.pugh-none-line'));
+        return [row.dataset.pughOption, parts];
+    });
+}"""
+
+
+@pytest.mark.parametrize("width", [390, 1200])
+def test_each_options_row_holds_its_radio_arrow_letter_and_name_on_one_centre_line(request, deck, width):
+    """artifact-ui.md, Decision figures: in every row of Potential solutions, None of the above
+    included, the radio, the expander's arrow, the letter chip and the short name share one
+    vertical centre, on a phone and on a desktop."""
+    browser = request.getfixturevalue("phone_browser" if width < 600 else "reader_browser")
+    page, errors = _open(browser, deck, width, "three")
+
+    rows = page.evaluate(CENTRES, THREE)
+
+    assert [option for option, _ in rows] == ["A", "B", "C", "none"]
+    for option, parts in rows:
+        assert None not in parts.values(), (option, parts)
+        assert max(parts.values()) - min(parts.values()) <= 1, (option, parts)
+    assert errors == []
+
+
+# Each Details chart's question line: the panel's questions in order, and what each comes before.
+QUESTIONS = """anchor => [...document.querySelectorAll(`[data-pugh-details="${anchor}"] [role="tabpanel"]`)]
+    .filter(panel => !panel.classList.contains('pugh-extra')).map(panel => [panel.id.split('--pugh-panel-')[1],
+        [...panel.querySelectorAll('[data-pugh-question]')].map(line => {
+            const next = line.nextElementSibling;
+            return [line.textContent.trim(), next?.dataset.pughForm ?? (next?.dataset.pughShare !== undefined ? 'share' : null)
+                ?? next?.dataset.pughGrid ?? next?.querySelector('[data-pugh-grid]')?.dataset.pughGrid ?? null];
+        })])"""
+MATRIX_QUESTION = "How does each option compare with the datum, criterion by criterion?"
+SHARE_QUESTION = "Does the winner still win when every weight shifts a little at random?"
+GRID_QUESTION = "How far must each weight move before another option wins?"
+
+
+@pytest.mark.parametrize("width", [390, 1200])
+def test_each_chart_opens_with_the_question_it_answers(request, deck, width):
+    """artifact-ui.md, Decision figures: the matrix, the Sensitivity bar and the Sensitivity grid each
+    open with one line, the question it answers; the Checklist and Pareto have none."""
+    browser = request.getfixturevalue("phone_browser" if width < 600 else "reader_browser")
+    page, errors = _open(browser, deck, width, "three")
+
+    questions = dict(page.evaluate(QUESTIONS, THREE))
+
+    form, grid = ("rows", "blocks") if width < 600 else ("table", "table")
+    assert questions["matrix"] == [[MATRIX_QUESTION, form]]
+    assert questions["sensitivity"] == [[SHARE_QUESTION, "share"], [GRID_QUESTION, grid]]
+    assert questions["checklist"] == [] and questions["pareto"] == []
     assert errors == []
