@@ -72,7 +72,7 @@
     const changedHtmlNotice = {
         id: "changed-html", severity: "information", title: "This HTML has changed",
         details: [
-            "Comments, edits or reader settings changed since this HTML was last saved. " +
+            "Comments or edits changed since this HTML was last saved. " +
                 "Download the changed HTML to keep them; leaving the page asks first.",
             artifactDownload,
         ],
