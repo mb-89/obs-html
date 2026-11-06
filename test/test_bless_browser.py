@@ -452,3 +452,54 @@ def test_screens_open_on_the_first_chapter_and_home_goes_there(deck, phone_brows
     expect(page.locator("[data-active-chapter]")).to_have_attribute("data-chapter", "home")
     assert errors == []
 
+
+def test_a_verdict_never_walks_and_a_second_press_clears_it(deck, phone_browser) -> None:
+    """artifact-ui.md, Bless verdicts: a complete verdict stays on its chapter; the active key, the
+    active pick, pressed again, clears the verdict to pending, closes the comment and lowers Send."""
+    from playwright.sync_api import expect
+
+    page, errors = _phone(phone_browser, f"{deck.as_uri()}#record")
+    pill, send, entry = (page.locator("[data-bless-pill]"), page.locator("[data-bless-send]"),
+                         page.locator("[data-bless-entry]"))
+    events = page.evaluate_handle("""() => {
+        const seen = [];
+        document.addEventListener('obs-bless-change', ({detail}) => seen.push(detail.chapter));
+        return seen;
+    }""")
+    page.locator('[data-bless-key="bless"]').click()
+    expect(pill).to_have_text("Blessed")
+    expect(send).to_have_text("Send 1/2")
+    assert _active(page) == "record"
+    page.locator('[data-bless-key="bless"]').click()
+    expect(pill).to_have_text(PENDING)
+    expect(send).to_have_text("Send 0/2")
+
+    for verdict in ("decline", "ask", "pick"):
+        page.locator(f'[data-bless-key="{verdict}"]').click()
+        if verdict == "pick":
+            page.locator(f'[data-bless-pick="{FIGURE}:C"]').click()
+        page.locator("[data-bless-comment]").fill("Because.")
+        page.locator("[data-bless-comment]").press("Enter")
+        expect(send).to_have_text("Send 1/2")
+        assert _active(page) == "record"
+        page.locator(f'[data-bless-key="{verdict}"]').click()
+        expect(pill).to_have_text(PENDING)
+        expect(entry).to_be_hidden()
+        expect(send).to_have_text("Send 0/2")
+    _fits(page)
+
+    # The active pick, pressed again, clears too; the API toggles the same way.
+    page.locator('[data-bless-key="pick"]').click()
+    page.locator(f'[data-bless-pick="{FIGURE}:C"]').click()
+    assert page.evaluate(f"obsBless.picked('{FIGURE}')") == "C"
+    page.locator(f'[data-bless-pick="{FIGURE}:C"]').click()
+    expect(pill).to_have_text(PENDING)
+    expect(entry).to_be_hidden()
+    assert page.evaluate(f"obsBless.picked('{FIGURE}')") is None
+    page.evaluate(f"obsBless.pick('{FIGURE}', 'C')")
+    expect(pill).to_have_text("Picked C · Answers file alone · needs a comment")
+    page.evaluate(f"obsBless.pick('{FIGURE}', 'C')")
+    expect(pill).to_have_text(PENDING)
+    assert events.json_value() and set(events.json_value()) == {"record"}
+    assert errors == []
+

@@ -766,6 +766,10 @@ letter); Enter confirms the comment and closes the entry. A verdict never walks:
 user, 6 Nov 2026 (work issue `feature/deck-shell-verdicts-20261106`), the reader moves on by
 swipe, the keys or the arrows, so the chapter stays after a verdict.
 
+Verdicts toggle, by the same decision: the active key (Bless, Decline, Ask or Pick) or the
+active pick ("Pick B", the band's or the figure's), chosen again, clears the verdict back to
+"Bless pending". The comment entry closes, and Send's count drops.
+
 **Send** shows in the band, on every chapter, while any chapter asks: "Send 1/2", the complete
 verdicts of the asking chapters. It is disabled until one is complete, and hands one payload to
 the answer sink ([[capabilities/answers]]); [[capabilities/bless]] owns its fields. A sent
