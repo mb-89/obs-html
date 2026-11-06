@@ -21,7 +21,7 @@ def test_help_is_the_complete_cli_reference(capsys) -> None:
     output = capsys.readouterr().out
     for option in ("DOCUMENT", "DESTINATION", "--config", "--check",
                    "--export-pdf", "--output", "--check-rendered", "--timings", "--embed-attachments",
-                   "Editions", "Exit status"):
+                   "--build-own-spec", "Editions", "Exit status"):
         assert option in output
 
 
@@ -72,12 +72,32 @@ def _input_error(capsys, source: object, field: str) -> None:
     (["--print-chapter", "a.html", "intro", "--timings"], "--timings"),
     ([FIXTURE, "x.html", "--chapter-format", "text"], "--chapter-format"),
     ([FIXTURE, FIXTURE], "DESTINATION"),
+    (["--build-own-spec", "x.html", FIXTURE], "DOCUMENT"),
+    (["--build-own-spec", "x.html", "--vault-root", "vault"], "--vault-root"),
 ])
 def test_invalid_option_combinations_fail(arguments, field, capsys) -> None:
     with pytest.raises(SystemExit) as exit_info:
         _run(*arguments)
     assert exit_info.value.code == 2
     _input_error(capsys, "obs-html", field)
+
+
+def test_a_package_without_its_specification_names_the_manifest_and_the_build(monkeypatch, capsys) -> None:
+    monkeypatch.setattr(cli, "OWN_SPEC", "no-such-folder")
+    with pytest.raises(SystemExit):
+        _run("--build-own-spec", "x.html")
+    _input_error(capsys, "obs-html", "--build-own-spec")
+
+
+def test_a_failed_core_build_of_the_own_specification_names_the_cores_message(monkeypatch, capsys) -> None:
+    def core(command, **_):
+        assert command[1:3] == ["-m", "obs.document"] and "--execute-commands" in command
+        return subprocess.CompletedProcess(command, 2, stdout="", stderr="the core said why")
+    monkeypatch.setattr(cli.subprocess, "run", core)
+    with pytest.raises(SystemExit):
+        _run("--build-own-spec", "x.html")
+    error = capsys.readouterr().err
+    assert "\nobs-html: --build-own-spec: " in f"\n{error}" and "the core said why" in error
 
 
 def test_a_document_that_is_not_json_names_the_file(tmp_path, capsys) -> None:
