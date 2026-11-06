@@ -15,6 +15,8 @@ uv run pytest
 
 Integrations also run the parity gate against the interim reference; its module docstring is
 its reference: `uv run pytest test/test_parity_browser.py`.
+[test/parity/features.md](test/parity/features.md) lists every interim feature and its status here;
+its gate, `test/parity/test_parity_table.py`, says what each status needs.
 
 ## Browser tests
 
