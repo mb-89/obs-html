@@ -9,6 +9,8 @@ to the real obs-html serve (test/serving.py); the answers it writes build the an
 shows each verdict read-only.
 """
 import json
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -16,7 +18,6 @@ from jsonschema import Draft202012Validator
 
 import serving
 from conftest import CORE_ROOT, built_once
-from obs.document import PACKAGED_CAPABILITY_REFERENCE, build_document, read_capability_reference
 from obs_html import cli
 
 pytestmark = pytest.mark.browser
@@ -27,8 +28,9 @@ PHONE = {"width": 390, "height": 800}
 
 
 def _artifact(folder: Path, name: str, answers: Path | None = None) -> Path:
-    document = build_document(DECK, read_capability_reference(PACKAGED_CAPABILITY_REFERENCE), answers=answers)
-    (folder / f"{name}.json").write_text(json.dumps(document), encoding="utf-8")
+    """The deck's Document, as obs-document builds it (with ``answers``, --answers), and its artifact."""
+    subprocess.run([sys.executable, "-m", "obs.document", "--source", str(DECK), "--document", str(folder / f"{name}.json"),
+                    *(["--answers", str(answers)] if answers else [])], check=True)
     assert cli.main([str(folder / f"{name}.json"), str(folder / f"{name}.html")]) == 0
     return folder / f"{name}.html"
 
