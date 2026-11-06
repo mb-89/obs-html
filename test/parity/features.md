@@ -161,7 +161,7 @@ the gate reads only the code spans.
 
 | Feature | Interim | Integrated | Status | Evidence |
 |---|---|---|---|---|
-| Default source and output | No `--source` builds the tool's spec folder into `data/data_output/document.html`. | `obs-document` needs `--source` and `--destination`; `obs-html` needs DOCUMENT and DESTINATION. | missing | #3 (proposed: feature/one-call-build-takes-a-vault-folder-20261106) |
+| Default source and output | No `--source` builds the tool's spec folder into `data/data_output/document.html`. | `obs-document` needs `--source` and `--destination`; `obs-html` needs DOCUMENT and DESTINATION: a core default would hard-code one repository's layout and one adapter's output. | known difference | [cli](spec/design_input/cli.md#one-call-build) |
 | Output inside the vault refused | Generation refuses an output inside the source vault. | `obs-document --destination` inside the vault is written. | missing | #3 (proposed: fix/one-call-build-refuses-output-inside-the-vault-20261106) |
 | Check without running commands | `--check` accepts `cmd` fences and checks only their syntax. | Without `--execute-commands` a `cmd` fence fails the build, naming the note and the flag. | known difference | #186; `test/test_command_fences.py::test_without_authorization_a_cmd_fence_fails_naming_its_note_and_the_flag` |
 | Settings key namespace | `obsHtml` keys for records, members, metricsFrom, projection, document. | The core's keys are `obs.*`; the presentation profile stays `obsHtml`. | known difference | #201 |
