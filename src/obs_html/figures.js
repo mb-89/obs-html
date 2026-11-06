@@ -855,6 +855,7 @@
     axis: figure => globalThis.obsEquations.option("axis", figure),
     swap: figure => globalThis.obsEquations.option("swap", figure),
     family: figure => globalThis.obsEquations.option("family", figure),
+    parallel: figure => globalThis.obsEquations.option("parallel", figure),
   };
   function optionsMenu(figure) {
     const keys = (figure.dataset.figureOptions || "").split(" ").filter(key => FIGURE_OPTIONS[key]);
@@ -862,7 +863,8 @@
     const {toggle, panel} = globalThis.obsOptionsMenu({
       label: "Figure options", toggleClass: "figure-options-toggle", panelClass: "figure-options",
     });
-    panel.append(...keys.map(key => FIGURE_OPTIONS[key](figure)));
+    // A kind's option may not apply to one figure: its builder then returns nothing.
+    panel.append(...keys.map(key => FIGURE_OPTIONS[key](figure)).filter(Boolean));
     figure.append(toggle, panel);
   }
   function initialize(figure) {

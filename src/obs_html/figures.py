@@ -138,7 +138,7 @@ FIGURE_KINDS: dict[str, FigureKind] = {
     "mermaid": FigureKind(_svg_body),
     "plantuml": FigureKind(_svg_body),
     # Plotted with the plotting library; evaluated and solved with the maths library.
-    "equations": FigureKind(_equations_body, options=("legend", "trace", "axis", "swap", "family"),
+    "equations": FigureKind(_equations_body, options=("legend", "trace", "axis", "swap", "family", "parallel"),
                             features=("plotting", "equations")),
 }
 """The figure kinds this adapter renders, by the core's kind (obs src/obs/figure.py, FIGURE_KINDS)."""

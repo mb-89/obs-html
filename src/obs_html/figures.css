@@ -274,6 +274,66 @@
     margin: 0.25rem 0 0;
 }
 
+/* An equation figure's parallel-coordinates plot (equations.js) above its curves. */
+.equation-parallel[hidden] {
+    display: none;
+}
+
+.equation-parallel .parallel-canvas {
+    display: block;
+    margin: 0 auto;
+    font-family: var(--font-interface);
+    font-size: 11px;
+    max-width: 100%;
+}
+
+.equation-parallel-warning {
+    font-family: var(--font-interface);
+    font-size: 0.8rem;
+    margin: 0 0 0.25rem;
+}
+
+.equation-parallel .parallel-line {
+    fill: none;
+    stroke: var(--color-border);
+    stroke-opacity: 0.5;
+    stroke-width: 1;
+}
+
+.equation-parallel .parallel-line-selected {
+    stroke: var(--color-accent, currentColor);
+    stroke-opacity: 0.8;
+}
+
+.equation-parallel .parallel-axis-line {
+    stroke: currentColor;
+}
+
+.equation-parallel .parallel-bar {
+    fill: currentColor;
+    fill-opacity: 0.25;
+}
+
+.equation-parallel .parallel-tick,
+.equation-parallel .parallel-axis-label {
+    fill: currentColor;
+}
+
+.equation-parallel .parallel-axis-label {
+    cursor: grab;
+    font-weight: 600;
+}
+
+.equation-parallel .parallel-brush {
+    fill: var(--color-accent, currentColor);
+    fill-opacity: 0.3;
+}
+
+.equation-parallel .parallel-strip {
+    cursor: ns-resize;
+    fill: transparent;
+}
+
 .figure-chart g.legend:focus {
     outline: var(--border-width) solid var(--color-border);
 }

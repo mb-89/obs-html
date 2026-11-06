@@ -354,6 +354,30 @@
                       0.5,
                       1
                     ]
+                  },
+                  "parallelCoordinates": {
+                    "shown": false,
+                    "axes": [
+                      {
+                        "label": "throttle",
+                        "variable": "throttle",
+                        "dimension": {},
+                        "values": [
+                          0.0,
+                          0.25,
+                          0.5,
+                          0.75,
+                          1.0
+                        ],
+                        "siValues": [
+                          0,
+                          0.25,
+                          0.5,
+                          0.75,
+                          1
+                        ]
+                      }
+                    ]
                   }
                 }
               },
@@ -676,7 +700,71 @@
                       "dimension": {},
                       "axis": "primary"
                     }
-                  ]
+                  ],
+                  "parallelCoordinates": {
+                    "shown": false,
+                    "axes": [
+                      {
+                        "label": "zeta",
+                        "variable": "zeta",
+                        "dimension": {},
+                        "values": [
+                          0.05,
+                          0.5375,
+                          1.025,
+                          1.5125,
+                          2.0
+                        ],
+                        "siValues": [
+                          0.05,
+                          0.5375,
+                          1.025,
+                          1.5125,
+                          2
+                        ]
+                      },
+                      {
+                        "label": "w",
+                        "variable": "w",
+                        "dimension": {
+                          "time": -1
+                        },
+                        "values": [
+                          0.5,
+                          1.625,
+                          2.75,
+                          3.875,
+                          5.0
+                        ],
+                        "siValues": [
+                          0.5,
+                          1.625,
+                          2.75,
+                          3.875,
+                          5
+                        ]
+                      },
+                      {
+                        "label": "u",
+                        "variable": "u",
+                        "dimension": {},
+                        "values": [
+                          0.0,
+                          0.5,
+                          1.0,
+                          1.5,
+                          2.0
+                        ],
+                        "siValues": [
+                          0,
+                          0.5,
+                          1,
+                          1.5,
+                          2
+                        ]
+                      }
+                    ]
+                  }
                 }
               },
               "children": []
@@ -820,6 +908,940 @@
                       "axis": "primary"
                     }
                   ]
+                }
+              },
+              "children": []
+            }
+          ]
+        }
+      ],
+      "children": [],
+      "metadata": {}
+    },
+    {
+      "id": "sweeps",
+      "title": "Sweeps",
+      "content": [
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "sweeps"
+          },
+          "children": []
+        },
+        {
+          "type": "markdown",
+          "attrs": {},
+          "children": []
+        },
+        {
+          "type": "section",
+          "attrs": {
+            "level": 1
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Sweeps"
+            }
+          ]
+        },
+        {
+          "type": "figures",
+          "attrs": {
+            "kind": "equations",
+            "caption": [
+              {
+                "type": "paragraph",
+                "attrs": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "attrs": {},
+                    "children": [],
+                    "text": "The step figure."
+                  }
+                ]
+              }
+            ],
+            "block": "step"
+          },
+          "children": [
+            {
+              "type": "equations",
+              "attrs": {
+                "equations": [
+                  {
+                    "source": "y'' + 2*zeta*w*y' + w**2*y = w**2*u",
+                    "lhs": {
+                      "op": "add",
+                      "args": [
+                        {
+                          "op": "mul",
+                          "args": [
+                            {
+                              "op": "pow",
+                              "args": [
+                                {
+                                  "symbol": "w"
+                                },
+                                {
+                                  "number": 2
+                                }
+                              ]
+                            },
+                            {
+                              "symbol": "y"
+                            }
+                          ]
+                        },
+                        {
+                          "op": "mul",
+                          "args": [
+                            {
+                              "number": 2
+                            },
+                            {
+                              "symbol": "w"
+                            },
+                            {
+                              "symbol": "zeta"
+                            },
+                            {
+                              "derivative": "y",
+                              "order": 1
+                            }
+                          ]
+                        },
+                        {
+                          "derivative": "y",
+                          "order": 2
+                        }
+                      ]
+                    },
+                    "rhs": {
+                      "op": "mul",
+                      "args": [
+                        {
+                          "symbol": "u"
+                        },
+                        {
+                          "op": "pow",
+                          "args": [
+                            {
+                              "symbol": "w"
+                            },
+                            {
+                              "number": 2
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                ],
+                "variables": {
+                  "t": {
+                    "quantity": {
+                      "unit": "s",
+                      "dimension": {
+                        "time": 1
+                      },
+                      "value": 0,
+                      "siValue": 0.0,
+                      "range": [
+                        0,
+                        10
+                      ],
+                      "siRange": [
+                        0.0,
+                        10.0
+                      ]
+                    }
+                  },
+                  "y": {
+                    "quantity": {
+                      "unit": "",
+                      "dimension": {}
+                    },
+                    "of": "t"
+                  },
+                  "zeta": {
+                    "quantity": {
+                      "unit": "",
+                      "dimension": {},
+                      "value": 0.5,
+                      "siValue": 0.5,
+                      "range": [
+                        0.1,
+                        1.5
+                      ],
+                      "siRange": [
+                        0.1,
+                        1.5
+                      ]
+                    }
+                  },
+                  "w": {
+                    "quantity": {
+                      "unit": "1/s",
+                      "dimension": {
+                        "time": -1
+                      },
+                      "value": 2,
+                      "siValue": 2.0,
+                      "range": [
+                        1,
+                        3
+                      ],
+                      "siRange": [
+                        1.0,
+                        3.0
+                      ]
+                    }
+                  },
+                  "u": {
+                    "quantity": {
+                      "unit": "",
+                      "dimension": {},
+                      "value": 1,
+                      "siValue": 1.0
+                    }
+                  }
+                },
+                "unknowns": [
+                  "y"
+                ],
+                "solution": {
+                  "method": "exact",
+                  "branches": [
+                    {
+                      "y": {
+                        "op": "add",
+                        "args": [
+                          {
+                            "symbol": "u"
+                          },
+                          {
+                            "op": "mul",
+                            "args": [
+                              {
+                                "op": "add",
+                                "args": [
+                                  {
+                                    "op": "mul",
+                                    "args": [
+                                      {
+                                        "number": -0.5
+                                      },
+                                      {
+                                        "symbol": "u"
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "op": "mul",
+                                    "args": [
+                                      {
+                                        "number": 0.5
+                                      },
+                                      {
+                                        "symbol": "u"
+                                      },
+                                      {
+                                        "symbol": "zeta"
+                                      },
+                                      {
+                                        "op": "pow",
+                                        "args": [
+                                          {
+                                            "op": "add",
+                                            "args": [
+                                              {
+                                                "number": -1
+                                              },
+                                              {
+                                                "op": "pow",
+                                                "args": [
+                                                  {
+                                                    "symbol": "zeta"
+                                                  },
+                                                  {
+                                                    "number": 2
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "number": -0.5
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              },
+                              {
+                                "op": "exp",
+                                "args": [
+                                  {
+                                    "op": "mul",
+                                    "args": [
+                                      {
+                                        "number": -1
+                                      },
+                                      {
+                                        "symbol": "t"
+                                      },
+                                      {
+                                        "symbol": "w"
+                                      },
+                                      {
+                                        "op": "add",
+                                        "args": [
+                                          {
+                                            "symbol": "zeta"
+                                          },
+                                          {
+                                            "op": "pow",
+                                            "args": [
+                                              {
+                                                "op": "add",
+                                                "args": [
+                                                  {
+                                                    "number": -1
+                                                  },
+                                                  {
+                                                    "op": "pow",
+                                                    "args": [
+                                                      {
+                                                        "symbol": "zeta"
+                                                      },
+                                                      {
+                                                        "number": 2
+                                                      }
+                                                    ]
+                                                  }
+                                                ]
+                                              },
+                                              {
+                                                "number": 0.5
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "op": "mul",
+                            "args": [
+                              {
+                                "op": "add",
+                                "args": [
+                                  {
+                                    "op": "mul",
+                                    "args": [
+                                      {
+                                        "number": -0.5
+                                      },
+                                      {
+                                        "symbol": "u"
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "op": "mul",
+                                    "args": [
+                                      {
+                                        "number": -0.5
+                                      },
+                                      {
+                                        "symbol": "u"
+                                      },
+                                      {
+                                        "symbol": "zeta"
+                                      },
+                                      {
+                                        "op": "pow",
+                                        "args": [
+                                          {
+                                            "op": "add",
+                                            "args": [
+                                              {
+                                                "number": -1
+                                              },
+                                              {
+                                                "op": "pow",
+                                                "args": [
+                                                  {
+                                                    "symbol": "zeta"
+                                                  },
+                                                  {
+                                                    "number": 2
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "number": -0.5
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              },
+                              {
+                                "op": "exp",
+                                "args": [
+                                  {
+                                    "op": "mul",
+                                    "args": [
+                                      {
+                                        "symbol": "t"
+                                      },
+                                      {
+                                        "symbol": "w"
+                                      },
+                                      {
+                                        "op": "add",
+                                        "args": [
+                                          {
+                                            "op": "pow",
+                                            "args": [
+                                              {
+                                                "op": "add",
+                                                "args": [
+                                                  {
+                                                    "number": -1
+                                                  },
+                                                  {
+                                                    "op": "pow",
+                                                    "args": [
+                                                      {
+                                                        "symbol": "zeta"
+                                                      },
+                                                      {
+                                                        "number": 2
+                                                      }
+                                                    ]
+                                                  }
+                                                ]
+                                              },
+                                              {
+                                                "number": 0.5
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "op": "mul",
+                                            "args": [
+                                              {
+                                                "number": -1
+                                              },
+                                              {
+                                                "symbol": "zeta"
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                },
+                "plot": {
+                  "sweep": "t",
+                  "x": {
+                    "source": "t",
+                    "tree": {
+                      "symbol": "t"
+                    },
+                    "dimension": {
+                      "time": 1
+                    }
+                  },
+                  "y": [
+                    {
+                      "source": "y",
+                      "tree": {
+                        "symbol": "y"
+                      },
+                      "dimension": {},
+                      "axis": "primary"
+                    }
+                  ],
+                  "parallelCoordinates": {
+                    "shown": true,
+                    "axes": [
+                      {
+                        "label": "zeta",
+                        "variable": "zeta",
+                        "dimension": {},
+                        "values": [
+                          0.2,
+                          0.5,
+                          0.8,
+                          1.3
+                        ],
+                        "siValues": [
+                          0.2,
+                          0.5,
+                          0.8,
+                          1.3
+                        ]
+                      },
+                      {
+                        "label": "w",
+                        "variable": "w",
+                        "dimension": {
+                          "time": -1
+                        },
+                        "values": [
+                          1.0,
+                          1.5,
+                          2.0,
+                          2.5,
+                          3.0
+                        ],
+                        "siValues": [
+                          1,
+                          1.5,
+                          2,
+                          2.5,
+                          3
+                        ]
+                      },
+                      {
+                        "label": "settling",
+                        "summary": "settlingTime",
+                        "of": {
+                          "source": "y",
+                          "tree": {
+                            "symbol": "y"
+                          },
+                          "dimension": {}
+                        },
+                        "dimension": {
+                          "time": 1
+                        },
+                        "tolerance": 0.02
+                      },
+                      {
+                        "label": "error area",
+                        "summary": "absoluteArea",
+                        "of": {
+                          "source": "u - y",
+                          "tree": {
+                            "op": "add",
+                            "args": [
+                              {
+                                "symbol": "u"
+                              },
+                              {
+                                "op": "mul",
+                                "args": [
+                                  {
+                                    "number": -1
+                                  },
+                                  {
+                                    "symbol": "y"
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          "dimension": {}
+                        },
+                        "dimension": {
+                          "time": 1
+                        }
+                      }
+                    ]
+                  }
+                }
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "type": "figures",
+          "attrs": {
+            "kind": "equations",
+            "caption": [
+              {
+                "type": "paragraph",
+                "attrs": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "attrs": {},
+                    "children": [],
+                    "text": "The cap figure."
+                  }
+                ]
+              }
+            ],
+            "block": "cap"
+          },
+          "children": [
+            {
+              "type": "equations",
+              "attrs": {
+                "equations": [
+                  {
+                    "source": "y = a + b*x + c*x**2",
+                    "lhs": {
+                      "symbol": "y"
+                    },
+                    "rhs": {
+                      "op": "add",
+                      "args": [
+                        {
+                          "symbol": "a"
+                        },
+                        {
+                          "op": "mul",
+                          "args": [
+                            {
+                              "symbol": "b"
+                            },
+                            {
+                              "symbol": "x"
+                            }
+                          ]
+                        },
+                        {
+                          "op": "mul",
+                          "args": [
+                            {
+                              "symbol": "c"
+                            },
+                            {
+                              "op": "pow",
+                              "args": [
+                                {
+                                  "symbol": "x"
+                                },
+                                {
+                                  "number": 2
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                ],
+                "variables": {
+                  "x": {
+                    "quantity": {
+                      "unit": "",
+                      "dimension": {},
+                      "value": 0,
+                      "siValue": 0.0,
+                      "range": [
+                        0,
+                        1
+                      ],
+                      "siRange": [
+                        0.0,
+                        1.0
+                      ]
+                    }
+                  },
+                  "a": {
+                    "quantity": {
+                      "unit": "",
+                      "dimension": {},
+                      "value": 0,
+                      "siValue": 0.0,
+                      "range": [
+                        0,
+                        1
+                      ],
+                      "siRange": [
+                        0.0,
+                        1.0
+                      ]
+                    }
+                  },
+                  "b": {
+                    "quantity": {
+                      "unit": "",
+                      "dimension": {},
+                      "value": 0,
+                      "siValue": 0.0,
+                      "range": [
+                        0,
+                        1
+                      ],
+                      "siRange": [
+                        0.0,
+                        1.0
+                      ]
+                    }
+                  },
+                  "c": {
+                    "quantity": {
+                      "unit": "",
+                      "dimension": {},
+                      "value": 0,
+                      "siValue": 0.0,
+                      "range": [
+                        0,
+                        1
+                      ],
+                      "siRange": [
+                        0.0,
+                        1.0
+                      ]
+                    }
+                  },
+                  "y": {
+                    "quantity": {
+                      "unit": "",
+                      "dimension": {}
+                    }
+                  }
+                },
+                "unknowns": [
+                  "y"
+                ],
+                "solution": {
+                  "method": "exact",
+                  "branches": [
+                    {
+                      "y": {
+                        "op": "add",
+                        "args": [
+                          {
+                            "symbol": "a"
+                          },
+                          {
+                            "op": "mul",
+                            "args": [
+                              {
+                                "symbol": "b"
+                              },
+                              {
+                                "symbol": "x"
+                              }
+                            ]
+                          },
+                          {
+                            "op": "mul",
+                            "args": [
+                              {
+                                "symbol": "c"
+                              },
+                              {
+                                "op": "pow",
+                                "args": [
+                                  {
+                                    "symbol": "x"
+                                  },
+                                  {
+                                    "number": 2
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                },
+                "plot": {
+                  "sweep": "x",
+                  "x": {
+                    "source": "x",
+                    "tree": {
+                      "symbol": "x"
+                    },
+                    "dimension": {}
+                  },
+                  "y": [
+                    {
+                      "source": "y",
+                      "tree": {
+                        "symbol": "y"
+                      },
+                      "dimension": {},
+                      "axis": "primary"
+                    }
+                  ],
+                  "parallelCoordinates": {
+                    "shown": false,
+                    "axes": [
+                      {
+                        "label": "a",
+                        "variable": "a",
+                        "dimension": {},
+                        "values": [
+                          0.0,
+                          0.0526315789473684,
+                          0.105263157894737,
+                          0.157894736842105,
+                          0.210526315789474,
+                          0.263157894736842,
+                          0.315789473684211,
+                          0.368421052631579,
+                          0.421052631578947,
+                          0.473684210526316,
+                          0.526315789473684,
+                          0.578947368421053,
+                          0.631578947368421,
+                          0.684210526315789,
+                          0.736842105263158,
+                          0.789473684210526,
+                          0.842105263157895,
+                          0.894736842105263,
+                          0.947368421052632,
+                          1.0
+                        ],
+                        "siValues": [
+                          0,
+                          0.0526315789473684,
+                          0.105263157894737,
+                          0.157894736842105,
+                          0.210526315789474,
+                          0.263157894736842,
+                          0.315789473684211,
+                          0.368421052631579,
+                          0.421052631578947,
+                          0.473684210526316,
+                          0.526315789473684,
+                          0.578947368421053,
+                          0.631578947368421,
+                          0.684210526315789,
+                          0.736842105263158,
+                          0.789473684210526,
+                          0.842105263157895,
+                          0.894736842105263,
+                          0.947368421052632,
+                          1
+                        ]
+                      },
+                      {
+                        "label": "b",
+                        "variable": "b",
+                        "dimension": {},
+                        "values": [
+                          0.0,
+                          0.0526315789473684,
+                          0.105263157894737,
+                          0.157894736842105,
+                          0.210526315789474,
+                          0.263157894736842,
+                          0.315789473684211,
+                          0.368421052631579,
+                          0.421052631578947,
+                          0.473684210526316,
+                          0.526315789473684,
+                          0.578947368421053,
+                          0.631578947368421,
+                          0.684210526315789,
+                          0.736842105263158,
+                          0.789473684210526,
+                          0.842105263157895,
+                          0.894736842105263,
+                          0.947368421052632,
+                          1.0
+                        ],
+                        "siValues": [
+                          0,
+                          0.0526315789473684,
+                          0.105263157894737,
+                          0.157894736842105,
+                          0.210526315789474,
+                          0.263157894736842,
+                          0.315789473684211,
+                          0.368421052631579,
+                          0.421052631578947,
+                          0.473684210526316,
+                          0.526315789473684,
+                          0.578947368421053,
+                          0.631578947368421,
+                          0.684210526315789,
+                          0.736842105263158,
+                          0.789473684210526,
+                          0.842105263157895,
+                          0.894736842105263,
+                          0.947368421052632,
+                          1
+                        ]
+                      },
+                      {
+                        "label": "c",
+                        "variable": "c",
+                        "dimension": {},
+                        "values": [
+                          0.0,
+                          0.0526315789473684,
+                          0.105263157894737,
+                          0.157894736842105,
+                          0.210526315789474,
+                          0.263157894736842,
+                          0.315789473684211,
+                          0.368421052631579,
+                          0.421052631578947,
+                          0.473684210526316,
+                          0.526315789473684,
+                          0.578947368421053,
+                          0.631578947368421,
+                          0.684210526315789,
+                          0.736842105263158,
+                          0.789473684210526,
+                          0.842105263157895,
+                          0.894736842105263,
+                          0.947368421052632,
+                          1.0
+                        ],
+                        "siValues": [
+                          0,
+                          0.0526315789473684,
+                          0.105263157894737,
+                          0.157894736842105,
+                          0.210526315789474,
+                          0.263157894736842,
+                          0.315789473684211,
+                          0.368421052631579,
+                          0.421052631578947,
+                          0.473684210526316,
+                          0.526315789473684,
+                          0.578947368421053,
+                          0.631578947368421,
+                          0.684210526315789,
+                          0.736842105263158,
+                          0.789473684210526,
+                          0.842105263157895,
+                          0.894736842105263,
+                          0.947368421052632,
+                          1
+                        ]
+                      }
+                    ]
+                  }
                 }
               },
               "children": []
@@ -1130,6 +2152,13 @@
       }
     },
     {
+      "id": "sweeps",
+      "type": "note",
+      "path": "sweeps.md",
+      "fields": {},
+      "fieldNodes": []
+    },
+    {
       "id": "chapter-curves",
       "type": "chapter",
       "note": "curves",
@@ -1139,6 +2168,18 @@
         "depth": "0",
         "slug": "curves",
         "sourcePath": "curves.md"
+      }
+    },
+    {
+      "id": "chapter-sweeps",
+      "type": "chapter",
+      "note": "sweeps",
+      "fields": {
+        "chapter": "Sweeps",
+        "title": "Sweeps",
+        "depth": "0",
+        "slug": "sweeps",
+        "sourcePath": "sweeps.md"
       }
     },
     {

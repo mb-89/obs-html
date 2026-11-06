@@ -648,7 +648,31 @@
                       "dimension": {},
                       "axis": "primary"
                     }
-                  ]
+                  ],
+                  "parallelCoordinates": {
+                    "shown": false,
+                    "axes": [
+                      {
+                        "label": "a",
+                        "variable": "a",
+                        "dimension": {},
+                        "values": [
+                          0.5,
+                          0.875,
+                          1.25,
+                          1.625,
+                          2.0
+                        ],
+                        "siValues": [
+                          0.5,
+                          0.875,
+                          1.25,
+                          1.625,
+                          2
+                        ]
+                      }
+                    ]
+                  }
                 }
               },
               "children": []
