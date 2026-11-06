@@ -3,6 +3,7 @@ import json
 import os
 import re
 import shutil
+import subprocess
 import sys
 import types
 from pathlib import Path
@@ -86,6 +87,37 @@ def fixture_artifact(tmp_path_factory) -> Path:
             "test/conftest.py: obs-html could not render the fixture Document test/fixtures/documents/document.json"
 
     return built_once(tmp_path_factory, "fixture-artifact", build) / "artifact.html"
+
+
+def _uv(*arguments: str, cwd: Path, environment: dict[str, str]) -> None:
+    result = subprocess.run(["uv", *arguments], cwd=cwd, env=environment, capture_output=True, text=True)
+    assert result.returncode == 0, f"test/conftest.py: uv {' '.join(arguments)} failed:\n{result.stderr}"
+
+
+@pytest.fixture(scope="session")
+def installed_wheels(tmp_path_factory) -> Path:
+    """The Python of a fresh virtual environment outside the checkout with the obs and obs-html
+    wheels, built once per run and shared by every test of the installed wheels; the lockfile's
+    dependencies come from uv's cache."""
+    if shutil.which("uv") is None:
+        pytest.fail("test/conftest.py: uv is not on PATH; install it (https://docs.astral.sh/uv/) to build the wheels")
+
+    def build(folder: Path) -> None:
+        environment = {key: value for key, value in os.environ.items() if key not in ("VIRTUAL_ENV", "PYTHONPATH")}
+        environment["UV_PROJECT_ENVIRONMENT"] = str(folder / "venv")
+        _uv("build", "--all-packages", "--wheel", "--offline", "--out-dir", str(folder / "dist"),
+            cwd=CORE_ROOT, environment=environment)
+        # The lockfile's dependencies of obs-html, from uv's cache; then the two wheels just built.
+        _uv("sync", "--frozen", "--offline", "--no-dev", "--no-install-workspace", "--package", "obs-html",
+            cwd=CORE_ROOT, environment=environment)
+        _uv("pip", "install", "--offline", "--no-deps", "--python", str(_venv_python(folder)),
+            *map(str, sorted((folder / "dist").glob("*.whl"))), cwd=folder, environment=environment)
+
+    return _venv_python(built_once(tmp_path_factory, "installed-wheels", build))
+
+
+def _venv_python(folder: Path) -> Path:
+    return folder / "venv" / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
 
 
 @pytest.fixture
