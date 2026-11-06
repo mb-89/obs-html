@@ -97,6 +97,14 @@ def test_invalid_sankey_graphs_fail(document) -> None:
     assert (failure.value.source, failure.value.field) == ("appendix.md", "figure.data.sankey.links[0].target")
 
 
+def test_a_sankey_graph_is_checked_against_the_core_s_one_shape(document) -> None:
+    _descriptors(document)["flow"]["data"]["sankey"]["nodes"][0]["weight"] = 1
+    with pytest.raises(InputError) as failure:
+        render(document, CONFIG)
+    assert (failure.value.source, failure.value.field) == ("appendix.md", "figure.data.sankey.nodes[0].weight")
+    assert failure.value.remedy.endswith("see obs capabilities/figure-descriptor")
+
+
 def test_log_axes_need_positive_limits(document) -> None:
     _descriptors(document)["response"]["panels"][0]["axes"][1]["limits"]["minimum"] = 0
     with pytest.raises(InputError) as failure:

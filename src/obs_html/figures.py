@@ -11,9 +11,9 @@ registers options, its options menu, and figures.css's one ``.obs-figure`` rule 
 frame. A kind is one ``FIGURE_KINDS`` entry: its body renderer, its options and the reader
 features it needs (features.py); it never changes the frame.
 
-A plot body reads two shapes of a FigureDescriptor's ``data`` (the core's figure.schema.json):
-``traces`` (numeric series drawn on the descriptor's panels) and ``sankey`` (a graph valid
-against sankey.schema.json).
+A plot body draws the two shapes of a FigureDescriptor's ``data``, which the core's
+figure.schema.json owns (obs input-model, Figure descriptor): ``traces`` (numeric series on the
+descriptor's panels) and ``sankey`` (a graph).
 """
 from __future__ import annotations
 
@@ -196,15 +196,17 @@ def render_figure(node: dict, chapter: str, position: int, caption: list[str], c
 
 @cache
 def _sankey_validator():
-    return Draft202012Validator(
-        json.loads(files("obs_html").joinpath("sankey.schema.json").read_text(encoding="utf-8")))
+    """The core's one Sankey graph shape: figure.schema.json's ``$defs/sankeyGraph``."""
+    schema = json.loads(files("obs").joinpath("figure.schema.json").read_text(encoding="utf-8"))
+    return Draft202012Validator({"$schema": schema["$schema"], "$defs": schema["$defs"],
+                                 "$ref": "#/$defs/sankeyGraph"})
 
 
 def _sankey_graph(graph, source: str, field: str = "data.sankey"):
     """A Sankey graph, checked as this adapter draws it: a sankey figure's ``graph`` or a
-    descriptor's ``data.sankey``."""
+    descriptor's ``data.sankey``, against the core's shape, then the rules a schema cannot state."""
     error = schema_error(list(_sankey_validator().iter_errors(graph)), source,
-                         "obs-html's sankey.schema.json", prefix=f"{FIGURE}.{field}")
+                         "obs capabilities/figure-descriptor", prefix=f"{FIGURE}.{field}")
     if error is not None:
         raise error
     nodes = graph["nodes"]
