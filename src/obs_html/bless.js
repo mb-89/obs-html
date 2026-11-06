@@ -2,7 +2,7 @@
    requests) shows a pill with its state in the top band and, beside it, the verdict keys Bless,
    Decline, Ask and Pick. Decline, Ask and Pick take a one-line comment in the band, under the
    keys; Pick takes another option of the chapter's decision figure by its letter, here or from
-   the option's column head ("Pick B"). A complete verdict opens the next chapter of the walk.
+   the option's column head ("Pick B"). A verdict never walks: the reader walks the chapters.
    Send hands every complete verdict to the answer sink (answers.js) as one payload whose fields
    obs's src/obs/answers.schema.json owns; spec/capabilities/bless.md owns the contract and
    artifact-ui.md the top band. The verdicts are session state; which were sent is kept in
@@ -119,21 +119,16 @@ globalThis.obsBless = (() => {
     comment.focus();
   }
   function closeEntry() { entry.hidden = true; }
-  function next() {
-    const step = document.querySelector('[data-step="1"]');
-    if (step && !step.disabled) step.click();
-  }
   function finish() {
-    if (!complete(verdicts.get(active))) { update(); return; }
-    closeEntry();
-    next();
+    if (complete(verdicts.get(active))) closeEntry();
+    update();
   }
   function choose(verdict) {
     const previous = verdicts.get(active);
     verdicts.set(active, {...previous, verdict, ...(verdict === "pick" ? {} : {pick: undefined})});
     update();
     if (NEEDS_COMMENT.has(verdict)) openEntry();
-    else { closeEntry(); next(); }
+    else closeEntry();
   }
   /** Pick another option of a decision figure of the active chapter, from the band or its column head. */
   function pick(anchor, letter) {

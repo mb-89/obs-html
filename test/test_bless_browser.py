@@ -184,7 +184,7 @@ def test_the_pill_keeps_its_text_while_the_band_has_room(deck, reader_browser) -
     assert errors == []
 
 
-def test_decline_without_a_comment_cannot_be_sent_and_a_complete_verdict_opens_the_next(deck, reader_browser) -> None:
+def test_decline_without_a_comment_cannot_be_sent_and_a_complete_verdict_stays(deck, reader_browser) -> None:
     from playwright.sync_api import expect
 
     page, errors = _open(reader_browser, deck.as_uri(), PHONE)
@@ -201,8 +201,9 @@ def test_decline_without_a_comment_cannot_be_sent_and_a_complete_verdict_opens_t
     expect(page.locator("[data-bless-send]")).to_have_text("Send 1/2")
     expect(page.locator("[data-bless-send]")).to_be_enabled()
     comment.press("Enter")
-    expect(page.locator("[data-active-chapter]")).to_have_attribute("data-chapter", "swipe")
     expect(page.locator("[data-bless-entry]")).to_be_hidden()
+    expect(page.locator("[data-bless-pill]")).to_have_text("Declined")
+    assert _active(page) == "record"  # The reader walks, not the verdict.
     assert errors == []
 
 
@@ -253,6 +254,8 @@ def test_send_hands_the_payload_with_the_weights_the_reader_set(built, reader_br
         expect(page.locator("[data-bless-comment]")).to_be_focused()
         page.locator("[data-bless-comment]").fill("C needs no second place.")
         page.locator("[data-bless-comment]").press("Enter")
+        assert _active(page) == "record"
+        page.locator('[data-step="1"]').click()
         expect(page.locator("[data-active-chapter]")).to_have_attribute("data-chapter", "swipe")
         page.locator('[data-bless-key="bless"]').click()
         expect(page.locator("[data-bless-send]")).to_have_text("Send 2/2")

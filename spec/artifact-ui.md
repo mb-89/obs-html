@@ -761,8 +761,10 @@ On such a chapter the top band shows, left of the notice icons:
   under the keys, and only then; Pick shows there the other options' letters ("Pick A"), as the
   figure's column heads do. There is no comment box in the page and no browser dialog.
 
-A complete verdict, a Bless or another verdict with its comment (and, for Pick, its letter, the
-comment confirmed with Enter), opens the next chapter of the walk.
+A verdict is complete as a Bless, or as another verdict with its comment (and, for Pick, its
+letter); Enter confirms the comment and closes the entry. A verdict never walks: decided by the
+user, 6 Nov 2026 (work issue `feature/deck-shell-verdicts-20261106`), the reader moves on by
+swipe, the keys or the arrows, so the chapter stays after a verdict.
 
 **Send** shows in the band, on every chapter, while any chapter asks: "Send 1/2", the complete
 verdicts of the asking chapters. It is disabled until one is complete, and hands one payload to
