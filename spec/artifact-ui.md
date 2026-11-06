@@ -31,6 +31,7 @@ Data-only card groups compose the existing `content-card` primitive in responsiv
 with headings, authored Markdown, and optional artifact-filtered metrics. Metrics use compact,
 wrapping label/value rows; at ordinary desktop widths each metric should remain one compact
 label/value line, with wrapping reserved for narrow layouts or genuinely long labels.
+A card group extends within the reader and clear of the chapter controls, as a figure does.
 
 Within a metric block, labels share one aligned column and values share another;
 do not position every label/value pair independently.

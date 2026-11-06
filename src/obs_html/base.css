@@ -352,8 +352,10 @@ a:focus-visible {
     text-align: center;
 }
 
+/* A card group extends within the reader (the chapter scroll's width, 100cqw, which a docked bar
+   narrows), clear of the chapter controls, as a figure does (figures.css, .obs-figure). */
 .record-cards {
-    --record-cards-max-width: min(72rem, calc(100vw - 3rem));
+    --record-cards-max-width: min(72rem, calc(100cqw - 2 * max(1.5rem, var(--chapter-clearance-end))));
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 28rem), 1fr));
     gap: 1.5rem;

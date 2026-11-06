@@ -18,12 +18,13 @@
 // chapter controls (previous and next) are not exempt: they stay reachable.
 //
 // Argument: {views: ["pages", "continuous"], layouts: [null | [bar, direction] |
-// [bar, direction, contents], ...], firstChapterLayouts: [...]}; the latter run on the first
-// chapter only. A layout's contents, "collapsed" or "expanded", is set with the contents bar's
-// own collapse-all or expand-all action before the check, so it never depends on what opening
-// earlier chapters expanded. Returns a list of {view, layout, chapter, controls,
+// [bar, direction, contents], ...], firstChapterLayouts: [...], chapters?: [slug, ...]}; the
+// first-chapter layouts run on the first chapter only, and chapters, where given, limits the
+// check to those chapters. A layout's contents, "collapsed" or "expanded", is set with the
+// contents bar's own collapse-all or expand-all action before the check, so it never depends on
+// what opening earlier chapters expanded. Returns a list of {view, layout, chapter, controls,
 // faults: [{control, covering}]}.
-async (_, {views, layouts, firstChapterLayouts}) => {
+async (_, {views, layouts, firstChapterLayouts, chapters: only}) => {
     const CONTROLS = 'a[href], button, input:not([type="hidden"]), select, textarea, summary, ' +
         '[role="button"], [role="link"], [role="checkbox"], [role="switch"], [role="tab"], ' +
         '[contenteditable="true"]';
@@ -230,7 +231,8 @@ async (_, {views, layouts, firstChapterLayouts}) => {
         }
     };
     const chapters = [...document.querySelectorAll("[data-toc-tree] a")]
-        .map((link) => link.getAttribute("href").slice(1)).filter((slug) => !slug.includes("/"));
+        .map((link) => link.getAttribute("href").slice(1))
+        .filter((slug) => !slug.includes("/") && (!only || only.includes(slug)));
     const results = [];
     for (const view of views) {
         obsPages.setPaged(view === "pages");
