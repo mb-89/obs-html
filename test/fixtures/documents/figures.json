@@ -591,5 +591,6 @@
     "mermaid",
     "plantuml",
     "wikilinks"
-  ]
+  ],
+  "cssSnippets": []
 }
