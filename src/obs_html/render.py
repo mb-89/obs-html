@@ -27,6 +27,7 @@ from markdown_it import MarkdownIt
 
 from obs_html.bars import BarDefinition, discover_bars
 from obs_html.config import Config, paper
+from obs_html.features import included as included_features
 from obs_html.figures import FigureError, render_descriptor
 from obs_html.artifact_data import encode_artifact_data, prepare_artifact_scripts, serialize_artifact_data
 from obs_html.semantic_assets import SemanticAssets, markup
@@ -1032,6 +1033,10 @@ def _shell(model: dict[str, object], limits: list[dict[str, str]], stylesheet: s
         return package.joinpath(*parts).read_text(encoding="utf-8")
 
     bars = discover_bars()
+    features = included_features(model, trusted_runtime is not None)
+    canaries = "".join(f'\n  <script id="canary-{feature.key}">\n{read(feature.canary)}  </script>'
+                       for feature in features)
+    feature_code = "".join(f"{read(name)}\n" for feature in features for name in feature.code)
     bar_scripts = "\n".join(f"\n{bar.script}" for bar in bars if bar.script)
     data = serialize_artifact_data(model)
     title = model["document"]["title"]
@@ -1146,7 +1151,7 @@ def _shell(model: dict[str, object], limits: list[dict[str, str]], stylesheet: s
   <script id="document-limits" type="application/json">{_json_island(limits)}</script>
   <script id="capabilities-script">
 {read("capabilities.js")}
-  </script>
+  </script>{canaries}
   <script id="query-script">
 {read("query.js")}
   </script>
@@ -1173,8 +1178,7 @@ def _shell(model: dict[str, object], limits: list[dict[str, str]], stylesheet: s
   </script>
   <script id="artifact-script">
 {read("hover-card.js")}
-{read("guided-card.js")}
-{read("artifact.js")}
+{feature_code}{read("artifact.js")}
   </script>
   {figure_assets}
   {card_assets}

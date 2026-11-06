@@ -1036,9 +1036,9 @@
         if (exportPending) return exportPending;
         exportPending = (async () => {
             // Canary: a host that refuses the print dialog never prints, so do not prepare.
-            const limited = globalThis.obsCapabilities?.limit("printing");
-            const blocked = () => new Error(globalThis.obsCapabilities.explain("printing"));
-            if (limited?.refused) throw blocked();
+            if (globalThis.obsCapabilities?.limit("printing")) {
+                throw new Error(globalThis.obsCapabilities?.explain("printing"));
+            }
             await globalThis.obsHtmlReady;
             await artifact.whenChapterReady?.();
             document.dispatchEvent(new CustomEvent("obs-print-start"));
@@ -1060,9 +1060,10 @@
                             window.addEventListener("beforeprint", open, {once: true});
                             window.print();
                             window.removeEventListener("beforeprint", open);
-                            if (limited && !opened) {
+                            if (!opened && globalThis.obsCapabilities?.undecided("printing")) {
                                 finishPrint();
-                                reject(blocked());
+                                reject(new Error(globalThis.obsCapabilities?.fail("printing",
+                                    "window.print() returned without opening the print dialog (no beforeprint)")));
                             } else resolve();
                         } catch (error) {
                             finishPrint();
