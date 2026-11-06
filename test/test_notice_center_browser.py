@@ -148,6 +148,8 @@ def test_changed_html_and_the_applied_filter_are_entries_that_keep_their_behavio
     page.locator('[data-notice-icon="information"]').click()
     changed.locator("[data-notice-title]").click()
     expect(changed.locator("[data-artifact-download]")).to_be_visible()
+    # Its details name only what marks the HTML changed: comments and edits, never reader settings.
+    expect(changed).to_contain_text("Comments or edits changed since this HTML was last saved.")
     applied.locator("[data-notice-title]").click()
     expect(applied).to_contain_text("Filter: file.name == 'One'")
     applied.locator("[data-filter-clear]").click()

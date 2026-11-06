@@ -6,6 +6,8 @@ from importlib.resources import files
 from pathlib import Path
 import re
 
+from obs_html.errors import InputError
+
 
 @dataclass(frozen=True)
 class Style:
@@ -28,13 +30,16 @@ def load_style(directory: Path | None = None) -> Style:
     root = root.resolve()
     stylesheet = root / "style.css"
     if not root.is_dir():
-        raise ValueError(f"Style module must be a folder: {root}")
+        raise InputError(root, "", "is no folder", "Give --style a style module folder that holds style.css")
     if not stylesheet.is_file():
-        raise ValueError(f"Style module is missing style.css: {root}")
+        raise InputError(root, "style.css", "is missing", "Add the module's stylesheet as style.css")
     asset_index = root / "assets.json"
     overlay = stylesheet.read_text(encoding="utf-8")
-    if _PAGE_GEOMETRY.search(overlay):
-        raise ValueError(f"Style module must not declare page geometry: {root}")
+    geometry = _PAGE_GEOMETRY.search(overlay)
+    if geometry:
+        declared = re.match(r"@?[-\w]+", overlay[geometry.start():].lstrip(";{ \t\r\n"))[0]
+        raise InputError(stylesheet, declared, "declares page geometry, which the Document's profile owns",
+                         "Remove it; a Document chooses its paper and margin in its manifest's obsHtml.print")
     return Style(
         directory=root,
         stylesheet=(

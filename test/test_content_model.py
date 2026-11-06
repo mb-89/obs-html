@@ -16,8 +16,7 @@ from obs_html.config import load_config
 from obs_html.render import render
 from spec_artifact import spec_artifact
 
-FIXTURES = sorted([ROOT / "test" / "fixtures" / "document.json",
-                   *(ROOT / "test" / "fixtures" / "documents").glob("*.json")])
+FIXTURES = sorted((ROOT / "test" / "fixtures" / "documents").glob("*.json"))
 
 
 def _report(name: str, violations: list[str]) -> str:
