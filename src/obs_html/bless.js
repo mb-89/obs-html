@@ -23,6 +23,13 @@ globalThis.obsBless = (() => {
         letter: String.fromCharCode(65 + index), name: String(candidate.label ?? candidate.key)})),
     }));
   };
+  // Each asking chapter's decision figures' specs by anchor, answered or not: the pill names a picked
+  // option by the figure's own short name (obsPugh.options, pugh-figure.js).
+  const specs = new Map(data.notes.filter(note => note.bless).flatMap(note => {
+    template.innerHTML = note.html;
+    return [...template.content.querySelectorAll('[data-figure-kind="pugh"][data-figure-spec]')]
+      .map(figure => [figure.id, JSON.parse(figure.dataset.figureSpec)]);
+  }));
   const requests = new Map(data.notes.filter(note => note.bless).map(note => [note.slug, {
     ...note.bless, title: note.title, figures: note.bless.answer ? [] : decisions(note.html)}]));
   const asking = [...requests].filter(([, request]) => !request.answer).map(([slug]) => slug);
@@ -136,19 +143,26 @@ globalThis.obsBless = (() => {
     openEntry();
     if (complete(verdicts.get(active))) comment.select();
   }
-  function stateText(slug) {
+  /** The pill's parts: the chapter's state, then what follows it, each part its own " · " detail. */
+  function stateParts(slug) {
     const request = requests.get(slug);
-    if (request.answer) return `${verdictText(request.answer)} · recorded`;
+    if (request.answer) return [...verdictParts(request.answer), "recorded"];
     const verdict = verdicts.get(slug), sent = readSent(slug);
-    if (verdict?.verdict && complete(verdict) && sent && same(sent.verdict, verdict)) return `${verdictText(verdict)} · sent`;
-    if (verdict?.verdict) return `${verdictText(verdict)}${complete(verdict) ? "" : " · needs a comment"}`;
-    if (sent) return `${verdictText(sent.verdict)} · sent`;
-    return "Bless pending";
+    if (verdict?.verdict && complete(verdict) && sent && same(sent.verdict, verdict)) return [...verdictParts(verdict), "sent"];
+    if (verdict?.verdict) return [...verdictParts(verdict), ...(complete(verdict) ? [] : ["needs a comment"])];
+    if (sent) return [...verdictParts(sent.verdict), "sent"];
+    return ["Bless pending"];
   }
   /** Whether a sent verdict is the reader's verdict as it stands. */
   const same = (sent, verdict) => sent.verdict === verdict.verdict && (sent.comment ?? "") === (verdict.comment?.trim() ?? "")
     && sent.pick?.figure === verdict.pick?.figure && sent.pick?.option === verdict.pick?.option;
-  const verdictText = verdict => verdict.verdict === "pick" && verdict.pick ? `Picked ${verdict.pick.option}` : STATES[verdict.verdict];
+  /** A verdict's state and, for Pick, the picked option's short name where its figure gives one. */
+  function verdictParts(verdict) {
+    if (verdict.verdict !== "pick" || !verdict.pick) return [STATES[verdict.verdict]];
+    const spec = specs.get(verdict.pick.figure);
+    const short = spec && globalThis.obsPugh.options(spec).find(option => option.letter === verdict.pick.option)?.short;
+    return [`Picked ${verdict.pick.option}`, ...(short ? [short] : [])];
+  }
   function update() {
     const request = active && requests.get(active);
     controls.hidden = !request && !asking.length;
@@ -156,7 +170,11 @@ globalThis.obsBless = (() => {
     if (!request) closeEntry();
     else {
       const verdict = verdicts.get(active);
-      pill.textContent = stateText(active);
+      // The state first; each detail after it is a part of its own, which the pill drops whole where
+      // the band has no room for it (base.css, the pill), so "Picked B · Close" reads "Picked B".
+      const [state, ...details] = stateParts(active);
+      pill.replaceChildren(element("span", {className: "bless-pill-state", textContent: state}),
+        ...details.map(detail => element("span", {className: "bless-pill-detail", textContent: ` · ${detail}`})));
       pill.dataset.blessState = request.answer ? "recorded" : verdict?.verdict ? (complete(verdict) ? verdict.verdict : "incomplete")
         : readSent(active) ? "sent" : "pending";
       pill.title = request.outdated ? `Bless pending: the answer given at an earlier version is outdated` : pill.textContent;

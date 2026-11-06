@@ -685,5 +685,8 @@ globalThis.obsPugh = (() => {
         winner: view.winner})])
       .filter(([, view]) => Object.keys(view.weights).length || Object.keys(view.marks).length || Object.keys(view.rulings).length));
   }
-  return {render, print, option, decide, allWeights, readerState, labelAdds, VIEW_NOTE};
+  /** A figure's options as it letters and names them: letter, name and short name (model), for the
+      bless pill's "Picked B · Close" (bless.js). */
+  const options = spec => model(spec).options.map(({letter, name, short}) => ({letter, name, short}));
+  return {render, print, option, decide, allWeights, readerState, options, labelAdds, VIEW_NOTE};
 })();
