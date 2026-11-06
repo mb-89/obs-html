@@ -693,8 +693,8 @@ def features(root: Path) -> None:
     both views by the reading script and the covered-control sweep (test_parity_browser.py). It is
     archived (--embed-source) for the source-archive part; a note outside the reading order,
     opened as context, needs popups; the plot figure needs plotting, the equation figure
-    equations and the decision figure pugh; the prose chapter asks for a bless, which needs
-    answers and bless. Its chapters also hold what those checks read in obs's spec: prose with
+    equations and the decision figure pugh; the prose chapter, with the decision figure, asks for a
+    bless, which needs answers and bless. Its chapters also hold what those checks read in obs's spec: prose with
     links, marks, an image, a callout and nested headings; a paged table of notes outside the contents;
     a figure reference across chapters; a register and a property editor. As in obs's spec, the
     chapters the reading script walks are nested three deep, with headings. Each chapter's
@@ -716,8 +716,7 @@ def features(root: Path) -> None:
     (root / "equations.md").write_text(
         "# Equations\n\nThe plot figure is [[figures#^plot-figure]].\n\n## Parabola\n\n"
         f"```figure\nversion: 1\nkind: equations\ncaption: The equations figure.\ncontent:\n{_indent(PARABOLA)}```\n"
-        f"^equations-figure\n\n## Decision\n\n```figure\nversion: 1\nkind: pugh\ncaption: The decision figure.\n"
-        f"content: {json.dumps(DECISION)}\n```\n^decision-figure\n\n{FEATURE_PROSE}\n", encoding="utf-8")
+        f"^equations-figure\n\n{FEATURE_PROSE}\n", encoding="utf-8")
     (root / "tables.md").write_text(
         "# Tables\n\n```base\nfilters: 'kind == \"item\"'\n"
         "properties:\n  description: {displayName: Description}\n"
@@ -735,7 +734,8 @@ def features(root: Path) -> None:
         "Open question. #mark/question/scope_question\n\n"
         "> [!warning] Check the limits\n> The callout's body links [[tables]].\n\n"
         "## Lists\n\n1. one\n2. two\n\n- a\n- b\n\n## Code\n\n```text\nplain code\n```\n\n"
-        f"{FEATURE_PROSE}\n", encoding="utf-8")
+        "## Decision\n\n```figure\nversion: 1\nkind: pugh\ncaption: The decision figure.\n"
+        f"content: {json.dumps(DECISION)}\n```\n^decision-figure\n\n{FEATURE_PROSE}\n", encoding="utf-8")
     (root / "references.md").write_text(
         "---\nstatus: draft\n---\n# References\n\n![[sources.base]]\n\n"
         f"```property-editor\nversion: 1\nfield: status\nlabel: Status\n```\n\n{FEATURE_PROSE}\n",
