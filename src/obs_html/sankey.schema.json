@@ -188,7 +188,16 @@
         },
         "exists": {
           "const": true
+        },
+        "matchCase": {
+          "const": true,
+          "$comment": "obs capabilities/queries#Conditions: makes equals case-sensitive."
         }
+      },
+      "dependentRequired": {
+        "matchCase": [
+          "equals"
+        ]
       },
       "oneOf": [
         {

@@ -39,8 +39,11 @@
                     end += 1;
                 }
                 if (end >= characters.length) throw incomplete();
-                tokens.push({ kind: "regex", text: characters.slice(index + 1, end).join("") });
-                index = end + 1;
+                // The c flag matches case, like a query condition's matchCase (capabilities/queries#Conditions).
+                const matchCase = characters[end + 1] === "c" && (end + 2 >= characters.length ||
+                    " \t()".includes(characters[end + 2]));
+                tokens.push({ kind: "regex", text: characters.slice(index + 1, end).join(""), matchCase });
+                index = end + (matchCase ? 2 : 1);
             } else {
                 let end = index;
                 while (end < characters.length && !" \t():\"".includes(characters[end])) end += 1;
@@ -56,35 +59,64 @@
         return tokens;
     };
 
+    // Every selection compares text by capabilities/queries#Conditions, as the core's
+    // conditions_select does: a property resolves like a Bases property, and a missing
+    // property or null has no text.
+    const conditionTexts = (value) => {
+        if (Array.isArray(value)) return value.flatMap(conditionTexts);
+        if (value === undefined || value === null || typeof value === "object") return [];
+        return [typeof value === "boolean" ? (value ? "true" : "false") : String(value)];
+    };
+    // mark and mark.<category> name a note's marks when its frontmatter has no such property.
+    const markValue = (record, field) => {
+        const name = field.replace(/^note\./, "").toLowerCase();
+        const marks = record.marks || [];
+        if (name === "mark") return marks.length ? [...new Set(marks.map((mark) => mark.kind))] : undefined;
+        if (!name.startsWith("mark.")) return undefined;
+        const selected = marks.filter((mark) => mark.kind.toLowerCase() === name.slice(5)).map((mark) => mark.label);
+        return selected.length ? selected : undefined;
+    };
+    // A condition sees note properties and marks only: no other derived field is a property.
+    const propertyValue = (record, field) => {
+        const value = record.frontmatter ? globalThis.obsBases.recordValue(record, field) : undefined;
+        return value === undefined ? markValue(record, field) : value;
+    };
+    const propertyTexts = (record, field) => conditionTexts(propertyValue(record, field));
+    // The reader's own fields (title, text, query aliases) answer only names that are no
+    // note property; a note. prefix asks for the property alone, as drill-downs do.
+    const readerValue = (record, field) => {
+        const value = record.frontmatter || record.marks ? propertyValue(record, field) : undefined;
+        return value !== undefined || /^note\./.test(field) ? value : record.fields?.[field.toLocaleLowerCase()];
+    };
+
     const quotePattern = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
     class Clause {
         constructor(field, value) {
+            this.name = field;
             this.field = field.toLocaleLowerCase();
             this.needle = null;
             this.pattern = null;
+            this.flags = value.matchCase ? "" : "i";
             if (value.kind === "regex") {
                 this.pattern = value.text;
-                new RegExp(this.pattern, "i");
             } else if (value.text.includes("*")) {
                 this.pattern = value.text.split("*").map(quotePattern).join(".*");
             } else {
                 this.needle = value.text.toLocaleLowerCase();
             }
+            this.expression = this.pattern === null ? null : new RegExp(this.pattern, this.flags);
         }
 
         value(record) {
             if (!this.field) return record.haystack;
             if (this.field === "detail" || this.field === "details") return record.detail;
-            return record.fields[this.field];
+            return readerValue(record, this.name);
         }
 
         hit(value) {
-            if (value === undefined) return false;
-            if (Array.isArray(value)) return value.some((item) => this.hit(item));
-            const text = String(value);
-            if (this.pattern !== null) return new RegExp(this.pattern, "i").test(text);
-            return text.toLocaleLowerCase().includes(this.needle);
+            return conditionTexts(value).some((text) => this.expression !== null
+                ? this.expression.test(text) : text.toLocaleLowerCase().includes(this.needle));
         }
 
         match(record) {
@@ -96,14 +128,14 @@
             if (field === "text") {
                 return ["text", "content", "body", "detail", "details"].includes(this.field);
             }
-            return this.field === field;
+            return this.field.replace(/^note\./, "") === field;
         }
 
         ranges(value, field) {
             if (!this.appliesTo(field)) return [];
             if (this.pattern !== null) {
                 const ranges = [];
-                const expression = new RegExp(this.pattern, "gi");
+                const expression = new RegExp(this.pattern, `g${this.flags}`);
                 for (const match of value.matchAll(expression)) {
                     if (match[0].length) ranges.push([match.index, match.index + match[0].length]);
                 }
@@ -234,7 +266,7 @@
         if (!tokens.length) {
             return { source, empty: true, fields: [], match: () => true, ranges: () => [] };
         }
-        tokens.filter((token) => token.kind === "regex").forEach((token) => new RegExp(token.text, "i"));
+        tokens.filter((token) => token.kind === "regex").forEach((token) => new RegExp(token.text));
         const parser = new Parser(tokens);
         const root = parser.parseOr();
         if (parser.index !== tokens.length) throw new Error(`cannot read "${tokens[parser.index].text}"`);
@@ -253,23 +285,34 @@
         };
     };
 
-    const exactClause = (field, value) => {
-        const pattern = String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replaceAll("/", "\\/");
+    // An exact clause is the reader-language form of an equals condition: the same pattern
+    // obsBases.textMatcher compares with, so a drill-down retains exactly what its count counted.
+    const exactClause = (field, value, matchCase = false) => {
+        const pattern = globalThis.obsBases.escapePattern(String(value));
         const name = /^[A-Za-z][\w.-]*$/.test(field) ? field : JSON.stringify(field);
-        return `${name}: /^${pattern}$/`;
+        return `${name}: /^${pattern}$/${matchCase ? "c" : ""}`;
     };
     const conditionsExpression = (conditions = []) => conditions.map((condition) =>
-        "equals" in condition ? exactClause(condition.field, condition.equals)
-            : `${JSON.stringify(condition.field)}: /\\S/`,
+        "equals" in condition ? exactClause(`note.${condition.field}`, condition.equals, condition.matchCase === true)
+            : `${JSON.stringify(`note.${condition.field}`)}: /\\S/`,
     ).join(" AND ");
-    const conditionQueries = new WeakMap();
     const compileConditions = (conditions) => {
-        if (!conditions) return compile("");
-        if (!conditionQueries.has(conditions)) {
-            conditionQueries.set(conditions, compile(conditionsExpression(conditions)));
-        }
-        return conditionQueries.get(conditions);
+        const tests = (conditions || []).map((condition) => {
+            const same = "equals" in condition
+                ? globalThis.obsBases.textMatcher(String(condition.equals), condition.matchCase === true) : null;
+            return (record) => {
+                const texts = propertyTexts(record, condition.field);
+                return same ? texts.some(same) : texts.some((text) => text.trim() !== "");
+            };
+        });
+        return {match: (record) => tests.every((test) => test(record))};
+    };
+    const compiledConditions = new WeakMap();
+    const conditionsMatch = (record, conditions = []) => {
+        if (!compiledConditions.has(conditions)) compiledConditions.set(conditions, compileConditions(conditions));
+        return compiledConditions.get(conditions).match(record);
     };
 
-    globalThis.obsQuery = {compile, exactClause, conditionsExpression, compileConditions, incomplete: INCOMPLETE};
+    globalThis.obsQuery = {compile, exactClause, conditionsExpression, conditionsMatch, compileConditions, propertyTexts,
+        incomplete: INCOMPLETE};
 })();

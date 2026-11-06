@@ -305,7 +305,7 @@
         input.type = "search";
         input.setAttribute("aria-label", "Filter table");
         input.placeholder = "Filter table";
-        input.dataset.hoverHelp = 'Use field:value, /regex/, AND, OR, NOT, and nested parentheses.';
+        input.dataset.hoverHelp = 'Use field:value, /regex/ (/regex/c matches case), AND, OR, NOT, and nested parentheses.';
         const status = document.createElement("span");
         status.className = "data-table-status";
         status.setAttribute("aria-live", "polite");
@@ -699,7 +699,7 @@
                 if (values.length) filterSelections.set(field, values);
                 else filterSelections.delete(field);
                 input.value = [selectionBase, ...[...filterSelections].map(([key, items]) => {
-                    const clauses = items.map(item => globalThis.obsQuery.exactClause(key, item));
+                    const clauses = items.map(item => globalThis.obsQuery.exactClause(key, item, true));
                     return clauses.length > 1 ? `(${clauses.join(" OR ")})` : clauses[0];
                 })].filter(Boolean).join(" AND ");
                 apply();
