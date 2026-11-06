@@ -8,8 +8,9 @@ The CSS is parsed with tinycss2. Each selector of each rule becomes ``:where(#<a
 so it matches only inside the figure's frame and keeps its authored specificity; rules inside
 the conditional group rules in ``NESTING`` are scoped the same way. ``@keyframes`` names take the
 anchor as prefix, together with the drawing's own animation names that use them. Every other
-at-rule is global and is dropped; each drop is a warning in the one message form (errors.py)
-naming the note, ``figure.style`` and the figure's anchor.
+at-rule is global and is dropped, and so is a selector whose compound names ``:root``, ``html`` or
+``body``, which can match only the page; each drop is a warning in the one message form
+(errors.py) naming the note, ``figure.style`` and the figure's anchor.
 """
 from __future__ import annotations
 
@@ -30,6 +31,8 @@ NESTING = frozenset({"media", "supports", "container"})
 """Conditional group rules: their own condition is not global, their rules are scoped one by one."""
 ANIMATION = frozenset({"animation", "animation-name"})
 """The declarations that name a ``@keyframes`` rule."""
+PAGE = frozenset({"html", "body"})
+"""Type selectors that match only the page, never an element of the drawing."""
 STYLE = re.compile(r"(<style\b[^>]*>)(.*?)(</style>)", re.DOTALL)
 """A ``<style>`` element as figure_links.py's serializer writes it: its text is escaped, so no
 ``</style>`` occurs inside it."""
@@ -91,7 +94,15 @@ class _Scope:
         selectors = _split(rule.prelude)
         if any(not tinycss2.serialize(selector).strip() for selector in selectors):
             return ""  # An empty selector makes the rule invalid; scoped, it would select the frame.
-        prelude = ",".join(self.prefix + tinycss2.serialize(selector).strip() for selector in selectors)
+        page = [selector for selector in selectors if _names_page(selector)]
+        if page:
+            shown = ", ".join(tinycss2.serialize(selector).strip() for selector in page)
+            self.warn(f"has selectors that name :root, html or body ({shown}), which match only the page; "
+                      "they are dropped")
+        kept = [selector for selector in selectors if selector not in page]
+        if not kept:
+            return ""
+        prelude = ",".join(self.prefix + tinycss2.serialize(selector).strip() for selector in kept)
         return f"{prelude}{{{tinycss2.serialize(self._renamed(rule.content))}}}"
 
     def _renamed(self, tokens: list) -> list:
@@ -139,3 +150,18 @@ def _split(prelude: list) -> list[list]:
             selectors[-1].append(token)
     return selectors
 
+
+def _names_page(selector: list) -> bool:
+    """Whether a compound of the selector, outside a pseudo-class's arguments, is ``:root``,
+    ``html`` or ``body``."""
+    previous = None
+    for index, token in enumerate(selector):
+        if isinstance(token, IdentToken):
+            if token.lower_value == "root" and isinstance(previous, LiteralToken) and previous.value == ":" and not (
+                    index > 1 and isinstance(selector[index - 2], LiteralToken) and selector[index - 2].value == ":"):
+                return True
+            if token.lower_value in PAGE and (previous is None or isinstance(previous, WhitespaceToken) or (
+                    isinstance(previous, LiteralToken) and previous.value in {">", "+", "~"})):
+                return True
+        previous = token
+    return False

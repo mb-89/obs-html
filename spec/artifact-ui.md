@@ -244,7 +244,12 @@ failures have their form in [[input-model#Chapter content]].
   drawing's own animation names that use them. Every other at-rule (`@import`, `@font-face`,
   `@property`, `@layer`, `@namespace`, `@page` and any other) is global and cannot be scoped:
   it is dropped, and a warning in the one message form names the note, `figure.style` and the
-  figure's anchor. A diagram figure's SVG (`mermaid`, `plantuml`) is the core's output, which
+  figure's anchor. A selector whose compound names `:root`, `html` or `body` outside a
+  pseudo-class's arguments can only match the page, never the drawing: it is dropped with the
+  same warning. The frame style tokens are therefore never changed by a figure: a scoped rule
+  reaches only the frame's descendants, and a custom property set there (a
+  `--figure-frame-border-block`, say) is inherited downward only, so the frame itself reads the
+  page's value. A diagram figure's SVG (`mermaid`, `plantuml`) is the core's output, which
   scopes its own styles by the diagram's id: it is left as drawn.
 
   An anchor is `<note-slug>--block-<name>` for a figure with a block id, otherwise
