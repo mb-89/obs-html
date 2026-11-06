@@ -93,7 +93,7 @@ def _active(page) -> str:
 # Each shown control of the top band: its name, its box and whether a pointer at its centre reaches it;
 # the breadcrumbs' choosers (toggle) are small triangles, not squares.
 BAND = """() => [...document.querySelectorAll(
-        '.top-band a.chapter-home-link, .top-band button, .top-band [data-bless-pill], .top-band [data-screens-position], '
+        '.top-band a.chapter-home-link, .top-band button, .top-band [data-bless-pill], '
         + '.top-band summary.chapter-breadcrumb-toggle')]
     .filter(node => node.checkVisibility() && !node.closest('.notice-list, .bless-entry, .chapter-breadcrumb-menu'))
     .map(node => {
@@ -163,7 +163,7 @@ def test_the_band_holds_every_key_in_one_row_at_phone_width_with_the_notices_sho
     page.evaluate("""() => obsNotices.severities.forEach(severity =>
         obsNotices.post({id: severity, severity, title: severity}))""")
     names = [item["name"] for item in _fits(page)]
-    assert names == ["Home", "Choose chapter", "Show frontmatter", "Chapter 1 of 2", PENDING, "Bless", "Decline", "Ask", "Pick", "Send 0 of 2 verdicts",
+    assert names == ["Home", "Choose chapter", "Show frontmatter", PENDING, "Bless", "Decline", "Ask", "Pick", "Send 0 of 2 verdicts",
                      "Errors: 1 notice", "Warnings: 1 notice", "Information: 1 notice", "Open bars menu"]
     # Short of space, the breadcrumb has shrunk and the pill is a square of the band's size showing
     # only its state colour, its label its tooltip and accessible name.
@@ -297,7 +297,7 @@ PAGE_FRAME = """() => [...document.querySelectorAll(
 @pytest.mark.parametrize("width", [360, 390])
 def test_the_deck_opens_in_screens_on_a_phone_that_fit_and_walk_by_swipe_and_keys(deck, phone_browser,
                                                                                   width: int) -> None:
-    """artifact-ui.md, Screens: no sideways scroll, no page frame, the band's title and position, and the
+    """artifact-ui.md, Screens: no sideways scroll, no page frame, the band's title and no counter, and the
     band fits (Reading shell, the top band); swipe and the keys walk, the arrows are hidden on touch, and
     the walk has no Home."""
     from playwright.sync_api import expect
@@ -310,11 +310,12 @@ def test_the_deck_opens_in_screens_on_a_phone_that_fit_and_walk_by_swipe_and_key
     assert page.evaluate("[matchMedia('(pointer: coarse)').matches, innerWidth]") == [True, width]
     assert page.evaluate("document.documentElement.className.split(' ').filter(name => name.endsWith('-mode'))") \
         == ["screens-mode"]
-    position = page.locator("[data-screens-position]")
-    expect(position).to_have_text("1 / 2")
+    # No chapter counter: the band shows no "1 / 2", as a document shows none.
+    expect(page.locator(".screens-position, [data-screens-position]")).to_have_count(0)
+    assert not re.search(r"\d+ / \d+", page.locator("[data-top-band]").inner_text())
     expect(page.locator("[data-screens-title]")).to_have_attribute("title", "Bless verdicts, two decisions")
     assert page.evaluate(PAGE_FRAME) == 0
-    assert "Chapter 1 of 2" in [item["name"] for item in _fits(page)]
+    assert not any(re.fullmatch(r"Chapter \d+ of \d+", item["name"]) for item in _fits(page))
     # The chapter takes the reader's width; on touch the arrows are hidden.
     body = page.locator("[data-chapter-body]").bounding_box()
     assert body["width"] >= width - 2 * 32
@@ -323,7 +324,6 @@ def test_the_deck_opens_in_screens_on_a_phone_that_fit_and_walk_by_swipe_and_key
 
     page.evaluate(SWIPE, ["[data-chapter-body] h1", -120])
     expect(page.locator("[data-active-chapter]")).to_have_attribute("data-chapter", "swipe")
-    expect(position).to_have_text("2 / 2")
     _fits(page)
     page.evaluate(SWIPE, ["[data-chapter-body] h1", 120])
     expect(page.locator("[data-active-chapter]")).to_have_attribute("data-chapter", "record")
@@ -331,7 +331,6 @@ def test_the_deck_opens_in_screens_on_a_phone_that_fit_and_walk_by_swipe_and_key
     page.keyboard.press("ArrowLeft")  # The walk has no Home: chapter 1 is its first screen.
     page.evaluate("obsArtifact.whenChapterReady()")
     assert _active(page) == "record"
-    expect(position).to_have_text("1 / 2")
     assert page.evaluate(PAGE_FRAME) == 0
     _fits(page)
     assert errors == []
@@ -368,7 +367,7 @@ def _nested_deck() -> str:
 
 
 def test_the_band_of_a_nested_bless_chapter_fits_at_360_px(phone_browser, tmp_path: Path) -> None:
-    """Both breadcrumb choosers, the position, the pill and every key in one row, none under another."""
+    """Both breadcrumb choosers, the pill and every key in one row, none under another."""
     from playwright.sync_api import expect
 
     (tmp_path / "nested.html").write_text(_nested_deck(), encoding="utf-8")
@@ -377,9 +376,9 @@ def test_the_band_of_a_nested_bless_chapter_fits_at_360_px(phone_browser, tmp_pa
     page.on("pageerror", lambda error: errors.append(str(error)))
     page.goto(f"{(tmp_path / 'nested.html').as_uri()}#child")
     page.wait_for_function("document.documentElement.dataset.artifactStatus === 'ready'")
-    expect(page.locator("[data-screens-position]")).to_have_text("2 / 2")
+    expect(page.locator("[data-active-chapter]")).to_have_attribute("data-chapter", "child")
     names = [item["name"] for item in _fits(page)]
-    assert names == ["Home", "Choose chapter", "Choose subchapter", "Show frontmatter", "Chapter 2 of 2", PENDING,
+    assert names == ["Home", "Choose chapter", "Choose subchapter", "Show frontmatter", PENDING,
                      "Bless", "Decline", "Ask", "Pick", "Send 0 of 2 verdicts", "Open bars menu"]
     # A pick names its option by the figure's short name; the band still fits.
     page.locator('[data-bless-key="pick"]').click()
@@ -428,13 +427,12 @@ def _phone(phone_browser, url: str, width: int = 390):
 
 def test_screens_open_on_the_first_chapter_and_home_goes_there(deck, phone_browser) -> None:
     """artifact-ui.md, Screens: no title screen; Home and stepping back stay on chapter 1, and the
-    position counts chapters only. Shown as pages, Home is the cover again."""
+    walk holds chapters only. Shown as pages, Home is the cover again."""
     from playwright.sync_api import expect
 
     page, errors = _phone(phone_browser, deck.as_uri())
     assert page.evaluate("document.documentElement.classList.contains('screens-mode')")
     expect(page.locator("[data-active-chapter]")).to_have_attribute("data-chapter", "record")
-    expect(page.locator("[data-screens-position]")).to_have_text("1 / 2")
     page.evaluate("obsArtifact.whenChapterReady()")
     page.keyboard.press("ArrowLeft")
     page.evaluate("obsArtifact.whenChapterReady()")
@@ -443,7 +441,6 @@ def test_screens_open_on_the_first_chapter_and_home_goes_there(deck, phone_brows
     expect(page.locator("[data-active-chapter]")).to_have_attribute("data-chapter", "swipe")
     page.locator(".top-band a.chapter-home-link").click()
     expect(page.locator("[data-active-chapter]")).to_have_attribute("data-chapter", "record")
-    expect(page.locator("[data-screens-position]")).to_have_text("1 / 2")
     _fits(page)
 
     page.evaluate("obsPages.setPaged(true)")

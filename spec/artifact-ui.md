@@ -820,7 +820,7 @@ dispatcher, 6 Nov 2026 (work issue `fix/decision-figure-follow-ups-20261106`).
   neither invents a TOC path nor intercepts the Home link.
 - No table of contents, filter, toolbar, or navigation bar is open initially.
 - The top band is one row and holds every top control: Home, the breadcrumbs, the
-  frontmatter chevron, the position indicator and title of [[#Screens]], the bless controls
+  frontmatter chevron, the title of [[#Screens]], the bless controls
   ([[#Bless verdicts]]), the notice icons and the menu.
   The notice icons sit directly left of the menu.
   The bless controls sit directly left of them.
@@ -952,11 +952,13 @@ example deck (`spec/examples/bless-deck`) opens in screens by this rule.
 
 - **The walk:** swipe and the arrows move between screens ([[#Reading shell]]); the contents
   stay in the menu. Where touch is the input (`pointer: coarse`), the arrows are hidden and
-  swipe, the keys and the band's position walk; their gutter goes to the content, which keeps a
+  swipe and the keys walk; their gutter goes to the content, which keeps a
   text margin. Hidden, not moved into the band: on a phone the band has no square to spare, and
-  swipe already walks there. With a mouse, the arrows stay as they are. The top band shows the position on the chapters of the walk, "2 / 3", as
-  one of its squares, first at the band's end. The
+  swipe already walks there. With a mouse, the arrows stay as they are. The
   bottom of the screen stays free for content.
+- **No counter:** decided by the user, 6 Nov 2026 (work issue
+  `feat/decision-success-and-winner-box-20261106`): the band shows no "2 / 3" position, as a
+  document shows no chapter counter; a counter read as if every chapter were a question.
 - **Show as pages** switches to the paged view for the session; switching it off returns to
   screens.
 - **Printing** from screens prints each chapter from a new page, as the reader sees it: no

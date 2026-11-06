@@ -648,11 +648,8 @@ input[data-property-single-line]:focus {
     --top-band-bless: 0;
     --top-band-send: 0;
     --top-band-notices: 0;
-    --top-band-screens: 0;
-    /* Home, the chevron and the menu, the pill and the four verdict keys, Send, the notice icons
-       and the position of screens (screens.css). */
-    --top-band-squares: calc(3 + var(--top-band-bless) + var(--top-band-send) + var(--top-band-notices)
-        + var(--top-band-screens));
+    /* Home, the chevron and the menu, the pill and the four verdict keys, Send and the notice icons. */
+    --top-band-squares: calc(3 + var(--top-band-bless) + var(--top-band-send) + var(--top-band-notices));
     --top-control-size: min(var(--top-control-full), (100cqw - var(--top-band-crumbs)
         - (var(--top-band-squares) - 1) * var(--top-band-gap)) / var(--top-band-squares));
     align-items: center;
