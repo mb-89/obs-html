@@ -199,9 +199,17 @@ def test_the_reader_walks_the_options_changes_weights_and_marks_and_rules_a_worl
     reader.clean()
 
 
-def test_at_phone_width_only_the_matrix_scrolls_and_its_criteria_hold(artifact, reader_browser) -> None:
+def test_at_phone_width_the_matrix_is_rows_and_a_wide_table_scrolls_with_its_criteria_held(artifact, reader_browser) -> None:
     reader = Reader(reader_browser, artifact, width=390)
 
+    phone = reader.page.evaluate("""anchor => {
+        const rows = document.querySelector(`#${anchor} [data-pugh-form="rows"]`), cells = rows.querySelector('.pugh-row-cells');
+        return {page: document.scrollingElement.scrollWidth, viewport: innerWidth, right: rows.getBoundingClientRect().right,
+                lines: new Set([...cells.children].map(cell => Math.round(cell.getBoundingClientRect().bottom))).size,
+                letters: [...cells.querySelectorAll('[data-pugh-head]')].map(head => head.textContent)};
+    }""", WIDE)
+    reader.page.set_viewport_size({"width": 900, "height": 900})
+    reader.page.wait_for_selector(f'#{WIDE} [data-pugh-form="table"]')
     layout = reader.page.evaluate("""anchor => {
         const box = document.querySelector(`#${anchor} .pugh-scroll`);
         const name = box.querySelector('tbody .pugh-criterion');
@@ -213,7 +221,10 @@ def test_at_phone_width_only_the_matrix_scrolls_and_its_criteria_hold(artifact, 
     }""", WIDE)
     view = reader.view(WIDE)
 
-    assert layout["page"] <= layout["viewport"] == 390
-    assert layout["right"] <= 390 and layout["scrolls"] and layout["held"]
+    # Ten options: the rows wrap their cells to a further line rather than scroll.
+    assert phone["page"] <= phone["viewport"] == 390 and phone["right"] <= 390
+    assert phone["lines"] > 1 and phone["letters"] == [chr(ord("A") + index) for index in range(10)]
+    assert layout["page"] <= layout["viewport"] == 900
+    assert layout["right"] <= 900 and layout["scrolls"] and layout["held"]
     assert view["columns"] == [chr(ord("A") + index) for index in range(10)]
     reader.clean()

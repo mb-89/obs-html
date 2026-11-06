@@ -5,8 +5,9 @@
    matrix with the reader's weights, a Checklist criterion where failed checklist items name
    options, and the reader's changed marks as the engine's own cell overrides.
 
-   Three tabs: Matrix (the bottom line, the Raised list, the options one at a time, the table),
-   Checklist and What if. The reader's weights, marks, rulings and tripwires, the option shown
+   Three tabs: Matrix (the bottom line, the Raised list, the options one at a time, the table, or
+   below ROWS_BELOW of the figure's width its rows), Checklist and What if, then one tab for each
+   section of the chapter the page rendered into the figure (render.py, decision tabs). The reader's weights, marks, rulings and tripwires, the option shown
    and the tab are session-only view state, kept per figure anchor; readerState() gives the
    first four by figure anchor, options by letter. Print shows the Matrix tab as the reader left
    it, with a caption note where weights or marks changed.
@@ -242,6 +243,7 @@ globalThis.obsPugh = (() => {
   function table(figure, spec, result, figureModel, view, {print: shown}) {
     const print = shown || view.locked;
     const scroll = element("div", {className: "pugh-scroll", tabIndex: 0});
+    scroll.dataset.pughForm = "table";
     scroll.setAttribute("role", "region");
     scroll.setAttribute("aria-label", "Decision matrix");
     const order = [result.candidates.find(c => c.datum), ...result.candidates.filter(c => !c.datum)];
@@ -316,6 +318,105 @@ globalThis.obsPugh = (() => {
     scroll.append(element("table", {className: "pugh-matrix"}, element("thead", {}, head), body));
     return scroll;
   }
+  /** The weight a step key sets: half a step up or down, never below 0. */
+  function stepped(weight, direction) {
+    return Math.max(0, Math.round((weight + direction * 0.5) * 2) / 2);
+  }
+  /** The matrix at a narrow width: one line per criterion, its name over the full width, then its
+      weight stepper and one cell per option headed by its letter; the total and the wins and
+      losses the same way. The table's data, the table's keys; options by letter, named in tooltips. */
+  function rows(figure, spec, result, figureModel, view) {
+    const locked = Boolean(view.locked);
+    const box = element("div", {className: "pugh-rows"});
+    box.dataset.pughForm = "rows";
+    box.setAttribute("role", "group");
+    box.setAttribute("aria-label", "Decision matrix");
+    const order = [result.candidates.find(c => c.datum), ...result.candidates.filter(c => !c.datum)];
+    const winner = result.suggestion?.key;
+    const head = candidate => {
+      const option = figureModel.byKey[candidate.key];
+      const letter = element("span", {className: "pugh-cell-head", textContent: option.letter,
+        title: `${option.letter}: ${option.name}${candidate.datum ? " (datum)" : ""}${candidate.key === winner ? " (winner)" : ""}`});
+      letter.dataset.pughHead = option.letter;
+      return letter;
+    };
+    const cell = (candidate, className = "") => {
+      const node = element("div", {className: `pugh-cell${className}${candidate.key === winner ? " pugh-winner" : ""}`
+        + `${candidate.datum ? " pugh-datum" : ""}${candidate.fits ? "" : " pugh-out"}`});
+      if (!candidate.fits) node.title = candidate.whyNot;
+      return node;
+    };
+    const line = (name, className = "") => {
+      const row = element("div", {className: `pugh-row${className}`}, element("p", {className: "pugh-row-name", textContent: name}));
+      const cells = element("div", {className: "pugh-row-cells"});
+      row.append(cells);
+      return {row, cells};
+    };
+    result.criteria.forEach((criterion, index) => {
+      const {row, cells} = line(criterion.label);
+      row.dataset.pughCriterion = criterion.key;
+      const weight = result.weights[index], weightChanged = criterion.key in view.weights;
+      const value = element("span", {className: `pugh-weight-value${weightChanged ? " pugh-changed" : ""}`, textContent: number(weight)});
+      value.dataset.pughWeight = criterion.key;
+      value.setAttribute("aria-label", `Weight of ${criterion.label}: ${number(weight)}${weightChanged ? ", changed" : ""}`);
+      const step = (sign, direction, label) => {
+        const key = element("button", {type: "button", className: "pugh-step", textContent: label});
+        key.dataset.pughStep = `${criterion.key}:${sign}`;
+        key.setAttribute("aria-label", `${direction < 0 ? "Lower" : "Raise"} the weight of ${criterion.label}`);
+        key.disabled = direction < 0 && weight <= 0;
+        key.addEventListener("click", () => {
+          view.weights[criterion.key] = stepped(weight, direction);
+          draw(figure, spec);
+          figure.querySelector(`[data-pugh-step="${CSS.escape(key.dataset.pughStep)}"]`)?.focus();
+        });
+        return key;
+      };
+      cells.append(element("span", {className: "pugh-stepper"},
+        ...(locked ? [value] : [step("-", -1, "−"), value, step("+", 1, "+")])));
+      for (const candidate of order) {
+        const option = figureModel.byKey[candidate.key], mark = candidate.marks[criterion.key];
+        const markChanged = criterion.key in (view.marks[option.letter] || {}) && !candidate.datum;
+        const node = cell(candidate, markChanged ? " pugh-changed" : "");
+        node.dataset.pughMark = `${option.letter}:${criterion.key}`;
+        node.append(head(candidate));
+        if (locked || candidate.datum) node.append(element("span", {className: "pugh-cell-value", textContent: candidate.datum ? "S" : symbol(mark)}));
+        else {
+          const button = element("button", {type: "button", className: "pugh-mark-button", textContent: symbol(mark)});
+          button.setAttribute("aria-label", `${option.letter} ${option.name}, ${criterion.label}: ${symbol(mark)}${markChanged ? ", changed" : ""}; change it`);
+          button.addEventListener("click", () => markChooser(figure, spec, view, option.letter, criterion.key, mark, node));
+          node.append(button);
+        }
+        cells.append(node);
+      }
+      box.append(row);
+    });
+    const total = line("Weighted total", " pugh-total");
+    total.cells.append(element("span", {className: "pugh-stepper pugh-stepper-space"}));
+    for (const candidate of order) {
+      const node = cell(candidate);
+      node.dataset.pughTotal = figureModel.byKey[candidate.key].letter;
+      node.append(head(candidate), element("span", {className: "pugh-cell-value",
+        textContent: candidate.fits ? signed(candidate.total) : `× ${signed(candidate.total)}`}));
+      total.cells.append(node);
+    }
+    box.append(total.row);
+    const picks = locked ? [] : order.filter(c => c.key !== winner)
+      .map(c => globalThis.obsBless?.columnKey(figure.id, figureModel.byKey[c.key].letter)).filter(Boolean);
+    if (picks.length) box.append(element("div", {className: "pugh-picks"}, ...picks));
+    for (const [part, label] of [["wins", "Wins"], ["losses", "Losses"]]) {
+      const listed = order.map(c => figureModel.byKey[c.key]).filter(option => option[part].length);
+      if (!listed.length) continue;
+      const row = element("div", {className: "pugh-row pugh-texts"}, element("p", {className: "pugh-row-name", textContent: label}),
+        element("ul", {className: "pugh-row-texts"}, ...listed.map(option => {
+          const letter = element("span", {className: "pugh-letter", textContent: option.letter, title: option.name});
+          letter.dataset.pughHead = option.letter;
+          return element("li", {}, letter, ` ${option[part].join("; ")}`);
+        })));
+      row.dataset.pughTexts = part;
+      box.append(row);
+    }
+    return box;
+  }
   function checklistPanel(figureModel) {
     if (!figureModel.checklist.length) return element("p", {textContent: "No checklist items."});
     return element("ul", {className: "pugh-checklist"}, ...figureModel.checklist.map(item => {
@@ -379,11 +480,15 @@ globalThis.obsPugh = (() => {
     return panel;
   }
   const TABS = [["matrix", "Matrix"], ["checklist", "Checklist"], ["whatif", "What if"]];
-  function tabs(figure, spec, view, panels, figureModel) {
+  /** The chapter's sections after the figure, which the page renders into the figure as one more
+      tab each (render.py, decision tabs): wherever a draw left them, so each keeps its nodes. */
+  const extras = figure => [...figure.querySelectorAll(".pugh-extra")];
+  const tabsOf = figure => [...TABS, ...extras(figure).map((node, index) => [`extra-${index + 1}`, node.dataset.pughExtra])];
+  function tabs(figure, spec, view, panels, figureModel, all) {
     const list = element("div", {className: "data-table-detail-tabs pugh-tabs"});
     list.setAttribute("role", "tablist");
     list.setAttribute("aria-label", "Decision views");
-    const buttons = TABS.map(([key, label], index) => {
+    const buttons = all.map(([key, label], index) => {
       const button = element("button", {type: "button", textContent: label, id: `${figure.id}--pugh-tab-${key}`});
       button.setAttribute("role", "tab");
       button.setAttribute("aria-controls", panels[index].id);
@@ -397,7 +502,7 @@ globalThis.obsPugh = (() => {
         if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
         event.preventDefault();
         event.stopPropagation();
-        const enabled = TABS.map(([name]) => name).filter(name => name !== "checklist" || figureModel.checklist.length);
+        const enabled = all.map(([name]) => name).filter(name => name !== "checklist" || figureModel.checklist.length);
         const position = enabled.indexOf(view.tab);
         view.tab = enabled[(position + (event.key === "ArrowRight" ? 1 : enabled.length - 1)) % enabled.length];
         draw(figure, spec);
@@ -419,17 +524,29 @@ globalThis.obsPugh = (() => {
     view.style.marginInline = `${Math.max(0, left - frame.left)}px ${Math.max(0, frame.right - right)}px`;
     if (fitted.has(figure) || typeof ResizeObserver !== "function") return;
     fitted.add(figure);
-    const observer = new ResizeObserver(() => (figure.isConnected ? fit(figure) : observer.disconnect()));
+    const observer = new ResizeObserver(() => {
+      if (!figure.isConnected) return observer.disconnect();
+      const shown = figure.querySelector("[data-pugh-form]")?.dataset.pughForm;
+      if (shown && shown !== (narrow(figure) ? "rows" : "table")) draw(figure, JSON.parse(figure.dataset.figureSpec));
+      else fit(figure);
+    });
     observer.observe(figure);
     observer.observe(parent);
+  }
+  /** Below ROWS_BELOW (in rem) of the figure's own width, the matrix is rows (artifact-ui.md, Decision figures). */
+  const ROWS_BELOW = 36;
+  function narrow(figure) {
+    const width = figure.clientWidth;
+    return width > 0 && width < ROWS_BELOW * parseFloat(getComputedStyle(document.documentElement).fontSize);
   }
   function draw(figure, spec, host = figure.querySelector(".figure-live"), {print = false} = {}) {
     const view = state(figure.id, spec.answered);
     const {result, figureModel} = decide(spec, view);
+    const sections = extras(figure), all = tabsOf(figure);
     const matrix = element("div", {className: "pugh-view"}, bottomLine(spec, result, figureModel),
       raised(spec, result, figureModel, view),
       print ? optionsList(figureModel) : optionsView(figure, spec, figureModel, view),
-      table(figure, spec, result, figureModel, view, {print}));
+      !print && narrow(figure) ? rows(figure, spec, result, figureModel, view) : table(figure, spec, result, figureModel, view, {print}));
     view.winner = result.suggestion ? figureModel.byKey[result.suggestion.key].letter : "";
     if (!print && !view.locked && changed(figure.id)) {
       const reset = element("button", {type: "button", className: "filter-pill pugh-reset", textContent: "Reset"});
@@ -437,16 +554,19 @@ globalThis.obsPugh = (() => {
       reset.addEventListener("click", () => reset_(figure, spec));
       matrix.append(reset);
     }
-    if (print) host.replaceChildren(matrix);
-    else {
+    if (print) {
+      sections.forEach(section => { section.hidden = false; section.removeAttribute("role"); });
+      host.replaceChildren(matrix, ...sections);
+    } else {
+      if (!all.some(([key]) => key === view.tab)) view.tab = "matrix";
       const panels = [matrix, element("div", {className: "pugh-view"}, checklistPanel(figureModel)),
-        element("div", {className: "pugh-view"}, whatIfPanel(figure, spec, result, figureModel, view))];
+        element("div", {className: "pugh-view"}, whatIfPanel(figure, spec, result, figureModel, view)), ...sections];
       panels.forEach((panel, index) => {
-        panel.id = `${figure.id}--pugh-panel-${TABS[index][0]}`;
+        if (index < TABS.length) panel.id = `${figure.id}--pugh-panel-${TABS[index][0]}`;
         panel.setAttribute("role", "tabpanel");
-        panel.hidden = view.tab !== TABS[index][0];
+        panel.hidden = view.tab !== all[index][0];
       });
-      host.replaceChildren(element("div", {className: "pugh-figure-view"}, tabs(figure, spec, view, panels, figureModel), ...panels));
+      host.replaceChildren(element("div", {className: "pugh-figure-view"}, tabs(figure, spec, view, panels, figureModel, all), ...panels));
     }
     const menuReset = figure.querySelector(":scope > .figure-options .pugh-reset");
     if (menuReset) menuReset.disabled = view.locked || !changed(figure.id);
