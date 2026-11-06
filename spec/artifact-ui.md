@@ -622,6 +622,10 @@ the criterion names held at its left.
   Every control in the band is a square of one size. No control takes a row of its own.
   Breadcrumbs that do not fit truncate on that row; each keeps its full title as its text and
   tooltip.
+
+  At 360 px and wider the row holds every control the band shows, fully visible, without
+  sideways scrolling. Where the squares at full size do not fit, they all shrink to one size
+  that fits; no control is dropped.
 - Each table-options icon shows a small, top-right funnel bubble while its interactive
   filter is active, even if it matches every record. Its label/tooltip expose that state.
   The notice center's applied-filter entry is the sole artifact-wide indicator: no
@@ -702,9 +706,11 @@ verdict shows as sent until its chapter's version changes.
 A chapter whose answer the build carries (`obs-document --answers`) shows it read-only under
 its heading: the verdict, the picked option, the comment and the reader's changes, rulings and
 tripwires; its pill reads "· recorded" and it has no keys. An outdated answer shows the same way,
-marked outdated, and the chapter asks again. At 390 px the band's squares shrink so the row fits;
-at 360 px they shrink again and the pill narrows, so Home, the breadcrumbs and the frontmatter
-chevron a bless chapter has still fit beside the bless controls.
+marked outdated, and the chapter asks again.
+
+When the band is short of space, the breadcrumbs shrink first. Then the pill truncates, and
+then it shows only its state colour, as a square of the band's size; its label stays its
+tooltip and accessible name. Only then do the band's squares shrink. No key is dropped.
 
 ## Internal-link previews
 

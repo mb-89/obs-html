@@ -18,9 +18,13 @@
     --chapter-nav-inset-end: 1rem;
     --chapter-clearance-end: calc(var(--chapter-nav-width) + var(--chapter-nav-inset-end));
     --transition-fast: 140ms ease;
-    /* The top band: one row of square controls, which the reader and the bars start below. */
-    --top-control-size: 2.4rem;
+    /* The top band: one row of square controls, which the reader and the bars start below. The
+       band shrinks its squares below their full size only where the row would not hold them. */
+    --top-control-full: 2.4rem;
+    --top-control-size: var(--top-control-full);
     --top-band-gap: 0.5rem;
+    /* The breadcrumbs' least width beside Home: the chapter chooser's toggle. */
+    --top-band-crumbs: 1rem;
     --top-band-height: calc(1rem + var(--top-control-size) + 0.6rem);
 }
 
@@ -632,10 +636,20 @@ input[data-property-single-line]:focus {
 }
 
 /* The top band: Home and the crumbs take what the chevron, the notice icons and the menu leave,
-   on one line; a crumb that does not fit truncates, its full title in its text and tooltip. */
+   on one line; a crumb that does not fit truncates, its full title in its text and tooltip.
+   Its squares share one size: the full size, or, where the row would not hold the squares the
+   band can show (--top-band-squares) and the crumbs' least width, the size that fits it. */
 .top-band {
+    --top-band-bless: 0;
+    --top-band-send: 0;
+    --top-band-notices: 0;
+    /* Home, the chevron and the menu, the pill and the four verdict keys, Send, the notice icons. */
+    --top-band-squares: calc(3 + var(--top-band-bless) + var(--top-band-send) + var(--top-band-notices));
+    --top-control-size: min(var(--top-control-full), (100cqw - var(--top-band-crumbs)
+        - (var(--top-band-squares) - 1) * var(--top-band-gap)) / var(--top-band-squares));
     align-items: center;
     box-sizing: border-box;
+    container: top-band / inline-size;
     display: flex;
     gap: var(--top-band-gap);
     height: var(--top-band-height);
@@ -656,7 +670,13 @@ input[data-property-single-line]:focus {
 }
 
 .top-band-path {
-    min-width: 0;
+    min-width: calc(var(--top-control-size) + var(--top-band-crumbs));
+}
+
+.top-band:has(.notice-group:not([hidden])) { --top-band-notices: 1; }
+.top-band:has(.notice-group:not([hidden]) ~ .notice-group:not([hidden])) { --top-band-notices: 2; }
+.top-band:has(.notice-group:not([hidden]) ~ .notice-group:not([hidden]) ~ .notice-group:not([hidden])) {
+    --top-band-notices: 3;
 }
 
 /* An open notice list aligns to the band's end, under the icons and the menu. */
@@ -1868,6 +1888,11 @@ math {
     display: contents;
 }
 
+.top-band .notice-icon {
+    height: var(--top-control-size);
+    width: var(--top-control-size);
+}
+
 .top-band .notice-list {
     left: auto;
     right: 0;
@@ -1875,13 +1900,30 @@ math {
 }
 
 /* Bless verdicts (bless.js): the pill, the verdict keys and Send lead the band's end, left of the
-   notice icons; the keys are the band's squares. The one-line comment entry opens under them. At
-   phone width the band's squares and gaps shrink and the pill truncates, so the row still fits. */
+   notice icons; the keys are the band's squares. The one-line comment entry opens under them.
+   Short of space, the crumbs shrink first: the band's end keeps its width and the path takes what
+   it leaves. Then the pill truncates, to 4.6rem, and then it is a square of the band's size that
+   shows only its state colour, its label its tooltip and accessible name. Only then do the
+   squares shrink. */
+.top-band:has(.bless-controls:not([hidden]) .bless-send:not([hidden])) { --top-band-send: 1; }
+
+.top-band:has(.bless-controls:not([hidden]) .bless-pill:not([hidden])) {
+    --top-band-bless: 5;
+    --top-band-gap: 0.3rem;
+}
+
+.top-band:has(.bless-controls:not([hidden]) .bless-pill:not([hidden])) > .top-band-end {
+    flex: 0 1 auto;
+    min-width: 0;
+}
+
 .top-band-end > .bless-controls {
     align-items: center;
     display: flex;
+    flex: 0 1 auto;
     gap: var(--top-band-gap);
     height: var(--top-control-size);
+    min-width: 0;
     order: -1;
     position: relative;
     width: auto;
@@ -1890,18 +1932,43 @@ math {
 .bless-controls[hidden],
 .bless-controls [hidden] { display: none; }
 
+/* --bless-pill-text is 1 for the pill with its label and 0 for the square. */
 .bless-pill {
+    --bless-pill-text: 1;
     background: var(--color-warning-soft);
     border: var(--border-width) solid var(--color-warning);
-    border-radius: 999px;
+    border-radius: calc(var(--bless-pill-text) * 999px + var(--radius-small));
     box-sizing: border-box;
     color: var(--color-text);
-    font: 0.72rem/1 var(--font-interface);
+    flex: 0 1 auto;
+    font: calc(var(--bless-pill-text) * 0.72rem)/1 var(--font-interface);
     max-width: 11rem;
+    min-height: calc((1 - var(--bless-pill-text)) * var(--top-control-size));
+    min-width: calc(var(--bless-pill-text) * 4.6rem + (1 - var(--bless-pill-text)) * var(--top-control-size));
     overflow: hidden;
-    padding: 0.3rem 0.55rem;
+    padding: calc(var(--bless-pill-text) * 0.3rem) calc(var(--bless-pill-text) * 0.55rem);
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+/* The pill is a square below the width that holds the band's other squares at full size, the
+   pill truncated and the crumbs' least width: (n - 1) * (2.4rem + 0.3rem) + 4.6rem + 1rem for the
+   band's n squares, 9 (the bless band with Send) plus one for each shown notice icon. */
+@container top-band (width < 27.2rem) {
+    .bless-pill { --bless-pill-text: 0; }
+}
+
+@container top-band (width < 29.9rem) {
+    .top-band:has(.notice-group:not([hidden])) .bless-pill { --bless-pill-text: 0; }
+}
+
+@container top-band (width < 32.6rem) {
+    .top-band:has(.notice-group:not([hidden]) ~ .notice-group:not([hidden])) .bless-pill { --bless-pill-text: 0; }
+}
+
+@container top-band (width < 35.3rem) {
+    .top-band:has(.notice-group:not([hidden]) ~ .notice-group:not([hidden]) ~ .notice-group:not([hidden]))
+        .bless-pill { --bless-pill-text: 0; }
 }
 
 .bless-pill[data-bless-state="bless"],
@@ -1998,31 +2065,6 @@ math {
 .bless-record p,
 .bless-record ul {
     margin-block: 0.25rem;
-}
-
-@media (max-width: 30rem) {
-    .top-band:has(.bless-controls:not([hidden])) {
-        --top-band-gap: 0.3rem;
-        --top-control-size: 2.1rem;
-    }
-
-    .bless-pill {
-        max-width: 4.6rem;
-        padding-inline: 0.4rem;
-    }
-}
-
-/* At 360 px, with the frontmatter chevron a bless chapter always has, the squares shrink once more
-   so the row still fits. */
-@media (max-width: 23rem) {
-    .top-band:has(.bless-controls:not([hidden])) {
-        --top-band-gap: 0.25rem;
-        --top-control-size: 1.8rem;
-    }
-
-    .bless-pill {
-        max-width: 2.6rem;
-    }
 }
 
 .notice-group[hidden] { display: none; }
