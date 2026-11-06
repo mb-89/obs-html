@@ -87,7 +87,8 @@ Printing a chapter:
 
 PDF operations:
   --export-pdf HTML --output file.pdf prints existing HTML with local Chrome/Edge/Chromium
-  or Playwright Chromium. If no browser is installed: uv run playwright install chromium
+  or Playwright Chromium, and attaches the source ZIP the HTML embeds as obs-html-source.zip.
+  If no browser is installed: uv run playwright install chromium
   --attach-source-to-pdf PDF --source-artifact HTML --output file.pdf attaches the source ZIP
   that HTML embeds (a Document built with obs-document --embed-source) to a PDF saved from it,
   as obs-html-source.zip. Rendering such a Document to a .pdf DESTINATION attaches it already.
@@ -238,7 +239,6 @@ def _write_artifact(document: dict, options: argparse.Namespace, config, destina
         return
     destination = destination.resolve()
     if destination.suffix.lower() == ".pdf":
-        from obs_html.pdf import export_pdf
         # Print beside the destination, so the Document's relative asset links resolve.
         destination.parent.mkdir(parents=True, exist_ok=True)
         with tempfile.NamedTemporaryFile("w", encoding="utf-8", dir=destination.parent,
@@ -247,12 +247,9 @@ def _write_artifact(document: dict, options: argparse.Namespace, config, destina
             temporary.write(artifact)
         html = Path(temporary.name)
         try:
-            pdf = export_pdf(html)
+            pdf = _printed(html, artifact, destination)
         finally:
             html.unlink()
-        archive = embedded(artifact, destination)
-        if archive is not None:
-            pdf = attach(pdf, archive, destination)
         _write_if_changed(destination, pdf)
     else:
         existing = _read_existing(destination)
@@ -316,11 +313,20 @@ def _attach_source(options: argparse.Namespace) -> None:
     print(f"Generated PDF {output.resolve()} with {html.name}'s source ZIP.")
 
 
+def _printed(html: Path, artifact: str, source: object) -> bytes:
+    """``html`` printed, with the source ZIP its ``artifact`` text embeds attached when it has one;
+    ``source`` names the artifact in errors."""
+    from obs_html.pdf import export_pdf
+    pdf = export_pdf(html)
+    archive = embedded(artifact, source)
+    return pdf if archive is None else attach(pdf, archive, source)
+
+
 def _browser_operation(options: argparse.Namespace, config) -> None:
     operation = "--export-pdf" if options.export_pdf else "--check-rendered"
     _alone(operation, options, "document", "destination", "check", "style", "trusted_runtime_bundle",
            "embed_attachments", "vault_root", *(["check_rendered"] if options.export_pdf else []))
-    from obs_html.pdf import check_rendered, export_pdf
+    from obs_html.pdf import check_rendered
     if options.export_pdf:
         output = options.output
         if output is None or output.suffix.lower() != ".pdf":
@@ -328,7 +334,12 @@ def _browser_operation(options: argparse.Namespace, config) -> None:
                              "Give --export-pdf an --output file ending in .pdf")
         if output.resolve() == options.export_pdf.resolve():
             raise InputError(PROG, "--output", "names the source HTML", "Name another .pdf file")
-        _write_if_changed(output.resolve(), export_pdf(options.export_pdf))
+        try:
+            artifact = options.export_pdf.read_text(encoding="utf-8")
+        except (OSError, UnicodeError) as error:
+            raise InputError(PROG, "--export-pdf", f"cannot read its HTML ({error})",
+                             "Name an existing HTML artifact") from error
+        _write_if_changed(output.resolve(), _printed(options.export_pdf, artifact, options.export_pdf))
         print(f"Generated PDF {output.resolve()}.")
         return
     if options.output:
