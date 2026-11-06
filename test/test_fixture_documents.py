@@ -6,6 +6,7 @@ once, and compares. A vault the core refuses fails naming the vault and the core
 stale Document fails naming the first JSON path that differs and the command that rebuilds it.
 """
 import json
+import subprocess
 
 import pytest
 
@@ -18,13 +19,22 @@ REBUILD = "uv run python test/fixtures/build_documents.py <obs checkout> {name}"
 
 @pytest.fixture(scope="session")
 def rebuilt(tmp_path_factory):
-    """Every vault built by the current core, once per run: the folder and the core's refusals."""
+    """Every vault built by the current core, once per run: the folder, the core's refusals and the
+    processes the build started."""
     def build(folder):
-        refused = build_documents.build(CORE_ROOT, [], folder, offline=True)
+        processes = []
+
+        def run(command, **options):
+            processes.append(command[:command.index("python") + 1] if "python" in command else command)
+            return subprocess.run(command, **options)
+
+        refused = build_documents.build(CORE_ROOT, [], folder, offline=True, run=run)
         (folder / "refused.json").write_text(json.dumps(refused), encoding="utf-8")
+        (folder / "processes.json").write_text(json.dumps(processes), encoding="utf-8")
 
     folder = built_once(tmp_path_factory, "fixture-documents", build)
-    return folder, json.loads((folder / "refused.json").read_text(encoding="utf-8"))
+    return (folder, json.loads((folder / "refused.json").read_text(encoding="utf-8")),
+            json.loads((folder / "processes.json").read_text(encoding="utf-8")))
 
 
 def first_difference(committed, built, path="$"):
@@ -52,7 +62,7 @@ def first_difference(committed, built, path="$"):
 
 @pytest.mark.parametrize("name", list(build_documents.VAULTS))
 def test_the_committed_document_is_what_the_current_core_builds(rebuilt, name: str) -> None:
-    folder, refused = rebuilt
+    folder, refused, _processes = rebuilt
     assert name not in refused, (
         f"test/fixtures/build_documents.py: the core refuses the {name} vault: {refused.get(name)}\n"
         f"Remedy: change the vault in build_documents.py as the core's message says, then run "
@@ -64,6 +74,13 @@ def test_the_committed_document_is_what_the_current_core_builds(rebuilt, name: s
         f"test/fixtures/documents/{name}.json is stale: the current core builds another Document from "
         f"its vault ({difference}). Remedy: run {REBUILD.format(name=name)} and fix what the new "
         "Document breaks.")
+
+
+def test_every_vault_is_built_in_one_core_process(rebuilt) -> None:
+    """Each core process costs its imports (about 0.3 s of CPU); the capability reference and every
+    vault's Document are built in one."""
+    _folder, _refused, processes = rebuilt
+    assert processes == [["uv", "run", "--offline", "--project", str(CORE_ROOT), "python"]]
 
 
 def test_a_stale_document_names_the_first_differing_path() -> None:

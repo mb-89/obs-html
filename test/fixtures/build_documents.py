@@ -25,7 +25,6 @@ import json
 import subprocess
 import sys
 import tempfile
-from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import yaml
@@ -653,15 +652,37 @@ machine's folders, which the build checks. complete and artifact-change keep the
 images alone in their paragraphs, which the core's figure lint warns about."""
 
 
-# Runs obs-document in the core's environment with the core's one network read refused.
+# Runs in the core's environment, with the core's one network read refused: builds the capability
+# reference, then each vault's Document with obs-document, one after the other in this one process,
+# and writes each one's exit code and output. A job's own error is its output; the others still run.
 DRIVER = """
-import sys
-from obs import document, vault
+import contextlib, io, json, sys, traceback
+from obs import capabilities, document, vault
+
 def fetch(url):
     raise SystemExit(f"test/fixtures/build_documents.py: a vault embeds the remote image {url}, which a "
                      "fixture build never fetches. Remedy: save the image into the vault and embed it locally.")
 vault.fetch_remote = fetch
-sys.exit(document.main(sys.argv[1:]))
+
+def run(main, arguments):
+    output = io.StringIO()
+    with contextlib.redirect_stdout(output), contextlib.redirect_stderr(output):
+        try:
+            code = main(arguments)
+        except SystemExit as stop:
+            code = stop.code if isinstance(stop.code, int) else 1
+            if not isinstance(stop.code, int) and stop.code is not None:
+                print(stop.code, file=sys.stderr)
+        except Exception:
+            code = 1
+            traceback.print_exc()
+    return {"code": code or 0, "output": output.getvalue()}
+
+jobs = json.loads(open(sys.argv[1], encoding="utf-8").read())
+results = {"capabilities": run(capabilities.main, jobs["capabilities"])}
+if not results["capabilities"]["code"]:
+    results |= {name: run(document.main, arguments) for name, arguments in jobs["documents"].items()}
+open(sys.argv[2], "w", encoding="utf-8").write(json.dumps(results))
 """
 
 
@@ -677,36 +698,41 @@ def normalised(document: dict) -> dict:
     return document
 
 
-def build(core: Path, names: list[str], output: Path, offline: bool = False) -> dict[str, str]:
-    """Build the named vaults' Documents (all without names) into ``output`` with the core, side by
-    side; the core's message for each vault it refuses. ``offline`` keeps uv off the network."""
-    uv = ["uv", "run", *(["--offline"] if offline else []), "--project", str(core)]
+def build(core: Path, names: list[str], output: Path, offline: bool = False,
+          run=subprocess.run) -> dict[str, str]:
+    """Build the named vaults' Documents (all without names) into ``output`` with the core, in one
+    core process (DRIVER); the core's message for each vault it refuses. ``offline`` keeps uv off
+    the network."""
     refused: dict[str, str] = {}
     with tempfile.TemporaryDirectory() as temporary:
         work = Path(temporary)
         capabilities = work / "capabilities.json"
-        result = subprocess.run([*uv, "python", "-m", "obs.capabilities", "--notes", "spec/capabilities",
-                                 "--output", str(capabilities)], cwd=core, capture_output=True, text=True)
-        if result.returncode:
-            raise RuntimeError(f"test/fixtures/build_documents.py: the core could not build its capability "
-                               f"reference in {core}: {(result.stderr or result.stdout).strip()}")
-
-        def one(name: str) -> None:
+        jobs = {"capabilities": ["--notes", "spec/capabilities", "--output", str(capabilities)], "documents": {}}
+        for name in names or VAULTS:
             root = work / name
             root.mkdir()
             VAULTS[name](root)
+            jobs["documents"][name] = [
+                "--document", str(output / f"{name}.json"), "--source", str(root / "manifest.md"),
+                "--capability-reference", str(capabilities),
+                *(["--execute-commands"] if name in RUNS_COMMANDS else []),
+                *(["--embed-source"] if name in EMBEDS_SOURCE else [])]
+        (work / "jobs.json").write_text(json.dumps(jobs), encoding="utf-8")
+        result = run(["uv", "run", *(["--offline"] if offline else []), "--project", str(core), "python",
+                      "-c", DRIVER, str(work / "jobs.json"), str(work / "results.json")],
+                     cwd=core, capture_output=True, text=True)
+        if result.returncode or not (work / "results.json").is_file():
+            raise RuntimeError(f"test/fixtures/build_documents.py: the core in {core} could not run the fixture "
+                               f"build: {(result.stderr or result.stdout).strip()}")
+        results = json.loads((work / "results.json").read_text(encoding="utf-8"))
+        if results["capabilities"]["code"]:
+            raise RuntimeError(f"test/fixtures/build_documents.py: the core could not build its capability "
+                               f"reference in {core}: {results['capabilities']['output'].strip()}")
+        for name in jobs["documents"]:
+            if results[name]["code"]:
+                refused[name] = "\n".join(line for line in results[name]["output"].splitlines() if line.strip())
+                continue
             document = output / f"{name}.json"
-            result = subprocess.run([*uv, "python", "-c", DRIVER, "--document", str(document),
-                                     "--source", str(root / "manifest.md"),
-                                     "--capability-reference", str(capabilities),
-                                     *(["--execute-commands"] if name in RUNS_COMMANDS else []),
-                                     *(["--embed-source"] if name in EMBEDS_SOURCE else [])],
-                                    cwd=core, capture_output=True, text=True)
-            if result.returncode:
-                # uv's own notices start with "warning:"; the core's lines name the core.
-                refused[name] = "\n".join(line for line in (result.stderr or result.stdout).splitlines()
-                                          if line.strip() and not line.startswith("warning:"))
-                return
             built = normalised(json.loads(document.read_text(encoding="utf-8")))
             document.write_text(json.dumps(built, indent=2) + "\n", encoding="utf-8")
             diagnostics = built["diagnostics"]
@@ -714,9 +740,6 @@ def build(core: Path, names: list[str], output: Path, offline: bool = False) -> 
                 refused[name] = (f"the {name} Document has diagnostics {diagnostics}, which a committed "
                                  f"fixture must not carry. Remedy: change the {name} vault so the core "
                                  "builds it without them.")
-
-        with ThreadPoolExecutor() as pool:
-            list(pool.map(one, names or VAULTS))
     return refused
 
 
