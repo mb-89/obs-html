@@ -6,9 +6,12 @@
 // checkboxes, switches and tabs). A control is fine when `document.elementFromPoint` at the
 // centre of one of its visible parts returns the control, one of its descendants or its label, either
 // where it stands or once scrolled to the middle of its scroller (horizontally only as far as
-// needed, as a reader would scroll). Anything else is a fault naming the control and what lies
-// over it. A control covered where it stands but uncovered once scrolled is not a fault: the
-// reader reaches it, as with any scrolled content.
+// needed, as a reader would scroll). A control that wraps onto several lines, as a link at a line
+// end does, is scrolled to as a whole first; where its lines lie on either side of the scroller's
+// view (a review-mode body wider than the reader), that shows none of them, so it is then scrolled
+// to one line at a time, as a reader scrolls to the part they point at. Anything else is a fault
+// naming the control and what lies over it. A control covered where it stands but uncovered once
+// scrolled is not a fault: the reader reaches it, as with any scrolled content.
 //
 // One exception, from obs's artifact-ui.md: on narrow screens an open bar overlays the reader on
 // purpose, so a reader control the bar overlays, even in part, is hidden, not covered. The
@@ -30,7 +33,8 @@ async (_, {views, layouts, firstChapterLayouts}) => {
         const kind = element.tagName.toLowerCase() + (element.classList[0] ? `.${element.classList[0]}` : "");
         return text ? `${kind} "${text}"` : kind;
     };
-    const box = (element) => [...element.getClientRects()].find((rect) => rect.width >= 2 && rect.height >= 2);
+    const lines = (element) => [...element.getClientRects()].filter((rect) => rect.width >= 2 && rect.height >= 2);
+    const box = (element) => lines(element)[0];
     const shown = (element) => element.checkVisibility({visibilityProperty: true}) && Boolean(box(element));
 
     // One check runs synchronously: no script, style or layout change happens during it, only
@@ -63,6 +67,19 @@ async (_, {views, layouts, firstChapterLayouts}) => {
         for (let parent = element.parentElement; parent; parent = parent.parentElement) found.push(parent);
         return found;
     });
+    // Scrolls the control's line (one of its boxes) into view in each ancestor that clips it,
+    // innermost first: to the middle vertically, horizontally only as far as needed.
+    const revealLine = (control, line) => {
+        for (const parent of clippers(control)) {
+            const rect = lines(control)[line];
+            const own = parent.getBoundingClientRect();
+            const view = {left: Math.max(own.left, 0), right: Math.min(own.right, innerWidth),
+                top: Math.max(own.top, 0), bottom: Math.min(own.bottom, innerHeight)};
+            parent.scrollTop += (rect.top + rect.bottom - view.top - view.bottom) / 2;
+            if (rect.left < view.left) parent.scrollLeft -= view.left - rect.left;
+            else if (rect.right > view.right) parent.scrollLeft += Math.min(rect.right - view.right, rect.left - view.left);
+        }
+    };
     const offsets = (elements) => elements.map((element) => `${element.scrollLeft},${element.scrollTop}`).join(";");
 
     // The visible parts of a control, largest first: each of its boxes (a wrapped link has one
@@ -130,7 +147,11 @@ async (_, {views, layouts, firstChapterLayouts}) => {
             if (!pending.has(control)) continue;
             const before = offsets(scrollers(control));
             control.scrollIntoView({block: "center", inline: "nearest", behavior: "instant"});
-            const parts = seen(control);
+            let parts = seen(control);
+            for (let line = 0; !parts.length && line < lines(control).length; line++) {
+                revealLine(control, line);
+                parts = seen(control);
+            }
             const over = parts.length ? parts.map((part) => covering(control, part)) : ["nothing: it cannot be scrolled into view"];
             pending.delete(control);
             if (over.every(Boolean)) faults.push({control: name(control), covering: over[0]});

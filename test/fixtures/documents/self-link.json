@@ -1,0 +1,556 @@
+{
+  "schemaVersion": 1,
+  "manifest": {
+    "title": "Manifest",
+    "path": "manifest.md",
+    "metadata": {},
+    "abstract": [
+      {
+        "type": "manifest",
+        "attrs": {},
+        "children": []
+      }
+    ]
+  },
+  "chapters": [
+    {
+      "id": "long",
+      "title": "Long",
+      "content": [
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "long"
+          },
+          "children": []
+        },
+        {
+          "type": "markdown",
+          "attrs": {},
+          "children": []
+        },
+        {
+          "type": "section",
+          "attrs": {
+            "level": 1
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Long"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "attrs": {
+            "language": "text"
+          },
+          "children": [],
+          "text": "a line too long to wrap a line too long to wrap a line too long to wrap a line too long to wrap a line too long to wrap a line too long to wrap \n"
+        },
+        {
+          "type": "paragraph",
+          "attrs": {},
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Paragraph 0 of a note long enough to scroll. Paragraph 0 of a note long enough to scroll. Paragraph 0 of a note long enough to scroll. Paragraph 0 of a note long enough to scroll. Paragraph 0 of a note long enough to scroll. Paragraph 0 of a note long enough to scroll."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "attrs": {},
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Paragraph 1 of a note long enough to scroll. Paragraph 1 of a note long enough to scroll. Paragraph 1 of a note long enough to scroll. Paragraph 1 of a note long enough to scroll. Paragraph 1 of a note long enough to scroll. Paragraph 1 of a note long enough to scroll."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "attrs": {},
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Paragraph 2 of a note long enough to scroll. Paragraph 2 of a note long enough to scroll. Paragraph 2 of a note long enough to scroll. Paragraph 2 of a note long enough to scroll. Paragraph 2 of a note long enough to scroll. Paragraph 2 of a note long enough to scroll."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "attrs": {},
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Paragraph 3 of a note long enough to scroll. Paragraph 3 of a note long enough to scroll. Paragraph 3 of a note long enough to scroll. Paragraph 3 of a note long enough to scroll. Paragraph 3 of a note long enough to scroll. Paragraph 3 of a note long enough to scroll."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "attrs": {},
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Paragraph 4 of a note long enough to scroll. Paragraph 4 of a note long enough to scroll. Paragraph 4 of a note long enough to scroll. Paragraph 4 of a note long enough to scroll. Paragraph 4 of a note long enough to scroll. Paragraph 4 of a note long enough to scroll."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "attrs": {},
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Paragraph 5 of a note long enough to scroll. Paragraph 5 of a note long enough to scroll. Paragraph 5 of a note long enough to scroll. Paragraph 5 of a note long enough to scroll. Paragraph 5 of a note long enough to scroll. Paragraph 5 of a note long enough to scroll."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "attrs": {},
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Paragraph 6 of a note long enough to scroll. Paragraph 6 of a note long enough to scroll. Paragraph 6 of a note long enough to scroll. Paragraph 6 of a note long enough to scroll. Paragraph 6 of a note long enough to scroll. Paragraph 6 of a note long enough to scroll."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "attrs": {},
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Paragraph 7 of a note long enough to scroll. Paragraph 7 of a note long enough to scroll. Paragraph 7 of a note long enough to scroll. Paragraph 7 of a note long enough to scroll. Paragraph 7 of a note long enough to scroll. Paragraph 7 of a note long enough to scroll."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "attrs": {},
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Paragraph 8 of a note long enough to scroll. Paragraph 8 of a note long enough to scroll. Paragraph 8 of a note long enough to scroll. Paragraph 8 of a note long enough to scroll. Paragraph 8 of a note long enough to scroll. Paragraph 8 of a note long enough to scroll."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "attrs": {},
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Paragraph 9 of a note long enough to scroll. Paragraph 9 of a note long enough to scroll. Paragraph 9 of a note long enough to scroll. Paragraph 9 of a note long enough to scroll. Paragraph 9 of a note long enough to scroll. Paragraph 9 of a note long enough to scroll."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "attrs": {},
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Paragraph 10 of a note long enough to scroll. Paragraph 10 of a note long enough to scroll. Paragraph 10 of a note long enough to scroll. Paragraph 10 of a note long enough to scroll. Paragraph 10 of a note long enough to scroll. Paragraph 10 of a note long enough to scroll."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "attrs": {},
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Paragraph 11 of a note long enough to scroll. Paragraph 11 of a note long enough to scroll. Paragraph 11 of a note long enough to scroll. Paragraph 11 of a note long enough to scroll. Paragraph 11 of a note long enough to scroll. Paragraph 11 of a note long enough to scroll."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "attrs": {},
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Paragraph 12 of a note long enough to scroll. Paragraph 12 of a note long enough to scroll. Paragraph 12 of a note long enough to scroll. Paragraph 12 of a note long enough to scroll. Paragraph 12 of a note long enough to scroll. Paragraph 12 of a note long enough to scroll."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "attrs": {},
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Paragraph 13 of a note long enough to scroll. Paragraph 13 of a note long enough to scroll. Paragraph 13 of a note long enough to scroll. Paragraph 13 of a note long enough to scroll. Paragraph 13 of a note long enough to scroll. Paragraph 13 of a note long enough to scroll."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "attrs": {},
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Paragraph 14 of a note long enough to scroll. Paragraph 14 of a note long enough to scroll. Paragraph 14 of a note long enough to scroll. Paragraph 14 of a note long enough to scroll. Paragraph 14 of a note long enough to scroll. Paragraph 14 of a note long enough to scroll."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "attrs": {},
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Paragraph 15 of a note long enough to scroll. Paragraph 15 of a note long enough to scroll. Paragraph 15 of a note long enough to scroll. Paragraph 15 of a note long enough to scroll. Paragraph 15 of a note long enough to scroll. Paragraph 15 of a note long enough to scroll."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "attrs": {},
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Paragraph 16 of a note long enough to scroll. Paragraph 16 of a note long enough to scroll. Paragraph 16 of a note long enough to scroll. Paragraph 16 of a note long enough to scroll. Paragraph 16 of a note long enough to scroll. Paragraph 16 of a note long enough to scroll."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "attrs": {},
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Paragraph 17 of a note long enough to scroll. Paragraph 17 of a note long enough to scroll. Paragraph 17 of a note long enough to scroll. Paragraph 17 of a note long enough to scroll. Paragraph 17 of a note long enough to scroll. Paragraph 17 of a note long enough to scroll."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "attrs": {},
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Paragraph 18 of a note long enough to scroll. Paragraph 18 of a note long enough to scroll. Paragraph 18 of a note long enough to scroll. Paragraph 18 of a note long enough to scroll. Paragraph 18 of a note long enough to scroll. Paragraph 18 of a note long enough to scroll."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "attrs": {},
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Paragraph 19 of a note long enough to scroll. Paragraph 19 of a note long enough to scroll. Paragraph 19 of a note long enough to scroll. Paragraph 19 of a note long enough to scroll. Paragraph 19 of a note long enough to scroll. Paragraph 19 of a note long enough to scroll."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "attrs": {},
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Paragraph 20 of a note long enough to scroll. Paragraph 20 of a note long enough to scroll. Paragraph 20 of a note long enough to scroll. Paragraph 20 of a note long enough to scroll. Paragraph 20 of a note long enough to scroll. Paragraph 20 of a note long enough to scroll."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "attrs": {},
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Paragraph 21 of a note long enough to scroll. Paragraph 21 of a note long enough to scroll. Paragraph 21 of a note long enough to scroll. Paragraph 21 of a note long enough to scroll. Paragraph 21 of a note long enough to scroll. Paragraph 21 of a note long enough to scroll."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "attrs": {},
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Paragraph 22 of a note long enough to scroll. Paragraph 22 of a note long enough to scroll. Paragraph 22 of a note long enough to scroll. Paragraph 22 of a note long enough to scroll. Paragraph 22 of a note long enough to scroll. Paragraph 22 of a note long enough to scroll."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "attrs": {},
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Paragraph 23 of a note long enough to scroll. Paragraph 23 of a note long enough to scroll. Paragraph 23 of a note long enough to scroll. Paragraph 23 of a note long enough to scroll. Paragraph 23 of a note long enough to scroll. Paragraph 23 of a note long enough to scroll."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "attrs": {},
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Paragraph 24 of a note long enough to scroll. Paragraph 24 of a note long enough to scroll. Paragraph 24 of a note long enough to scroll. Paragraph 24 of a note long enough to scroll. Paragraph 24 of a note long enough to scroll. Paragraph 24 of a note long enough to scroll."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "attrs": {},
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Paragraph 25 of a note long enough to scroll. Paragraph 25 of a note long enough to scroll. Paragraph 25 of a note long enough to scroll. Paragraph 25 of a note long enough to scroll. Paragraph 25 of a note long enough to scroll. Paragraph 25 of a note long enough to scroll."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "attrs": {},
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Paragraph 26 of a note long enough to scroll. Paragraph 26 of a note long enough to scroll. Paragraph 26 of a note long enough to scroll. Paragraph 26 of a note long enough to scroll. Paragraph 26 of a note long enough to scroll. Paragraph 26 of a note long enough to scroll."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "attrs": {},
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Paragraph 27 of a note long enough to scroll. Paragraph 27 of a note long enough to scroll. Paragraph 27 of a note long enough to scroll. Paragraph 27 of a note long enough to scroll. Paragraph 27 of a note long enough to scroll. Paragraph 27 of a note long enough to scroll."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "attrs": {},
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Paragraph 28 of a note long enough to scroll. Paragraph 28 of a note long enough to scroll. Paragraph 28 of a note long enough to scroll. Paragraph 28 of a note long enough to scroll. Paragraph 28 of a note long enough to scroll. Paragraph 28 of a note long enough to scroll."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "attrs": {},
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Paragraph 29 of a note long enough to scroll. Paragraph 29 of a note long enough to scroll. Paragraph 29 of a note long enough to scroll. Paragraph 29 of a note long enough to scroll. Paragraph 29 of a note long enough to scroll. Paragraph 29 of a note long enough to scroll."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "attrs": {},
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "After all these paragraphs and the wide fence above them, back to the top: "
+            },
+            {
+              "type": "wikilinks",
+              "attrs": {
+                "target": "long",
+                "chapter": "long",
+                "heading": "",
+                "label": "long"
+              },
+              "children": []
+            },
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "."
+            }
+          ]
+        }
+      ],
+      "children": [],
+      "metadata": {}
+    },
+    {
+      "id": "short",
+      "title": "Short",
+      "content": [
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "short"
+          },
+          "children": []
+        },
+        {
+          "type": "markdown",
+          "attrs": {},
+          "children": []
+        },
+        {
+          "type": "section",
+          "attrs": {
+            "level": 1
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Short"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "attrs": {},
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Body."
+            }
+          ]
+        }
+      ],
+      "children": [],
+      "metadata": {}
+    }
+  ],
+  "links": [
+    {
+      "id": "long",
+      "href": "long",
+      "label": "long"
+    }
+  ],
+  "assets": [],
+  "records": [
+    {
+      "id": "long",
+      "type": "note",
+      "path": "long.md",
+      "fields": {},
+      "fieldNodes": []
+    },
+    {
+      "id": "manifest",
+      "type": "note",
+      "path": "manifest.md",
+      "fields": {},
+      "fieldNodes": []
+    },
+    {
+      "id": "short",
+      "type": "note",
+      "path": "short.md",
+      "fields": {},
+      "fieldNodes": []
+    },
+    {
+      "id": "chapter-long",
+      "type": "chapter",
+      "note": "long",
+      "fields": {
+        "chapter": "Long",
+        "title": "Long",
+        "depth": "0",
+        "slug": "long",
+        "sourcePath": "long.md"
+      }
+    },
+    {
+      "id": "chapter-short",
+      "type": "chapter",
+      "note": "short",
+      "fields": {
+        "chapter": "Short",
+        "title": "Short",
+        "depth": "0",
+        "slug": "short",
+        "sourcePath": "short.md"
+      }
+    }
+  ],
+  "semanticResources": [],
+  "diagnostics": [],
+  "capabilities": [
+    "chapter-inclusion",
+    "manifest",
+    "markdown",
+    "wikilinks"
+  ]
+}
