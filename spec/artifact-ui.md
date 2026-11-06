@@ -235,6 +235,18 @@ failures have their form in [[input-model#Chapter content]].
   event-handler attributes and every target but a resolved link, a fragment of the drawing, a
   web or mail address or a data image are removed.
 
+  Authored content never styles anything outside itself. An inline authored drawing (an `svg`
+  figure or an SVG `image`) keeps its `<style>` elements, scoped to its own figure by
+  `src/obs_html/figure_styles.py` with a CSS parser (tinycss2), never a pattern: each selector
+  of each rule becomes `:where(#<anchor>) <selector>`, so it matches only inside the figure's
+  frame and keeps its authored specificity. Rules inside `@media`, `@supports` and `@container`
+  are scoped the same way; `@keyframes` names are prefixed with the anchor, together with the
+  drawing's own animation names that use them. Every other at-rule (`@import`, `@font-face`,
+  `@property`, `@layer`, `@namespace`, `@page` and any other) is global and cannot be scoped:
+  it is dropped, and a warning in the one message form names the note, `figure.style` and the
+  figure's anchor. A diagram figure's SVG (`mermaid`, `plantuml`) is the core's output, which
+  scopes its own styles by the diagram's id: it is left as drawn.
+
   An anchor is `<note-slug>--block-<name>` for a figure with a block id, otherwise
   `<note-slug>--figure-<name>`, where name is a plot's descriptor id or the figure's position
   among the note's figures.
