@@ -203,7 +203,7 @@
                     "file.name",
                     "obsHtml.label"
                   ],
-                  "obsHtml": {
+                  "obs": {
                     "members": [
                       {
                         "path": "c-point.md",
@@ -222,7 +222,7 @@
                   "order": [
                     "file.name"
                   ],
-                  "obsHtml": {
+                  "obs": {
                     "members": [
                       {
                         "path": "b-point.md"
@@ -235,8 +235,8 @@
             "view": null,
             "rows": [
               [
-                "a-point",
-                "c-point"
+                "c-point",
+                "a-point"
               ],
               [
                 "b-point"
@@ -314,7 +314,7 @@
                     "file.name",
                     "obsHtml.label"
                   ],
-                  "obsHtml": {
+                  "obs": {
                     "members": [
                       {
                         "path": "c-point.md",
@@ -333,7 +333,7 @@
                   "order": [
                     "file.name"
                   ],
-                  "obsHtml": {
+                  "obs": {
                     "members": [
                       {
                         "path": "b-point.md"
@@ -346,8 +346,8 @@
             "view": 1,
             "rows": [
               [
-                "a-point",
-                "c-point"
+                "c-point",
+                "a-point"
               ],
               [
                 "b-point"
@@ -440,7 +440,7 @@
                   "order": [
                     "file.name"
                   ],
-                  "obsHtml": {
+                  "obs": {
                     "records": "note"
                   }
                 },
@@ -450,7 +450,7 @@
                   "order": [
                     "chapter"
                   ],
-                  "obsHtml": {
+                  "obs": {
                     "records": "chapter"
                   }
                 },
@@ -462,7 +462,7 @@
                     "label",
                     "text"
                   ],
-                  "obsHtml": {
+                  "obs": {
                     "records": "tag"
                   }
                 },
@@ -473,7 +473,7 @@
                     "term",
                     "definition"
                   ],
-                  "obsHtml": {
+                  "obs": {
                     "records": "glossary"
                   }
                 },
@@ -485,7 +485,7 @@
                     "key",
                     "value"
                   ],
-                  "obsHtml": {
+                  "obs": {
                     "records": "documentMetadata"
                   }
                 },
@@ -497,7 +497,7 @@
                     "date",
                     "change"
                   ],
-                  "obsHtml": {
+                  "obs": {
                     "records": "documentHistory"
                   }
                 }

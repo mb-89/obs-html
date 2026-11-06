@@ -52,10 +52,24 @@ def test_front_pages_follow_the_profile_order(document) -> None:
 
 
 def test_defaults_apply_without_a_profile(document) -> None:
-    del document["manifest"]["abstract"][1]
+    del document["manifest"]["metadata"]["obsHtml"]
     model = _model(document)
     assert [page["page"] for page in model["document"]["pages"]] == ["cover", "abstract", "contents"]
     assert model["paper"] == {"widthMillimeters": 210, "heightMillimeters": 297, "marginMillimeters": 20.0}
+
+
+@pytest.mark.parametrize(("profile", "field"), [
+    ({"layout": "sideways"}, "obsHtml.layout"),
+    ({"heading": "huge"}, "obsHtml.heading"),
+    ({"query": {"scope": "everything"}}, "obsHtml.query.scope"),
+])
+def test_an_invalid_presentation_profile_names_the_manifest_field_and_the_remedy(document, profile, field) -> None:
+    """The adapter checks its own namespace; the obs core does not read it."""
+    document["manifest"]["metadata"]["obsHtml"] = profile
+    with pytest.raises(RenderError) as failure:
+        _model(document)
+    assert str(failure.value).startswith(f"Manifest frontmatter {field}: ")
+    assert "Remedy:" in str(failure.value) and "profile.schema.json" in str(failure.value)
 
 
 def test_profile_print_choice_sets_the_paper(document) -> None:
@@ -129,7 +143,7 @@ def test_records_join_the_queryable_population_outside_the_reading_order(documen
     records = {note["slug"]: note for note in model["notes"] if note["slug"] not in model["toc"]}
     assert set(records) == {"alpha", "beta", "gamma", "other", "ranked", "datum"}  # ranked, datum: included notes.
     assert records["alpha"]["frontmatter"] == {
-        "kind": "item", "rank": 1, "item": {"name": "Alpha"}, "obsHtml": {"document": False}}
+        "kind": "item", "rank": 1, "item": {"name": "Alpha"}, "obs": {"document": False}}
     assert records["alpha"]["html"] == ""
 
 
@@ -361,7 +375,7 @@ def test_a_toc_false_chapter_is_a_note_outside_the_contents_and_reading_order() 
     notes = {note["slug"]: note for note in model["notes"]}
     assert model["toc"] == ["home", "index"]
     assert notes["reached"]["html"] == "<p>Unlisted prose.</p>\n"
-    assert "record" not in notes["reached"] and "obsHtml" not in notes["reached"]["frontmatter"]
+    assert "record" not in notes["reached"] and "obs" not in notes["reached"]["frontmatter"]
     assert '<a class="internal-link" href="#reached">Reached by a link</a>' in notes["index"]["html"]
 
 

@@ -33,7 +33,7 @@ def artifact(tmp_path_factory: pytest.TempPathFactory) -> Path:
         "Harness",
         chapter("intro", "Intro", heading(1, "Intro"), paragraph("Intro prose.")),
         chapter("items", "Items", heading(1, "Items"), paragraph("Items prose."), base),
-        abstract=(node("profiles", profile={"print": {"paper": "Letter", "margin": "15mm"}}),),
+        metadata={"obsHtml": {"print": {"paper": "Letter", "margin": "15mm"}}},
         records=records,
     )
     path = tmp_path_factory.mktemp("harness") / "artifact.html"

@@ -33,6 +33,9 @@
             "title": "Abstract"
           }
         ]
+      },
+      "obs": {
+        "document": true
       }
     },
     "abstract": [
@@ -70,6 +73,9 @@
                   "title": "Abstract"
                 }
               ]
+            },
+            "obs": {
+              "document": true
             }
           }
         },
@@ -79,24 +85,7 @@
         "type": "profiles",
         "attrs": {
           "profile": {
-            "layout": "paged",
-            "print": {
-              "paper": "Letter",
-              "margin": "15mm"
-            },
-            "pages": [
-              {
-                "page": "cover"
-              },
-              {
-                "page": "contents",
-                "title": "Contents"
-              },
-              {
-                "page": "abstract",
-                "title": "Abstract"
-              }
-            ]
+            "document": true
           }
         },
         "children": []
