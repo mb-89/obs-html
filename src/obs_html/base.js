@@ -188,8 +188,7 @@
             const {field: name, operator, literal} = comparison(filter);
             const field = quoteField(name);
             if (literal === "null") return operator === "!=" ? `${field}: *` : `NOT ${field}: *`;
-            const value = (/^["']/.test(literal) ? literal.slice(1, -1) : literal)
-                .replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replaceAll("/", "\\/");
+            const value = escapePattern(fold(/^["']/.test(literal) ? literal.slice(1, -1) : literal));
             const expression = `${field}: /^${value}$/`;
             return operator === "==" ? expression : `NOT ${expression}`;
         }
@@ -206,17 +205,30 @@
         return true;
     };
     // capabilities/bases#Comparisons owns the rule set: text ignores case unless a query
-    // condition's flag asks for it, and property names ignore case.
+    // condition's flag asks for it, and property names ignore case. Ignoring case compares
+    // case foldings by the core's one table (obs/case-folding.json, the page's #case-folding).
+    let folds;
+    const fold = text => {
+        if (!folds) {
+            const table = document.querySelector("#case-folding");
+            if (!table) throw new Error("base.js: the page holds no #case-folding table; embed obs/case-folding.json as the renderer does.");
+            folds = new Map(Object.entries(JSON.parse(table.textContent).folds)
+                .map(([code, folded]) => [Number.parseInt(code, 16), folded]));
+        }
+        let folded = "";
+        for (const character of text) folded += folds.get(character.codePointAt(0)) ?? character;
+        return folded;
+    };
     const escapePattern = text => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replaceAll("/", "\\/");
     const textMatcher = (expected, matchCase = false) => {
         if (matchCase) return actual => actual === expected;
-        const pattern = new RegExp(`^${escapePattern(expected)}$`, "i");
-        return actual => pattern.test(actual);
+        const folded = fold(expected);
+        return actual => fold(actual) === folded;
     };
     const propertyKey = (mapping, name) => {
         if (Object.hasOwn(mapping, name)) return name;
-        const folded = name.toLowerCase();
-        return Object.keys(mapping).find(key => key.toLowerCase() === folded);
+        const folded = fold(name);
+        return Object.keys(mapping).find(key => fold(key) === folded);
     };
     const compileFilter = (filter, valueFor) => {
         if (filter === undefined || filter === null) return {empty: true, match: () => true};
@@ -323,6 +335,6 @@
     };
     globalThis.obsBases = {
         validate, parse, dump, filterExpression, compileFilter, assigned, quoteField, recordValue, referenceRecords,
-        project, expandMetadata, textMatcher, escapePattern,
+        project, expandMetadata, textMatcher, escapePattern, fold,
     };
 })();

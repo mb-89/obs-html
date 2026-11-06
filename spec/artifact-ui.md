@@ -1261,7 +1261,10 @@ separate from artifact presentation.
 - A field clause selects by the one rule set (obs's bases capability, Comparisons: [[obs-specification|obs's specification]]): it resolves
   a note property and tests its text as obs's queries capability (Conditions) does. Words,
   wildcards and regular expressions ignore case; a `c` after a regular expression
-  (`status: /^Open$/c`) matches case, as a condition's `matchCase` does.
+  (`status: /^Open$/c`) matches case, as a condition's `matchCase` does. Ignoring case, a
+  word or wildcard matches the text's case folding (obs's bases capability, Comparisons), and
+  a regular expression matches the text or its folding, so `street: /^strasse$/` finds
+  `Straße`.
 
   A name that is no note property falls back to the reader's own fields (title, text, slug,
   depth, marks, query aliases); a `note.` prefix asks for the property alone.

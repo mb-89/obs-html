@@ -1190,6 +1190,7 @@ def _shell(model: dict[str, object], limits: list[dict[str, str]], stylesheet: s
 {read("query.js")}
   </script>
   <script id="base-schema" type="application/json">{read("base.schema.json")}</script>
+  <script id="case-folding" type="application/json">{files("obs").joinpath("case-folding.json").read_text(encoding="utf-8")}</script>
   <script type="application/json" data-json-schema="assets.schema.json">{read("assets.schema.json")}</script>
   <script id="yaml-script">
 /* {read("vendor", "js-yaml.LICENSE")} */
