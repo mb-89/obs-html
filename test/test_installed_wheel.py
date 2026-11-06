@@ -5,7 +5,8 @@ ones that come from a lockfile). The test builds the wheels of obs and obs-html 
 into a fresh virtual environment outside the checkout, with the lockfile's dependencies from uv's
 cache, and renders a Document with an equation figure and a plot there, in a Python whose audit hook
 records every file it opens or lists inside the checkout. A build that cannot install a lockfile
-names the lockfile and the remedy.
+names the lockfile and the remedy. The installed core draws Mermaid and PlantUML from its own
+package data the same way (the core's hatch_build.py).
 """
 import importlib.util
 import json
@@ -99,6 +100,29 @@ def test_the_installed_wheel_embeds_its_packaged_assets_and_reads_nothing_from_t
     licence, library = maths.split("*/", 1)
     assert f"@version {version}" in licence and "Apache License" in licence and f'"{version}"' in library
     assert "plotly.js" in _script(html, "plotly-script")
+
+
+# RENDER with the core's build in place of the adapter's render: the rest of argv is obs-document's.
+BUILD = RENDER.replace("import obs_html\nfrom obs_html.cli import main", "import obs as obs_html\nfrom obs.document import main")
+DIAGRAMS = "# Diagrams\n\n```mermaid\ngraph TD\n  Draft --> Done\n```\n\n```plantuml\n@startuml\nAuthor -> Reviewer\n@enduml\n```\n"
+
+
+def test_the_installed_core_draws_mermaid_and_plantuml_from_its_package_data(installed, tmp_path) -> None:
+    (tmp_path / "manifest.md").write_text("- [[chapter]]\n", encoding="utf-8")
+    (tmp_path / "chapter.md").write_text(DIAGRAMS, encoding="utf-8")
+    reads, output = tmp_path / "reads.json", tmp_path / "document.json"
+    result = subprocess.run([str(installed), "-I", "-c", BUILD, str(CORE_ROOT), str(reads), "--source",
+                             str(tmp_path / "manifest.md"), "--document", str(output)],
+                            cwd=tmp_path, capture_output=True, text=True)
+
+    assert result.returncode == 0, result.stderr
+    assert json.loads(reads.read_text(encoding="utf-8")) == []
+    figures = [item for part in json.loads(output.read_text(encoding="utf-8"))["chapters"]
+               for item in part["content"] if item["type"] == "figures"]
+    assert [figure["attrs"]["kind"] for figure in figures] == ["mermaid", "plantuml"]
+    mermaid, plantuml = (figure["children"][0]["attrs"]["svg"] for figure in figures)
+    assert mermaid.startswith("<svg") and "Draft" in mermaid
+    assert plantuml.startswith("<svg") and "Reviewer" in plantuml
 
 
 @pytest.fixture
