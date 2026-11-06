@@ -384,7 +384,7 @@ CARDS = '{"version": 1, "cards": [{"title": "Items", "body": "Ranked: [[rankedIt
 def document(root: Path) -> None:
     """The adapter's main fixture (conftest.py's FIXTURE): a paged manifest with a cover, a chapter
     with a nested chapter, a Base and command fences, an appendix with figures (a Mermaid and a
-    PlantUML diagram among them, and an equation figure), a callout, cards and a register, a count quantity and a glossary note with a property editor. Its one
+    PlantUML diagram among them, an equation figure and a decision figure), a callout, cards and a register, a count quantity and a glossary note with a property editor. Its one
     diagnostic, the link to the missing note, is the one the CLI test reads on stderr."""
     (root / "images").mkdir()
     (root / "images" / "logo.png").write_bytes(base64.b64decode(
@@ -415,7 +415,9 @@ def document(root: Path) -> None:
         "> [!warning] Check the limits\n> The badge ![Logo](images/logo.png) marks it.\n\n"
         f"```cards\n{CARDS}\n```\n\n![[items.base]]\n\n"
         "```mermaid\ngraph LR\n  Item --> Rank\n```\n\n```plantuml\n@startuml\nItem -> Rank\n@enduml\n```\n\n"
-        f"```figure\nversion: 1\nkind: equations\ncontent:\n{_indent(PARABOLA)}```\n",
+        f"```figure\nversion: 1\nkind: equations\ncontent:\n{_indent(PARABOLA)}```\n\n"
+        "```pugh\ncriteria: [{key: cost, weight: 1, better: lower}]\n"
+        "candidates: [{key: now, values: {cost: 2}}, {key: new, values: {cost: 1}}]\n```\n",
         encoding="utf-8")
     (root / "items.base").write_text(
         "filters: 'kind == \"item\"'\nviews:\n"
@@ -546,6 +548,44 @@ def equations(root: Path) -> None:
     (root / "sweeps.md").write_text(_equation_chapter("Sweeps", SWEEPS), encoding="utf-8")
 
 
+DECISION = {
+    "title": "Which option", "chosen": "A",
+    "criteria": [
+        {"key": "err", "label": "Error", "weight": 3, "better": "lower", "tolerance": 0.1, "floor": 0},
+        {"key": "speed", "label": "Speed", "weight": 2, "better": "higher", "tolerance": 0.1, "floor": 0},
+        {"key": "cost", "label": "Cost of ownership", "weight": 1, "better": "lower", "tolerance": 0.25, "floor": 1},
+    ],
+    "candidates": [
+        {"key": "D", "label": "The datum we run", "short": "Now", "what": "What runs today.",
+         "values": {"err": 1, "speed": 10, "cost": 9}},
+        {"key": "A", "label": "Option A, precise", "short": "A", "what": "Precise but dear.",
+         "values": {"err": 0.4, "speed": 10.5, "cost": 19}, "tieBreak": 2},
+        {"key": "B", "label": "Option B, quick", "short": "B", "what": "Quick and cheap.",
+         "values": {"err": 0.85, "speed": 30, "cost": 4}, "tieBreak": 1},
+        {"key": "C", "label": "Option C, middling", "short": "C", "values": {"err": 0.95, "speed": 22, "cost": 9},
+         "tieBreak": 0},
+    ],
+    "datum": {"prefer": ["D"]},
+    "sensitivity": {"seed": 3, "draws": 2000},
+}
+"""ctrl's test matrix with a fourth option (test/fixtures/pugh-vectors.json, small with C), with labels,
+short labels and sentences, and a chosen option that is a runner-up."""
+WIDE = {**DECISION, "title": "Many options", "chosen": "O9", "candidates": [
+    {"key": f"O{index}", "label": f"A long option name number {index}", "short": f"O{index}",
+     "values": {"err": 1 - index / 20, "speed": 10 + 2 * index, "cost": 9 + 3 * index}} for index in range(10)],
+    "datum": {"prefer": ["O0"]}}
+"""Ten options, wider than a phone: the matrix scrolls in its own box (test_pugh_figures_browser.py)."""
+
+
+def pugh(root: Path) -> None:
+    """The decision figures (test_pugh_figures_browser.py): ctrl's test matrix with a chosen runner-up,
+    and one of ten options. Not a moved interim vault."""
+    (root / "manifest.md").write_text("---\ntitle: Decisions\n---\n- [[decisions]]\n", encoding="utf-8")
+    (root / "decisions.md").write_text("# Decisions\n\n" + "".join(
+        f"```figure\nversion: 1\nkind: pugh\ncaption: The {name} decision.\ncontent: {json.dumps(matrix)}\n```\n"
+        f"^{name}\n\n" for name, matrix in (("option", DECISION), ("wide", WIDE))), encoding="utf-8")
+
+
 GALLERY_SVG = ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 20">'
                '<rect width="20" height="20" fill="#587894"/><circle cx="30" cy="10" r="8" fill="#73869a"/></svg>')
 
@@ -568,6 +608,7 @@ def figures(root: Path) -> None:
         "mermaid": "source: flow.mmd",
         "plantuml": "content: |\n  @startuml\n  Draft -> Review : submit\n  @enduml",
         "equations": f"content:\n{_indent(PARABOLA)}",
+        "pugh": f"content: {json.dumps(DECISION)}",
     }
     (root / "gallery.md").write_text("# Gallery\n\n" + "".join(
         f"```figure\nversion: 1\nkind: {kind}\ncaption: The {kind} figure, see [[gallery]].\n{fence}\n```\n"
@@ -631,7 +672,7 @@ def source_archive(root: Path) -> None:
     (root / "intro.md").write_text("# Intro\n\nText.\n\n![[pixel.png]]\n", encoding="utf-8")
 
 
-VAULTS = {"figures": figures, "equations": equations, "document": document, "complete": complete, "artifact-change": artifact_change, "projections": projections,
+VAULTS = {"figures": figures, "equations": equations, "pugh": pugh, "document": document, "complete": complete, "artifact-change": artifact_change, "projections": projections,
           "table-help": table_help, "structural": structural, "callouts": callouts,
           "registers": registers, "cards": cards,
           "property-editor-projection": property_editor_projection, "self-link": self_link,

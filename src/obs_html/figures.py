@@ -1,5 +1,5 @@
 """The one figure frame and the figure kinds it frames: images, SVG drawings, Sankey diagrams,
-stored-data plots, Mermaid and PlantUML diagrams and equation figures (the Document's ``figures`` nodes, obs
+stored-data plots, Mermaid and PlantUML diagrams, equation figures and decision figures (the Document's ``figures`` nodes, obs
 input-model, Figure input direction).
 
 Reader: whoever changes how a figure is framed or adds a figure kind (artifact-ui.md, One
@@ -129,6 +129,16 @@ def _equations_body(attrs: dict, alt: str, _source: str, _links: dict[str, Figur
                 {"kind": "equations", "alt": alt or "Equation figure", **attrs})
 
 
+def _pugh_body(attrs: dict, alt: str, _source: str, _links: dict[str, FigureLink]) -> Body:
+    """A decision figure: the runtime (pugh-figure.js) decides the Document's matrix, which the core
+    checked against its schema, with ctrl's engine; without scripts its title and size stand."""
+    matrix = attrs["matrix"]
+    summary = (f'{escape(matrix.get("title", "Decision"))}: {len(matrix["candidates"])} options on '
+               f'{len(matrix["criteria"])} criteria.')
+    return Body(f'<div class="figure-live pugh-figure" aria-label="Decision"><p class="pugh-static">{summary}</p></div>',
+                {"kind": "pugh", "alt": alt or "Decision", "matrix": matrix})
+
+
 FIGURE_KINDS: dict[str, FigureKind] = {
     "image": FigureKind(_image_body, authored=True),
     "svg": FigureKind(_svg_body, authored=True),
@@ -140,6 +150,8 @@ FIGURE_KINDS: dict[str, FigureKind] = {
     # Plotted with the plotting library; evaluated and solved with the maths library.
     "equations": FigureKind(_equations_body, options=("legend", "trace", "axis", "swap", "family", "parallel"),
                             features=("plotting", "equations")),
+    # Decided in the page with ctrl's engine.
+    "pugh": FigureKind(_pugh_body, options=("weights",), features=("pugh",)),
 }
 """The figure kinds this adapter renders, by the core's kind (obs src/obs/figure.py, FIGURE_KINDS)."""
 

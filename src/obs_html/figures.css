@@ -435,3 +435,119 @@
         height: 55vh;
     }
 }
+
+/* Decision figures (pugh-figure.js): the bottom line, the matrix in its own scrolling box with the
+   criterion names held at its left, and the folded meanings and sensitivity. */
+.pugh-view {
+    display: grid;
+    gap: 0.6rem;
+    min-width: 0;
+}
+
+.pugh-bottom p {
+    margin: 0;
+}
+
+.pugh-bottom p + p {
+    margin-block-start: 0.35rem;
+}
+
+.pugh-holds {
+    color: var(--color-success);
+}
+
+.pugh-depends,
+.pugh-check strong,
+.pugh-unreasonable {
+    color: var(--color-warning);
+}
+
+.pugh-scroll {
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: auto;
+}
+
+.chapter-body .pugh-matrix,
+.chapter-body .pugh-sensitivity,
+.pugh-matrix,
+.pugh-sensitivity {
+    border-collapse: collapse;
+    font-size: 0.9em;
+    table-layout: auto;
+    width: max-content;
+}
+
+.chapter-body .pugh-matrix :is(th, td),
+.chapter-body .pugh-sensitivity :is(th, td),
+.pugh-matrix th,
+.pugh-matrix td,
+.pugh-sensitivity th,
+.pugh-sensitivity td {
+    overflow-wrap: normal;
+    vertical-align: middle;
+    border-block-end: var(--border-width) solid var(--color-border);
+    padding: 0.25rem 0.5rem;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.chapter-body .pugh-matrix .pugh-criterion,
+.chapter-body .pugh-sensitivity th[scope="row"],
+.pugh-matrix .pugh-criterion,
+.pugh-sensitivity th[scope="row"] {
+    text-align: start;
+}
+
+.pugh-matrix .pugh-criterion {
+    background: var(--color-canvas);
+    inset-inline-start: 0;
+    max-width: 10rem;
+    overflow: hidden;
+    position: sticky;
+    text-overflow: ellipsis;
+    z-index: 1;
+}
+
+.pugh-matrix .pugh-winner {
+    background: var(--color-accent-soft);
+}
+
+.pugh-matrix .pugh-out {
+    color: var(--color-text-muted);
+}
+
+.pugh-tag {
+    color: var(--color-text-muted);
+    display: block;
+    font-size: 0.8em;
+    font-weight: 400;
+}
+
+.pugh-total {
+    font-weight: 600;
+}
+
+.pugh-weight-input {
+    box-sizing: border-box;
+    font: inherit;
+    inline-size: 3.75rem;
+}
+
+.pugh-fold > summary {
+    cursor: pointer;
+}
+
+.pugh-meanings {
+    margin: 0.4rem 0 0;
+}
+
+.pugh-meanings dd {
+    margin-inline-start: 1rem;
+}
+
+@media print {
+    .obs-figure[data-figure-kind="pugh"] .figure-live {
+        display: block !important;
+    }
+}

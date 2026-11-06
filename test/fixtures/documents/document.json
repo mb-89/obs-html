@@ -1282,6 +1282,43 @@
               "children": []
             }
           ]
+        },
+        {
+          "type": "figures",
+          "attrs": {
+            "kind": "pugh"
+          },
+          "children": [
+            {
+              "type": "pugh",
+              "attrs": {
+                "matrix": {
+                  "criteria": [
+                    {
+                      "key": "cost",
+                      "weight": 1,
+                      "better": "lower"
+                    }
+                  ],
+                  "candidates": [
+                    {
+                      "key": "now",
+                      "values": {
+                        "cost": 2
+                      }
+                    },
+                    {
+                      "key": "new",
+                      "values": {
+                        "cost": 1
+                      }
+                    }
+                  ]
+                }
+              },
+              "children": []
+            }
+          ]
         }
       ],
       "children": [],
@@ -2804,6 +2841,7 @@
     "plantuml",
     "profiles",
     "property-editors",
+    "pugh-decisions",
     "quantities",
     "queries",
     "references",

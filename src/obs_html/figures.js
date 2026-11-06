@@ -856,6 +856,8 @@
     swap: figure => globalThis.obsEquations.option("swap", figure),
     family: figure => globalThis.obsEquations.option("family", figure),
     parallel: figure => globalThis.obsEquations.option("parallel", figure),
+    // A decision figure's Reset weights (pugh-figure.js).
+    weights: figure => globalThis.obsPugh.option(figure),
   };
   function optionsMenu(figure) {
     const keys = (figure.dataset.figureOptions || "").split(" ").filter(key => FIGURE_OPTIONS[key]);
@@ -884,6 +886,7 @@
     const spec = JSON.parse(figure.dataset.figureSpec);
     const host = figure.querySelector(".figure-live");
     if (spec.kind === "svg") { svgInspector(figure, spec, host); return; }
+    if (spec.kind === "pugh") { globalThis.obsPugh.render(figure, spec, host); return; }
     if (!window.Plotly) {
       const message = document.createElement("p");
       message.setAttribute("role", "status");
@@ -1005,6 +1008,10 @@
       });
     },
     async preparePrint(container) {
+      // A decision figure prints the reader's view (pugh-figure.js).
+      for (const figure of container.querySelectorAll('[data-figure-kind="pugh"]')) {
+        globalThis.obsPugh.print(figure, JSON.parse(figure.dataset.figureSpec));
+      }
       // An equation figure prints the reader's view; a caption note says where it changed.
       for (const figure of container.querySelectorAll('[data-figure-kind="equations"]:not(:has(> img))')) {
         if (!window.Plotly) throw new Error("Cannot print graph: Plotly could not load.");

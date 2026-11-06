@@ -73,6 +73,9 @@ PLOT = next(item["children"][0]["attrs"] for chapter_ in RESPONSE["chapters"] fo
 IMAGE = {"mediaType": "image/png", "data": PIXEL}
 EQUATIONS = next(item["children"][0]["attrs"] for chapter_ in RESPONSE["chapters"] for item in chapter_["content"]
                  if item["type"] == "figures" and item["attrs"]["kind"] == "equations")
+DECISIONS = json.loads((ROOT / "test" / "fixtures" / "documents" / "pugh.json").read_text(encoding="utf-8"))
+PUGH = next(item["children"][0]["attrs"] for chapter_ in DECISIONS["chapters"] for item in chapter_["content"]
+            if item["type"] == "figures" and item["attrs"]["kind"] == "pugh")
 
 
 # Feature key -> Documents that meet its condition and Documents that do not.
@@ -86,6 +89,7 @@ CASES = {
     "plotting": ([with_figure("plot", PLOT), with_figure("equations", EQUATIONS)],
                  [plain(), with_figure("image", IMAGE)]),
     "equations": ([with_figure("equations", EQUATIONS)], [plain(), with_figure("plot", PLOT)]),
+    "pugh": ([with_figure("pugh", PUGH)], [plain(), with_figure("equations", EQUATIONS)]),
 }
 
 
@@ -99,6 +103,9 @@ def test_a_figure_kind_declares_what_it_needs_only_through_the_feature_registry(
     equations = render(with_figure("equations", EQUATIONS), CONFIG)
     assert 'id="maths-script"' in equations and 'id="plotly-script"' in equations
     assert 'id="maths-script"' not in plot and 'id="maths-script"' not in image
+    pugh = render(with_figure("pugh", PUGH), CONFIG)
+    assert 'id="pugh-engine-script"' in pugh and 'id="plotly-script"' not in pugh
+    assert 'id="pugh-engine-script"' not in equations and 'id="pugh-engine-script"' not in image
 
 
 def test_the_maths_library_ships_pinned_from_its_lockfile_with_its_licence() -> None:

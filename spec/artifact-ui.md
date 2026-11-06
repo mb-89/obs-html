@@ -473,6 +473,44 @@ whose canary reports a host that does not run it. An artifact never loads it fro
   where that view differs from the initial plot, the caption ends with the note *View changed
   by the reader.*
 
+### Decision figures
+
+Decided by the user, 6 Nov 2026 (work issue `feature/pugh-decision-figure-20261106`): one
+decision is a one-pager, the reader changes the weights in place, and the page decides again.
+
+A decision figure (obs capabilities/pugh-decisions) is decided in the reader's page by
+`src/obs_html/pugh-figure.js` with ctrl's Pugh engine, `src/obs_html/vendor/pugh.js`, copied
+unchanged from ctrl (its header names the commit). The engine is embedded, with its header,
+only in an artifact that holds a decision figure: it is the reader feature `pugh`
+(`features.py`), whose canary reports a host that does not run it.
+
+The one-page view, in the figure's frame, is:
+
+- the bottom line: the winner, its total against the datum, and whether the choice holds or
+  depends on the weights, with the winner's share of the weight draws;
+- the matrix: the options as columns, the datum first, the winner marked, an option that does
+  not fit greyed with its reasons in its tooltip; the criteria as rows, each with its weight; and
+  the weighted total.
+
+Folded below it, closed at first: what each option means (its `short` label and its `what`
+sentence), and the sensitivity (each runner-up's single-weight tie point, its all-weights change
+and its share of the draws, and the winner's share).
+
+The weights are fields in the matrix. A changed weight decides everything again at once; Reset
+weights, in the figure's options menu, takes the matrix's own back. The weights are a choice in a figure as
+[[artifact-ui#What counts as a change]] classifies it, kept per figure anchor while the artifact
+is open. Print and PDF show the reader's view, the weights as text; where they differ from the
+matrix's, the caption ends with the note *View changed by the reader.*
+
+The justification check: where the matrix's `chosen` option is not the winner, the bottom line
+says so. It gives the smallest single-weight change and the smallest change of all weights that
+make the chosen option tie the winner, as the engine computes them, and marks each one outside
+the reasonable band (each weight within ±1 of its own, the engine's step) where it is.
+
+At a phone's width, 390 px, the one-page view needs no sideways scrolling of the page: the matrix
+scrolls in its own box, the criterion names held at its left, and the options are labelled by
+their `short` label where they have one.
+
 ## Reading shell
 
 - An artifact with appendices has one Appendix chapter. Its direct children are the handwritten appendices

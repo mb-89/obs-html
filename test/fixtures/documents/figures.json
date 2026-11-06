@@ -678,6 +678,138 @@
               "children": []
             }
           ]
+        },
+        {
+          "type": "figures",
+          "attrs": {
+            "kind": "pugh",
+            "caption": [
+              {
+                "type": "paragraph",
+                "attrs": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "attrs": {},
+                    "children": [],
+                    "text": "The pugh figure, see "
+                  },
+                  {
+                    "type": "wikilinks",
+                    "attrs": {
+                      "target": "gallery",
+                      "chapter": "gallery",
+                      "heading": "",
+                      "label": "gallery"
+                    },
+                    "children": []
+                  },
+                  {
+                    "type": "text",
+                    "attrs": {},
+                    "children": [],
+                    "text": "."
+                  }
+                ]
+              }
+            ],
+            "block": "pugh-figure"
+          },
+          "children": [
+            {
+              "type": "pugh",
+              "attrs": {
+                "matrix": {
+                  "title": "Which option",
+                  "chosen": "A",
+                  "criteria": [
+                    {
+                      "key": "err",
+                      "label": "Error",
+                      "weight": 3,
+                      "better": "lower",
+                      "tolerance": 0.1,
+                      "floor": 0
+                    },
+                    {
+                      "key": "speed",
+                      "label": "Speed",
+                      "weight": 2,
+                      "better": "higher",
+                      "tolerance": 0.1,
+                      "floor": 0
+                    },
+                    {
+                      "key": "cost",
+                      "label": "Cost of ownership",
+                      "weight": 1,
+                      "better": "lower",
+                      "tolerance": 0.25,
+                      "floor": 1
+                    }
+                  ],
+                  "candidates": [
+                    {
+                      "key": "D",
+                      "label": "The datum we run",
+                      "short": "Now",
+                      "what": "What runs today.",
+                      "values": {
+                        "err": 1,
+                        "speed": 10,
+                        "cost": 9
+                      }
+                    },
+                    {
+                      "key": "A",
+                      "label": "Option A, precise",
+                      "short": "A",
+                      "what": "Precise but dear.",
+                      "values": {
+                        "err": 0.4,
+                        "speed": 10.5,
+                        "cost": 19
+                      },
+                      "tieBreak": 2
+                    },
+                    {
+                      "key": "B",
+                      "label": "Option B, quick",
+                      "short": "B",
+                      "what": "Quick and cheap.",
+                      "values": {
+                        "err": 0.85,
+                        "speed": 30,
+                        "cost": 4
+                      },
+                      "tieBreak": 1
+                    },
+                    {
+                      "key": "C",
+                      "label": "Option C, middling",
+                      "short": "C",
+                      "values": {
+                        "err": 0.95,
+                        "speed": 22,
+                        "cost": 9
+                      },
+                      "tieBreak": 0
+                    }
+                  ],
+                  "datum": {
+                    "prefer": [
+                      "D"
+                    ]
+                  },
+                  "sensitivity": {
+                    "seed": 3,
+                    "draws": 2000
+                  }
+                }
+              },
+              "children": []
+            }
+          ]
         }
       ],
       "children": [],
@@ -776,6 +908,7 @@
     "markdown-frontmatter",
     "mermaid",
     "plantuml",
+    "pugh-decisions",
     "wikilinks"
   ],
   "cssSnippets": []

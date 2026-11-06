@@ -27,7 +27,7 @@ from latex2mathml.converter import convert as mathml
 from obs_html.bars import BarDefinition, discover_bars
 from obs_html.config import Config, paper
 from obs_html.errors import DOCUMENT_OF, InputError, field_path, schema_error, warn
-from obs_html.features import included as included_features, maths_library, maths_library_licence
+from obs_html.features import included as included_features, maths_library, maths_library_licence, pugh_engine
 from obs_html.figure_links import FigureLink
 from obs_html.figures import FIGURE_KINDS, render_figure
 from obs_html.artifact_data import encode_artifact_data, prepare_artifact_scripts, serialize_artifact_data
@@ -778,6 +778,7 @@ CAPABILITIES: dict[str, Renderer] = {
     "plantuml": _nothing,  # A figure kind: figures.py draws its body.
     "profiles": _nothing,
     "property-editors": _property_editor,
+    "pugh-decisions": _nothing,  # A figure kind: figures.py draws its body.
     "quantities": _nothing,
     "queries": _nothing,
     "references": _references,
@@ -1363,7 +1364,10 @@ def _shell(model: dict[str, object], limits: list[dict[str, str]], stylesheet: s
         if any(feature.key == "equations" for feature in features):
             maths = ('<script id="maths-script">/* ' + maths_library_licence() + " */\n"
                      + maths_library().replace("</script", "<\\/script") + "</script>")
-        figure_assets = (f'<style id="figure-styles">{read("figures.css")}</style>{plotly}{maths}'
+        engine = ""
+        if any(feature.key == "pugh" for feature in features):
+            engine = '<script id="pugh-engine-script">' + pugh_engine().replace("</script", "<\\/script") + "</script>"
+        figure_assets = (f'<style id="figure-styles">{read("figures.css")}</style>{plotly}{maths}{engine}'
                          f'<script id="figure-script">{read("figures.js")}</script>')
     card_assets = ""
     if "data-record-cards" in data or any(note["frontmatter"].get("kind") == "quantity"

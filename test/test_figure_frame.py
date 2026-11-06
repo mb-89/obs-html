@@ -20,7 +20,7 @@ from obs_html.render import render
 
 
 FIGURES = ROOT / "test" / "fixtures" / "documents" / "figures.json"
-KINDS = ("image", "svg", "sankey", "plot", "mermaid", "plantuml", "equations")
+KINDS = ("image", "svg", "sankey", "plot", "mermaid", "plantuml", "equations", "pugh")
 FIGURE = re.compile(r'<figure class="obs-figure figure-(\w+)" data-artifact-figure data-figure-kind="\1"'
                     r' id="([^"]+)"[^>]*>(.*?)</figure>', re.S)
 
@@ -130,7 +130,7 @@ def test_only_kinds_with_options_show_the_tables_options_menu_whose_changes_stay
     page.wait_for_function("!document.querySelector(\".obs-figure[data-figure-kind='plot'] g.legend\")")
 
     assert menus == [[kind, 1, int(FIGURE_KINDS[kind].options != ())] for kind in KINDS]
-    assert [kind for kind in KINDS if FIGURE_KINDS[kind].options] == ["plot", "equations"]
+    assert [kind for kind in KINDS if FIGURE_KINDS[kind].options] == ["plot", "equations", "pugh"]
     assert plot.locator(".options-menu").get_by_role("button", name="Legend").get_attribute("aria-pressed") == "false"
     assert page.evaluate("JSON.stringify(Object.entries(localStorage).sort())") == stored  # Nothing is saved.
     assert errors == []

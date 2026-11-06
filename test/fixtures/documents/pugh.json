@@ -1,0 +1,429 @@
+{
+  "schemaVersion": 1,
+  "manifest": {
+    "title": "Decisions",
+    "path": "manifest.md",
+    "metadata": {
+      "title": "Decisions"
+    },
+    "abstract": [
+      {
+        "type": "markdown-frontmatter",
+        "attrs": {
+          "metadata": {
+            "title": "Decisions"
+          }
+        },
+        "children": [
+          {
+            "type": "field",
+            "attrs": {
+              "name": "title"
+            },
+            "children": [
+              {
+                "type": "text",
+                "attrs": {},
+                "children": [],
+                "text": "Decisions"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "manifest",
+        "attrs": {},
+        "children": []
+      }
+    ]
+  },
+  "chapters": [
+    {
+      "id": "decisions",
+      "title": "Decisions",
+      "content": [
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "decisions"
+          },
+          "children": []
+        },
+        {
+          "type": "markdown",
+          "attrs": {},
+          "children": []
+        },
+        {
+          "type": "section",
+          "attrs": {
+            "level": 1
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Decisions"
+            }
+          ]
+        },
+        {
+          "type": "figures",
+          "attrs": {
+            "kind": "pugh",
+            "caption": [
+              {
+                "type": "paragraph",
+                "attrs": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "attrs": {},
+                    "children": [],
+                    "text": "The option decision."
+                  }
+                ]
+              }
+            ],
+            "block": "option"
+          },
+          "children": [
+            {
+              "type": "pugh",
+              "attrs": {
+                "matrix": {
+                  "title": "Which option",
+                  "chosen": "A",
+                  "criteria": [
+                    {
+                      "key": "err",
+                      "label": "Error",
+                      "weight": 3,
+                      "better": "lower",
+                      "tolerance": 0.1,
+                      "floor": 0
+                    },
+                    {
+                      "key": "speed",
+                      "label": "Speed",
+                      "weight": 2,
+                      "better": "higher",
+                      "tolerance": 0.1,
+                      "floor": 0
+                    },
+                    {
+                      "key": "cost",
+                      "label": "Cost of ownership",
+                      "weight": 1,
+                      "better": "lower",
+                      "tolerance": 0.25,
+                      "floor": 1
+                    }
+                  ],
+                  "candidates": [
+                    {
+                      "key": "D",
+                      "label": "The datum we run",
+                      "short": "Now",
+                      "what": "What runs today.",
+                      "values": {
+                        "err": 1,
+                        "speed": 10,
+                        "cost": 9
+                      }
+                    },
+                    {
+                      "key": "A",
+                      "label": "Option A, precise",
+                      "short": "A",
+                      "what": "Precise but dear.",
+                      "values": {
+                        "err": 0.4,
+                        "speed": 10.5,
+                        "cost": 19
+                      },
+                      "tieBreak": 2
+                    },
+                    {
+                      "key": "B",
+                      "label": "Option B, quick",
+                      "short": "B",
+                      "what": "Quick and cheap.",
+                      "values": {
+                        "err": 0.85,
+                        "speed": 30,
+                        "cost": 4
+                      },
+                      "tieBreak": 1
+                    },
+                    {
+                      "key": "C",
+                      "label": "Option C, middling",
+                      "short": "C",
+                      "values": {
+                        "err": 0.95,
+                        "speed": 22,
+                        "cost": 9
+                      },
+                      "tieBreak": 0
+                    }
+                  ],
+                  "datum": {
+                    "prefer": [
+                      "D"
+                    ]
+                  },
+                  "sensitivity": {
+                    "seed": 3,
+                    "draws": 2000
+                  }
+                }
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "type": "figures",
+          "attrs": {
+            "kind": "pugh",
+            "caption": [
+              {
+                "type": "paragraph",
+                "attrs": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "attrs": {},
+                    "children": [],
+                    "text": "The wide decision."
+                  }
+                ]
+              }
+            ],
+            "block": "wide"
+          },
+          "children": [
+            {
+              "type": "pugh",
+              "attrs": {
+                "matrix": {
+                  "title": "Many options",
+                  "chosen": "O9",
+                  "criteria": [
+                    {
+                      "key": "err",
+                      "label": "Error",
+                      "weight": 3,
+                      "better": "lower",
+                      "tolerance": 0.1,
+                      "floor": 0
+                    },
+                    {
+                      "key": "speed",
+                      "label": "Speed",
+                      "weight": 2,
+                      "better": "higher",
+                      "tolerance": 0.1,
+                      "floor": 0
+                    },
+                    {
+                      "key": "cost",
+                      "label": "Cost of ownership",
+                      "weight": 1,
+                      "better": "lower",
+                      "tolerance": 0.25,
+                      "floor": 1
+                    }
+                  ],
+                  "candidates": [
+                    {
+                      "key": "O0",
+                      "label": "A long option name number 0",
+                      "short": "O0",
+                      "values": {
+                        "err": 1.0,
+                        "speed": 10,
+                        "cost": 9
+                      }
+                    },
+                    {
+                      "key": "O1",
+                      "label": "A long option name number 1",
+                      "short": "O1",
+                      "values": {
+                        "err": 0.95,
+                        "speed": 12,
+                        "cost": 12
+                      }
+                    },
+                    {
+                      "key": "O2",
+                      "label": "A long option name number 2",
+                      "short": "O2",
+                      "values": {
+                        "err": 0.9,
+                        "speed": 14,
+                        "cost": 15
+                      }
+                    },
+                    {
+                      "key": "O3",
+                      "label": "A long option name number 3",
+                      "short": "O3",
+                      "values": {
+                        "err": 0.85,
+                        "speed": 16,
+                        "cost": 18
+                      }
+                    },
+                    {
+                      "key": "O4",
+                      "label": "A long option name number 4",
+                      "short": "O4",
+                      "values": {
+                        "err": 0.8,
+                        "speed": 18,
+                        "cost": 21
+                      }
+                    },
+                    {
+                      "key": "O5",
+                      "label": "A long option name number 5",
+                      "short": "O5",
+                      "values": {
+                        "err": 0.75,
+                        "speed": 20,
+                        "cost": 24
+                      }
+                    },
+                    {
+                      "key": "O6",
+                      "label": "A long option name number 6",
+                      "short": "O6",
+                      "values": {
+                        "err": 0.7,
+                        "speed": 22,
+                        "cost": 27
+                      }
+                    },
+                    {
+                      "key": "O7",
+                      "label": "A long option name number 7",
+                      "short": "O7",
+                      "values": {
+                        "err": 0.65,
+                        "speed": 24,
+                        "cost": 30
+                      }
+                    },
+                    {
+                      "key": "O8",
+                      "label": "A long option name number 8",
+                      "short": "O8",
+                      "values": {
+                        "err": 0.6,
+                        "speed": 26,
+                        "cost": 33
+                      }
+                    },
+                    {
+                      "key": "O9",
+                      "label": "A long option name number 9",
+                      "short": "O9",
+                      "values": {
+                        "err": 0.55,
+                        "speed": 28,
+                        "cost": 36
+                      }
+                    }
+                  ],
+                  "datum": {
+                    "prefer": [
+                      "O0"
+                    ]
+                  },
+                  "sensitivity": {
+                    "seed": 3,
+                    "draws": 2000
+                  }
+                }
+              },
+              "children": []
+            }
+          ]
+        }
+      ],
+      "children": [],
+      "metadata": {}
+    }
+  ],
+  "links": [],
+  "assets": [],
+  "records": [
+    {
+      "id": "decisions",
+      "type": "note",
+      "path": "decisions.md",
+      "fields": {},
+      "fieldNodes": []
+    },
+    {
+      "id": "manifest",
+      "type": "note",
+      "path": "manifest.md",
+      "fields": {
+        "title": "Decisions"
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "title"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Decisions"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "chapter-decisions",
+      "type": "chapter",
+      "note": "decisions",
+      "fields": {
+        "chapter": "Decisions",
+        "title": "Decisions",
+        "depth": "0",
+        "slug": "decisions",
+        "sourcePath": "decisions.md"
+      }
+    },
+    {
+      "id": "document-metadata-title",
+      "type": "documentMetadata",
+      "fields": {
+        "key": "title",
+        "value": "Decisions"
+      }
+    }
+  ],
+  "semanticResources": [],
+  "diagnostics": [],
+  "capabilities": [
+    "chapter-inclusion",
+    "figures",
+    "manifest",
+    "markdown",
+    "markdown-frontmatter",
+    "pugh-decisions"
+  ],
+  "cssSnippets": []
+}

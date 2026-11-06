@@ -14,8 +14,8 @@ registry has no inclusion mechanism of its own. A feature's part ships code only
 well, under the feature's canary: the downloads feature's source-archive part attaches the source
 ZIP to a PDF only in an artifact that has one. A library the renderer delivers itself (the
 plotting library, by artifact.figures.plotlyDelivery, the maths library, packaged from its
-npm lockfile ``maths/package-lock.json`` by hatch_build.py, and the PDF library ``vendor/pdf-lib.min.js`` of the
-source-archive part) ships exactly where its feature or part is included.
+npm lockfile ``maths/package-lock.json`` by hatch_build.py, ctrl's decision engine ``vendor/pugh.js``, and the PDF
+library ``vendor/pdf-lib.min.js`` of the source-archive part) ships exactly where its feature or part is included.
 """
 from __future__ import annotations
 
@@ -24,6 +24,7 @@ from importlib.resources import files
 import re
 from typing import Callable
 
+from .errors import InputError
 from .figures import FIGURE_KINDS
 
 
@@ -37,6 +38,20 @@ def maths_library_licence() -> str:
     maths = files("obs_html").joinpath("vendor", "maths")
     return (maths.joinpath("LICENSE").read_text(encoding="utf-8") + "\n"
             + maths.joinpath("math.js.LICENSE.txt").read_text(encoding="utf-8")).replace("*/", "* /")
+
+
+ENGINE_EXPORT = re.compile(r"^export const \{[^}]*\} = pughEngine\(\);\s*\Z", re.M)
+"""The last line of ctrl's engine module (vendor/pugh.js), which a classic script cannot hold."""
+
+
+def pugh_engine() -> str:
+    """ctrl's Pugh engine (vendor/pugh.js, its header naming ctrl's commit) as the classic script the
+    pugh feature embeds: the file as it is, its module export replaced by ``globalThis.obsPughEngine``."""
+    source = files("obs_html").joinpath("vendor", "pugh.js").read_text(encoding="utf-8")
+    if not ENGINE_EXPORT.search(source):
+        raise InputError("obs_html/vendor/pugh.js", "last line", "is not ctrl's export of pughEngine()",
+                         "Copy ctrl's src/core/pugh.js again unchanged under its header; see features.py, pugh_engine")
+    return ENGINE_EXPORT.sub("globalThis.obsPughEngine = pughEngine();\n", source)
 
 
 @dataclass(frozen=True)
@@ -131,6 +146,8 @@ FEATURES: tuple[Feature, ...] = (
             "a stored-data plot or an equation figure", _figures_need("plotting")),
     Feature("equations", "a figure of a kind that needs the maths library (figures.py, FIGURE_KINDS): "
             "an equation figure", _figures_need("equations"), ("equations.js",)),
+    Feature("pugh", "a figure of a kind that needs the decision engine (figures.py, FIGURE_KINDS): "
+            "a decision figure", _figures_need("pugh"), ("pugh-figure.js",)),
 )
 
 
