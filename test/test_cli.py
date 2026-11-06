@@ -37,7 +37,7 @@ def test_installed_command_renders_through_the_adapter_contract(tmp_path) -> Non
                                for item in diagnostics)
     assert completed.stdout == f"Generated {destination.resolve()}.\n"
     notes = decode_artifact_data(destination.read_text(encoding="utf-8"))["notes"]
-    assert any('<pre class="command-output">derived' in note["html"] for note in notes)
+    assert any('<pre class="command-output"><code>derived' in note["html"] for note in notes)
     assert not (tmp_path / "produced.txt").exists()  # Silent producers run in the core, before conversion.
 
 

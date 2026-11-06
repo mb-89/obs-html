@@ -1,5 +1,5 @@
 """The one figure frame and the figure kinds it frames: images, SVG drawings, Sankey diagrams,
-stored-data plots and Mermaid and PlantUML diagrams (the Document's ``figures`` nodes, obs
+stored-data plots, Mermaid and PlantUML diagrams and equation figures (the Document's ``figures`` nodes, obs
 input-model, Figure input direction).
 
 Reader: whoever changes how a figure is framed or adds a figure kind (artifact-ui.md, One
@@ -32,6 +32,7 @@ from jsonschema import Draft202012Validator
 
 from .errors import InputError, schema_error
 from .figure_links import FigureLink, inline_svg
+from .figure_styles import scope_styles
 from .sankey import COUNT_LABELS
 from .timings import stage as timed
 
@@ -71,6 +72,9 @@ class FigureKind:
     changes are session-only view state. A kind without options shows no menu."""
     features: tuple[str, ...] = ()
     """The keys of the reader features (features.py) a figure of this kind needs."""
+    authored: bool = False
+    """Its inline drawing is authored content, whose ``<style>`` figure_styles.py scopes to its own
+    figure. A diagram's SVG is the core's output, which scopes its styles itself, and is left as drawn."""
 
 
 def _image_body(attrs: dict, alt: str, _source: str, links: dict[str, FigureLink]) -> Body:
@@ -118,14 +122,24 @@ def _plot_body(attrs: dict, alt: str, source: str, _links: dict[str, FigureLink]
     raise unsupported(source)
 
 
+def _equations_body(attrs: dict, alt: str, _source: str, _links: dict[str, FigureLink]) -> Body:
+    """An equation figure's live plot: the runtime (equations.js) evaluates the Document's body,
+    which the core checked against its schema, so the spec is that body as it is."""
+    return Body('<div class="figure-live" aria-label="Interactive figure"></div>',
+                {"kind": "equations", "alt": alt or "Equation figure", **attrs})
+
+
 FIGURE_KINDS: dict[str, FigureKind] = {
-    "image": FigureKind(_image_body),
-    "svg": FigureKind(_svg_body),
+    "image": FigureKind(_image_body, authored=True),
+    "svg": FigureKind(_svg_body, authored=True),
     "sankey": FigureKind(_sankey_body),
     "plot": FigureKind(_plot_body, options=("legend",), features=("plotting",)),
     # A diagram's body is the SVG the core drew at build time: no diagram library ships.
     "mermaid": FigureKind(_svg_body),
     "plantuml": FigureKind(_svg_body),
+    # Plotted with the plotting library; evaluated and solved with the maths library.
+    "equations": FigureKind(_equations_body, options=("legend", "trace", "axis", "swap", "family", "parallel"),
+                            features=("plotting", "equations")),
 }
 """The figure kinds this adapter renders, by the core's kind (obs src/obs/figure.py, FIGURE_KINDS)."""
 
@@ -175,6 +189,8 @@ def render_figure(node: dict, chapter: str, position: int, caption: list[str], c
         anchor = f"{chapter}--block-{attrs['block']}"
     else:
         anchor = f"{chapter}--figure-{body.name or position}"
+    if kind.authored:
+        body = Body(scope_styles(body.html, anchor, source), body.spec, body.name, body.presents)
     return frame(attrs["kind"], body, anchor, caption, number, kind.options)
 
 

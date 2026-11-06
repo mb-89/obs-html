@@ -235,6 +235,23 @@ failures have their form in [[input-model#Chapter content]].
   event-handler attributes and every target but a resolved link, a fragment of the drawing, a
   web or mail address or a data image are removed.
 
+  Authored content never styles anything outside itself. An inline authored drawing (an `svg`
+  figure or an SVG `image`) keeps its `<style>` elements, scoped to its own figure by
+  `src/obs_html/figure_styles.py` with a CSS parser (tinycss2), never a pattern: each selector
+  of each rule becomes `:where(#<anchor>) <selector>`, so it matches only inside the figure's
+  frame and keeps its authored specificity. Rules inside `@media`, `@supports` and `@container`
+  are scoped the same way; `@keyframes` names are prefixed with the anchor, together with the
+  drawing's own animation names that use them. Every other at-rule (`@import`, `@font-face`,
+  `@property`, `@layer`, `@namespace`, `@page` and any other) is global and cannot be scoped:
+  it is dropped, and a warning in the one message form names the note, `figure.style` and the
+  figure's anchor. A selector whose compound names `:root`, `html` or `body` outside a
+  pseudo-class's arguments can only match the page, never the drawing: it is dropped with the
+  same warning. The frame style tokens are therefore never changed by a figure: a scoped rule
+  reaches only the frame's descendants, and a custom property set there (a
+  `--figure-frame-border-block`, say) is inherited downward only, so the frame itself reads the
+  page's value. A diagram figure's SVG (`mermaid`, `plantuml`) is the core's output, which
+  scopes its own styles by the diagram's id: it is left as drawn.
+
   An anchor is `<note-slug>--block-<name>` for a figure with a block id, otherwise
   `<note-slug>--figure-<name>`, where name is a plot's descriptor id or the figure's position
   among the note's figures.
@@ -305,7 +322,8 @@ failures have their form in [[input-model#Chapter content]].
   engine interaction.
 
   Do not remove trace toggling or keyboard access. Print contains the default visual and
-  caption without overlay chrome or interaction controls.
+  caption without overlay chrome or interaction controls; an equation figure prints the
+  reader's view ([[#Equation figures]]).
 - Web figures preserve the engineering content and essential appearance of their existing
   Python-generated counterparts. Reverse-engineer the generating code, geometry inputs,
   calculations and annotations before migration; do not ask authors to redesign each figure.
@@ -338,6 +356,67 @@ failures have their form in [[input-model#Chapter content]].
 - Normal artifact and PDF presentation retain the complete default composition, captions and
   provenance. Interactive state is view-local; zoom does not alter source data or calculations.
   Static source figures remain available until visual and numerical parity is verified.
+
+### Equation figures
+
+Decided by the user, 5 Nov 2026 (work issue `feature/equation-figures-live-20261105`): the
+reader explores an equation figure through its options menu; there are no 3D plots.
+
+An equation figure (obs capabilities/equation-figures) is plotted live from the Document's
+expression trees by `src/obs_html/equations.js`, with the plotting library of stored-data plots
+(Plotly) for drawing, zoom and pan, and one maths library, math.js, for complex arithmetic and
+for parsing the reader's expressions. The maths library is pinned in `maths/package-lock.json`,
+installed from it (`npm --prefix maths ci`, which the complete suite's setup runs) and embedded
+whole, with its licence, only in an artifact that holds an equation figure: it is the reader
+feature `equations` (`features.py`), whose canary reports a host that does not run it. An
+artifact never loads it from elsewhere. A build of an equation figure without it installed is an
+input error that names the lockfile and the install command.
+
+- Evaluation: a tree evaluates with the variables' SI values in complex arithmetic with
+  principal branches; a result is a point of the plot where its imaginary part vanishes
+  (`|im| <= 1e-9 * max(1, |re|)`), elsewhere the curve has a gap. Real-only operators (`atan2`,
+  `sign`, `min`, `max`, `heaviside`) take real arguments only; `heaviside(0)` is 1/2 and
+  `sign(0)` is 0. The shared test vectors of the core pass with this evaluator.
+- Sampling: each curve has 241 points spread over the swept variable's visible range. At every
+  zoom and pan the visible range of the swept variable's axis is sampled again, so detail grows
+  as the reader zooms in; the range never leaves the variable's range.
+- Solving: exact branches are evaluated; each branch is a curve. Algebraic residuals are
+  solved at each point by Newton's method with a halving line search, seeded from the defaults
+  (the Document's guess) and continued from the previous point. A differential system is
+  integrated from its start with an adaptive Runge–Kutta method (Dormand–Prince 5(4), relative
+  tolerance 1e-9), stepping onto every sampled point. Curves compute in slices of at most about
+  12 ms between which the page runs on; a status line counts the curves while they compute.
+- Axes and names: an axis shows a plotted variable in its authored unit, from its quantity's
+  range or value, and any other expression in SI base units. A family curve is named by its
+  expression and its value, `T, throttle = 0.5`.
+- The options menu adds to the plot's Legend: **Add trace** (an expression over the figure's
+  variables, parsed by the maths library, on the first or the second y axis; an expression it
+  cannot read names itself, the reason and the variables it may use), **Second y axis** (its
+  side, right or left, the first axis taking the other side, and each authored y expression's
+  axis), **Swap x and y**, and **Family** (a third movable variable by a number of steps spread
+  over its range, or by values in its unit; None removes it). Every choice, and the zoom, is
+  a choice in a figure's options menu as [[artifact-ui#What counts as a change]] classifies
+  it, kept per figure anchor while the artifact is open.
+- Parallel coordinates: the figure's grid (obs input-model, Equation figures) shows above its
+  curves where the fence sets `parallelCoordinates: true`, or where the reader presses
+  **Parallel coordinates** in the options menu. Each line is one combination, each axis a grid
+  variable or a computed axis, scaled from its lowest to its highest value; every axis shows a
+  histogram of the combinations' values in ten bins. The runtime computes the computed axes:
+  an expression at the combination's values, a summary from the combination's curve sampled
+  at 241 points over the full x range, on the first solution branch.
+- The cap: a plot draws at most `artifact.figures.parallelCoordinatesCap` combinations
+  (`cfg.json`, 1000 by default), which only the build configuration sets. Above it, the plot
+  warns and thins the rightmost grid axis to as many evenly spaced values as the cap allows
+  (keeping both ends), then the next to its left. The reader drags an axis by its label to the
+  left or right; the order is the cap's priority.
+- Selection: dragging along an axis selects the range it covers, a click on the axis clears it,
+  and ranges on several axes combine. The curves below are exactly the selected combinations,
+  all of them while no range is selected, one trace per plotted expression whose points name
+  their combination; the family option does not apply while the plot shows. Order and ranges
+  are view state like the other options.
+- Print and PDF show the reader's current view of an equation figure, not its initial plot;
+  where that view differs from the initial plot, the caption ends with the note *View changed
+  by the reader.*
 
 ## Reading shell
 
@@ -944,8 +1023,12 @@ separate from artifact presentation.
   Startup runs in slices: a step yields to the browser once its slice has run as long
   as a browser long task (50 ms), and only then waits until the browser has painted a
   frame; steps within a slice do not wait for frames. The first chapter is painted within 1 s of opening the
-  spec artifact on the test machine; `test_startup_browser.py` holds that budget and
-  names the slowest startup steps when it is missed.
+  spec artifact on the test machine, on the frame's own clock: the artifact marks
+  `obs-startup first chapter painted` and `obs-startup ready` (User Timing), and
+  `test_startup_browser.py` holds that budget from those marks and names the slowest
+  startup steps when it is missed. Where load on the machine slows the page itself, the
+  test scales the budget by a load factor it measures in the same run; its docstring owns
+  how.
   Initialize nonvisible/unused views when needed and reuse existing caches rather
   than moving an unchanged whole-artifact calculation onto the first interaction.
 

@@ -5,6 +5,7 @@ Reader: whoever changes the frame or adds a figure kind.
 """
 import json
 import re
+from html import unescape
 from pathlib import Path
 
 import pytest
@@ -19,7 +20,7 @@ from obs_html.render import render
 
 
 FIGURES = ROOT / "test" / "fixtures" / "documents" / "figures.json"
-KINDS = ("image", "svg", "sankey", "plot", "mermaid", "plantuml")
+KINDS = ("image", "svg", "sankey", "plot", "mermaid", "plantuml", "equations")
 FIGURE = re.compile(r'<figure class="obs-figure figure-(\w+)" data-artifact-figure data-figure-kind="\1"'
                     r' id="([^"]+)"[^>]*>(.*?)</figure>', re.S)
 
@@ -60,6 +61,7 @@ def _open(reader_browser, artifact: Path):
     page.wait_for_function("document.documentElement.dataset.artifactStatus === 'ready'")
     page.evaluate("obsPages.setPaged(false); obsArtifact.activateChapter('gallery')")
     page.wait_for_selector(".obs-figure[data-figure-kind='plot'].figure-plot-ready")
+    page.wait_for_selector(".obs-figure[data-figure-kind='equations'].figure-plot-ready")
     return page, errors
 
 
@@ -128,7 +130,7 @@ def test_only_kinds_with_options_show_the_tables_options_menu_whose_changes_stay
     page.wait_for_function("!document.querySelector(\".obs-figure[data-figure-kind='plot'] g.legend\")")
 
     assert menus == [[kind, 1, int(FIGURE_KINDS[kind].options != ())] for kind in KINDS]
-    assert [kind for kind in KINDS if FIGURE_KINDS[kind].options] == ["plot"]
+    assert [kind for kind in KINDS if FIGURE_KINDS[kind].options] == ["plot", "equations"]
     assert plot.locator(".options-menu").get_by_role("button", name="Legend").get_attribute("aria-pressed") == "false"
     assert page.evaluate("JSON.stringify(Object.entries(localStorage).sort())") == stored  # Nothing is saved.
     assert errors == []
@@ -140,24 +142,14 @@ def test_tables_and_figures_build_their_options_menu_from_one_component() -> Non
         assert "globalThis.obsOptionsMenu({" in (package / script).read_text(encoding="utf-8"), script
 
 
-def test_an_equation_figure_is_refused_by_its_capability_until_the_live_plot_renders_it() -> None:
-    """The core's equations kind needs capability equation-figures, which this adapter does not
-    declare yet: it refuses the Document naming that field before it frames any figure."""
+def test_an_equation_figure_is_framed_with_its_live_body_and_spec() -> None:
+    """The core's equations kind (capability equation-figures) renders in the one frame: a live
+    body whose spec is the Document's body, which equations.js plots."""
+    [(kind, anchor, inner)] = [figure for figure in FIGURE.findall(_gallery()) if figure[0] == "equations"]
     document = json.loads(FIGURES.read_text(encoding="utf-8"))
-    gallery = next(chapter for chapter in document["chapters"] if chapter["id"] == "gallery")
-    body = {"equations": [{"source": "y = x", "lhs": {"symbol": "y"}, "rhs": {"symbol": "x"}}],
-            "variables": {"x": {"quantity": {"unit": "", "dimension": {}, "value": 0, "siValue": 0,
-                                             "range": [0, 1], "siRange": [0, 1]}},
-                          "y": {"quantity": {"unit": "", "dimension": {}}}},
-            "unknowns": ["y"], "solution": {"method": "exact", "branches": [{"y": {"symbol": "x"}}]},
-            "plot": {"sweep": "x", "x": {"source": "x", "tree": {"symbol": "x"}, "dimension": {}},
-                     "y": [{"source": "y", "tree": {"symbol": "y"}, "dimension": {}, "axis": "primary"}]}}
-    gallery["content"].append({"type": "figures", "attrs": {"kind": "equations"},
-                               "children": [{"type": "equations", "attrs": body, "children": []}]})
-    document["capabilities"] = sorted({*document["capabilities"], "equation-figures"})
+    [body] = [item["children"][0]["attrs"] for chapter in document["chapters"] for item in chapter["content"]
+              if item["type"] == "figures" and item["attrs"]["kind"] == "equations"]
+    spec = re.search(r'data-figure-spec="([^"]+)"', _gallery().split(f'id="{anchor}"')[1]).group(1)
 
-    with pytest.raises(InputError) as failure:
-        render(document, load_config())
-
-    assert failure.value.field == "capabilities"
-    assert "equation-figures" in failure.value.problem
+    assert inner.startswith('<div class="figure-live" aria-label="Interactive figure"></div>')
+    assert json.loads(unescape(spec)) == {"kind": "equations", "alt": "The equations figure, see Gallery.", **body}

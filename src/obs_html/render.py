@@ -29,7 +29,7 @@ from markdown_it import MarkdownIt
 from obs_html.bars import BarDefinition, discover_bars
 from obs_html.config import Config, paper
 from obs_html.errors import DOCUMENT_OF, InputError, field_path, schema_error
-from obs_html.features import included as included_features
+from obs_html.features import included as included_features, maths_library, maths_library_licence
 from obs_html.figure_links import FigureLink
 from obs_html.figures import FIGURE_KINDS, render_figure
 from obs_html.artifact_data import encode_artifact_data, prepare_artifact_scripts, serialize_artifact_data
@@ -387,7 +387,7 @@ def _command(node: dict[str, object], context: Context) -> str:
     if not isinstance(output, str):
         raise _stale(context, ["attrs", "output"], "is missing: the core captures a command fence's output only "
                      "when it runs the fences", _rebuild(context.document, " ... --execute-commands"))
-    return f'<pre class="command-output">{escape(output)}</pre>\n'
+    return f'<pre class="command-output"><code>{escape(output)}</code></pre>\n'
 
 
 def _base(node: dict[str, object], context: Context) -> str:
@@ -569,7 +569,7 @@ def _figure_reference(node: dict[str, object], context: Context, number_only: bo
     chapter, block = attrs["chapter"], attrs["figure"]
     number = context.figure_blocks.get((chapter, block), "")
     text = attrs["label"]
-    if _unlabelled(attrs):
+    if _unlabelled(attrs, context):
         if not number:
             raise InputError(
                 _source(context.document), field_path(context.where),
@@ -582,16 +582,19 @@ def _figure_reference(node: dict[str, object], context: Context, number_only: bo
     return f'<a class="internal-link" href="#{chapter}/block-{escape(block, quote=True)}">{escape(text)}</a>'
 
 
-def _unlabelled(attrs: dict[str, object]) -> bool:
-    """Whether a wikilink has no |label: the core labels it with its target, or within its own
-    note with # and its heading (obs capabilities/wikilinks)."""
-    return attrs["label"] == (attrs["target"] or f"#{attrs['heading']}")
+def _unlabelled(attrs: dict[str, object], context: Context) -> bool:
+    """Whether a resolved wikilink has no |label: its label is the one the core gives an unaliased
+    link (obs capabilities/wikilinks#Link text)."""
+    target, heading = attrs["target"], attrs["heading"]
+    if heading and target:
+        return attrs["label"] == f"{_chapter_title(attrs['chapter'], context)} > {heading}"
+    return attrs["label"] == (heading or target)
 
 
 def _numbered_reference(node: dict[str, object], context: Context) -> str:
     """The number of an unlabelled reference to a numbered figure, else ""."""
     attrs = node["attrs"]
-    if node["type"] != "wikilinks" or "figure" not in attrs or attrs["chapter"] is None or not _unlabelled(attrs):
+    if node["type"] != "wikilinks" or "figure" not in attrs or attrs["chapter"] is None or not _unlabelled(attrs, context):
         return ""
     return context.figure_blocks.get((attrs["chapter"], attrs["figure"]), "")
 
@@ -736,6 +739,7 @@ CAPABILITIES: dict[str, Renderer] = {
     "command-fences": _command,
     "count-query": _nothing,
     "embeds": _embed,
+    "equation-figures": _nothing,  # A figure kind: figures.py draws its body.
     "extensions": _extension,
     "figure-descriptor": _nothing,
     "figures": _figure,
@@ -1271,7 +1275,11 @@ def _shell(model: dict[str, object], limits: list[dict[str, str]], stylesheet: s
                           + read("vendor", "plotly-basic.min.js.LICENSE.txt") + "\n"
                           + read("vendor", "plotly-basic.min.js").replace("</script", "<\\/script")
                           + "</script>")
-        figure_assets = (f'<style id="figure-styles">{read("figures.css")}</style>{plotly}'
+        maths = ""
+        if any(feature.key == "equations" for feature in features):
+            maths = ('<script id="maths-script">/* ' + maths_library_licence() + " */\n"
+                     + maths_library().replace("</script", "<\\/script") + "</script>")
+        figure_assets = (f'<style id="figure-styles">{read("figures.css")}</style>{plotly}{maths}'
                          f'<script id="figure-script">{read("figures.js")}</script>')
     card_assets = ""
     if "data-record-cards" in data or any(note["frontmatter"].get("kind") == "quantity"

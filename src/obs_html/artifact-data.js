@@ -58,7 +58,13 @@
         if (performance.now() - sliceStart >= sliceMilliseconds) await paint();
     };
     // Each startup step is a User Timing measure named "obs-startup <step>"; profilers and the
-    // startup test read them with performance.getEntriesByType("measure").
+    // startup test read them with performance.getEntriesByType("measure"). Two marks time the
+    // opening on the frame's own clock: "obs-startup first chapter painted", once a frame with
+    // the first chapter has been painted (two animation frames, as paint waits), and
+    // "obs-startup ready", as obs-html-ready is sent.
+    document.addEventListener("obs-chapter-change", () => requestAnimationFrame(() => requestAnimationFrame(() => {
+        performance.mark("obs-startup first chapter painted");
+    })), {once: true});
     const step = async (name, run) => {
         const start = performance.now();
         try {
@@ -149,6 +155,7 @@
         }
         opening = false;
         document.documentElement.dataset.artifactStatus = "ready";
+        performance.mark("obs-startup ready");
         document.dispatchEvent(new CustomEvent("obs-html-ready"));
     });
     globalThis.obsHtmlReady.catch(fail);

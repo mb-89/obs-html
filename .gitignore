@@ -6,3 +6,5 @@ __pycache__/
 data/data_output/
 spec/design_output/
 /test/browser/node_modules/
+# The maths library, installed from its lockfile (npm --prefix adapters/html/maths ci)
+/maths/node_modules/

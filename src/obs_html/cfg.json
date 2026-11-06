@@ -27,6 +27,7 @@
       "proseWidthMultiplier": 1.5,
       "viewportGutterRem": 1,
       "viewportHeightRatio": 0.8,
+      "parallelCoordinatesCap": 1000,
       "plotlyDelivery": "embedded",
       "plotlyCdnUrl": "https://cdn.plot.ly/plotly-basic-2.35.3.min.js",
       "plotlyCdnIntegrity": "sha384-1kloN2RA6UbO83t0fSTtvwbovK00vzWzCE4WE0bLlnh07IC3ftBV/0Q5xhUpwDQq"

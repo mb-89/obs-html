@@ -418,16 +418,25 @@ def test_every_drill_down_shows_exactly_the_rows_its_count_counted(tmp_path, rea
     links = [{**link, "rows": page.evaluate(linked, [graph["data"]["where"], link["where"]])} for link in graph["links"]]
     assert figure.locator(".sankey-link").evaluate_all("links => links.map(link => link.dataset.flowValue)") == [
         str(len(link["rows"])) for link in links if link["rows"]]
+    narrowing: set[bool] = set()
     for node_spec in graph["nodes"]:
         incident = [link for link in links if node_spec["id"] in (link["source"], link["target"])]
         counted = sorted({row for link in incident for row in link["rows"]})
+        node = figure.locator(f"[data-node-id='{node_spec['id']}']")
         if "records" in node_spec:
-            assert counted == sorted(set(counted) & set(page.evaluate(linked, [graph["data"]["where"],
-                                                                               node_spec["records"]["where"]])))
-        figure.locator(f"[data-node-id='{node_spec['id']}']").click()
+            # A counted node's own records.where narrows its incident links' union; its label
+            # counts that narrowed selection, and its drill-down shows exactly those rows.
+            narrowed = sorted(set(counted) & set(page.evaluate(linked, [graph["data"]["where"],
+                                                                        node_spec["records"]["where"]])))
+            narrowing.add(narrowed != counted)
+            counted = narrowed
+            unit = node.locator(".sankey-label tspan").nth(-2).text_content()
+            assert unit == f"{len(counted)} records", node_spec["id"]
+        node.click()
         page.wait_for_function(f"(counted => JSON.stringify(({retained})()) === JSON.stringify(counted))", arg=counted)
         kinds.add("sankey")
         # The reader's filter hides the overview chapter itself, so the reader returns to it.
         page.evaluate("obsFilter.setExpression(''); obsArtifact.activateChapter('overview')")
+    assert narrowing == {True, False}
     assert kinds == {"card metric", "projected metric", "count query", "series", "sankey"}
     assert errors == []

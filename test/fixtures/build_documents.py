@@ -313,7 +313,7 @@ def callouts(root: Path) -> None:
 
 
 POINT_FLOW = {"version": 1, "data": {"where": [{"field": "kind", "equals": "point"}]}, "nodes": [
-    {"id": "points", "label": "Points", "stage": 0},
+    {"id": "points", "label": "Points", "stage": 0, "records": {"where": [{"field": "owner", "equals": "lin"}]}},
     {"id": "open", "label": "Open", "stage": 1, "records": {"where": [{"field": "status", "equals": "open"}]},
      "unique": "owner"},
     {"id": "closed", "label": "Closed", "stage": 1}], "links": [
@@ -325,7 +325,8 @@ def cards(root: Path) -> None:
     """test_cards_counts_quantities.py's vault: a card whose body holds a Base fence and a nested
     cards fence; a card with every metric field (two quantity notes for ``from`` and
     ``secondary``, a trusted projection); a card whose metrics are a series from a note's list;
-    and a dynamic Sankey over the same points, so every kind of count has a drill-down."""
+    and a dynamic Sankey over the same points, one node of which narrows its incident links by its
+    own ``records``, so every kind of count has a drill-down."""
     point = [{"field": "kind", "equals": "point"}]
     inner = {"version": 1, "cards": [{"title": "Inner", "body": "Nested **body** with [[target]]."}]}
     outer = {"version": 1, "cards": [
@@ -351,7 +352,7 @@ def cards(root: Path) -> None:
     (root / "manifest.md").write_text("- [[overview]]\n- [[target]]\n", encoding="utf-8")
     (root / "overview.md").write_text(
         "# Overview\n\n```cards\n" + json.dumps(outer) + "\n```\n\n"
-        "```figure\nversion: 1\nkind: sankey\ncaption: Points by status.\nsource: flow.json\n```\n",
+        "```figure\nversion: 1\nkind: sankey\ncaption: Points by status.\nsource: flow.json\n```\n^points\n",
         encoding="utf-8")
     (root / "flow.json").write_text(json.dumps(POINT_FLOW), encoding="utf-8")
     (root / "target.md").write_text(
@@ -379,7 +380,7 @@ CARDS = '{"version": 1, "cards": [{"title": "Items", "body": "Ranked: [[rankedIt
 def document(root: Path) -> None:
     """The adapter's main fixture (conftest.py's FIXTURE): a paged manifest with a cover, a chapter
     with a nested chapter, a Base and command fences, an appendix with figures (a Mermaid and a
-    PlantUML diagram among them), a callout, cards and a register, a count quantity and a glossary note with a property editor. Its one
+    PlantUML diagram among them, and an equation figure), a callout, cards and a register, a count quantity and a glossary note with a property editor. Its one
     diagnostic, the link to the missing note, is the one the CLI test reads on stderr."""
     (root / "images").mkdir()
     (root / "images" / "logo.png").write_bytes(base64.b64decode(
@@ -409,7 +410,8 @@ def document(root: Path) -> None:
         f"```figure\nversion: 1\nkind: plot\ncontent: {json.dumps(FLOW)}\n```\n\n"
         "> [!warning] Check the limits\n> The badge ![Logo](images/logo.png) marks it.\n\n"
         f"```cards\n{CARDS}\n```\n\n![[items.base]]\n\n"
-        "```mermaid\ngraph LR\n  Item --> Rank\n```\n\n```plantuml\n@startuml\nItem -> Rank\n@enduml\n```\n",
+        "```mermaid\ngraph LR\n  Item --> Rank\n```\n\n```plantuml\n@startuml\nItem -> Rank\n@enduml\n```\n\n"
+        f"```figure\nversion: 1\nkind: equations\ncontent:\n{_indent(PARABOLA)}```\n",
         encoding="utf-8")
     (root / "items.base").write_text(
         "filters: 'kind == \"item\"'\nviews:\n"
@@ -441,6 +443,105 @@ def property_editor_projection(root: Path) -> None:
     )
 
 
+PARABOLA = "equations: y = a*x**2\nvariables:\n  x: {default: 0, range: [-2, 2]}\n  a: {default: 1, range: [0.5, 2]}\n  y: {}\nplot: {x: x, y: y}\n"
+"""The small equation figure of the gallery and the main fixture: one exact branch over one sweep."""
+
+
+def _indent(text: str) -> str:
+    return "".join(f"  {line}\n" for line in text.splitlines())
+
+
+ENGINE_SPEED = ("---\nkind: quantity\nvalue: 3000\nunit: rpm\nrange: [800, 6000]\naliases: [engineSpeed]\n"
+                "source: '[[curves]]'\n---\n# Engine speed\n")
+EQUATIONS = {
+    # block id: the figure's content (the core's test_equation_figures.py shapes)
+    "torque": """\
+equations: T = T_max*throttle*(1 - (n/n_max)**2)
+variables:
+  n: "[[engineSpeed]]"
+  n_max: {default: 6000, unit: rpm}
+  T_max: {default: 250, unit: N*m}
+  throttle: {default: 1, range: [0, 1]}
+  T: {unit: N*m}
+plot:
+  x: n
+  y: [T, {expression: T*n, axis: secondary}]
+  family: {variable: throttle, values: [0.25, 0.5, 1]}
+""",
+    "saturated": """\
+equations: y'' + 2*zeta*w*y' + w**2*Min(Max(y, -1), 1) = w**2*u
+variables:
+  t: {default: 0, range: [0, 10], unit: s}
+  y: {of: t, initial: [0, 0]}
+  zeta: {default: 0.3, range: [0.05, 2]}
+  w: {default: 2, range: [0.5, 5], unit: 1/s}
+  u: {default: 1.5, range: [0, 2]}
+plot: {x: t, y: y}
+""",
+    "quintic": """\
+equations: y**5 + y = a
+variables:
+  a: {default: 2, range: [0, 10]}
+  y: {default: 1}
+plot: {x: a, y: y}
+""",
+}
+
+
+SWEEPS = {
+    # block id: a figure with a parallel-coordinates plot, in its own chapter so that it computes
+    # only where a test opens that chapter.
+    "step": """\
+equations: y'' + 2*zeta*w*y' + w**2*y = w**2*u
+variables:
+  t: {default: 0, range: [0, 10], unit: s}
+  y: {of: t, initial: [0, 0]}
+  zeta: {default: 0.5, range: [0.1, 1.5]}
+  w: {default: 2, range: [1, 3], unit: 1/s}
+  u: {default: 1}
+plot:
+  x: t
+  y: y
+  parallelCoordinates: true
+  grid: {zeta: {values: [0.2, 0.5, 0.8, 1.3]}}
+  computed:
+    - {name: settling, summary: settlingTime, of: y, tolerance: 0.02}
+    - {name: error area, summary: absoluteArea, of: u - y}
+""",
+    "cap": """\
+equations: y = a + b*x + c*x**2
+variables:
+  x: {default: 0, range: [0, 1]}
+  a: {default: 0, range: [0, 1]}
+  b: {default: 0, range: [0, 1]}
+  c: {default: 0, range: [0, 1]}
+  y: {}
+plot:
+  x: x
+  y: y
+  grid: {a: {steps: 20}, b: {steps: 20}, c: {steps: 20}}
+""",
+}
+
+
+def _equation_chapter(title: str, figures: dict[str, str]) -> str:
+    return f"# {title}\n\n" + "".join(
+        f"```figure\nversion: 1\nkind: equations\ncaption: The {name} figure.\ncontent:\n{_indent(content)}```\n"
+        f"^{name}\n\n" for name, content in figures.items())
+
+
+def equations(root: Path) -> None:
+    """The live equation figures (test_equation_figures_browser.py): the torque family over a
+    quantity note's range with a second axis, the saturated oscillator the core leaves as a
+    differential system, and an algebraic equation it leaves for Newton's method; in a second
+    chapter, a step response swept over a grid with computed axes and a grid of 8000
+    combinations above the cap. Not a moved interim vault."""
+    (root / "manifest.md").write_text("---\ntitle: Equations\n---\n- [[curves]]\n- [[sweeps]]\n", encoding="utf-8")
+    (root / "speed.md").write_text(ENGINE_SPEED, encoding="utf-8")
+    (root / "curves.md").write_text(_equation_chapter("Curves", EQUATIONS), encoding="utf-8")
+    (root / "sweeps.md").write_text(_equation_chapter("Sweeps", SWEEPS), encoding="utf-8")
+
+
 GALLERY_SVG = ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 20">'
                '<rect width="20" height="20" fill="#587894"/><circle cx="30" cy="10" r="8" fill="#73869a"/></svg>')
 
@@ -462,6 +563,7 @@ def figures(root: Path) -> None:
         "plot": f"content: {json.dumps(RESPONSE)}",
         "mermaid": "source: flow.mmd",
         "plantuml": "content: |\n  @startuml\n  Draft -> Review : submit\n  @enduml",
+        "equations": f"content:\n{_indent(PARABOLA)}",
     }
     (root / "gallery.md").write_text("# Gallery\n\n" + "".join(
         f"```figure\nversion: 1\nkind: {kind}\ncaption: The {kind} figure, see [[gallery]].\n{fence}\n```\n"
@@ -508,7 +610,7 @@ def self_link(root: Path) -> None:
     (root / "short.md").write_text("# Short\n\nBody.\n", encoding="utf-8")
 
 
-VAULTS = {"figures": figures, "document": document, "complete": complete, "artifact-change": artifact_change, "projections": projections,
+VAULTS = {"figures": figures, "equations": equations, "document": document, "complete": complete, "artifact-change": artifact_change, "projections": projections,
           "table-help": table_help, "structural": structural, "callouts": callouts,
           "registers": registers, "cards": cards,
           "property-editor-projection": property_editor_projection, "self-link": self_link,
