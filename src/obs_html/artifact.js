@@ -2616,8 +2616,9 @@
     });
 
     // Artifact-ui.md "Floating window": a note without a place in the contents shows here as context;
-    // the page stays put. Links inside the window follow the same rule.
-    const floatingWindow = globalThis.ObsHtmlGuidedCard.createHost({
+    // the page stays put. Links inside the window follow the same rule. The renderer includes the
+    // window's code only where the Document can open it (features.py, popups).
+    const floatingWindow = globalThis.ObsHtmlGuidedCard?.createHost({
         window, size: artifactData.guidedCard, applyLinkPolicy,
     });
     const contextSources = "[data-chapter-body], [data-frontmatter-panel], #hover-card";
