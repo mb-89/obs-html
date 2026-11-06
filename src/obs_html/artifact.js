@@ -679,6 +679,29 @@
         }
         touchY = nextY;
     }, {passive: true});
+    // Artifact-ui.md "Reading shell": on touch, a horizontal swipe walks to the previous or next
+    // chapter, the walk of the arrows. A swipe that starts in a box that scrolls sideways, or in a
+    // field, stays with it; a view that takes swipes of its own stops them (pugh-figure.js, the options).
+    let swipe;
+    const swipeStaysInside = (target) => {
+        if (target.closest("input, textarea, select, [contenteditable]:not([contenteditable='false'])")) return true;
+        for (let node = target; node && node !== chapterScroll; node = node.parentElement) {
+            if (node.scrollWidth > node.clientWidth && /auto|scroll/.test(getComputedStyle(node).overflowX)) return true;
+        }
+        return false;
+    };
+    chapterScroll.addEventListener("touchstart", (event) => {
+        const touch = event.touches.length === 1 ? event.touches[0] : undefined;
+        swipe = touch && !swipeStaysInside(event.target) ? {x: touch.clientX, y: touch.clientY} : undefined;
+    }, {passive: true});
+    chapterScroll.addEventListener("touchend", (event) => {
+        const start = swipe, touch = event.changedTouches[0];
+        swipe = undefined;
+        if (!start || !touch) return;
+        const across = touch.clientX - start.x, down = touch.clientY - start.y;
+        if (Math.abs(across) < artifactData.reading.swipePixels || Math.abs(across) < 2 * Math.abs(down)) return;
+        stepButtons.find((button) => Number(button.dataset.step) === (across < 0 ? 1 : -1))?.click();
+    }, {passive: true});
     let previousScrollTop = chapterScroll.scrollTop;
     chapterScroll.addEventListener("pointerdown", (event) => {
         if (event.target === chapterScroll) scrollIntent = null;

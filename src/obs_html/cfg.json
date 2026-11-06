@@ -23,7 +23,8 @@
       "paragraphMinimumLines": 2,
       "pingPeriodMilliseconds": 250,
       "pingCount": 4,
-      "pingScale": 6
+      "pingScale": 6,
+      "swipePixels": 60
     },
     "figureReferences": {
       "conjunctions": ["and", "or", "&", "und", "oder", "sowie"]
