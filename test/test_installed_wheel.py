@@ -128,11 +128,11 @@ def test_the_installed_wheel_builds_its_own_spec_and_reads_nothing_from_the_tree
     assert result.returncode == 0, result.stderr
     assert reads == []
     assert "<title>obs-html</title>" in output.read_text(encoding="utf-8")
-    # The CLI note's command fence ran in the installed environment and shows the interim's help.
+    # The CLI note's command fence ran in the installed environment and shows obs-html's help.
     chapter = subprocess.run([str(installed_wheels), "-I", "-c", ADAPTER, "--print-chapter", str(output), "cli",
                               "--chapter-format", "text"], cwd=tmp_path, capture_output=True, text=True)
     assert chapter.returncode == 0, chapter.stderr
-    assert "usage: obs-html-interim" in chapter.stdout
+    assert "usage: obs-html [-h]" in chapter.stdout
 
 
 @pytest.fixture
