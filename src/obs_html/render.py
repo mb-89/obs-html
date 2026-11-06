@@ -600,7 +600,9 @@ CAPABILITIES: dict[str, Renderer] = {
     "markdown": _nothing,
     "markdown-frontmatter": _frontmatter,
     "marks": _mark,
+    "mermaid": _nothing,  # A figure kind: figures.py draws its body.
     "named-icons": _nothing,
+    "plantuml": _nothing,  # A figure kind: figures.py draws its body.
     "profiles": _nothing,
     "property-editors": _property_editor,
     "quantities": _nothing,

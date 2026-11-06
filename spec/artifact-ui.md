@@ -212,6 +212,10 @@ failures have their form in [[input-model#Chapter content]].
   (`options-menu.js`) with the same control, placement and behaviour. What it changes (a plot's
   legend, for example) is classified in [[artifact-ui#What counts as a change]].
 
+  A diagram figure (`mermaid`, `plantuml`) shows the SVG the core drew at build time as an
+  image, like an `svg` figure without panels; no diagram library ships in the artifact and the
+  kind needs no reader feature.
+
   An anchor is `<note-slug>--block-<name>` for a figure with a block id, otherwise
   `<note-slug>--figure-<name>`, where name is a plot's descriptor id or the figure's position
   among the note's figures.

@@ -363,8 +363,8 @@ CARDS = '{"version": 1, "cards": [{"title": "Items", "body": "Ranked: [[rankedIt
 
 def document(root: Path) -> None:
     """The adapter's main fixture (conftest.py's FIXTURE): a paged manifest with a cover, a chapter
-    with a nested chapter, a Base and command fences, an appendix with figures, a callout, cards
-    and a register, a count quantity and a glossary note with a property editor. Its one
+    with a nested chapter, a Base and command fences, an appendix with figures (a Mermaid and a
+    PlantUML diagram among them), a callout, cards and a register, a count quantity and a glossary note with a property editor. Its one
     diagnostic, the link to the missing note, is the one the CLI test reads on stderr."""
     (root / "images").mkdir()
     (root / "images" / "logo.png").write_bytes(base64.b64decode(
@@ -393,7 +393,9 @@ def document(root: Path) -> None:
         f"```figure\nversion: 1\nkind: plot\ncontent: {json.dumps(RESPONSE)}\n```\n\n"
         f"```figure\nversion: 1\nkind: plot\ncontent: {json.dumps(FLOW)}\n```\n\n"
         "> [!warning] Check the limits\n> The badge ![Logo](images/logo.png) marks it.\n\n"
-        f"```cards\n{CARDS}\n```\n\n![[items.base]]\n", encoding="utf-8")
+        f"```cards\n{CARDS}\n```\n\n![[items.base]]\n\n"
+        "```mermaid\ngraph LR\n  Item --> Rank\n```\n\n```plantuml\n@startuml\nItem -> Rank\n@enduml\n```\n",
+        encoding="utf-8")
     (root / "items.base").write_text(
         "filters: 'kind == \"item\"'\nviews:\n"
         "  - {type: table, name: Items, order: [file.name, rank]}\n"
@@ -430,17 +432,21 @@ GALLERY_SVG = ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 20">'
 
 def figures(root: Path) -> None:
     """One figure of each kind (test_figure_frame.py), captioned and numbered by chapter, each with
-    a block id; the image and the Sankey read their content from files, the others inline. Not a
+    a block id; the image, the Sankey and the Mermaid diagram read their content from files, the
+    others inline. Not a
     moved interim vault: it is the adapter's own fixture of the one figure frame."""
     (root / "manifest.md").write_text(
         "---\ntitle: Figures\nobsHtml: {figures: {numbering: chapter}}\n---\n- [[gallery]]\n", encoding="utf-8")
     (root / "drawing.svg").write_text(GALLERY_SVG, encoding="utf-8")
     (root / "flow.json").write_text(json.dumps(FLOW["data"]["sankey"]), encoding="utf-8")
+    (root / "flow.mmd").write_text("graph LR\n  Draft --> Review\n", encoding="utf-8")
     fences = {
         "image": "source: drawing.svg",
         "svg": f"content: {json.dumps(GALLERY_SVG)}\npanels: [{{id: left, title: Square, box: [0, 0, 20, 20]}}]",
         "sankey": "source: flow.json\ncountLabels: {unit: items}",
         "plot": f"content: {json.dumps(RESPONSE)}",
+        "mermaid": "source: flow.mmd",
+        "plantuml": "content: |\n  @startuml\n  Draft -> Review : submit\n  @enduml",
     }
     (root / "gallery.md").write_text("# Gallery\n\n" + "".join(
         f"```figure\nversion: 1\nkind: {kind}\ncaption: The {kind} figure, see [[gallery]].\n{fence}\n```\n"
