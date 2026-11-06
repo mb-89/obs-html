@@ -73,13 +73,17 @@ primitives, without hard-coded artifact names or deleting metric links.
 An optional metric value link uses the existing internal chapter and table-filter route; its
 `?tableFilter=` is the metric's conditions in the reader language (`obsQuery.conditionsExpression`
 over the metric's `from` chain and `where`, obs's cards-metrics capability, Drill-downs), so the
-table shows exactly the counted rows. A series metric's link is built the same way from its own
+table shows exactly the counted rows.
+
+A series metric's link is built the same way from its own
 conditions, the series' `where` and its group's label. A projected metric's link adds
 `&projection=<name>`: the linked table then matches each `note.` clause against its row's note
-as that projection shows it (`obsCards.project`), the same records the value counted. Typing,
-clearing or replacing the table's filter drops the projection; a projection changed after
+as that projection shows it (`obsCards.project`), the same records the value counted.
+
+Typing, clearing or replacing the table's filter drops the projection; a projection changed after
 the drill-down opened applies when it is opened again.
 Static evidence cards do not change under filtering.
+
 Card-body base fences use the canonical query/table runtime. Per-record Sankey
 links preserve line identity and categorical outcome/origin colors; adjacent segments share
 highlighting.
@@ -99,9 +103,12 @@ failures have their form in [[input-model#Chapter content]].
 ## Styling
 
 - A style module is a folder containing `style.css`, with optional fonts, assets, and configuration
-  defaults. The converter embeds its CSS into each output. The packaged `generic` module is the
+  defaults. The converter embeds its CSS into each output.
+
+  The packaged `generic` module is the
   default; a manifest may declare a module pinned to a commit, and `--style` selects an
   explicit module folder for one invocation ([[configuration#Declared style]]). No artifact component names a style.
+
   Page geometry (paper size, orientation, sheet dimensions, margins, and `@page`) belongs only to
   the structural stylesheet; a style module must not declare or assume it.
 - All colors are semantic custom properties projected from [[semantic-assets]].
@@ -116,7 +123,9 @@ failures have their form in [[input-model#Chapter content]].
   without changing content or individual component rules.
 
   The root's `color-scheme` is the chosen appearance: `light`, `dark`, or `light dark` for
-  System; no `color-scheme` meta overrides it. `html` and `body` paint an opaque background
+  System; no `color-scheme` meta overrides it.
+
+  `html` and `body` paint an opaque background
   and a text colour from the semantic tokens in every appearance, so nothing the reader sees
   inherits a colour from the host, such as Claude's artifact viewer in a dark scheme. Light is
   a white page with black text; Dark is a near-black page with white headings, light grey body
@@ -193,10 +202,13 @@ failures have their form in [[input-model#Chapter content]].
   Plain blockquotes and other
   callout-like text keep their existing behavior; do not infer emphasis from position or bold text.
 - The other callout types of [[input-model#Callouts]] reuse the same card primitive with their
-  title as the card heading and an accessible label naming the canonical type. Their tone comes
-  from the shared semantic colors: accent for note, abstract, info, todo, tip and example;
+  title as the card heading and an accessible label naming the canonical type.
+
+  Their tone comes from the shared semantic colors: accent for note, abstract, info, todo, tip and example;
   success for success; warning for question and warning; failure for failure, danger and bug;
-  and neutral border and text colors for quote. A soft fill, matching border and the title carry
+  and neutral border and text colors for quote.
+
+  A soft fill, matching border and the title carry
   the tone, so the type remains identifiable without color. Callouts keep these colors in light,
   dark, paged and print views.
 ## Interactive engineering figures
@@ -207,11 +219,14 @@ failures have their form in [[input-model#Chapter content]].
 - One figure frame. Every figure kind of the Document's `figures` node (obs input-model,
   Figure input direction) renders in the same frame, `src/obs_html/figures.py` (`frame`): one
   `figure` element whose caption, generated number, expansion button, options menu, print sizing
-  and frame style it owns, while each kind renders only its body inside it. One stylesheet rule
-  (`.obs-figure` in `figures.css`) styles every frame from the frame style tokens
+  and frame style it owns, while each kind renders only its body inside it.
+
+  One stylesheet rule (`.obs-figure` in `figures.css`) styles every frame from the frame style tokens
   (`--figure-frame-border-block`, `--figure-frame-border-inline`, `--figure-frame-background`,
   `--figure-frame-padding-block`, `--figure-frame-padding-inline`), so a border set once, in a
-  style module's `:root` for example, frames every kind. A kind is one entry of the kind
+  style module's `:root` for example, frames every kind.
+
+  A kind is one entry of the kind
   registry (`FIGURE_KINDS`): its body renderer, its view options and the reader features it
   needs (`features.py`); adding one never changes the frame.
 
@@ -227,29 +242,43 @@ failures have their form in [[input-model#Chapter content]].
   Links inside a figure. A figure whose body has links (obs capabilities/wikilinks, Links
   inside a figure) shows its SVG inline instead of as an image, since an image cannot be
   clicked into (decided 6 Nov 2026); a figure without links stays an image.
+
   `src/obs_html/figure_links.py` owns it: each resolved link becomes the same chapter link as
   in prose, with its hover card and navigation, in the frame, in the expanded view, which
   closes as the link navigates, and in the panel inspector, which shows a copy of the inline
-  drawing. Wikilink text shows its label; a link whose note is missing is shown unlinked. The
-  inline SVG is never executable: scripts, embedded documents, event and animation elements,
+  drawing. Wikilink text shows its label; a link whose note is missing is shown unlinked.
+
+  The inline SVG is never executable: scripts, embedded documents, event and animation elements,
   event-handler attributes and every target but a resolved link, a fragment of the drawing, a
   web or mail address or a data image are removed.
 
-  Authored content never styles anything outside itself. An inline authored drawing (an `svg`
+  Authored content never styles anything outside itself.
+
+  An inline authored drawing (an `svg`
   figure or an SVG `image`) keeps its `<style>` elements, scoped to its own figure by
   `src/obs_html/figure_styles.py` with a CSS parser (tinycss2), never a pattern: each selector
   of each rule becomes `:where(#<anchor>) <selector>`, so it matches only inside the figure's
-  frame and keeps its authored specificity. Rules inside `@media`, `@supports` and `@container`
+  frame and keeps its authored specificity.
+
+  Rules inside `@media`, `@supports` and `@container`
   are scoped the same way; `@keyframes` names are prefixed with the anchor, together with the
-  drawing's own animation names that use them. Every other at-rule (`@import`, `@font-face`,
+  drawing's own animation names that use them.
+
+  Every other at-rule (`@import`, `@font-face`,
   `@property`, `@layer`, `@namespace`, `@page` and any other) is global and cannot be scoped:
   it is dropped, and a warning in the one message form names the note, `figure.style` and the
-  figure's anchor. A selector whose compound names `:root`, `html` or `body` outside a
+  figure's anchor.
+
+  A selector whose compound names `:root`, `html` or `body` outside a
   pseudo-class's arguments can only match the page, never the drawing: it is dropped with the
-  same warning. The frame style tokens are therefore never changed by a figure: a scoped rule
+  same warning.
+
+  The frame style tokens are therefore never changed by a figure: a scoped rule
   reaches only the frame's descendants, and a custom property set there (a
   `--figure-frame-border-block`, say) is inherited downward only, so the frame itself reads the
-  page's value. A diagram figure's SVG (`mermaid`, `plantuml`) is the core's output, which
+  page's value.
+
+  A diagram figure's SVG (`mermaid`, `plantuml`) is the core's output, which
   scopes its own styles by the diagram's id: it is left as drawn.
 
   An anchor is `<note-slug>--block-<name>` for a figure with a block id, otherwise
@@ -308,11 +337,14 @@ failures have their form in [[input-model#Chapter content]].
   link to its anchor, scrolling it below the reader's top controls.
 
   The adapter numbers every captioned figure of the contents chapters before it renders any
-  note, so a reference shows the number of a figure further on. A block-id reference (the
-  core's wikilink with a `figure` target) renders as a link to `#<note-slug>/block-<name>`:
+  note, so a reference shows the number of a figure further on.
+
+  A block-id reference (the core's wikilink with a `figure` target) renders as a link to `#<note-slug>/block-<name>`:
   labelled, with its label; unlabelled, with the manifest's `label` and the figure's number
   (`Figure 2.4`), and an unlabelled reference to a figure without a number is an input error
-  that names the Document node and the remedy. Adjacent unlabelled references merge as obs's
+  that names the Document node and the remedy.
+
+  Adjacent unlabelled references merge as obs's
   input-model ("Figure captions and references") says, with the manifest's `labelPlural` and the
   conjunctions in `cfg.json` (`artifact.figureReferences.conjunctions`, words or phrases such as
   `as well as`, at most 64; a phrase's words stand one space or one line break apart in the prose):
@@ -366,7 +398,9 @@ reader explores an equation figure through its options menu; there are no 3D plo
 An equation figure (obs capabilities/equation-figures) is plotted live from the Document's
 expression trees by `src/obs_html/equations.js`, with the plotting library of stored-data plots
 (Plotly) for drawing, zoom and pan, and one maths library, math.js, for complex arithmetic and
-for parsing the reader's expressions. The maths library is pinned in `maths/package-lock.json`,
+for parsing the reader's expressions.
+
+The maths library is pinned in `maths/package-lock.json`,
 built from it into the package when the package is built
 ([[architecture#Packaged browser assets]]) and embedded whole, with its licence, only in an
 artifact that holds an equation figure: it is the reader feature `equations` (`features.py`),
@@ -374,9 +408,13 @@ whose canary reports a host that does not run it. An artifact never loads it fro
 
 - Evaluation: a tree evaluates with the variables' SI values in complex arithmetic with
   principal branches; a result is a point of the plot where its imaginary part vanishes
-  (`|im| <= 1e-9 * max(1, |re|)`), elsewhere the curve has a gap. Real-only operators (`atan2`,
+  (`|im| <= 1e-9 * max(1, |re|)`), elsewhere the curve has a gap.
+
+  Real-only operators (`atan2`,
   `sign`, `min`, `max`, `heaviside`) take real arguments only; `heaviside(0)` is its second
-  argument, 1/2 without one, and `sign(0)` is 0. A piecewise tree takes its first case whose
+  argument, 1/2 without one, and `sign(0)` is 0.
+
+  A piecewise tree takes its first case whose
   condition holds; a relation compares real values, `eq` within `1e-9` of the larger magnitude.
   The shared test vectors of the core pass with this evaluator.
 - Sampling: each curve has 241 points spread over the swept variable's visible range. At every
@@ -386,35 +424,48 @@ whose canary reports a host that does not run it. An artifact never loads it fro
   numeric condition holds for a curve's values, its numeric system solves that curve instead,
   as one branch. Algebraic residuals are
   solved at each point by Newton's method with a halving line search, seeded from the defaults
-  (the Document's guess) and continued from the previous point. A differential system is
-  integrated from its start with an adaptive Runge–Kutta method (Dormand–Prince 5(4), relative
+  (the Document's guess) and continued from the previous point.
+
+  A differential system is integrated from its start with an adaptive Runge–Kutta method (Dormand–Prince 5(4), relative
   tolerance 1e-9), stepping onto every sampled point. Curves compute in slices of at most about
   12 ms between which the page runs on; a status line counts the curves while they compute.
 - Axes and names: an axis shows a plotted variable in its authored unit, from its quantity's
   range or value, and any other expression in SI base units. A family curve is named by its
   expression and its value, `T, throttle = 0.5`.
-- The options menu adds to the plot's Legend: **Add trace** (an expression over the figure's
-  variables, parsed by the maths library, on the first or the second y axis; an expression it
-  cannot read names itself, the reason and the variables it may use), **Second y axis** (its
-  side, right or left, the first axis taking the other side, and each authored y expression's
-  axis), **Swap x and y**, and **Family** (a third movable variable by a number of steps spread
-  over its range, or by values in its unit; None removes it). Every choice, and the zoom, is
+- The options menu adds to the plot's Legend:
+
+  - **Add trace** (an expression over the figure's
+    variables, parsed by the maths library, on the first or the second y axis; an expression it
+    cannot read names itself, the reason and the variables it may use),
+  - **Second y axis** (its
+    side, right or left, the first axis taking the other side, and each authored y expression's
+    axis),
+  - **Swap x and y**, and
+  - **Family** (a third movable variable by a number of steps spread
+    over its range, or by values in its unit; None removes it).
+
+  Every choice, and the zoom, is
   a choice in a figure's options menu as [[artifact-ui#What counts as a change]] classifies
   it, kept per figure anchor while the artifact is open.
 - Parallel coordinates: the figure's grid (obs input-model, Equation figures) shows above its
   curves where the fence sets `parallelCoordinates: true`, or where the reader presses
-  **Parallel coordinates** in the options menu. Each line is one combination, each axis a grid
+  **Parallel coordinates** in the options menu.
+
+  Each line is one combination, each axis a grid
   variable or a computed axis, scaled from its lowest to its highest value; every axis shows a
   histogram of the combinations' values in ten bins. The runtime computes the computed axes:
   an expression at the combination's values, a summary from the combination's curve sampled
   at 241 points over the full x range, on the first solution branch.
 - The cap: a plot draws at most `artifact.figures.parallelCoordinatesCap` combinations
-  (`cfg.json`, 1000 by default), which only the build configuration sets. Above it, the plot
-  warns and thins the rightmost grid axis to as many evenly spaced values as the cap allows
+  (`cfg.json`, 1000 by default), which only the build configuration sets.
+
+  Above it, the plot warns and thins the rightmost grid axis to as many evenly spaced values as the cap allows
   (keeping both ends), then the next to its left. The reader drags an axis by its label to the
   left or right; the order is the cap's priority.
 - Selection: dragging along an axis selects the range it covers, a click on the axis clears it,
-  and ranges on several axes combine. The curves below are exactly the selected combinations,
+  and ranges on several axes combine.
+
+  The curves below are exactly the selected combinations,
   all of them while no range is selected, one trace per plotted expression whose points name
   their combination; the family option does not apply while the plot shows. Order and ranges
   are view state like the other options.
@@ -800,9 +851,11 @@ Implementation decisions (4 Nov 2026, worker, reversible):
 
   A heading, including its collapsible wrapper, must not be stranded at a sheet bottom:
   move it with the first following content, retaining consecutive heading chains together.
+
   This includes a front-page group that would contain only headings, such as the declared
   Abstract title when the abstract has no content before its first second-level heading:
   it continues on the following group's first sheet instead of occupying a sheet alone.
+
   At a paragraph split retain at least two lines on either side when the paragraph can
   satisfy that constraint.
 
@@ -1026,11 +1079,15 @@ separate from artifact presentation.
   all expensive work before the browser can paint is not progressive loading.
   Startup runs in slices: a step yields to the browser once its slice has run as long
   as a browser long task (50 ms), and only then waits until the browser has painted a
-  frame; steps within a slice do not wait for frames. The first chapter is painted within 1 s of opening the
+  frame; steps within a slice do not wait for frames.
+
+  The first chapter is painted within 1 s of opening the
   spec artifact on the test machine, on the frame's own clock: the artifact marks
   `obs-startup first chapter painted` and `obs-startup ready` (User Timing), and
   `test_startup_browser.py` holds that budget from those marks and names the slowest
-  startup steps when it is missed. Where load on the machine slows the page itself, the
+  startup steps when it is missed.
+
+  Where load on the machine slows the page itself, the
   test scales the budget by a load factor it measures in the same run; its docstring owns
   how.
   Initialize nonvisible/unused views when needed and reuse existing caches rather
@@ -1068,8 +1125,9 @@ separate from artifact presentation.
   wrapping. Screen overflow scrolls horizontally; PDF scales longer lines to its content width.
 - Inline code spans that do not fit their line, for example paths in a narrow table column,
   break at spaces or after a run of the separators `/ \ . _ : -`; `content.py:1444` may
-  break only before `py` or `1444`, never inside an identifier between separators. Only a
-  single segment wider than the whole line may break elsewhere, so text never overflows its
+  break only before `py` or `1444`, never inside an identifier between separators.
+
+  Only a single segment wider than the whole line may break elsewhere, so text never overflows its
   column; table sizing owns whether a column is that narrow. The browser's own Unicode
   break opportunities at other punctuation, such as between `!` and `[`, remain. Break
   opportunities add no characters to
@@ -1297,7 +1355,9 @@ separate from artifact presentation.
 
   Changed HTML and the applied filter are information, each limited capability is a
   warning, as is each Document node type the artifact shows only as plain text
-  ([[architecture]]), and errors are reserved for real failures. Notices are transient UI, not printed
+  ([[architecture]]), and errors are reserved for real failures.
+
+  Notices are transient UI, not printed
   content or a dirty warning embedded into a newly reopened saved HTML. The entries, icons
   and layout are owned by obs-html's `notices.js`, not repeated here.
 
@@ -1399,8 +1459,9 @@ separate from artifact presentation.
   An unclosed quote, expression or parenthesis, or a field without a value, reads as still
   being typed rather than as an error.
 - A field clause selects by the one rule set (obs's bases capability, Comparisons: [[obs-specification|obs's specification]]): it resolves
-  a note property and tests its text as obs's queries capability (Conditions) does. Words,
-  wildcards and regular expressions ignore case; a `c` after a regular expression
+  a note property and tests its text as obs's queries capability (Conditions) does.
+
+  Words, wildcards and regular expressions ignore case; a `c` after a regular expression
   (`status: /^Open$/c`) matches case, as a condition's `matchCase` does. Ignoring case, a
   word or wildcard matches the text's case folding (obs's bases capability, Comparisons), and
   a regular expression matches the text or its folding, so `street: /^strasse$/` finds

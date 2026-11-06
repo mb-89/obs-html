@@ -29,7 +29,9 @@ and a source archive rebuilds with the flag it was built with.
 `obs-html --embed-attachments` makes the same choice on a Document, which carries every marked
 file's bytes (obs's architecture, Asset bytes: [[obs-specification|obs's specification]]): with it, the evidence edition, each marked attachment
 is a download of those bytes showing its name, type and size; without it, the light edition, the
-attachment shows its label and vault path and its bytes stay out of the HTML. Through the core,
+attachment shows its label and vault path and its bytes stay out of the HTML.
+
+Through the core,
 `obs-document --adapter html` builds the light edition, and with `--adapter-option
 embed-attachments=true`, the option `adapter.json` declares, the evidence edition (obs's CLI,
 Adapter options: [[obs-specification|obs's specification]]).
@@ -39,15 +41,20 @@ Adapter options: [[obs-specification|obs's specification]]).
 The source archive follows the Document: `obs-document --embed-source` puts the vault's source
 files into it (obs's architecture, Source archive: [[obs-specification|obs's specification]]), and
 obs-html packages and embeds them whenever they are there
-([[input-model#Optional reproduction archive]]). A `.pdf` destination of such a Document carries the ZIP as a PDF attachment, so
+([[input-model#Optional reproduction archive]]).
+
+A `.pdf` destination of such a Document carries the ZIP as a PDF attachment, so
 `obs-document --embed-source --adapter html --destination artifact.pdf` attaches it in one call.
+
 `obs-html --export-pdf HTML --output file.pdf` prints an existing artifact the same way: it
 attaches the ZIP the HTML embeds, and prints an HTML without one with no attachment, as the
 interim adapter's option of the same name does.
 
 `obs-html --attach-source-to-pdf PDF --source-artifact HTML --output file.pdf` attaches the ZIP an
 artifact embeds to a PDF saved from it, as the interim adapter's option of the same name does; in
-the HTML, Settings + exports does the same ([[artifact-ui]]). It is an operation on two existing
+the HTML, Settings + exports does the same ([[artifact-ui]]).
+
+It is an operation on two existing
 files, like `--export-pdf`, not a choice about rendering a Document, so `adapter.json` declares no
 option for it: through the core the PDF destination attaches already, and an option would only
 repeat what the Document says.
@@ -56,11 +63,14 @@ repeat what the Document says.
 
 `obs-html --build-own-spec DESTINATION` builds this specification, which the package ships as
 package data ([[architecture#Packaged browser assets]]), into DESTINATION, from the installed
-package alone. It starts the core of its own environment, `python -m obs.document --source
+package alone.
+
+It starts the core of its own environment, `python -m obs.document --source
 <packaged specification>/manifest.md --document <temporary file> --execute-commands`, whose
 capability reference is the one the core ships, and renders that Document as `obs-html DOCUMENT
-DESTINATION` does; `--style`, `--config` and `--embed-attachments` apply as they do there. The
-core runs the specification's command fences, so its environment puts the running Python's
+DESTINATION` does; `--style`, `--config` and `--embed-attachments` apply as they do there.
+
+The core runs the specification's command fences, so its environment puts the running Python's
 scripts folder first on `PATH`: a fence finds the programs installed beside obs-html. A package
 whose build wrote no specification fails naming the missing manifest and the remedy, to build the
 package again; a failed core build names the core's message.
@@ -109,7 +119,9 @@ dependency change in `pyproject.toml`, rerun the install with `--reinstall`.
 
 A plain `uv tool install` copies the package instead. It generates artifacts but has no
 checkout: `--embed-source` refuses, the default source and output point nowhere useful
-and the provenance carries only the package version. Either form resolves dependencies
+and the provenance carries only the package version.
+
+Either form resolves dependencies
 from the ranges in `pyproject.toml`, not from `uv.lock`; builds that must match the lock
 run `uv run` in the checkout. Remove the tool with `uv tool uninstall obs`.
 
@@ -139,16 +151,21 @@ artifact's data island is packed, so reading it by hand needs a decoder.
 
 It prints the chapter as the generator stored it in the artifact's data, without starting a
 browser: what the reader runtime changes on load, such as interactive table controls, is not
-included; `--check-rendered` covers the opened page. It prints the artifact's static text, so it
+included; `--check-rendered` covers the opened page.
+
+It prints the artifact's static text, so it
 cannot show a label the artifact computes at runtime, such as a count or a figure number that
 depends on the reader's filter. Chapter ids are the note slugs the artifact's table of
 contents uses; an unknown id lists the available ones.
 
 `obs-html --print-chapter HTML CHAPTER` and `obs-html-interim --print-chapter HTML ID` take the
 same input and print the same form, so one instruction works for an artifact from either.
+
 `obs-html` reads the built artifact, not a Document: a build through the core, `obs-document
 --adapter html`, writes the artifact and no Document file, and the artifact stores the chapters
-as the adapter rendered them from its Document. `obs-html` also takes a chapter's title for
+as the adapter rendered them from its Document.
+
+`obs-html` also takes a chapter's title for
 CHAPTER; a title that two chapters share lists their ids. Like `--extract-comments`, it renders
 nothing, so it refuses DOCUMENT and the rendering options.
 

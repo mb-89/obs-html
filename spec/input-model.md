@@ -64,9 +64,12 @@ obsHtml:
   (continuous reading). Readers can still switch during the session; that choice is not saved
   as the next opening's state. It replaces the removed `artifact.reading.paged` setting.
 - `heading` presents the cover metadata at the top of Home. `cover` (default) is the title box,
-  which `pages` can also place as the title sheet. `compact` is one line: organization, product
+  which `pages` can also place as the title sheet.
+
+  `compact` is one line: organization, product
   name and version, document type and title (subtitle last), separated by `·`; the other cover
   fields (template, people, document number, legal entity, copyright, confidentiality) are not shown.
+
   The compact line is never a sheet of its own: in the paged and PDF projections it opens the
   first declared front page, so `pages` must declare at least one page and no `cover`.
 - `pages` is the ordered list of generated front pages of the paged and PDF projections.
@@ -85,7 +88,9 @@ obsHtml:
 - `figures` numbers captioned `figure` fences. `numbering` is `none` (default), `document`
   (`Figure 1`, `Figure 2`, … in contents order) or `chapter` (`Figure <n>.<m>`, where `<n>` is the
   top-level contents position of the chapter, its subchapters included, and `<m>` counts within
-  it). `label` is the plain-text word before the number (default `Figure`, for example `Abb.`);
+  it).
+
+  `label` is the plain-text word before the number (default `Figure`, for example `Abb.`);
   `labelPlural` precedes merged references (default `Figures`).
 
   The number precedes the first caption paragraph; uncaptioned figures and notes outside the
@@ -102,7 +107,9 @@ obsHtml:
   The HTML embeds them in list order after its own styles, every packaged stylesheet including
   the figure styles, so they style screen, pages and PDF and win at equal specificity. Snippet CSS
   applies page-wide by design: unlike a figure's authored styles it is the author's styling of
-  the whole artifact. Obsidian's own enabled-snippet list is a per-device
+  the whole artifact.
+
+  Obsidian's own enabled-snippet list is a per-device
   appearance choice and is not read: the document declares what it needs.
 
   A listed snippet that is missing, or that contains `</style`, is an input error. A missing one
@@ -219,30 +226,40 @@ CLI invocation and prerequisites are owned by [[cli]]; controls and PDF presenta
 
 obs-html packages the vault files a Document's `sourceArchive` carries; the core selects them
 (obs's architecture, Source archive: [[obs-specification|obs's specification]]) by the boundary
-below, and a file the Document holds as an asset takes that asset's bytes. The ZIP holds each file
-at `vault/<path>`, the `source-inventory.json` the reader's archive transactions update (its
+below, and a file the Document holds as an asset takes that asset's bytes.
+
+The ZIP holds each file at `vault/<path>`, the `source-inventory.json` the reader's archive transactions update (its
 `generator` list empty), `build-config.json`, `reproduce.py` and `REPRODUCE.txt`, which says how
-to run it. Every member
-has one fixed timestamp, so the same files give the same ZIP. The reader downloads it as
+to run it.
+
+Every member has one fixed timestamp, so the same files give the same ZIP. The reader downloads it as
 `obs-html-source.zip`, the interim's name, and a PDF carries it under that name. An archived file
 naming an asset the Document lacks is an input error naming `sourceArchive.files[i].asset`.
 
 obs-html's archive refers to the generator instead of copying it, from the Document's
-`sourceArchive.build` record (obs's architecture, Source archive). `build-config.json` holds the
-Document's `schemaVersion`, obs's `repository` and `commit`, the recorded `lockfiles` versions,
+`sourceArchive.build` record (obs's architecture, Source archive).
+
+`build-config.json` holds the Document's `schemaVersion`, obs's `repository` and `commit`, the recorded `lockfiles` versions,
 the adapter's own options (`adapterOptions`), the exact `command`: `obs-document --source
 vault/<manifest path>` followed by the recorded arguments, and, where the manifest declares one,
-the `style` the build record names (obs's architecture, Declared style). A style module obs-html
-is given for one build with `--style FOLDER` is not recorded, so a rebuild from the archive never
-uses it. `python reproduce.py`, which needs git
+the `style` the build record names (obs's architecture, Declared style).
+
+A style module obs-html is given for one build with `--style FOLDER` is not recorded, so a rebuild from the archive never
+uses it.
+
+`python reproduce.py`, which needs git
 and uv only, clones obs from that repository (`--repository URL` names another, such as a local
 clone), checks out the commit, installs it with that commit's `uv.lock` (`uv sync --frozen`) and
 runs the command from the extracted folder. A failed clone, checkout or install names the commit,
-the repository and the remedy. A command with `--execute-commands` runs only when `reproduce.py`
+the repository and the remedy.
+
+A command with `--execute-commands` runs only when `reproduce.py`
 is given `--execute-commands` too, so the vault's fences never run unreviewed. A Document whose
 arguments name no `--adapter` was written by a call without one, so no recorded command rebuilds
 the artifact: that is an input error naming `sourceArchive.build.arguments`, whose remedy is the
-one-call build. The generator's package source, project manifest, lockfile, README and wrappers
+one-call build.
+
+The generator's package source, project manifest, lockfile, README and wrappers
 that the interim copies into `generator/` are not carried; that difference from the interim is
 listed in [[architecture#Known differences from the interim]].
 
@@ -255,6 +272,7 @@ Generic names such as `output`, `outputs`, `build` or `cache` do not establish t
 source is disposable.
 Dot folders such as `.obsidian` stay excluded, except the CSS snippets the manifest lists:
 they are declared inputs of the document.
+
 Extracted source archives carry a source inventory so rebuilding without `.git` preserves
 the same selection.
 Their build configuration is a complete, schema-valid configuration of the original
@@ -444,6 +462,7 @@ Missing fields are omitted; safe URLs remain links and rendered descriptions are
 repeated as raw HTML.
 Blank strings, nulls and empty collections are also omitted from detail metadata;
 false and zero remain meaningful values.
+
 Record-backed tables can use the existing artifact query catalog for field discovery
 when it describes the same population; other tables retain their own field scopes.
 
@@ -608,6 +627,7 @@ Actions without `card` keep the existing file-picker behavior.
 `obsArtifact.openFloatingWindow({use, title, mount, returnFocus})`
 shows trusted content in the artifact's one [[artifact-ui#Floating window|floating window]];
 `use` names the header ("Evidence collection" for guided action cards).
+
 `mount(container, session)` mounts trusted controls once and the session exposes `active`,
 `mode`, an abort `signal` and idempotent `close()`, which removes that content from the
 window's history (closing the window when nothing else is left).

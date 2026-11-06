@@ -19,7 +19,9 @@ A document-library preview can run an uploaded HTML file in a framed sandbox tha
 scripts but not same-origin access. In such a host, classic and module scripts, JSON
 islands with DOM initialization, event listeners, inline event attributes, MutationObserver,
 canvas, inline CSS/SVG and data-URI SVG can work, while both localStorage and
-sessionStorage throw SecurityError. An external CDN script can fail to load there, and
+sessionStorage throw SecurityError.
+
+An external CDN script can fail to load there, and
 the failure alone does not distinguish network, CSP, CORS and integrity causes. Blanket
 JavaScript blocking is therefore not a safe assumption for such a host.
 
@@ -30,8 +32,9 @@ failure, not a host limitation; rule it out locally before blaming the host.
 
 Storage implications: current application-level localStorage use is remembered
 appearance (`src/obs_html_interim/bars/settings.js`) and reviewer name
-(`src/obs_html_interim/bars/comments.js`), both already catch access failures. Review data
-is saved in downloaded HTML, not localStorage. In-memory state can support editing
+(`src/obs_html_interim/bars/comments.js`), both already catch access failures.
+
+Review data is saved in downloaded HTML, not localStorage. In-memory state can support editing
 for the lifetime of the open preview but cannot survive reload. Download/save
 permission in the actual sandbox is not established by Blob URL creation alone;
 test it independently before promising review persistence there.
@@ -56,7 +59,9 @@ same way, so CDN removal alone can neither explain nor fix it.
   Microsoft discusses scripts in HTML pages in document libraries and recommends
   SharePoint Framework (SPFx) for governed interactive solutions.
   Importantly, it also says blocking custom script does not stop scripts already
-  inserted. These administrative controls must not be equated with a precise
+  inserted.
+
+  These administrative controls must not be equated with a precise
   description of the file-preview sandbox or its runtime script policy.
 
 The reviewed documentation does not establish the exact HTML click-to-preview
@@ -107,13 +112,16 @@ asset loading is the actual failure.
 
 - Loss of remembered appearance and reviewer name is acceptable in preview.
 - Centralize optional browser-storage access behind a shared capability boundary.
+
   Appearance persistence is superseded by the opening-state rule in [[artifact-ui]]:
   appearance is session-only and has no storage warning. The capability boundary
   and warning below now apply only to remembered settings such as reviewer name.
+
   If storage is unavailable, keep the control usable with in-memory state and show
   a small yellow exclamation indicator beside the affected control. Its tooltip
   should explain that the setting will not be remembered in this environment.
   Make the explanation available on keyboard focus and to assistive technology.
+
   Storage denial alone must not be labelled definitive proof of SharePoint preview.
   Suggested wording: "This setting cannot be remembered in this environment.
   Download the HTML and open it directly in your browser for full functionality."
@@ -125,7 +133,9 @@ asset loading is the actual failure.
 - Minified generated HTML, CSS and JavaScript are acceptable; generated output
   need not be readable. Keep authored sources readable and reproduction archives
   faithful to those sources. Evaluate proper syntax-aware minification at the
-  build boundary, not regex whitespace removal. Preserve licenses, script-island
+  build boundary, not regex whitespace removal.
+
+  Preserve licenses, script-island
   data, meaningful text whitespace, identifiers used across scripts, and reviewed
   HTML save/reopen behavior.
 - Measure size and generation-time impact before selecting tooling. Vendored
@@ -137,6 +147,7 @@ asset loading is the actual failure.
 Use a diagnostic copy of an actual generated artifact, not another generic API
 spike. Keep published deliverables untouched. Embed the existing minified
 dependencies and expose initialization errors visibly in that diagnostic copy.
+
 First reproduce it locally in an allow-scripts sandbox without allow-same-origin;
 then upload the same copy to the target host. Fix demonstrated failures
 surgically rather than adding a separate static representation.
@@ -153,7 +164,9 @@ format transformations do not obscure diagnosis.
 
 For agreed SharePoint/OneDrive viewing paths, artifacts should offer a readable,
 script-independent representation of chapters, tables, and diagrams without
-requiring a download. Preserve the existing interactive standalone artifact when
+requiring a download.
+
+Preserve the existing interactive standalone artifact when
 scripts are available. If HTML preview is unsupported by the target service,
 document that boundary and offer an explicit PDF viewing alternative instead of
 claiming native compatibility.
@@ -167,7 +180,9 @@ reported separately.
 A diagnostic probe tests static content, script execution, DOM/JSON initialization,
 graphics, browser APIs and pinned CDN loading independently, and carries no artifact
 data and no automatic telemetry. Compare local-browser results with the same file in
-the host's preview. A probe is research, not a generator behavior change.
+the host's preview.
+
+A probe is research, not a generator behavior change.
 Keep actual-artifact diagnostic generation reproducible from ordinary generated HTML
 without changing chapter data or authored generation settings. Its error banner
 must not intercept artifact controls.

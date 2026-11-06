@@ -60,13 +60,18 @@ and the CSS snippets the manifest lists in `obsHtml.cssSnippets` follow it
 The declared module is fetched once per commit: obs-html fetches `url` at `ref` with git into
 a cache folder named by the commit, `obs-html/styles/<ref>` in the user's cache folder
 (`$XDG_CACHE_HOME` or `~/.cache` on Linux, `~/Library/Caches` on macOS, `%LOCALAPPDATA%` on
-Windows), never inside a checkout. A build whose commit is cached fetches nothing, so the
+Windows), never inside a checkout.
+
+A build whose commit is cached fetches nothing, so the
 network is reached once per commit on a machine. A fetch is complete or absent: a failed one
 leaves nothing in the cache. `path` names the module's folder inside the fetched tree; an
-absolute `path` or one with `..` is refused before any fetch. Every failure is an input error
+absolute `path` or one with `..` is refused before any fetch.
+
+Every failure is an input error
 of the Document's manifest: a fetch that fails names `style.url` and `style.ref`, with the
 remedy to check the declaration or to pass `--style FOLDER`; a `path` that leaves the tree or
 holds no `style.css` names `style.path`. No other style replaces a declared one that fails.
+
 `src/obs_html/declared_style.py` holds the fetcher, the one door to a style repository; tests
 replace it with a fake and never reach the network.
 

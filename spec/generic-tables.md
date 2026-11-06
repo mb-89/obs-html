@@ -46,7 +46,9 @@ consume the same applied global Filter; a table's local query remains independen
   interaction. Embedded Bases adapters supply declarative table definitions to that runtime.
   Definitions come from `base` fences and embedded `.base` files in ordinary notes.
 - The runtime may delegate mechanics to an established table framework such as Tabulator when that
-  reduces implementation risk. The framework sits behind the artifact adapter: it does not own query
+  reduces implementation risk.
+
+  The framework sits behind the artifact adapter: it does not own query
   semantics or canonical records, and its controls and states are restyled with artifact design tokens.
   A packaged or embedded dependency must preserve the standalone artifact's portability contract.
 - Table state is local to one table instance. A table filter, group, sort, expanded row, or column
