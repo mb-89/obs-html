@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "obs-html presentation profile",
+  "$comment": "The manifest frontmatter's obsHtml mapping (obs input-model#Artifact presentation profile); the obs core does not read it. render.py's PROFILE_DEFAULTS owns the defaults.",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "layout": {"enum": ["paged", "scrolling"]},
+    "heading": {"enum": ["cover", "compact"]},
+    "query": {
+      "type": "object",
+      "properties": {"scope": {"enum": ["chapters", "records"]}, "where": {"type": "array"}}
+    }
+  }
+}

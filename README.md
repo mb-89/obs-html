@@ -75,8 +75,8 @@ Reader: whoever embeds a `.base` file in a note built with obs-html, or changes 
 A register renders from its `registers` node alone (obs
 [capabilities/registers](../../spec/capabilities/registers.md), "Document node"): each view shows
 the rows the core selected for it, and obs-html evaluates no selection of its own. A view's
-`obsHtml.members` only orders those rows and labels them as `obsHtml.label`
-([generic-tables](../../spec/design_input/generic-tables.md)). A `documentMetadata` view also shows
+`obs.members` only labels those rows as `obsHtml.label`; the core sends them in member order,
+which obs-html keeps ([generic-tables](../../spec/design_input/generic-tables.md)). A `documentMetadata` view also shows
 obs-html's generation rows (`timestamp`, `generator`, `target`) that its filter selects, since the
 core has none. A query the reader edits in the table's Query view narrows the register's rows.
 Members need the core's rows, so a `base` fence whose view declares them fails the build; the

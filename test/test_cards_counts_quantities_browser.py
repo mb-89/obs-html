@@ -146,8 +146,8 @@ def test_quantities_count_through_their_selection_chain_and_refresh(tmp_path, re
         records=(_record("chapter", {}), _record("counts-total", total, "counts/total.md"),
                  _record("counts-subset", subset, "counts/subset.md"), _record("limit", limit),
                  *_services(), _record("other", {"kind": "operator", "identity": "z"})),
-        abstract=(node("profiles", profile={"query": {
-            "scope": "records", "where": [{"field": "kind", "equals": "service"}]}}),))
+        metadata={"obsHtml": {"query": {
+            "scope": "records", "where": [{"field": "kind", "equals": "service"}]}}})
     page, errors = _open(tmp_path, reader_browser, source)
     from playwright.sync_api import expect
     page.evaluate("obsPages.setPaged(false); obsArtifact.activateChapter('chapter')")

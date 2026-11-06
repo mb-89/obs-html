@@ -65,7 +65,7 @@
         {
           "type": "bases",
           "attrs": {
-            "source": "filters:\n  and: ['status == \"approved\"']\nviews:\n  - type: table\n    order: [term]\nobsHtml: {records: glossary}\n",
+            "source": "filters:\n  and: ['status == \"approved\"']\nviews:\n  - type: table\n    order: [term]\nobs: {records: glossary}\n",
             "spec": {
               "filters": {
                 "and": [
@@ -80,7 +80,7 @@
                   ]
                 }
               ],
-              "obsHtml": {
+              "obs": {
                 "records": "glossary"
               }
             }
@@ -90,7 +90,7 @@
         {
           "type": "bases",
           "attrs": {
-            "source": "filters:\n  and: ['sourcePath == \"extra/located.md\"']\nviews:\n  - type: table\n    order: [title]\nobsHtml: {records: note}\n",
+            "source": "filters:\n  and: ['sourcePath == \"extra/located.md\"']\nviews:\n  - type: table\n    order: [title]\nobs: {records: note}\n",
             "spec": {
               "filters": {
                 "and": [
@@ -105,7 +105,7 @@
                   ]
                 }
               ],
-              "obsHtml": {
+              "obs": {
                 "records": "note"
               }
             }
@@ -115,7 +115,7 @@
         {
           "type": "bases",
           "attrs": {
-            "source": "filters:\n  and: ['slug == \"custom\"']\nviews:\n  - type: table\n    order: [title]\nobsHtml: {records: note}\n",
+            "source": "filters:\n  and: ['slug == \"custom\"']\nviews:\n  - type: table\n    order: [title]\nobs: {records: note}\n",
             "spec": {
               "filters": {
                 "and": [
@@ -130,7 +130,7 @@
                   ]
                 }
               ],
-              "obsHtml": {
+              "obs": {
                 "records": "note"
               }
             }
@@ -140,7 +140,7 @@
         {
           "type": "bases",
           "attrs": {
-            "source": "filters:\n  and: ['slug == \"slugged\"']\nviews:\n  - type: table\n    order: [title]\nobsHtml: {records: note}\n",
+            "source": "filters:\n  and: ['slug == \"slugged\"']\nviews:\n  - type: table\n    order: [title]\nobs: {records: note}\n",
             "spec": {
               "filters": {
                 "and": [
@@ -155,7 +155,7 @@
                   ]
                 }
               ],
-              "obsHtml": {
+              "obs": {
                 "records": "note"
               }
             }
@@ -165,7 +165,7 @@
         {
           "type": "bases",
           "attrs": {
-            "source": "filters:\n  and: ['type == \"open_point\"']\nviews:\n  - type: table\n    order: [label]\nobsHtml: {records: tag}\n",
+            "source": "filters:\n  and: ['type == \"open_point\"']\nviews:\n  - type: table\n    order: [label]\nobs: {records: tag}\n",
             "spec": {
               "filters": {
                 "and": [
@@ -180,7 +180,7 @@
                   ]
                 }
               ],
-              "obsHtml": {
+              "obs": {
                 "records": "tag"
               }
             }
@@ -212,7 +212,7 @@
         {
           "type": "bases",
           "attrs": {
-            "source": "filters:\n  and: ['type == \"risk\"']\nviews:\n  - type: table\n    order: [label]\nobsHtml: {records: tag}\n",
+            "source": "filters:\n  and: ['type == \"risk\"']\nviews:\n  - type: table\n    order: [label]\nobs: {records: tag}\n",
             "spec": {
               "filters": {
                 "and": [
@@ -227,7 +227,7 @@
                   ]
                 }
               ],
-              "obsHtml": {
+              "obs": {
                 "records": "tag"
               }
             }

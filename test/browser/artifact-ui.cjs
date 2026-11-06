@@ -535,7 +535,7 @@ assert.equal(editor.value, "views: [");
 assert.equal(editor.hidden, false);
 const edited = context.obsBases.parse(original);
 // The authored Home fence selects chapter records; the edit selects glossary records instead.
-edited.obsHtml = {records: "glossary"};
+edited.obs = {records: "glossary"};
 delete edited.filters;
 edited.views[0].order = ["term", "definition"];
 editor.value = context.obsBases.dump(edited);
@@ -664,7 +664,7 @@ click(shell.querySelector(".data-table-options-toggle"));
 click([...shell.querySelectorAll(".filter-pill")].find((button) => button.textContent === "Query view"));
 editor = shell.querySelector("textarea");
 const notesDefinition = context.obsBases.parse(editor.value);
-notesDefinition.obsHtml = {records: "note"};
+notesDefinition.obs = {records: "note"};
 delete notesDefinition.filters;
 notesDefinition.views[0].order = ["title"];
 editor.value = context.obsBases.dump(notesDefinition);

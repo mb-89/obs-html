@@ -68,7 +68,7 @@ def test_an_ignored_record_that_matches_is_neither_listed_nor_counted(tmp_path: 
 
 def test_the_runtime_query_population_does_not_count_an_ignored_record(tmp_path: Path) -> None:
     source = document("Records", chapter("items", "Items"), records=(*RECORDS, IGNORED),
-                      abstract=(node("profiles", profile={"query": {"scope": "records"}}),))
+                      metadata={"obsHtml": {"query": {"scope": "records"}}})
     artifact = tmp_path / "artifact.html"
     artifact.write_text(render(source, load_config()), encoding="utf-8")
     [summary] = run_harness(artifact, tmp_path, {"step": "summary"})
