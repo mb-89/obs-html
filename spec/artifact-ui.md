@@ -132,7 +132,7 @@ failures have their form in [[input-model#Chapter content]].
   text and thin grey rules. The token values are owned by [[semantic-assets]].
 
   Every opening starts in Light appearance and in the manifest's declared `obsHtml.layout`
-  (paged by default), regardless of the operating-system theme or previously selected reader
+  (paged by default; [[#Screens]] for a deck), regardless of the operating-system theme or previously selected reader
   appearance. Reader controls may switch appearance and viewing mode during the current
   session; those choices do not override the next opening's Light/declared-layout starting state.
 
@@ -615,7 +615,8 @@ the criterion names held at its left.
   neither invents a TOC path nor intercepts the Home link.
 - No table of contents, filter, toolbar, or navigation bar is open initially.
 - The top band is one row and holds every top control: Home, the breadcrumbs, the
-  frontmatter chevron, the bless controls ([[#Bless verdicts]]), the notice icons and the menu.
+  frontmatter chevron, the position indicator and title of [[#Screens]], the bless controls
+  ([[#Bless verdicts]]), the notice icons and the menu.
   The notice icons sit directly left of the menu.
   The bless controls sit directly left of them.
   Every control in the band is a square of one size. No control takes a row of its own.
@@ -710,6 +711,33 @@ marked outdated, and the chapter asks again.
 When the band is short of space, the breadcrumbs shrink first. Then the pill truncates, and
 then it shows only its state colour, as a square of the band's size; its label stays its
 tooltip and accessible name. Only then do the band's squares shrink. No key is dropped.
+
+## Screens
+
+Decided by the user, 6 Nov 2026 (work issue `feature/screen-layout-for-decks-20261106`): a
+decision is a one-pager, not a document page, so an artifact can be read as screens.
+
+`obsHtml.layout: screens` ([[input-model#Artifact presentation profile]]) shows each chapter of
+the walk as one screen: the chapter at the reader's full width inside a side gutter that holds
+the chapter arrows, with no page frame, cover, running header, footer or page number. The
+manifest's title shows only in the top band, between the breadcrumbs and the frontmatter
+chevron; it truncates first, its full text its tooltip. Home shows its content without the cover.
+
+Without a declared `obsHtml.layout`, a manifest whose listed chapters (the reading order) all
+ask for a bless opens in `screens`; any other opens in `paged`. A declared layout always wins.
+The adapter decides this from the Document's chapters, so the core carries nothing new; obs's
+example deck (`spec/examples/bless-deck`) opens in screens by this rule.
+
+- **The walk:** swipe and the arrows move between screens ([[#Reading shell]]); the contents
+  stay in the menu. The top band shows the position on the chapters of the walk, "2 / 3", as
+  one of its squares, first at the band's end; Home, which is not one of them, shows none. The
+  bottom of the screen stays free for content.
+- **Show as pages** switches to the paged view for the session; switching it off returns to
+  screens.
+- **Printing** from screens prints each chapter from a new page, as the reader sees it: no
+  cover, front pages, running header, footer or page number ([[#Pages and PDF]] owns the rest).
+- The feature `screens` (`features.py`) ships only in an artifact that opens in screens, with
+  its canary (`canaries/screens.js`), which reports a host that gives the page no viewport.
 
 ## Internal-link previews
 
@@ -897,7 +925,7 @@ Implementation decisions (4 Nov 2026, worker, reversible):
   paper dimensions or physical pagination.
 
 - Settings + exports owns appearance (system, sun/light, moon/dark icons), paged viewing,
-  and Export PDF.
+  and Export PDF. An artifact that opens in [[#Screens]] prints as screens.
 
   Export invokes the browser print dialog; select Save as PDF.
 

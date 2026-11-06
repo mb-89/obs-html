@@ -968,6 +968,7 @@
         chapter.hidden = false;
         screen.hidden = !enabled;
         root.classList.toggle("paged-mode", enabled);
+        root.classList.toggle("screens-mode", !enabled && data.reading.layout === "screens");
         const toggle = document.querySelector("[data-pages-toggle]");
         if (toggle) toggle.checked = enabled;
         if (enabled) renderScreen();
@@ -1140,5 +1141,5 @@
             return printMediaBoxes.map((box) => ({...box}));
         },
     };
-    setPaged(data.reading.paged);
+    setPaged(data.reading.layout === "paged");
 })();

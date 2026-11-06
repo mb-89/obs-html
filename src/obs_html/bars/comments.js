@@ -1202,7 +1202,7 @@
         globalThis.obsAssets?.restore(clone);
         clone.querySelectorAll("[data-transient-view]").forEach((view) => view.remove());
         clone.querySelectorAll("dialog.figure-overlay").forEach((view) => view.remove());
-        clone.classList.remove("paged-mode", "preparing-print");
+        clone.classList.remove("paged-mode", "screens-mode", "preparing-print");
         const active = clone.querySelector("[data-active-chapter]");
         if (active) active.hidden = false;
         const clonedIsland = clone.querySelector("[data-comment-island]");
