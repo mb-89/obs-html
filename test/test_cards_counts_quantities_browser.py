@@ -141,6 +141,65 @@ def test_a_metric_drill_down_shows_exactly_its_counted_rows(tmp_path, reader_bro
     assert errors == []
 
 
+def test_a_metric_series_drill_down_shows_exactly_its_counted_rows(tmp_path, reader_browser) -> None:
+    """A series metric selects the series' where plus its group's value, folded as every
+    condition is (obs capabilities/cards-metrics#Drill-downs); its count and its drill-down
+    both read that selection. A service outside where shares a label, and ``STRASSE`` folds to
+    the label ``Straße``."""
+    where = [{"field": "kind", "equals": "service"}]
+    series = {"sourceNote": "groups", "property": "groups", "labelProperty": "name",
+              "distinctProperty": "identity", "where": where, "tone": "neutral",
+              "link": {"note": "chapter", "groupProperty": "region"}}
+    groups = {"groups": [{"name": "north", "identity": "identity"}, {"name": "Straße", "identity": "identity"}]}
+    cards = _cards({"title": "Regions", "body": "", "metricStyle": "pills", "obs": {"metricsFrom": series}})
+    spec = {"views": [{"type": "table", "name": "Notes", "order": ["region"]}]}
+    source = build("Cards", chapter("chapter", "Chapter", heading(1, "Operations"), node("bases", source="", spec=spec)),
+                   abstract=(cards,),
+                   records=(*_services(("four", "c", "yes", "yes", "STRASSE")), _record("groups", groups),
+                            _record("stray", {"kind": "note", "identity": "z", "region": "north"})))
+    page, errors = _open(tmp_path, reader_browser, source)
+    from playwright.sync_api import expect
+    page.evaluate("obsPages.setPaged(false)")
+    for index, (label, value) in enumerate((("north", "1"), ("Straße", "1"))):
+        page.evaluate("obsArtifact.activateChapter('home')")
+        metric = page.locator("[data-active-chapter] .record-metric-value").nth(index)
+        expect(metric.locator("strong")).to_have_text(value)
+        counted = page.evaluate("where => obsRecordMetrics.select({where}).map(record => `note:${record.slug}`).sort()",
+                                [*where, {"field": "region", "equals": label}])
+        metric.click()
+        rows = page.locator('[data-active-chapter] [data-data-table="chapter-base-1"] [data-row-key]')
+        expect(rows).to_have_count(len(counted))
+        assert sorted(rows.evaluate_all("rows => rows.map(row => row.dataset.rowKey)")) == counted, label
+    assert errors == []
+
+
+def test_a_projected_metric_drill_down_selects_through_its_projection(tmp_path, reader_browser) -> None:
+    """A metric with obs.projection counts the projected fields; its drill-down selects through
+    the same projection (obs capabilities/cards-metrics#Drill-downs), so while the projection
+    makes service two healthy and service one not, the table shows two and three."""
+    where = [{"field": "healthy", "equals": "yes"}]
+    cards = _cards({"title": "Review", "body": "", "metricStyle": "pills", "metrics": [
+        {"label": "Healthy", "where": where, "link": "#chapter", "obs": {"projection": "review"}}]})
+    spec = {"filters": {"and": ['kind == "service"']},
+            "views": [{"type": "table", "name": "Services", "order": ["healthy"]}]}
+    source = build("Cards", chapter("chapter", "Chapter", heading(1, "Operations"), node("bases", source="", spec=spec)),
+                   abstract=(cards,), records=tuple(_services()))
+    page, errors = _open(tmp_path, reader_browser, source)
+    from playwright.sync_api import expect
+    page.evaluate("obsPages.setPaged(false); obsArtifact.activateChapter('home')")
+    page.evaluate("obsCards.setProjection('review', {'one.md': {healthy: 'no'}, 'two.md': {healthy: 'yes'}})")
+    metric = page.locator("[data-active-chapter] .record-metric-value").first
+    expect(metric.locator("strong")).to_have_text("2")
+    counted = page.evaluate("where => obsRecordMetrics.select({where}, 'review').map(record => `note:${record.slug}`)"
+                            ".sort()", where)
+    assert counted == ["note:three", "note:two"]
+    metric.click()
+    rows = page.locator('[data-active-chapter] [data-data-table="chapter-base-1"] [data-row-key]')
+    expect(rows).to_have_count(len(counted))
+    assert sorted(rows.evaluate_all("rows => rows.map(row => row.dataset.rowKey)")) == counted
+    assert errors == []
+
+
 def test_quantities_count_through_their_selection_chain_and_refresh(tmp_path, reader_browser) -> None:
     total = {"kind": "quantity", "aliases": ["serviceCount"], "source": "[[chapter]]",
              "query": {"where": [{"field": "kind", "equals": "service"}], "distinct": "identity"}}
@@ -249,7 +308,8 @@ def test_every_metric_field_and_a_metric_series_count_as_the_interim_runtime_cou
     open (owners ada, lin), b closed (lin); no point has a reviewer. The expectations are the interim runtime's
     (obs cards.js): a denominator makes a percentage, the first matching tone rule wins over the
     tone, a compound value links primary and secondary, a projection counts its own fields,
-    and a series makes one metric per list entry, linked to a table filtered to its label. A
+    and a series makes one metric per list entry, selecting the series' where plus its label
+    (the drill-down derives from that selection). A
     metric link's filter derives from the conditions the metric counts, a secondary link's from
     its quantity's (the counts notes' queries in the vault)."""
     document = json.loads((ROOT / "test" / "fixtures" / "documents" / "cards.json").read_text(encoding="utf-8"))
@@ -295,5 +355,81 @@ def test_every_metric_field_and_a_metric_series_count_as_the_interim_runtime_cou
         ["record-metric record-metric--positive", "record-metric record-metric--negative"])
     assert series.locator(".record-metric-value").evaluate_all(
         "links => links.map(link => link.getAttribute('href'))") == [
-        f"#overview?tableFilter={quote(f'status:/^{label}$/', safe='')}" for label in ("open", "closed")]
+        drill_down("#overview", [{"field": "kind", "equals": "point"}, {"field": "status", "equals": label}])
+        for label in ("open", "closed")]
+    assert errors == []
+
+
+def test_every_drill_down_shows_exactly_the_rows_its_count_counted(tmp_path, reader_browser) -> None:
+    """The ``cards`` fixture Document holds every kind of count with a drill-down: card metrics,
+    a projected metric (under an active projection), a count query (a secondary quantity), a
+    metric series and a dynamic Sankey. Each drill-down, followed as a reader follows it, shows
+    exactly the rows its count counted (obs capabilities/cards-metrics#Drill-downs)."""
+    document = json.loads((ROOT / "test" / "fixtures" / "documents" / "cards.json").read_text(encoding="utf-8"))
+    records = {record["path"].removesuffix(".md"): record["fields"] for record in document["records"] if "path" in record}
+    page, errors = _open(tmp_path, reader_browser, document)
+    from playwright.sync_api import expect
+    page.evaluate("obsPages.setPaged(false); obsArtifact.activateChapter('overview')")
+    page.evaluate("obsCards.setProjection('review', {'b-point.md': {status: 'open'}})")
+    select = "([query, key]) => obsRecordMetrics.select(query, key).map(record => `note:${record.slug}`).sort()"
+    kinds: set[str] = set()
+
+    def follow(kind: str, link, counted: list[str]) -> None:
+        link.click()
+        rows = page.locator("[data-active-chapter] [data-data-table]").first.locator("[data-row-key]")
+        expect(rows).to_have_count(len(counted))
+        assert sorted(rows.evaluate_all("rows => rows.map(row => row.dataset.rowKey)")) == counted, kind
+        kinds.add(kind)
+        page.evaluate("obsArtifact.activateChapter('overview')")
+
+    for card in page.locator("[data-active-chapter] [data-record-card]").all():
+        metrics = json.loads(card.get_attribute("data-record-card"))
+        slots = card.locator(".record-metrics").first
+        for index, metric in enumerate(metrics):
+            slot = slots.locator(f"[data-record-metric='{index}']")
+            projection = (metric.get("obs") or {}).get("projection", "")
+            query = {"where": metric["where"], **({"from": metric["from"]} if "from" in metric else {})}
+            if projection:
+                assert page.evaluate(select, [query, projection]) != page.evaluate(select, [query, ""])
+            if "link" in metric:
+                link = slot.locator("[data-quantity-reference]").first if "secondary" in metric \
+                    else slot.locator(".record-metric-value")
+                follow("projected metric" if projection else "card metric", link,
+                       page.evaluate(select, [query, projection]))
+            if "secondaryLink" in metric:
+                follow("count query", slot.locator("[data-quantity-reference]").nth(1),
+                       page.evaluate(select, [records[metric["secondary"]]["query"], ""]))
+        if series := card.get_attribute("data-record-series"):
+            series = json.loads(series)
+            entries = records[series["sourceNote"]]
+            for part in series["property"].split("."):
+                entries = entries[part]
+            for index, entry in enumerate(entries, start=len(metrics)):
+                where = [*series["where"], {"field": series["link"]["groupProperty"],
+                                            "equals": entry[series["labelProperty"]]}]
+                follow("series", slots.locator(f"[data-record-metric='{index}'] .record-metric-value"),
+                       page.evaluate(select, [{"where": where}, ""]))
+
+    figure = page.locator("[data-active-chapter] [data-figure-kind='sankey']")
+    graph = json.loads(figure.get_attribute("data-figure-spec"))
+    retained = ("() => obsArtifact.records.filter(record => obsArtifact.selectable(record) && "
+                "obsArtifact.matchesFilter(record)).map(record => `note:${record.slug}`).sort()")
+    linked = ("([population, where]) => obsArtifact.records.filter(record => obsArtifact.selectable(record) && "
+              "obsQuery.compileConditions(population).match(record) && obsQuery.compileConditions(where).match(record))"
+              ".map(record => `note:${record.slug}`).sort()")
+    links = [{**link, "rows": page.evaluate(linked, [graph["data"]["where"], link["where"]])} for link in graph["links"]]
+    assert figure.locator(".sankey-link").evaluate_all("links => links.map(link => link.dataset.flowValue)") == [
+        str(len(link["rows"])) for link in links if link["rows"]]
+    for node_spec in graph["nodes"]:
+        incident = [link for link in links if node_spec["id"] in (link["source"], link["target"])]
+        counted = sorted({row for link in incident for row in link["rows"]})
+        if "records" in node_spec:
+            assert counted == sorted(set(counted) & set(page.evaluate(linked, [graph["data"]["where"],
+                                                                               node_spec["records"]["where"]])))
+        figure.locator(f"[data-node-id='{node_spec['id']}']").click()
+        page.wait_for_function(f"(counted => JSON.stringify(({retained})()) === JSON.stringify(counted))", arg=counted)
+        kinds.add("sankey")
+        # The reader's filter hides the overview chapter itself, so the reader returns to it.
+        page.evaluate("obsFilter.setExpression(''); obsArtifact.activateChapter('overview')")
+    assert kinds == {"card metric", "projected metric", "count query", "series", "sankey"}
     assert errors == []

@@ -46,7 +46,7 @@
         {
           "type": "cards-metrics",
           "attrs": {
-            "source": "{\"version\": 1, \"cards\": [{\"title\": \"Outer\", \"body\": \"Points as a table:\\n\\n```base\\nfilters: 'kind == \\\"point\\\"'\\nviews:\\n  - type: table\\n    order: [file.name, status]\\n```\\n\\n```cards\\n{\\\"version\\\": 1, \\\"cards\\\": [{\\\"title\\\": \\\"Inner\\\", \\\"body\\\": \\\"Nested **body** with [[target]].\\\"}]}\\n```\\n\"}, {\"title\": \"Metrics\", \"body\": \"\", \"metricStyle\": \"lines\", \"metrics\": [{\"key\": \"open-share\", \"label\": \"Open share\", \"where\": [{\"field\": \"status\", \"equals\": \"open\"}], \"denominator\": [{\"field\": \"kind\", \"equals\": \"point\"}], \"link\": \"#target\", \"tone\": \"neutral\", \"toneRules\": [{\"value\": \"remaining\", \"when\": \"positive\", \"tone\": \"warning\"}]}, {\"label\": \"Points (open)\", \"from\": \"counts/points\", \"where\": [], \"secondary\": \"counts/open\", \"link\": \"#overview\", \"secondaryLink\": \"#target\", \"tone\": \"negative\", \"toneRules\": [{\"value\": \"secondary\", \"when\": \"zero\", \"tone\": \"positive\"}]}, {\"label\": \"Reviewed open\", \"where\": [{\"field\": \"status\", \"equals\": \"open\"}], \"tone\": \"positive\", \"obs\": {\"projection\": \"review\"}}]}, {\"title\": \"Series\", \"body\": \"\", \"metricStyle\": \"pills\", \"obs\": {\"metricsFrom\": {\"sourceNote\": \"groups\", \"property\": \"groups.list\", \"labelProperty\": \"name\", \"distinctProperty\": \"field\", \"where\": [{\"field\": \"kind\", \"equals\": \"point\"}], \"tone\": \"positive\", \"toneRules\": [{\"value\": \"primary\", \"when\": \"zero\", \"tone\": \"negative\"}], \"link\": {\"note\": \"overview\", \"groupProperty\": \"status\"}}}}]}\n",
+            "source": "{\"version\": 1, \"cards\": [{\"title\": \"Outer\", \"body\": \"Points as a table:\\n\\n```base\\nfilters: 'kind == \\\"point\\\"'\\nviews:\\n  - type: table\\n    order: [file.name, status]\\n```\\n\\n```cards\\n{\\\"version\\\": 1, \\\"cards\\\": [{\\\"title\\\": \\\"Inner\\\", \\\"body\\\": \\\"Nested **body** with [[target]].\\\"}]}\\n```\\n\"}, {\"title\": \"Metrics\", \"body\": \"\", \"metricStyle\": \"lines\", \"metrics\": [{\"key\": \"open-share\", \"label\": \"Open share\", \"where\": [{\"field\": \"status\", \"equals\": \"open\"}], \"denominator\": [{\"field\": \"kind\", \"equals\": \"point\"}], \"link\": \"#target\", \"tone\": \"neutral\", \"toneRules\": [{\"value\": \"remaining\", \"when\": \"positive\", \"tone\": \"warning\"}]}, {\"label\": \"Points (open)\", \"from\": \"counts/points\", \"where\": [], \"secondary\": \"counts/open\", \"link\": \"#overview\", \"secondaryLink\": \"#target\", \"tone\": \"negative\", \"toneRules\": [{\"value\": \"secondary\", \"when\": \"zero\", \"tone\": \"positive\"}]}, {\"label\": \"Reviewed open\", \"where\": [{\"field\": \"status\", \"equals\": \"open\"}], \"tone\": \"positive\", \"link\": \"#overview\", \"obs\": {\"projection\": \"review\"}}]}, {\"title\": \"Series\", \"body\": \"\", \"metricStyle\": \"pills\", \"obs\": {\"metricsFrom\": {\"sourceNote\": \"groups\", \"property\": \"groups.list\", \"labelProperty\": \"name\", \"distinctProperty\": \"field\", \"where\": [{\"field\": \"kind\", \"equals\": \"point\"}], \"tone\": \"positive\", \"toneRules\": [{\"value\": \"primary\", \"when\": \"zero\", \"tone\": \"negative\"}], \"link\": {\"note\": \"overview\", \"groupProperty\": \"status\"}}}}]}\n",
             "spec": {
               "version": 1,
               "cards": [
@@ -109,6 +109,7 @@
                         }
                       ],
                       "tone": "positive",
+                      "link": "#overview",
                       "obs": {
                         "projection": "review"
                       }
@@ -267,6 +268,95 @@
               "children": []
             }
           ]
+        },
+        {
+          "type": "figures",
+          "attrs": {
+            "kind": "sankey",
+            "caption": [
+              {
+                "type": "paragraph",
+                "attrs": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "attrs": {},
+                    "children": [],
+                    "text": "Points by status."
+                  }
+                ]
+              }
+            ]
+          },
+          "children": [
+            {
+              "type": "sankey",
+              "attrs": {
+                "graph": {
+                  "version": 1,
+                  "data": {
+                    "where": [
+                      {
+                        "field": "kind",
+                        "equals": "point"
+                      }
+                    ]
+                  },
+                  "nodes": [
+                    {
+                      "id": "points",
+                      "label": "Points",
+                      "stage": 0
+                    },
+                    {
+                      "id": "open",
+                      "label": "Open",
+                      "stage": 1,
+                      "records": {
+                        "where": [
+                          {
+                            "field": "status",
+                            "equals": "open"
+                          }
+                        ]
+                      },
+                      "unique": "owner"
+                    },
+                    {
+                      "id": "closed",
+                      "label": "Closed",
+                      "stage": 1
+                    }
+                  ],
+                  "links": [
+                    {
+                      "source": "points",
+                      "target": "open",
+                      "value": 2,
+                      "where": [
+                        {
+                          "field": "status",
+                          "equals": "open"
+                        }
+                      ]
+                    },
+                    {
+                      "source": "points",
+                      "target": "closed",
+                      "value": 1,
+                      "where": [
+                        {
+                          "field": "status",
+                          "equals": "closed"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              },
+              "children": []
+            }
+          ]
         }
       ],
       "children": [],
@@ -313,6 +403,25 @@
               "text": "Target text."
             }
           ]
+        },
+        {
+          "type": "bases",
+          "attrs": {
+            "source": "filters: 'kind == \"point\"'\nviews:\n  - type: table\n    order: [file.name, status]\n",
+            "spec": {
+              "filters": "kind == \"point\"",
+              "views": [
+                {
+                  "type": "table",
+                  "order": [
+                    "file.name",
+                    "status"
+                  ]
+                }
+              ]
+            }
+          },
+          "children": []
         }
       ],
       "children": [],
@@ -1597,6 +1706,7 @@
     "cards-metrics",
     "chapter-inclusion",
     "count-query",
+    "figures",
     "manifest",
     "markdown",
     "markdown-frontmatter",

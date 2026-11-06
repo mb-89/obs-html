@@ -1599,6 +1599,7 @@
     }]));
     const renderChapterTables = (
         record, root = chapterBody, staticView = false, respectFilter = true, firstTableFilter = "",
+        firstTableProjection = "",
     ) => {
         (record.tables || []).forEach((table) => {
             const placeholder = root.querySelector(`[data-base-table="${table.key}"]`);
@@ -1626,6 +1627,7 @@
                 initialSort: definition.initialSort,
                 initialPageSize: staticView ? Number.MAX_SAFE_INTEGER : definition.pageSize,
                 initialExpression: table.key === record.tables[0].key ? firstTableFilter : "",
+                initialProjection: table.key === record.tables[0].key ? firstTableProjection : "",
                 initialPresentation: state.presentation,
                 onPresentationChange: staticView ? undefined : (presentation, defaults) => {
                     state.presentation = savedPresentations?.[table.key] === undefined &&
@@ -1958,6 +1960,8 @@
         const [path, parameters = ""] = slug.split("?", 2);
         const [noteSlug, heading] = decodeURIComponent(path).split("/", 2);
         const tableFilter = new URLSearchParams(parameters).get("tableFilter");
+        // A projected metric's drill-down selects through its projection (cards.js, drillDown).
+        const tableProjection = new URLSearchParams(parameters).get("projection") || "";
         if (tableFilter !== null) globalThis.obsQuery.compile(tableFilter);
         const record = recordsBySlug.get(noteSlug);
         if (!record) return;
@@ -1991,6 +1995,7 @@
         activeChapter.id = record.slug;
         activeChapter.dataset.chapter = record.slug;
         activeChapter.dataset.tableFilter = tableFilter || "";
+        activeChapter.dataset.tableProjection = tableProjection;
         activeChapter.className = ["chapter", ...record.cssClasses].join(" ");
         replaceTrustedHtml(chapterBody, record.html);
         const deferred = [];
@@ -2019,7 +2024,7 @@
                     : chapterBody.querySelector("[data-data-table]");
                 if (!table) throw new Error("The linked note has no table to filter.");
                 table.dispatchEvent(new CustomEvent("obs-table-set-filter", {
-                    detail: {expression: tableFilter},
+                    detail: {expression: tableFilter, projection: tableProjection},
                 }));
             }
         };
@@ -3366,10 +3371,10 @@
         isBarOpen,
         activateChapter,
         activateSearchResult,
-        renderStatic: (slug, root, respectFilter = true, firstTableFilter = "") => {
+        renderStatic: (slug, root, respectFilter = true, firstTableFilter = "", firstTableProjection = "") => {
             const record = recordsBySlug.get(slug);
             const signature = JSON.stringify([canonicalRevision, record.html,
-                respectFilter ? [filterRevision, activeFilter.source] : "", firstTableFilter,
+                respectFilter ? [filterRevision, activeFilter.source] : "", firstTableFilter, firstTableProjection,
                 [...viewSelections],
                 (record.tables || []).map(table => tableStates.get(table.key)),
             ]);
@@ -3379,7 +3384,7 @@
                 return;
             }
             replaceTrustedHtml(root, record.html);
-            renderChapterTables(record, root, true, respectFilter, firstTableFilter);
+            renderChapterTables(record, root, true, respectFilter, firstTableFilter, firstTableProjection);
             globalThis.obsFigures?.projectSankeys(root);
             staticViews.set(slug, {signature, content: root.cloneNode(true)});
         },

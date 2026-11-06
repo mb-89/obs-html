@@ -312,10 +312,20 @@ def callouts(root: Path) -> None:
     (root / "target.md").write_text("# Target\n\nTarget text.\n", encoding="utf-8")
 
 
+POINT_FLOW = {"version": 1, "data": {"where": [{"field": "kind", "equals": "point"}]}, "nodes": [
+    {"id": "points", "label": "Points", "stage": 0},
+    {"id": "open", "label": "Open", "stage": 1, "records": {"where": [{"field": "status", "equals": "open"}]},
+     "unique": "owner"},
+    {"id": "closed", "label": "Closed", "stage": 1}], "links": [
+    {"source": "points", "target": "open", "value": 2, "where": [{"field": "status", "equals": "open"}]},
+    {"source": "points", "target": "closed", "value": 1, "where": [{"field": "status", "equals": "closed"}]}]}
+
+
 def cards(root: Path) -> None:
     """test_cards_counts_quantities.py's vault: a card whose body holds a Base fence and a nested
     cards fence; a card with every metric field (two quantity notes for ``from`` and
-    ``secondary``, a trusted projection); and a card whose metrics are a series from a note's list."""
+    ``secondary``, a trusted projection); a card whose metrics are a series from a note's list;
+    and a dynamic Sankey over the same points, so every kind of count has a drill-down."""
     point = [{"field": "kind", "equals": "point"}]
     inner = {"version": 1, "cards": [{"title": "Inner", "body": "Nested **body** with [[target]]."}]}
     outer = {"version": 1, "cards": [
@@ -331,7 +341,7 @@ def cards(root: Path) -> None:
              "link": "#overview", "secondaryLink": "#target", "tone": "negative",
              "toneRules": [{"value": "secondary", "when": "zero", "tone": "positive"}]},
             {"label": "Reviewed open", "where": [{"field": "status", "equals": "open"}], "tone": "positive",
-             "obs": {"projection": "review"}}]},
+             "link": "#overview", "obs": {"projection": "review"}}]},
         {"title": "Series", "body": "", "metricStyle": "pills", "obs": {"metricsFrom": {
             "sourceNote": "groups", "property": "groups.list", "labelProperty": "name",
             "distinctProperty": "field", "where": point, "tone": "positive",
@@ -339,9 +349,14 @@ def cards(root: Path) -> None:
             "link": {"note": "overview", "groupProperty": "status"}}}},
     ]}
     (root / "manifest.md").write_text("- [[overview]]\n- [[target]]\n", encoding="utf-8")
-    (root / "overview.md").write_text("# Overview\n\n```cards\n" + json.dumps(outer) + "\n```\n",
-                                      encoding="utf-8")
-    (root / "target.md").write_text("# Target\n\nTarget text.\n", encoding="utf-8")
+    (root / "overview.md").write_text(
+        "# Overview\n\n```cards\n" + json.dumps(outer) + "\n```\n\n"
+        "```figure\nversion: 1\nkind: sankey\ncaption: Points by status.\nsource: flow.json\n```\n",
+        encoding="utf-8")
+    (root / "flow.json").write_text(json.dumps(POINT_FLOW), encoding="utf-8")
+    (root / "target.md").write_text(
+        "# Target\n\nTarget text.\n\n```base\nfilters: 'kind == \"point\"'\nviews:\n  - type: table\n"
+        "    order: [file.name, status]\n```\n", encoding="utf-8")
     (root / "groups.md").write_text(
         "---\ngroups:\n  list:\n    - {name: open, field: owner}\n    - {name: closed, field: reviewer}\n---\n",
         encoding="utf-8")
