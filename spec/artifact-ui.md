@@ -572,7 +572,9 @@ tapping it shows the option's letter and short name, its label and its `what` se
 popover under the line; a second tap or a tap elsewhere closes it, with no browser dialog. The
 popover is the control's description for a screen reader.
 
-A mark, a weight step and a Pick are one tap each, as in the table.
+The letter heads its cell as a control of its own, above the cell's mark key, so a tap on the
+mark changes the mark and a tap on the letter opens the popover. A mark, a weight step and a Pick
+are one tap each, as in the table.
 
 The table and the rows are drawn from one decision and one reader state: a resize across the
 width draws the other form with the reader's changes kept. Print shows the table.
