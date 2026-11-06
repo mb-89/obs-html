@@ -54,8 +54,8 @@ cannot render, such as a Base filter outside the subset it evaluates.
 
 Its own inputs fail in the core's message form, `<file or note>: <field path>: <what is wrong>.
 <remedy>.`: the settings file of `--config` (`cfg.schema.json`), the `obsHtml` presentation keys
-of the manifest (`profile.schema.json`, named `manifest note`, since a Document does not carry
-the manifest's path) and of Base properties, the `--style` folder, and the command-line arguments
+of the manifest (`profile.schema.json`, named by the manifest note's path, the Document's
+`manifest.path`) and of Base properties, the `--style` folder, and the command-line arguments
 (named `obs-html`). One formatter, `src/obs_html/errors.py`, writes them; it follows the core's
 rule without importing the core. A test matches such an error by its source and field path, never
 by its wording.

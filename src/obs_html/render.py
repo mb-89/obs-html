@@ -50,8 +50,6 @@ PROFILE_DEFAULTS = {
 }
 COVER_FIELDS = ("authors", "reviewers", "approvers", "sap number", "legal entity")
 HOME = "home"
-MANIFEST = "manifest note"
-"""Where a manifest field comes from: a Document does not carry its manifest note's path."""
 DOCK_DIRECTIONS = (
     ("left", "left", "vertical"),
     ("right", "right", "vertical"),
@@ -378,7 +376,8 @@ def _row_keys(records: list[dict[str, object]]) -> dict[str, str]:
 def _note_source(context: Context) -> str:
     """The note the current chapter's content comes from, as messages name it."""
     record = context.records.get(context.chapter or "")
-    return str(record["path"]) if record else MANIFEST if not context.chapter else f"chapter {context.chapter}"
+    return str(record["path"]) if record else context.document["manifest"]["path"] if not context.chapter \
+        else f"chapter {context.chapter}"
 
 
 def _data_table(definition: dict[str, object], rows: list[list[str]] | None, context: Context,
@@ -623,7 +622,7 @@ def _profile(manifest: dict[str, object]) -> dict[str, object]:
     passes on without reading (obs input-model#Core and adapter namespaces); this adapter checks it."""
     declared = manifest["metadata"].get("obsHtml", {})
     schema = json.loads(files("obs_html").joinpath("profile.schema.json").read_text(encoding="utf-8"))
-    error = schema_error(list(Draft202012Validator(schema).iter_errors(declared)), MANIFEST, "obs-html's "
+    error = schema_error(list(Draft202012Validator(schema).iter_errors(declared)), manifest["path"], "obs-html's "
                          "profile.schema.json and obs capabilities/artifact-presentation", prefix="obsHtml")
     if error is not None:
         raise error
@@ -665,7 +664,7 @@ def _model(document: dict[str, object], config: Config, context: Context) -> dic
             },
         },
         "paper": paper({**config.print_default, **profile["print"]}, config, lambda key: (
-            (MANIFEST, f"obsHtml.print.{key}") if key in profile["print"]
+            (manifest["path"], f"obsHtml.print.{key}") if key in profile["print"]
             else (config.source("artifact", "print", "default", key), f"artifact.print.default.{key}"))),
         "reading": {"theme": "light", "paged": profile["layout"] == "paged", **settings["reading"]},
         "figures": settings["figures"],

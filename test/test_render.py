@@ -69,8 +69,7 @@ def test_an_invalid_presentation_profile_names_the_manifest_field_and_the_remedy
     document["manifest"]["metadata"]["obsHtml"] = profile
     with pytest.raises(InputError) as failure:
         _model(document)
-    assert (failure.value.source, failure.value.field) == ("manifest note", field)
-    assert str(failure.value).startswith(f"manifest note: {field}: ")
+    assert (failure.value.source, failure.value.field) == (document["manifest"]["path"], field) == ("manifest.md", field)
 
 
 @pytest.mark.parametrize(("choice", "field"), [({"paper": "B5"}, "obsHtml.print.paper"),
@@ -79,7 +78,7 @@ def test_an_invalid_print_choice_names_the_manifest_field(document, choice, fiel
     document["manifest"]["metadata"]["obsHtml"]["print"] = choice
     with pytest.raises(InputError) as failure:
         _model(document)
-    assert (failure.value.source, failure.value.field) == ("manifest note", field)
+    assert (failure.value.source, failure.value.field) == ("manifest.md", field)
 
 
 def test_profile_print_choice_sets_the_paper(document) -> None:
@@ -273,7 +272,7 @@ def test_the_home_slug_is_reserved(document) -> None:
 
 
 def test_a_minimal_document_renders(document) -> None:
-    minimal = {"schemaVersion": 1, "manifest": {"title": "Only", "metadata": {}}, "chapters": [],
+    minimal = {"schemaVersion": 1, "manifest": {"title": "Only", "path": "manifest.md", "metadata": {}}, "chapters": [],
                "links": [], "assets": [], "records": [], "semanticResources": [], "diagnostics": [],
                "capabilities": []}
     model = decode_artifact_data(render(minimal, CONFIG))
