@@ -9,7 +9,10 @@
    Checklist and What if. The reader's weights, marks, rulings and tripwires, the option shown
    and the tab are session-only view state, kept per figure anchor; readerState() gives the
    first four by figure anchor, options by letter. Print shows the Matrix tab as the reader left
-   it, with a caption note where weights or marks changed. */
+   it, with a caption note where weights or marks changed.
+
+   Where the chapter asks for a bless (bless.js), each option's column head other than the
+   winner's has a Pick key. */
 globalThis.obsPugh = (() => {
   const VIEW_NOTE = "View changed by the reader.";
   const CHECKLIST = "checklist";  // The key of the row failed checklist items make (the core reserves it).
@@ -246,6 +249,8 @@ globalThis.obsPugh = (() => {
       if (candidate.datum) cell.classList.add("pugh-datum"), cell.append(element("span", {className: "pugh-tag", textContent: "datum"}));
       if (result.suggestion?.key === candidate.key) cell.classList.add("pugh-winner"), cell.append(element("span", {className: "pugh-tag", textContent: "winner"}));
       if (!candidate.fits) cell.classList.add("pugh-out"), cell.title = candidate.whyNot;
+      const pick = !print && result.suggestion?.key !== candidate.key && globalThis.obsBless?.columnKey(figure.id, option.letter);
+      if (pick) cell.append(pick);
       head.append(cell);
     }
     const body = element("tbody");
@@ -417,6 +422,7 @@ globalThis.obsPugh = (() => {
       raised(spec, result, figureModel, view),
       print ? optionsList(figureModel) : optionsView(figure, spec, figureModel, view),
       table(figure, spec, result, figureModel, view, {print}));
+    view.winner = result.suggestion ? figureModel.byKey[result.suggestion.key].letter : "";
     if (!print && changed(figure.id)) {
       const reset = element("button", {type: "button", className: "filter-pill pugh-reset", textContent: "Reset"});
       reset.title = "Restore the fence's weights and marks";
@@ -473,12 +479,13 @@ globalThis.obsPugh = (() => {
     if (!caption) { caption = element("figcaption"); figure.append(caption); }
     (caption.querySelector("p:last-child") || caption).append(note);
   }
-  /** The reader's changed weights and marks, rulings and tripwires, by figure anchor (a figure the reader
-      left as it was is not listed), options by letter. */
+  /** The reader's changed weights and marks, rulings and tripwires, and the winner they give, by figure
+      anchor (a figure the reader left as it was is not listed), options by letter. */
   function readerState() {
     const marked = view => Object.fromEntries(Object.entries(view.marks).filter(([, marks]) => Object.keys(marks).length));
     return Object.fromEntries([...states]
-      .map(([anchor, view]) => [anchor, structuredClone({weights: view.weights, marks: marked(view), rulings: view.rulings})])
+      .map(([anchor, view]) => [anchor, structuredClone({weights: view.weights, marks: marked(view), rulings: view.rulings,
+        winner: view.winner})])
       .filter(([, view]) => Object.keys(view.weights).length || Object.keys(view.marks).length || Object.keys(view.rulings).length));
   }
   return {render, print, option, decide, allWeights, readerState, VIEW_NOTE};

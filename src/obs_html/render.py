@@ -951,6 +951,8 @@ def _chapter_notes(chapters: list[dict[str, object]], context: Context, depth: i
         context.frontmatter = dict(chapter.get("metadata") or {})
         body = _note_body(chapter["content"], chapter["id"], [*where, index, "content"], context)
         notes.append(_note(depth, chapter["title"], chapter["id"], "", context.frontmatter, body, context))
+        if "bless" in chapter:  # Its bless request, answered or not (obs input-model, Bless requests; bless.js).
+            notes[-1]["bless"] = chapter["bless"]
         notes.extend(_chapter_notes(chapter["children"], context, depth + 1, [*where, index, "children"]))
     return notes
 

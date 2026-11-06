@@ -1,6 +1,7 @@
 """Native-browser tier: the page hands its answers to a sink (spec/capabilities/answers.md).
 
-The served page posts to obs-html serve, which writes answers.json and exits with the payload; a
+The sink ships with a chapter that asks for a bless (features.py, answers), so each artifact here
+has one. The served page posts to obs-html serve, which writes answers.json and exits with the payload; a
 sink a trusted bundle registers takes the payload in place of the built-in sinks; elsewhere the
 payload is shown as text to copy. obs-html serve runs as the real command (test/serving.py), on
 loopback only, every wait bounded.
@@ -12,7 +13,7 @@ import pytest
 
 import serving
 from artifacts import artifact_html
-from test_features import plain
+from test_features import with_bless
 
 pytestmark = pytest.mark.browser
 
@@ -48,7 +49,7 @@ def _open(reader_browser, url: str):
 
 
 def test_the_served_page_posts_its_answers_and_serve_wait_exits_with_them(tmp_path: Path, reader_browser) -> None:
-    artifact = _write(tmp_path, artifact_html(plain()))
+    artifact = _write(tmp_path, artifact_html(with_bless()))
     served = serving.started(artifact, "--wait", "--timeout", serving.WAIT)
     try:
         page = _open(reader_browser, served.url)
@@ -71,7 +72,7 @@ def test_the_served_page_posts_its_answers_and_serve_wait_exits_with_them(tmp_pa
 
 def test_a_sink_the_trusted_bundle_registers_takes_the_answers_in_place_of_the_server(
         tmp_path: Path, reader_browser) -> None:
-    artifact = _write(tmp_path, artifact_html(plain(), trusted_runtime=("sink-v1", BUNDLE)))
+    artifact = _write(tmp_path, artifact_html(with_bless(), trusted_runtime=("sink-v1", BUNDLE)))
     served = serving.started(artifact)
     try:
         page = _open(reader_browser, served.url)
@@ -88,7 +89,7 @@ def test_a_sink_the_trusted_bundle_registers_takes_the_answers_in_place_of_the_s
 def test_elsewhere_the_answers_are_shown_as_text_with_a_copy_key(tmp_path: Path, reader_browser) -> None:
     from playwright.sync_api import expect
 
-    page = _open(reader_browser, _write(tmp_path, artifact_html(plain())).as_uri())
+    page = _open(reader_browser, _write(tmp_path, artifact_html(with_bless())).as_uri())
     canary = page.evaluate(CANARY)
     assert canary["decided"] is False and page.locator('[data-notice="capability-answers"]').count() == 0
     untrusted = page.evaluate("""() => { try { globalThis.obsArtifact.trustedExtension("obsHtml.answers"); }

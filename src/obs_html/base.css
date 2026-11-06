@@ -1872,6 +1872,144 @@ math {
     transform: none;
 }
 
+/* Bless verdicts (bless.js): the pill, the verdict keys and Send lead the band's end, left of the
+   notice icons; the keys are the band's squares. The one-line comment entry opens under them. At
+   phone width the band's squares and gaps shrink and the pill truncates, so the row still fits. */
+.top-band-end > .bless-controls {
+    align-items: center;
+    display: flex;
+    gap: var(--top-band-gap);
+    height: var(--top-control-size);
+    order: -1;
+    position: relative;
+    width: auto;
+}
+
+.bless-controls[hidden],
+.bless-controls [hidden] { display: none; }
+
+.bless-pill {
+    background: var(--color-warning-soft);
+    border: var(--border-width) solid var(--color-warning);
+    border-radius: 999px;
+    box-sizing: border-box;
+    color: var(--color-text);
+    font: 0.72rem/1 var(--font-interface);
+    max-width: 11rem;
+    overflow: hidden;
+    padding: 0.3rem 0.55rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.bless-pill[data-bless-state="bless"],
+.bless-pill[data-bless-state="recorded"] {
+    background: var(--color-success-soft);
+    border-color: var(--color-success);
+}
+
+.bless-keys {
+    display: flex;
+    gap: 0.2rem;
+}
+
+.bless-key,
+.bless-send {
+    box-sizing: border-box;
+    color: var(--color-text);
+    font-size: 1rem;
+    height: var(--top-control-size);
+    width: var(--top-control-size);
+}
+
+.bless-key[aria-pressed="true"] {
+    background: var(--color-accent-soft);
+    border-color: var(--color-accent);
+}
+
+.bless-send {
+    background: var(--color-accent-soft);
+    border: var(--border-width) solid var(--color-accent);
+    border-radius: var(--radius-small);
+    cursor: pointer;
+    font: 600 0.62rem/1.1 var(--font-interface);
+    padding: 0;
+}
+
+.bless-send:disabled {
+    background: var(--color-surface-raised);
+    border-color: var(--color-border);
+    color: var(--color-text-muted);
+    cursor: default;
+}
+
+.bless-entry {
+    align-items: center;
+    background: var(--color-surface);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-medium);
+    box-shadow: 0 0.6rem 2rem var(--color-shadow);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-top: 0.4rem;
+    padding: 0.35rem;
+    position: absolute;
+    right: 0;
+    top: 100%;
+    width: min(24rem, calc(100vw - 2rem));
+}
+
+.bless-picks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+}
+
+.bless-comment {
+    flex: 1 1 10rem;
+    font: 0.85rem var(--font-interface);
+    min-width: 0;
+    padding: 0.3rem 0.4rem;
+}
+
+.bless-column-pick {
+    display: block;
+    font-size: 0.7rem;
+    margin: 0.2rem auto 0;
+}
+
+.bless-record {
+    background: var(--color-surface-raised);
+    border-inline-start: 0.25rem solid var(--color-success);
+    font-family: var(--font-interface);
+    font-size: 0.85rem;
+    margin-block: 0.75rem;
+    padding: 0.4rem 0.8rem;
+}
+
+.bless-record-outdated {
+    border-inline-start-color: var(--color-warning);
+    color: var(--color-text-muted);
+}
+
+.bless-record p,
+.bless-record ul {
+    margin-block: 0.25rem;
+}
+
+@media (max-width: 30rem) {
+    .top-band:has(.bless-controls:not([hidden])) {
+        --top-band-gap: 0.3rem;
+        --top-control-size: 2.1rem;
+    }
+
+    .bless-pill {
+        max-width: 4.6rem;
+        padding-inline: 0.4rem;
+    }
+}
+
 .notice-group[hidden] { display: none; }
 
 .notice-group[data-notice-group="error"] {
