@@ -63,10 +63,6 @@
     scroll-margin-top: 4rem;
 }
 
-.figure-provenance {
-    display: none;
-}
-
 .paper-content .obs-figure {
     --figure-width: 100%;
     margin-inline: 0;

@@ -1496,7 +1496,6 @@
     globalThis.obsComments = {
         data,
         importFiles,
-        repaintHighlights,
         reviewedHtml,
         saveReviewedCopy,
     };

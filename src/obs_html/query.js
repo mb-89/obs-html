@@ -338,12 +338,6 @@
         });
         return {match: (record) => tests.every((test) => test(record))};
     };
-    const compiledConditions = new WeakMap();
-    const conditionsMatch = (record, conditions = []) => {
-        if (!compiledConditions.has(conditions)) compiledConditions.set(conditions, compileConditions(conditions));
-        return compiledConditions.get(conditions).match(record);
-    };
 
-    globalThis.obsQuery = {compile, exactClause, conditionsExpression, conditionsMatch, compileConditions, propertyTexts,
-        incomplete: INCOMPLETE};
+    globalThis.obsQuery = {compile, exactClause, conditionsExpression, compileConditions, propertyTexts};
 })();
