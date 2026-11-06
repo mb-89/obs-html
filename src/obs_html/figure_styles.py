@@ -10,12 +10,11 @@ the conditional group rules in ``NESTING`` are scoped the same way. ``@keyframes
 anchor as prefix, together with the drawing's own animation names that use them. Every other
 at-rule is global and is dropped, and so is a selector whose compound names ``:root``, ``html`` or
 ``body``, which can match only the page; each drop is a warning in the one message form
-(errors.py) naming the note, ``figure.style`` and the figure's anchor.
+(errors.py, ``warn``) naming the note below the vault root, ``figure.style`` and the figure's anchor.
 """
 from __future__ import annotations
 
 import re
-import sys
 from html import unescape
 from xml.sax.saxutils import escape
 
@@ -23,7 +22,7 @@ import tinycss2
 from tinycss2.ast import AtRule, CurlyBracketsBlock, IdentToken, LiteralToken, QualifiedRule, StringToken, WhitespaceToken
 from tinycss2.serializer import serialize_identifier
 
-from .errors import InputError
+from .errors import InputError, warn
 
 FIELD = "figure.style"
 """The field a warning names: the ``<style>`` elements of the figure's drawing."""
@@ -52,9 +51,8 @@ class _Scope:
         self.keyframes: dict[str, str] = {}
 
     def warn(self, problem: str) -> None:
-        error = InputError(self.source, FIELD, f"figure {self.anchor} {problem}",
-                           "Style only the drawing, with rules that select its own elements")
-        print(f"Warning: {error}", file=sys.stderr)
+        warn(InputError(self.source, FIELD, f"figure {self.anchor} {problem}",
+                        "Style only the drawing, with rules that select its own elements"))
 
     def stylesheet(self, css: str) -> str:
         rules = tinycss2.parse_stylesheet(css, skip_comments=True, skip_whitespace=True)

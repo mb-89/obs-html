@@ -121,3 +121,28 @@ def test_the_vault_root_the_core_passes_prefixes_the_vault_relative_paths_of_a_m
         cli.main([str(build(tmp_path)), str(tmp_path / "out.html"), *arguments])
 
     assert capsys.readouterr().err.splitlines()[-1].startswith(f"{source.format(root + 'manifest.md')}: ")
+
+
+def _dropped_import_document(tmp_path: Path) -> Path:
+    """A Document whose note ``chapter.md`` inlines a linked drawing with an ``@import``, which
+    figure_styles.py drops with a warning naming the note."""
+    svg = ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><style>@import url(a.css);</style>'
+           '<text x="1" y="5">See [[chapter]].</text></svg>')
+    link = {"type": "wikilinks", "attrs": {"target": "chapter", "chapter": "chapter", "heading": "",
+                                           "label": "chapter", "svg": "[[chapter]]"}, "children": []}
+    figure = {"type": "figures", "attrs": {"kind": "svg", "alt": "Drawing"},
+              "children": [{"type": "svg", "attrs": {"svg": svg}, "children": [link]}]}
+    source = document("Doc", chapter("chapter", "Chapter", figure),
+                      records=({"id": "chapter", "type": "note", "path": "chapter.md", "fields": {}},))
+    path = tmp_path / "document.json"
+    path.write_text(json.dumps(source), encoding="utf-8")
+    return path
+
+
+@pytest.mark.parametrize(("arguments", "root"), [(["--vault-root", "spec"], "spec/"), ([], "")])
+def test_the_vault_root_the_core_passes_prefixes_the_note_a_warning_names(tmp_path, capsys, arguments, root) -> None:
+    """A figure-style warning is an adapter message like an error: it names its note below the vault root."""
+    cli.main([str(_dropped_import_document(tmp_path)), "--check", *arguments])
+
+    warnings = [line for line in capsys.readouterr().err.splitlines() if line.startswith("Warning: ")]
+    assert [line.split(": ")[1:3] for line in warnings] == [[f"{root}chapter.md", "figure.style"]]

@@ -7,13 +7,18 @@ its commands. test_errors.py fails on a raise that does not go through it.
 core. The source is a file or note (its vault-relative path), ``Document of <manifest>`` for a
 Document the current core does not write, or a command for its arguments. A test matches an
 error by its ``source`` and ``field``, never by its wording. Where the core passes the vault root
-(``--vault-root``), a vault-relative source is named below it (``in_vault``).
+(``--vault-root``), a vault-relative source is named below it (``in_vault``), in a raised error
+and in a warning alike: a warning is printed only through ``warn``, which names its source as the
+render's ``vault_naming`` says.
 """
 from __future__ import annotations
 
 import argparse
 import json
 import sys
+from collections.abc import Iterator
+from contextlib import contextmanager
+from contextvars import ContextVar
 from pathlib import PurePath
 
 from jsonschema.exceptions import ValidationError, best_match
@@ -39,6 +44,25 @@ def in_vault(error: InputError, root: str | None, paths: set[str]) -> InputError
     if root is None or name not in paths:
         return error
     return InputError(f"{document}{PurePath(root, name)}", error.field, error.problem, error.remedy)
+
+
+_NAMING: ContextVar[tuple[str | None, set[str]]] = ContextVar("vault_naming", default=(None, set()))
+"""The vault root and the Document's vault-relative paths ``warn`` names a source by."""
+
+
+@contextmanager
+def vault_naming(root: str | None, paths: set[str]) -> Iterator[None]:
+    """Within it, ``warn`` names a source as ``in_vault(error, root, paths)`` does."""
+    token = _NAMING.set((root, paths))
+    try:
+        yield
+    finally:
+        _NAMING.reset(token)
+
+
+def warn(error: InputError) -> None:
+    """Print ``error`` to stderr as a warning, its source named below the vault root (``vault_naming``)."""
+    print(f"Warning: {in_vault(error, *_NAMING.get())}", file=sys.stderr)
 
 
 class Parser(argparse.ArgumentParser):
