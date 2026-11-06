@@ -1,4 +1,5 @@
-"""Artifact settings: the packaged cfg.json, optionally merged with one override file."""
+"""Artifact settings: the packaged cfg.json, the --config file merged over it, and the vault's settings
+the Document carries merged over both (configuration.md, Vault settings)."""
 from __future__ import annotations
 
 import json
@@ -28,14 +29,20 @@ class Config:
     artifact: dict[str, object]
     override_path: Path | None = None
     override: dict[str, object] | None = None
+    project_path: str | None = None
+    """The vault-relative path of the vault's settings the Document carries (projectConfig.path)."""
+    project: dict[str, object] | None = None
 
-    def source(self, *path: str) -> Path:
-        """The settings file a field comes from: the override file when it declares the field."""
+    def source(self, *path: str) -> Path | str:
+        """The settings file a field comes from: the vault's file, then the override file, where it
+        declares the field (configuration.md, Vault settings)."""
+        if _declares(self.project, list(path)):
+            return self.project_path
         return self.override_path if _declares(self.override, list(path)) else DEFAULT_CONFIG
 
 
 def load_config(override_path: Path | None = None) -> Config:
-    config = json.loads(DEFAULT_CONFIG.read_text(encoding="utf-8"))
+    """The packaged settings with the ``--config`` file merged over them."""
     override: object = {}
     if override_path is not None:
         try:
@@ -49,14 +56,34 @@ def load_config(override_path: Path | None = None) -> Config:
         if not isinstance(override, dict):
             raise InputError(override_path, "", "must be a JSON object",
                              "Write the settings as one object, as cfg.schema.json describes")
+    return _config(override_path, override)
+
+
+def with_vault_settings(config: Config, document: dict[str, object]) -> Config:
+    """``config`` with the vault's settings the Document carries (``projectConfig``) merged over
+    it, the vault's file last (configuration.md, Vault settings); ``config`` without them."""
+    carried = document.get("projectConfig")
+    if not isinstance(carried, dict):
+        return config
+    return _config(config.override_path, config.override, carried["path"], carried["settings"])
+
+
+def _config(override_path: Path | None, override: dict[str, object], project_path: str | None = None,
+            project: dict[str, object] | None = None) -> Config:
+    config = json.loads(DEFAULT_CONFIG.read_text(encoding="utf-8"))
+    for source, layer in ((override_path, override), (project_path, project)):
+        if not layer:
+            continue
         for old, new in RENAMED_KEYS.items():
-            if old in override:
-                raise InputError(override_path, old, f"was renamed to {new}", "Rename the key in that file")
-        config = _merge(config, override)
+            if old in layer:
+                raise InputError(source, old, f"was renamed to {new}", "Rename the key in that file")
+        config = _merge(config, layer)
     errors = list(_validator().iter_errors(config))
     if errors:  # The settings file names the failure when it declares the failing field.
-        declared = _declares(override, list(best_match(errors).absolute_path))
-        raise schema_error(errors, override_path if declared else DEFAULT_CONFIG, "cfg.schema.json")
+        failing = list(best_match(errors).absolute_path)
+        source = (project_path if _declares(project, failing)
+                  else override_path if _declares(override, failing) else DEFAULT_CONFIG)
+        raise schema_error(errors, source, "cfg.schema.json")
     artifact = config["artifact"]
     return Config(
         rendered_check_timeout_seconds=config["execution"]["renderedCheckTimeoutSeconds"],
@@ -65,7 +92,7 @@ def load_config(override_path: Path | None = None) -> Config:
         print_default=artifact["print"]["default"],
         paper_sizes=artifact["print"]["paperSizes"],
         artifact={key: value for key, value in artifact.items() if key != "print"},
-        override_path=override_path, override=override,
+        override_path=override_path, override=override, project_path=project_path, project=project,
     )
 
 
