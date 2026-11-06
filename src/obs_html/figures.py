@@ -1,5 +1,6 @@
-"""The one figure frame and the figure kinds it frames: images, SVG drawings, Sankey diagrams and
-stored-data plots (the Document's ``figures`` nodes, obs input-model, Figure input direction).
+"""The one figure frame and the figure kinds it frames: images, SVG drawings, Sankey diagrams,
+stored-data plots and Mermaid and PlantUML diagrams (the Document's ``figures`` nodes, obs
+input-model, Figure input direction).
 
 Reader: whoever changes how a figure is framed or adds a figure kind (artifact-ui.md, One
 figure frame).
@@ -114,6 +115,9 @@ FIGURE_KINDS: dict[str, FigureKind] = {
     "svg": FigureKind(_svg_body),
     "sankey": FigureKind(_sankey_body),
     "plot": FigureKind(_plot_body, options=("legend",), features=("plotting",)),
+    # A diagram's body is the SVG the core drew at build time: no diagram library ships.
+    "mermaid": FigureKind(_svg_body),
+    "plantuml": FigureKind(_svg_body),
 }
 """The figure kinds this adapter renders, by the core's kind (obs src/obs/figure.py, FIGURE_KINDS)."""
 
