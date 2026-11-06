@@ -36,7 +36,8 @@ configuration design principles.
   Do not maintain separate project icon and color registries.
 - `input.styleFolder` optionally selects a vault-relative style module for a project.
   Its value is a folder containing `style.css`; null selects the packaged generic module.
-  A command-line style selection overrides this project setting for one build.
+  A command-line style selection overrides this project setting for one build; the source
+  archive never records it ([[input-model#Optional reproduction archive]]).
 - The `timings` section holds the relative and absolute thresholds a stage must both
   exceed before a build warns about it; baselines and stage names are owned by
   [[architecture#Build stage timings]].

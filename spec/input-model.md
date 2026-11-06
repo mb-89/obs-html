@@ -230,8 +230,11 @@ naming an asset the Document lacks is an input error naming `sourceArchive.files
 obs-html's archive refers to the generator instead of copying it, from the Document's
 `sourceArchive.build` record (obs's architecture, Source archive). `build-config.json` holds the
 Document's `schemaVersion`, obs's `repository` and `commit`, the recorded `lockfiles` versions,
-the adapter's own options (`adapterOptions`) and the exact `command`: `obs-document --source
-vault/<manifest path>` followed by the recorded arguments. `python reproduce.py`, which needs git
+the adapter's own options (`adapterOptions`), the exact `command`: `obs-document --source
+vault/<manifest path>` followed by the recorded arguments, and, where the manifest declares one,
+the `style` the build record names (obs's architecture, Declared style). A style module obs-html
+is given for one build with `--style FOLDER` is not recorded, so a rebuild from the archive never
+uses it. `python reproduce.py`, which needs git
 and uv only, clones obs from that repository (`--repository URL` names another, such as a local
 clone), checks out the commit, installs it with that commit's `uv.lock` (`uv sync --frozen`) and
 runs the command from the extracted folder. A failed clone, checkout or install names the commit,

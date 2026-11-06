@@ -45,7 +45,7 @@ def package(document: dict, embed_attachments: bool = False) -> bytes | None:
     """The ZIP of the Document's source files, or None for a Document built without them: each file
     at ``vault/<path>``, the interim's ``source-inventory.json`` (which the reader's archive
     transactions update; this archive copies no generator), ``build-config.json`` with the build's
-    ``embed_attachments`` choice, ``reproduce.py`` and ``REPRODUCE.txt``."""
+    ``embed_attachments`` choice and the recorded declared style, ``reproduce.py`` and ``REPRODUCE.txt``."""
     archive = document.get("sourceArchive")
     if archive is None:
         return None
@@ -81,6 +81,7 @@ def package(document: dict, embed_attachments: bool = False) -> bytes | None:
             "lockfiles": build["lockfiles"],
             "adapterOptions": {"embed-attachments": embed_attachments},
             "command": command,
+            **({"style": build["style"]} if "style" in build else {}),
         }, indent=2))
         zipped.writestr(_member("reproduce.py"), files("obs_html").joinpath("reproduce.py").read_bytes())
         zipped.writestr(_member("REPRODUCE.txt"), (

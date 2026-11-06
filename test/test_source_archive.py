@@ -107,6 +107,45 @@ def test_build_config_records_what_rebuilds_the_artifact() -> None:
     assert b"python reproduce.py" in files["REPRODUCE.txt"]
 
 
+DECLARED = {"url": "https://example.invalid/house-style.git", "ref": "89abcdef0123456789abcdef0123456789abcdef",
+            "path": "styles/house"}
+
+
+def test_build_config_records_the_declared_style_the_rebuild_resolves() -> None:
+    """The archived build configuration names the style the manifest declares (obs's architecture,
+    Declared style), so a rebuild from the archive resolves the same pinned style."""
+    source = archived()
+    source["style"] = DECLARED
+    source["sourceArchive"]["build"]["style"] = DECLARED
+
+    config = json.loads(members(render(source, CONFIG))["build-config.json"])
+
+    assert config["style"] == DECLARED
+    assert "style" not in json.loads(members(render(archived(), CONFIG))["build-config.json"])
+
+
+def test_a_one_off_style_override_is_not_archived_so_the_rebuild_keeps_the_declared_style(tmp_path: Path) -> None:
+    """obs-html --style FOLDER styles this one build only: the archive records the declared style and
+    the recorded command, neither of which names the override (obs's architecture, Declared style)."""
+    source = archived()
+    source["style"] = DECLARED
+    source["sourceArchive"]["build"]["style"] = DECLARED
+    (tmp_path / "document.json").write_text(json.dumps(source), encoding="utf-8")
+    override = tmp_path / "one-off-style"
+    override.mkdir()
+    (override / "style.css").write_text("body { color: rgb(7, 8, 9); }\n", encoding="utf-8")
+
+    assert cli.main([str(tmp_path / "document.json"), str(tmp_path / "artifact.html"), "--style", str(override)]) == 0
+
+    html = (tmp_path / "artifact.html").read_text(encoding="utf-8")
+    assert "rgb(7, 8, 9)" in html, "the override styles this build"
+    files = members(html)
+    config = json.loads(files["build-config.json"])
+    assert config["style"] == DECLARED
+    assert "--style" not in config["command"]
+    assert not any(b"one-off-style" in data for data in files.values())
+
+
 def test_an_archive_without_a_recorded_adapter_fails_naming_its_field() -> None:
     source = archived()
     source["sourceArchive"]["build"]["arguments"] = ["--embed-source"]
