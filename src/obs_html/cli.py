@@ -14,17 +14,17 @@ from time import perf_counter
 from typing import Sequence
 
 from obs_html.comments import extract_comments
-from obs_html.config import load_config
+from obs_html.config import load_config, with_vault_settings
 from obs_html.errors import InputError, Parser, diagnostics, in_vault, vault_naming
 from obs_html.exposure import check_artifact
 from obs_html.figure_svg import document_figures, figure_svg
 from obs_html.render import render
 from obs_html.source_archive import attach, embedded
 from obs_html.artifact_data import chapter_html, html_text, same_artifact_content
-from obs_html.timings import recording, stage
+from obs_html.timings import STAGES, load_baselines, recording, stage, warn_slower_stages
 
 
-EPILOG = """Rendering:
+EPILOG = f"""Rendering:
   DOCUMENT is a JSON Document (the core's obs-document writes it); it is the only input.
   DESTINATION ending in .pdf prints the rendered HTML to PDF; any other name receives HTML.
   The core calls this command as an adapter with DOCUMENT and DESTINATION, the vault root as
@@ -63,6 +63,8 @@ Settings:
   --config FILE merges a JSON settings file over the packaged cfg.json, validated by
   cfg.schema.json: execution limits and the print catalogue (paper sizes and default
   paper). A Document chooses its paper and margin in its profile's print mapping.
+  The vault's own settings, its cfg.json keys the core does not own, which the Document
+  carries (projectConfig), merge over both; a key cfg.schema.json does not know fails.
 
 Trusted runtime:
   --trusted-runtime-bundle ID=PATH explicitly trusts one local JavaScript application
@@ -98,7 +100,10 @@ PDF operations:
   execution.renderedCheckTimeoutSeconds.
 
 Timings:
-  --timings prints "Timing: STAGE SECONDS s" for render, figures, print and write.
+  --timings prints "Timing: STAGE SECONDS s" for each stage the call ran, then its total.
+  The stages: {', '.join(STAGES)}. It warns on stderr about a stage slower than its baseline
+  (the packaged timing-baselines.json) by both timings.relativeThreshold and
+  timings.absoluteThresholdSeconds of the settings; the warning never fails the call.
 
 Examples:
   obs-html document.json artifact.html
@@ -175,6 +180,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     started = perf_counter()
     try:
         config = load_config(options.config)
+        baselines = load_baselines() if options.timings else {}
         if options.source_artifact and not options.attach_source_to_pdf:
             raise InputError(PROG, "--source-artifact", "is only used with --attach-source-to-pdf",
                              "Add --attach-source-to-pdf PDF, or drop --source-artifact")
@@ -202,6 +208,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     if options.timings:
         for name, seconds in {**recorded.durations, "total": perf_counter() - started}.items():
             print(f"Timing: {name} {seconds:.3f} s")
+        warn_slower_stages(recorded.durations, baselines, config.timing_relative_threshold,
+                           config.timing_absolute_threshold_seconds)
     return 0
 
 
@@ -226,6 +234,7 @@ def _write_artifact(document: dict, options: argparse.Namespace, config, destina
     paths = _vault_paths(document)
     try:
         with vault_naming(options.vault_root, paths):
+            config = with_vault_settings(config, document)
             artifact = render(document, config, style_folder=options.style,
                               trusted_runtime=_trusted_runtime(options.trusted_runtime_bundle),
                               embed_attachments=options.embed_attachments)
@@ -430,8 +439,10 @@ def _alone(operation: str, options: argparse.Namespace, *names: str) -> None:
 
 
 def _vault_paths(document: dict[str, object]) -> set[str]:
-    """The vault-relative paths the Document names: its manifest note, its notes and its files."""
-    named = [document.get("manifest"), *document.get("records", []), *document.get("assets", [])]
+    """The vault-relative paths the Document names: its manifest note, its settings file, its notes
+    and its files."""
+    named = [document.get("manifest"), document.get("projectConfig"), *document.get("records", []),
+             *document.get("assets", [])]
     return {item["path"] for item in named if isinstance(item, dict) and isinstance(item.get("path"), str)}
 
 

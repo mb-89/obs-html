@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "obs-html stage timing baselines",
+  "description": "Recorded seconds per stage for a build of the adapter's own specification. Stage names are owned by obs_html.timings.STAGES; adapters/html/spec/architecture.md#build-stage-timings owns how they are measured.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "stages"],
+  "properties": {
+    "$schema": {"type": "string", "description": "Schema location used by JSON-aware editors."},
+    "schemaVersion": {"const": 1},
+    "stages": {
+      "type": "object",
+      "propertyNames": {"pattern": "^[a-z][a-z-]*$"},
+      "additionalProperties": {
+        "type": "number",
+        "exclusiveMinimum": 0,
+        "maximum": 3600,
+        "description": "Baseline wall-clock seconds of one call's stage."
+      }
+    }
+  }
+}

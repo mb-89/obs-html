@@ -1,0 +1,10 @@
+{
+  "$schema": "./timing-baselines.schema.json",
+  "schemaVersion": 1,
+  "stages": {
+    "render": 0.103,
+    "open": 0.577,
+    "print": 2.945,
+    "write": 0.001
+  }
+}

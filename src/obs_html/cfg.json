@@ -4,6 +4,10 @@
   "execution": {
     "renderedCheckTimeoutSeconds": 120
   },
+  "timings": {
+    "relativeThreshold": 0.5,
+    "absoluteThresholdSeconds": 0.25
+  },
   "artifact": {
     "inactiveIconOpacity": 0.45,
     "guidedCard": {
