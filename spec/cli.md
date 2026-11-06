@@ -106,6 +106,14 @@ browser: what the reader runtime changes on load, such as interactive table cont
 included; `--check-rendered` covers the opened page. Chapter ids are the note slugs the artifact's table of
 contents uses; an unknown id lists the available ones.
 
+`obs-html --print-chapter HTML CHAPTER` and `obs-html-interim --print-chapter HTML ID` take the
+same input and print the same form, so one instruction works for an artifact from either.
+`obs-html` reads the built artifact, not a Document: a build through the core, `obs-document
+--adapter html`, writes the artifact and no Document file, and the artifact stores the chapters
+as the adapter rendered them from its Document. `obs-html` also takes a chapter's title for
+CHAPTER; a title that two chapters share lists their ids. Like `--extract-comments`, it renders
+nothing, so it refuses DOCUMENT and the rendering options.
+
 ## PowerShell callers
 
 The CLI writes diagnostics, such as warnings, to stderr; uv adds progress lines there,

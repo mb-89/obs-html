@@ -23,14 +23,20 @@ Each test opens each artifact once, in one page its checks reuse. Pointer and ke
 real input, one round trip each; every other observation is computed in the page and returned as
 one structure (the icon counts of every chapter in one evaluation), and Python compares them.
 
+A third check prints one spec chapter from both artifacts with --print-chapter, in both formats,
+and compares them; PRINTED_FORMS and PRINTED_LINES list the accepted differences with their reasons.
+
 Run it alone with `uv run pytest test/test_parity_browser.py`; it builds the artifacts once per
 run, without the network: the core's Document through the core's test/offline_obs_document.py.
 Each test runs on its own worker in the complete suite: one per frame for the interaction
 script and one per frame and pair of widths for the sweep.
 """
 import contextlib
+import difflib
 import json
+import os
 import re
+import subprocess
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -39,6 +45,7 @@ import pytest
 from conftest import CORE_ROOT, FAST_FRAMES, built_once
 from preview import READY, SANDBOXES, http_origin, load_preview, open_preview
 from spec_artifact import run, spec_artifact, uv
+from obs_html.cli import main as obs_html
 
 # step -> why this adapter may still differ from the interim reference there.
 KNOWN_DIFFERENCES: dict[str, str] = {
@@ -527,3 +534,52 @@ def test_the_sweep_reaches_a_control_an_earlier_scroll_brought_into_view(tmp_pat
     faults = [(fault["control"], fault["covering"]) for result in results for fault in result["faults"]]
     assert faults == [('button "E"', 'div.cover "Cover"')], faults
     assert errors == []
+
+
+
+
+# The spec chapter whose printed form is compared with the interim reference's --print-chapter.
+PRINTED_CHAPTER = "design-input-cli"
+# A difference in form, not content: pattern -> (replacement, why). Both printed chapters are
+# brought to the same form by each substitution before they are compared.
+PRINTED_FORMS: dict[str, tuple[str, str]] = {
+    "&#x27;": ("'", "this adapter escapes apostrophes in text (html.escape); the text is the same"),
+    ' class="internal-link"': ("", "this adapter marks a link to a chapter of the artifact for its runtime"),
+    r'(?s)(<pre class="command-output">)<code>(.*?)</code></pre>': (
+        r"\1\2</pre>", "the reference wraps command output in <code> inside its <pre>; this adapter does not"),
+    r'(?m)^(<pre class="command-output">)?warning: .*\n': (
+        r"\1", "the interim reference runs a fence through its own uv and captures uv's warnings (only "
+        "where uv warns, as for a deprecated UV_* variable); the core captures the command's output alone"),
+}
+# A printed line that differs in content: pattern -> why. Each is a rendering difference; the print
+# path itself copies the stored chapter unchanged.
+PRINTED_LINES: dict[str, str] = {
+    r".*note and the flag \(.*(Command Fences|command-fences#Authorization)": (
+        "a wikilink to a heading of another chapter, [[command-fences#Authorization]], is labelled "
+        "with that chapter's title by this adapter and with the raw target by the reference"),
+}
+
+
+@pytest.mark.parametrize("chapter_format", ["html", "text"])
+def test_a_printed_chapter_is_the_interim_references(parity_artifacts, tmp_path: Path, chapter_format,
+                                                     capsys) -> None:
+    """obs-html --print-chapter prints a spec chapter as obs-html-interim --print-chapter does,
+    up to the differences PRINTED_FORMS and PRINTED_LINES list."""
+    for name, text in parity_artifacts.items():
+        (tmp_path / f"{name}.html").write_text(text, encoding="utf-8")
+    environment = {key: value for key, value in os.environ.items() if key != "VIRTUAL_ENV"}
+    reference = subprocess.run(
+        [uv(), "run", "--offline", "--quiet", "--project", str(CORE_ROOT), "obs-html-interim", "--print-chapter",
+         str(tmp_path / "reference.html"), PRINTED_CHAPTER, "--chapter-format", chapter_format],
+        cwd=CORE_ROOT, env=environment, capture_output=True, text=True, encoding="utf-8", check=False)
+    assert reference.returncode == 0, f"obs-html-interim --print-chapter failed: {reference.stderr}"
+    assert obs_html(["--print-chapter", str(tmp_path / "adapter.html"), PRINTED_CHAPTER,
+                     "--chapter-format", chapter_format]) == 0
+    ours, theirs = capsys.readouterr().out, reference.stdout
+    assert ours and theirs
+    for pattern, (replacement, _why) in PRINTED_FORMS.items():
+        ours, theirs = re.sub(pattern, replacement, ours), re.sub(pattern, replacement, theirs)
+    unexplained = [line for line in difflib.ndiff(ours.splitlines(), theirs.splitlines())
+                   if line[:2] in {"- ", "+ "}
+                   and not any(re.match(pattern, line[2:]) for pattern in PRINTED_LINES)]
+    assert not unexplained, "\n".join(unexplained)

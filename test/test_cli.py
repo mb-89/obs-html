@@ -7,7 +7,7 @@ import pytest
 
 from conftest import FIXTURE, ROOT
 from obs_html import cli
-from obs_html.artifact_data import decode_artifact_data
+from obs_html.artifact_data import decode_artifact_data, encode_artifact_data
 
 
 def _run(*arguments: str) -> None:
@@ -63,6 +63,12 @@ def _input_error(capsys, source: object, field: str) -> None:
     (["--check-rendered", "a.html", FIXTURE], "DOCUMENT"),
     (["--check-rendered", "a.html", "--embed-attachments"], "--embed-attachments"),
     (["--extract-comments", "a.html", "--embed-attachments"], "--embed-attachments"),
+    (["--print-chapter", "a.html", "intro", FIXTURE], "DOCUMENT"),
+    (["--print-chapter", "a.html", "intro", "--vault-root", "vault"], "--vault-root"),
+    (["--print-chapter", "a.html", "intro", "--embed-attachments"], "--embed-attachments"),
+    (["--print-chapter", "a.html", "intro", "--extract-comments", "b.html"], "--extract-comments"),
+    (["--print-chapter", "a.html", "intro", "--timings"], "--timings"),
+    ([FIXTURE, "x.html", "--chapter-format", "text"], "--chapter-format"),
     ([FIXTURE, FIXTURE], "DESTINATION"),
 ])
 def test_invalid_option_combinations_fail(arguments, field, capsys) -> None:
@@ -186,3 +192,52 @@ def test_extract_comments_reads_a_returned_artifact(tmp_path, capsys) -> None:
     assert "Tighten this." in capsys.readouterr().out
     with pytest.raises(SystemExit):
         _run(FIXTURE, "--extract-comments", artifact)
+
+
+def test_print_chapter_prints_the_stored_html_by_id(fixture_artifact, capsys) -> None:
+    notes = decode_artifact_data(fixture_artifact.read_text(encoding="utf-8"))["notes"]
+    stored = next(note["html"] for note in notes if note["slug"] == "intro")
+    assert cli.main(["--print-chapter", str(fixture_artifact), "intro"]) == 0
+    assert capsys.readouterr().out == stored
+
+
+def test_print_chapter_finds_a_chapter_by_its_title(fixture_artifact, capsys) -> None:
+    cli.main(["--print-chapter", str(fixture_artifact), "intro"])
+    by_id = capsys.readouterr().out
+    cli.main(["--print-chapter", str(fixture_artifact), "Intro"])
+    assert capsys.readouterr().out == by_id
+
+
+def test_print_chapter_prints_plain_text_one_line_per_block(fixture_artifact, capsys) -> None:
+    cli.main(["--print-chapter", str(fixture_artifact), "intro", "--chapter-format", "text"])
+    text = capsys.readouterr().out
+    assert text.endswith("\n") and "<p" not in text and "</" not in text
+
+
+def test_an_unknown_chapter_names_it_and_lists_the_available_ids(fixture_artifact, capsys) -> None:
+    with pytest.raises(SystemExit) as exit_info:
+        _run("--print-chapter", fixture_artifact, "missing-chapter")
+    assert exit_info.value.code == 2
+    error = capsys.readouterr().err
+    assert f"\n{fixture_artifact}: --print-chapter: " in f"\n{error}", error
+    notes = decode_artifact_data(fixture_artifact.read_text(encoding="utf-8"))["notes"]
+    assert "missing-chapter" in error
+    assert all(note["slug"] in error for note in notes)
+
+
+def test_print_chapter_names_an_unreadable_artifact(tmp_path, capsys) -> None:
+    with pytest.raises(SystemExit):
+        _run("--print-chapter", tmp_path / "absent.html", "intro")
+    _input_error(capsys, tmp_path / "absent.html", "HTML")
+
+
+def test_a_title_two_chapters_share_lists_their_ids(tmp_path, capsys) -> None:
+    artifact = tmp_path / "artifact.html"
+    notes = [{"slug": "appendix-references", "title": "References", "html": "<p>a</p>"},
+             {"slug": "capabilities-references", "title": "References", "html": "<p>b</p>"}]
+    artifact.write_text(encode_artifact_data({"notes": notes}, "none"), encoding="utf-8")
+    with pytest.raises(SystemExit):
+        _run("--print-chapter", artifact, "References")
+    error = capsys.readouterr().err
+    assert f"\n{artifact}: --print-chapter: " in f"\n{error}", error
+    assert "appendix-references" in error and "capabilities-references" in error
