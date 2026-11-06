@@ -12,7 +12,7 @@ from conftest import ROOT
 from obs_html.config import load_config
 from obs_html.render import render
 
-from documents import chapter, document as build, heading, node, paragraph, text
+from documents import card_document, chapter, document as build, heading, node, paragraph, text
 
 
 pytestmark = pytest.mark.browser
@@ -44,8 +44,7 @@ def _cards(*cards: dict, bodies: tuple[list[dict], ...] = ()) -> dict:
     """The node of a cards fence; ``bodies`` holds each card's body nodes, empty by default."""
     spec = {"version": 1, "cards": list(cards)}
     result = node("cards-metrics", source=json.dumps(spec), spec=spec)
-    result["children"] = [{"type": "document", "attrs": {}, "children": list(body)}
-                          for body in (bodies or tuple([] for _ in cards))]
+    result["children"] = [card_document(card, body) for card, body in zip(cards, bodies or tuple([] for _ in cards))]
     return result
 
 

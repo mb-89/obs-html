@@ -922,7 +922,14 @@
           "type": "callouts",
           "attrs": {
             "kind": "warning",
-            "title": "Check the limits"
+            "title": [
+              {
+                "type": "text",
+                "attrs": {},
+                "children": [],
+                "text": "Check the limits"
+              }
+            ]
           },
           "children": [
             {
@@ -987,7 +994,34 @@
           "children": [
             {
               "type": "document",
-              "attrs": {},
+              "attrs": {
+                "title": [
+                  {
+                    "type": "text",
+                    "attrs": {},
+                    "children": [],
+                    "text": "Items"
+                  }
+                ],
+                "labels": [
+                  [
+                    {
+                      "type": "text",
+                      "attrs": {},
+                      "children": [],
+                      "text": "Items"
+                    }
+                  ],
+                  [
+                    {
+                      "type": "text",
+                      "attrs": {},
+                      "children": [],
+                      "text": "Ranks"
+                    }
+                  ]
+                ]
+              },
               "children": [
                 {
                   "type": "paragraph",

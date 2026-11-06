@@ -130,11 +130,16 @@
         const lines = slot.parentElement.classList.contains("record-metrics--lines");
         slot.className = `record-metric record-metric--${tone}`;
         slot.replaceChildren();
+        // An authored label is the HTML of its inline nodes; a series label is its frontmatter text.
+        const label = document.createElement("span");
+        label.className = "record-metric-label";
+        if (metric.labelHtml === undefined) label.textContent = metric.label;
+        else label.innerHTML = metric.labelHtml;
         const valueNode = document.createElement(metric.link && !metric.secondary ? "a" : "span");
         valueNode.className = "record-metric-value";
         if (metric.link && !metric.secondary) {
           valueNode.href = metric.link;
-          valueNode.setAttribute("aria-label", `${value} ${metric.label}`);
+          valueNode.setAttribute("aria-label", `${value} ${label.textContent}`);
         }
         const strong = document.createElement(lines ? "span" : "strong");
         strong.textContent = value;
@@ -144,9 +149,6 @@
           if (metric.link) references[0].href = metric.link;
           if (metric.secondaryLink) references[1].href = metric.secondaryLink;
         } else valueNode.append(strong);
-        const label = document.createElement("span");
-        label.className = "record-metric-label";
-        label.textContent = metric.label;
         slot.append(...(lines ? [label, valueNode] : [valueNode, label]));
       });
     });

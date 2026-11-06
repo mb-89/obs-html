@@ -122,3 +122,22 @@ def test_no_metadata_renderer_parses_markdown_tex_or_urls_out_of_a_string() -> N
         found += [f"{name}: {match[0]!r}" for match in JS_PARSING.finditer(source)]
     assert not found, ("adapters/html/src/obs_html: a metadata renderer parses a string; render the value's "
                        f"field node instead (obs markdown-frontmatter.md, Document node): {found}")
+
+
+TITLE_RENDERERS = ("_callout", "_cards", "_attr_nodes", "_metric_quantity")
+"""The render.py functions that render callout titles, card titles and metric labels and values;
+each reads inline nodes (obs capabilities/callouts, capabilities/cards-metrics, Document node)."""
+
+
+def test_no_callout_or_card_renderer_parses_a_title_or_label_out_of_a_string() -> None:
+    """Requirement: titles and labels render from nodes, in render.py and in the metric slots
+    cards.js fills."""
+    import obs_html.render as module
+    found = [f"render.py {name}: {match[0]!r}" for name in TITLE_RENDERERS
+             for match in PYTHON_PARSING.finditer(inspect.getsource(getattr(module, name)))]
+    cards = files("obs_html").joinpath("cards.js").read_text(encoding="utf-8")
+    slot = cards[cards.index("const slot = card.querySelector("):cards.index("slot.append(")]
+    found += [f"cards.js metric slot: {match[0]!r}" for match in JS_PARSING.finditer(slot)]
+    assert not found, ("adapters/html/src/obs_html: a callout or card renderer parses a string; render the "
+                       f"title's or label's inline nodes instead (obs capabilities/markdown.md, Document nodes): {found}")
+    assert "label.innerHTML = metric.labelHtml" in slot, "cards.js: render a metric label from its labelHtml"

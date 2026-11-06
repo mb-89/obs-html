@@ -47,7 +47,14 @@
           "type": "callouts",
           "attrs": {
             "kind": "warning",
-            "title": "Check the limits"
+            "title": [
+              {
+                "type": "text",
+                "attrs": {},
+                "children": [],
+                "text": "Check the limits"
+              }
+            ]
           },
           "children": [
             {
@@ -109,7 +116,14 @@
               "type": "callouts",
               "attrs": {
                 "kind": "tip",
-                "title": "Tip"
+                "title": [
+                  {
+                    "type": "text",
+                    "attrs": {},
+                    "children": [],
+                    "text": "Tip"
+                  }
+                ]
               },
               "children": [
                 {

@@ -445,7 +445,14 @@
           "type": "callouts",
           "attrs": {
             "kind": "note",
-            "title": "Note"
+            "title": [
+              {
+                "type": "text",
+                "attrs": {},
+                "children": [],
+                "text": "Note"
+              }
+            ]
           },
           "children": [
             {

@@ -21,6 +21,16 @@ def node(kind: str, **attrs: object) -> dict:
     return {"type": kind, "attrs": attrs, "children": []}
 
 
+def card_document(card: dict, children: list[dict] = (), title: list[dict] | None = None,
+                  labels: list[list[dict]] | None = None) -> dict:
+    """A card's ``document`` node in a ``cards-metrics`` node: its body nodes, and its title and
+    metric labels as inline nodes, by default the one text node the core parses plain text into."""
+    return {"type": "document", "attrs": {
+        "title": [text(card["title"])] if title is None else title,
+        "labels": [[text(metric["label"])] for metric in card.get("metrics", [])] if labels is None else labels,
+    }, "children": list(children)}
+
+
 def frontmatter(metadata: dict, fields: dict[str, list[str | dict]] | None = None) -> dict:
     """A ``markdown-frontmatter`` node; ``fields`` maps a dotted field path to the inline nodes the
     core parsed its string into (a string is a text node), as one ``field`` node each."""

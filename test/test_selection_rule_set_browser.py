@@ -11,7 +11,7 @@ import pytest
 from obs_html.config import load_config
 from obs_html.render import render
 
-from documents import chapter, document as build, heading, node
+from documents import card_document, chapter, document as build, heading, node
 
 
 pytestmark = pytest.mark.browser
@@ -116,7 +116,7 @@ def test_a_distinct_count_reads_its_property_as_conditions_do(tmp_path, reader_b
         {"label": "Exact", "where": [{"field": "target", "equals": "Rejected", "matchCase": True}]},
     ]}]}
     cards = node("cards-metrics", source=json.dumps(spec), spec=spec)
-    cards["children"] = [{"type": "document", "attrs": {}, "children": []}]
+    cards["children"] = [card_document(spec["cards"][0])]
     owners = {"a": "Ann", "b": "Ann", "c": "Bob", "d": "Bob", "e": "Eve"}
     records = tuple(_record(f"record-{name}", {"kind": kind, key: target, "owner": {"name": owners[name]}})
                     for name, kind, key, target in FLOW)

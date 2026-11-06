@@ -153,7 +153,17 @@
           "children": [
             {
               "type": "document",
-              "attrs": {},
+              "attrs": {
+                "title": [
+                  {
+                    "type": "text",
+                    "attrs": {},
+                    "children": [],
+                    "text": "Outer"
+                  }
+                ],
+                "labels": []
+              },
               "children": [
                 {
                   "type": "paragraph",
@@ -203,7 +213,17 @@
                   "children": [
                     {
                       "type": "document",
-                      "attrs": {},
+                      "attrs": {
+                        "title": [
+                          {
+                            "type": "text",
+                            "attrs": {},
+                            "children": [],
+                            "text": "Inner"
+                          }
+                        ],
+                        "labels": []
+                      },
                       "children": [
                         {
                           "type": "paragraph",
@@ -259,12 +279,57 @@
             },
             {
               "type": "document",
-              "attrs": {},
+              "attrs": {
+                "title": [
+                  {
+                    "type": "text",
+                    "attrs": {},
+                    "children": [],
+                    "text": "Metrics"
+                  }
+                ],
+                "labels": [
+                  [
+                    {
+                      "type": "text",
+                      "attrs": {},
+                      "children": [],
+                      "text": "Open share"
+                    }
+                  ],
+                  [
+                    {
+                      "type": "text",
+                      "attrs": {},
+                      "children": [],
+                      "text": "Points (open)"
+                    }
+                  ],
+                  [
+                    {
+                      "type": "text",
+                      "attrs": {},
+                      "children": [],
+                      "text": "Reviewed open"
+                    }
+                  ]
+                ]
+              },
               "children": []
             },
             {
               "type": "document",
-              "attrs": {},
+              "attrs": {
+                "title": [
+                  {
+                    "type": "text",
+                    "attrs": {},
+                    "children": [],
+                    "text": "Series"
+                  }
+                ],
+                "labels": []
+              },
               "children": []
             }
           ]
