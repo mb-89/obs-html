@@ -6,14 +6,12 @@ guided-card, quantity and mark parts stay with the capabilities that own them.
 """
 import pytest
 
-from obs_html.config import load_config
-from obs_html.render import render
+from artifacts import artifact_html
 
 from documents import chapter, document as build, heading, node, paragraph, text
 
 
 pytestmark = pytest.mark.browser
-CONFIG = load_config()
 URL = "https://webstore.iec.ch/publication/1234"
 REFERENCE = {"title": "IEC 1234", "url": URL, "description": "Safety of medical electrical equipment."}
 TERM = {"kind": "glossary", "term": "RSS", "definition": "Root **sum** of squares."}
@@ -40,29 +38,25 @@ def test_hover_card_shows_the_reference_link_and_the_glossary_definition(tmp_pat
     for item in source["chapters"][1:]:
         item["toc"] = False
     artifact = tmp_path / "references.html"
-    artifact.write_text(render(source, CONFIG), encoding="utf-8")
-    context = reader_browser.new_context(viewport={"width": 1200, "height": 800})
-    context.add_init_script("window.open = () => null;")
-    page = context.new_page()
+    artifact.write_text(artifact_html(source), encoding="utf-8")
+    page = reader_browser.new_page(viewport={"width": 1200, "height": 800})
+    page.add_init_script("window.open = () => null;")
     errors = []
     page.on("pageerror", lambda error: errors.append(str(error)))
-    try:
-        page.goto(artifact.as_uri() + "#chapter")
-        page.wait_for_function("document.documentElement.dataset.artifactStatus === 'ready'")
-        page.evaluate("obsPages.setPaged(false); obsArtifact.activateChapter('chapter')")
-        card = page.locator("#hover-card")
-        assert page.locator("[data-chapter-body] a[href^='http']").count() == 0
-        page.locator("[data-chapter-body] p a[href='#iec']").hover()
-        expect(card).to_be_visible()
-        expect(card.locator(".hover-card-title")).to_have_text("IEC 1234")
-        expect(card).to_contain_text("Safety of medical electrical equipment.")
-        external = card.locator("a[href^='http']")
-        expect(external).to_have_count(1)
-        expect(external).to_have_attribute("href", URL)
-        page.locator("[data-chapter-body] p a[href='#rss']").hover()
-        expect(card.locator(".hover-card-title")).to_have_text("RSS")
-        expect(card).to_contain_text("Root sum of squares.")
-        expect(card.locator("strong")).to_have_text("sum")
-        assert errors == []
-    finally:
-        context.close()
+    page.goto(artifact.as_uri() + "#chapter")
+    page.wait_for_function("document.documentElement.dataset.artifactStatus === 'ready'")
+    page.evaluate("obsPages.setPaged(false); obsArtifact.activateChapter('chapter')")
+    card = page.locator("#hover-card")
+    assert page.locator("[data-chapter-body] a[href^='http']").count() == 0
+    page.locator("[data-chapter-body] p a[href='#iec']").hover()
+    expect(card).to_be_visible()
+    expect(card.locator(".hover-card-title")).to_have_text("IEC 1234")
+    expect(card).to_contain_text("Safety of medical electrical equipment.")
+    external = card.locator("a[href^='http']")
+    expect(external).to_have_count(1)
+    expect(external).to_have_attribute("href", URL)
+    page.locator("[data-chapter-body] p a[href='#rss']").hover()
+    expect(card.locator(".hover-card-title")).to_have_text("RSS")
+    expect(card).to_contain_text("Root sum of squares.")
+    expect(card.locator("strong")).to_have_text("sum")
+    assert errors == []

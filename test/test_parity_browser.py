@@ -42,7 +42,8 @@ from pathlib import Path
 
 import pytest
 
-from conftest import CORE_ROOT, FAST_FRAMES, built_once
+from artifacts import artifact_html
+from conftest import CORE_ROOT, built_once
 from preview import READY, SANDBOXES, http_origin, load_preview, open_preview
 from spec_artifact import run, spec_artifact, uv
 from obs_html.cli import main as obs_html
@@ -286,7 +287,6 @@ def observe(tmp_path: Path, reader_browser, artifacts: dict[str, str], frame_kin
             origin = stack.enter_context(http_origin(folder)) if frame_kind == "same-origin" else None
             errors: list[str] = []
             page, frame = load_preview(folder, reader_browser, errors, artifact, frame_kind, origin)
-            stack.callback(page.close)
             opened[name] = page, frame, errors
         for name, (page, frame, errors) in opened.items():
             frame.evaluate(READY)
@@ -326,20 +326,6 @@ WIDTHS = ((360, 700), (1100, 1600))
 VIEWS = ("pages", "continuous")
 
 
-@pytest.fixture(scope="session")
-def coverage_browser(worker_playwright):
-    """Chromium with overlay scrollbars, as on touch devices and macOS: scrollbars take no room,
-    so the reader's clearance for the chapter arrows is at its narrowest."""
-    from obs_html.pdf import _executable
-
-    browser = worker_playwright.chromium.launch(executable_path=_executable(),
-                                                args=["--enable-features=OverlayScrollbar", *FAST_FRAMES])
-    try:
-        yield browser
-    finally:
-        browser.close()
-
-
 def layout_name(layout: list[str] | None) -> str:
     return f"the {layout[0]} bar docked {layout[1]}" if layout else "no bar open"
 
@@ -358,30 +344,27 @@ def covered_controls(tmp_path: Path, browser, artifact: str, frame_kind: str, na
     with http_origin(folder) as origin:
         page, frame = open_preview(folder, browser, errors, artifact, frame_kind,
                                    origin if frame_kind == "same-origin" else None)
-        try:
-            page.set_viewport_size({"width": max(width for pair in WIDTHS for width in pair) + 100,
-                                    "height": 800})
-            root = frame.locator("html")
-            bars = root.evaluate("""() => [...new Set([...document.querySelectorAll("[data-dock-bar]")]
-                .map((button) => button.dataset.dockBar))]""")
-            # On every chapter: no bar, the Filter bar in each dock direction (bars of one side
-            # shape the reader alike) and the Comments bar, whose review mode reshapes the reader.
-            # Every other bar on its default side, on the first chapter.
-            docked = "filter" if "filter" in bars else bars[0]
-            layouts = [None, *([docked, side] for side in ("right", "left", "top", "bottom")),
-                       *([bar, "right"] for bar in bars if bar == "comments")]
-            first = [[bar, "right"] for bar in bars if [bar, "right"] not in layouts]
-            for width in widths:
-                page.evaluate("width => document.getElementById('artifact').style.width = width", f"{width}px")
-                results = root.evaluate(COVERAGE.read_text(encoding="utf-8"),
-                                        {"views": list(VIEWS), "layouts": layouts, "firstChapterLayouts": first})
-                for result in results:
-                    for fault in result["faults"]:
-                        where = f"at {width}px in the {result['view']} view with {layout_name(result['layout'])}"
-                        faults.setdefault((fault["control"], where), {}).setdefault(
-                            fault["covering"], []).append(result["chapter"])
-        finally:
-            page.close()
+        page.set_viewport_size({"width": max(width for pair in WIDTHS for width in pair) + 100,
+                                "height": 800})
+        root = frame.locator("html")
+        bars = root.evaluate("""() => [...new Set([...document.querySelectorAll("[data-dock-bar]")]
+            .map((button) => button.dataset.dockBar))]""")
+        # On every chapter: no bar, the Filter bar in each dock direction (bars of one side
+        # shape the reader alike) and the Comments bar, whose review mode reshapes the reader.
+        # Every other bar on its default side, on the first chapter.
+        docked = "filter" if "filter" in bars else bars[0]
+        layouts = [None, *([docked, side] for side in ("right", "left", "top", "bottom")),
+                   *([bar, "right"] for bar in bars if bar == "comments")]
+        first = [[bar, "right"] for bar in bars if [bar, "right"] not in layouts]
+        for width in widths:
+            page.evaluate("width => document.getElementById('artifact').style.width = width", f"{width}px")
+            results = root.evaluate(COVERAGE.read_text(encoding="utf-8"),
+                                    {"views": list(VIEWS), "layouts": layouts, "firstChapterLayouts": first})
+            for result in results:
+                for fault in result["faults"]:
+                    where = f"at {width}px in the {result['view']} view with {layout_name(result['layout'])}"
+                    faults.setdefault((fault["control"], where), {}).setdefault(
+                        fault["covering"], []).append(result["chapter"])
     for error in errors:
         faults.setdefault(("page error", error), {})
     return faults
@@ -393,15 +376,15 @@ def covered_controls(tmp_path: Path, browser, artifact: str, frame_kind: str, na
                  marks=pytest.mark.xdist_group(f"coverage-{frame_kind}-{widths[0]}"))
     for frame_kind in SANDBOXES for widths in WIDTHS])
 def test_no_control_is_covered_in_preview_frames(
-        tmp_path: Path, coverage_browser, parity_artifacts: dict[str, str], frame_kind: str,
+        tmp_path: Path, overlay_scrollbar_browser, parity_artifacts: dict[str, str], frame_kind: str,
         widths: tuple[int, ...]) -> None:
     """No visible control lies under another element's pointer area (test/browser/control-coverage.js).
 
     Where this adapter has a fault, the interim reference is swept in the same frame too: its
     faults are not parity differences, and the failure says which ones this adapter shares.
     """
-    ours = covered_controls(tmp_path, coverage_browser, parity_artifacts["adapter"], frame_kind, "adapter", widths)
-    theirs = covered_controls(tmp_path, coverage_browser, parity_artifacts["reference"], frame_kind,
+    ours = covered_controls(tmp_path, overlay_scrollbar_browser, parity_artifacts["adapter"], frame_kind, "adapter", widths)
+    theirs = covered_controls(tmp_path, overlay_scrollbar_browser, parity_artifacts["reference"], frame_kind,
                               "reference", widths) if ours else {}
     problems = [
         (f"page error: {where}" if control == "page error" else f"{control} is covered {where} by "
@@ -416,30 +399,24 @@ def test_no_control_is_covered_in_preview_frames(
 
 
 @pytest.mark.browser
-def test_the_sweep_names_a_covered_control_and_what_covers_it(tmp_path: Path, coverage_browser) -> None:
+def test_the_sweep_names_a_covered_control_and_what_covers_it(tmp_path: Path, overlay_scrollbar_browser) -> None:
     """The sweep is not vacuous: a control under another element is a fault naming both."""
     from documents import chapter, document, heading, paragraph
-    from obs_html.config import load_config
-    from obs_html.render import render
 
-    artifact = render(document("Sweep", chapter("one", "One", heading(1, "One"), paragraph("Text."))),
-                      load_config())
+    artifact = artifact_html(document("Sweep", chapter("one", "One", heading(1, "One"), paragraph("Text."))))
     errors: list[str] = []
-    page, frame = open_preview(tmp_path, coverage_browser, errors, artifact, "null-origin")
-    try:
-        frame.evaluate("""() => {
-            const box = document.querySelector(".chapter-home-link").getBoundingClientRect();
-            const cover = document.createElement("div");
-            cover.className = "cover";
-            cover.setAttribute("aria-label", "Cover");
-            Object.assign(cover.style, {position: "fixed", left: `${box.left}px`, top: `${box.top}px`,
-                width: `${box.width}px`, height: `${box.height}px`, zIndex: "2147483647"});
-            document.body.append(cover);
-        }""")
-        results = frame.locator("html").evaluate(COVERAGE.read_text(encoding="utf-8"),
-                                                 {"views": ["pages"], "layouts": [None], "firstChapterLayouts": []})
-    finally:
-        page.close()
+    page, frame = open_preview(tmp_path, overlay_scrollbar_browser, errors, artifact, "null-origin")
+    frame.evaluate("""() => {
+        const box = document.querySelector(".chapter-home-link").getBoundingClientRect();
+        const cover = document.createElement("div");
+        cover.className = "cover";
+        cover.setAttribute("aria-label", "Cover");
+        Object.assign(cover.style, {position: "fixed", left: `${box.left}px`, top: `${box.top}px`,
+            width: `${box.width}px`, height: `${box.height}px`, zIndex: "2147483647"});
+        document.body.append(cover);
+    }""")
+    results = frame.locator("html").evaluate(COVERAGE.read_text(encoding="utf-8"),
+                                             {"views": ["pages"], "layouts": [None], "firstChapterLayouts": []})
     faults = {(fault["control"], fault["covering"]) for result in results for fault in result["faults"]}
     assert ('a.chapter-home-link "Home"', 'div.cover "Cover"') in faults, faults
     assert errors == []
@@ -447,90 +424,79 @@ def test_the_sweep_names_a_covered_control_and_what_covers_it(tmp_path: Path, co
 
 @pytest.mark.browser
 def test_the_sweep_reaches_a_self_link_whose_lines_lie_on_either_side_of_the_reader(
-        tmp_path: Path, coverage_browser) -> None:
+        tmp_path: Path, overlay_scrollbar_browser) -> None:
     """The fault #251 met in obs's spec, at 360 px with the Comments bar docked right: review mode
     makes the body wider than the reader, and the note's link to itself wraps with its first line
     right of the reader's view and its second left of it. Scrolled to as a whole, it shows neither;
     the sweep then scrolls to one line, as a reader does. The self-link fixture's link is made to
     wrap so, on every open: a spacer and a line break, and a link before it that scrolls the reader
     between the two lines."""
-    from obs_html.config import load_config
-    from obs_html.render import render
 
-    artifact = render(json.loads((Path(__file__).parent / "fixtures" / "documents" / "self-link.json")
-                                 .read_text(encoding="utf-8")), load_config())
+    artifact = artifact_html(json.loads((Path(__file__).parent / "fixtures" / "documents" / "self-link.json")
+                                 .read_text(encoding="utf-8")))
     errors: list[str] = []
-    page, frame = open_preview(tmp_path, coverage_browser, errors, artifact, "null-origin")
-    try:
-        page.set_viewport_size({"width": 460, "height": 800})
-        page.evaluate("() => document.getElementById('artifact').style.width = '360px'")
-        frame.evaluate("""() => {
-            const open = obsArtifact.activateChapter;
-            obsArtifact.activateChapter = async (...request) => {
-                const opened = await open(...request);
-                const link = document.querySelector('[data-chapter-body] a.internal-link[href="#long"]');
-                if (link) {
-                    link.innerHTML = "Lo<br>ng";
-                    link.insertAdjacentHTML("beforebegin", '<span style="display:inline-block;width:1200px"></span>');
-                    link.closest("p").insertAdjacentHTML("beforebegin",
-                        '<p><span style="display:inline-block;width:700px"></span><a href="#short">Short</a></p>');
-                }
-                return opened;
-            };
-        }""")
-        results = frame.locator("html").evaluate(COVERAGE.read_text(encoding="utf-8"), {
-            "views": ["continuous"], "layouts": [["comments", "right"]], "firstChapterLayouts": []})
-    finally:
-        page.close()
+    page, frame = open_preview(tmp_path, overlay_scrollbar_browser, errors, artifact, "null-origin")
+    page.set_viewport_size({"width": 460, "height": 800})
+    page.evaluate("() => document.getElementById('artifact').style.width = '360px'")
+    frame.evaluate("""() => {
+        const open = obsArtifact.activateChapter;
+        obsArtifact.activateChapter = async (...request) => {
+            const opened = await open(...request);
+            const link = document.querySelector('[data-chapter-body] a.internal-link[href="#long"]');
+            if (link) {
+                link.innerHTML = "Lo<br>ng";
+                link.insertAdjacentHTML("beforebegin", '<span style="display:inline-block;width:1200px"></span>');
+                link.closest("p").insertAdjacentHTML("beforebegin",
+                    '<p><span style="display:inline-block;width:700px"></span><a href="#short">Short</a></p>');
+            }
+            return opened;
+        };
+    }""")
+    results = frame.locator("html").evaluate(COVERAGE.read_text(encoding="utf-8"), {
+        "views": ["continuous"], "layouts": [["comments", "right"]], "firstChapterLayouts": []})
     assert [result["chapter"] for result in results] == ["long", "short"]
     assert [fault for result in results for fault in result["faults"]] == []
     assert errors == []
 
 
 @pytest.mark.browser
-def test_the_sweep_reaches_a_control_an_earlier_scroll_brought_into_view(tmp_path: Path, coverage_browser) -> None:
+def test_the_sweep_reaches_a_control_an_earlier_scroll_brought_into_view(tmp_path: Path, overlay_scrollbar_browser) -> None:
     """After a scroll the sweep looks again only at controls the scroll can have brought into view;
     one it brought there is still reached where it then stands. Button E, far down the chapter,
     is scrolled to the middle, under a cover; that scroll brings button B, below it in an
     absolutely positioned box (as the review gutter's buttons are), into view uncovered, so B is
     reached there. Scrolled to the middle itself, B would be under the cover too."""
     from documents import chapter, document, heading, paragraph
-    from obs_html.config import load_config
-    from obs_html.render import render
 
-    artifact = render(document("Sweep", chapter("one", "One", heading(1, "One"), paragraph("Text."))),
-                      load_config())
+    artifact = artifact_html(document("Sweep", chapter("one", "One", heading(1, "One"), paragraph("Text."))))
     errors: list[str] = []
-    page, frame = open_preview(tmp_path, coverage_browser, errors, artifact, "null-origin")
-    try:
-        frame.evaluate("""() => {
-            const open = obsArtifact.activateChapter;
-            obsArtifact.activateChapter = async (...request) => {
-                const opened = await open(...request);
-                document.querySelector("[data-chapter-body]").insertAdjacentHTML("beforeend",
-                    '<div style="height:2000px"></div>' +
-                    '<button style="display:block;width:120px" aria-label="E">E</button>' +
-                    `<div style="height:${innerHeight * 0.3}px"></div>` +
-                    '<div style="position:relative;height:24px"><div style="position:absolute;top:0;left:0">' +
-                    '<button style="display:block;width:120px" aria-label="B">B</button></div></div>' +
-                    '<div style="height:2000px"></div>');
-                const box = document.querySelector('[aria-label="E"]').getBoundingClientRect();
-                if (!document.querySelector(".cover")) {
-                    const cover = document.createElement("div");
-                    cover.className = "cover";
-                    cover.setAttribute("aria-label", "Cover");
-                    Object.assign(cover.style, {position: "fixed", left: `${box.left - 4}px`,
-                        top: `${innerHeight / 2 - 60}px`, width: `${box.width + 8}px`, height: "120px",
-                        zIndex: "2147483647"});
-                    document.body.append(cover);
-                }
-                return opened;
-            };
-        }""")
-        results = frame.locator("html").evaluate(COVERAGE.read_text(encoding="utf-8"),
-                                                 {"views": ["continuous"], "layouts": [None], "firstChapterLayouts": []})
-    finally:
-        page.close()
+    page, frame = open_preview(tmp_path, overlay_scrollbar_browser, errors, artifact, "null-origin")
+    frame.evaluate("""() => {
+        const open = obsArtifact.activateChapter;
+        obsArtifact.activateChapter = async (...request) => {
+            const opened = await open(...request);
+            document.querySelector("[data-chapter-body]").insertAdjacentHTML("beforeend",
+                '<div style="height:2000px"></div>' +
+                '<button style="display:block;width:120px" aria-label="E">E</button>' +
+                `<div style="height:${innerHeight * 0.3}px"></div>` +
+                '<div style="position:relative;height:24px"><div style="position:absolute;top:0;left:0">' +
+                '<button style="display:block;width:120px" aria-label="B">B</button></div></div>' +
+                '<div style="height:2000px"></div>');
+            const box = document.querySelector('[aria-label="E"]').getBoundingClientRect();
+            if (!document.querySelector(".cover")) {
+                const cover = document.createElement("div");
+                cover.className = "cover";
+                cover.setAttribute("aria-label", "Cover");
+                Object.assign(cover.style, {position: "fixed", left: `${box.left - 4}px`,
+                    top: `${innerHeight / 2 - 60}px`, width: `${box.width + 8}px`, height: "120px",
+                    zIndex: "2147483647"});
+                document.body.append(cover);
+            }
+            return opened;
+        };
+    }""")
+    results = frame.locator("html").evaluate(COVERAGE.read_text(encoding="utf-8"),
+                                             {"views": ["continuous"], "layouts": [None], "firstChapterLayouts": []})
     faults = [(fault["control"], fault["covering"]) for result in results for fault in result["faults"]]
     assert faults == [('button "E"', 'div.cover "Cover"')], faults
     assert errors == []

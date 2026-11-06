@@ -8,10 +8,9 @@ import re
 
 import pytest
 
+from artifacts import artifact_html
 from browser.viewer import HOST_SCHEMES, open_viewer
 from documents import chapter, document, heading, paragraph
-from obs_html.config import load_config
-from obs_html.render import render
 
 # appearance -> the root's color-scheme
 APPEARANCES = {"light": "light", "dark": "dark", "system": "light dark"}
@@ -31,10 +30,10 @@ COLOURS = """() => {
 
 
 def appearance_artifact() -> str:
-    return render(document(
+    return artifact_html(document(
         "Appearance",
         chapter("one", "One", heading(1, "One"), paragraph("First chapter text.")),
-    ), load_config())
+    ))
 
 
 def rgba(value: str) -> tuple[float, float, float, float]:

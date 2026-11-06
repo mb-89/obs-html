@@ -6,14 +6,12 @@ then (artifact-ui.md, notice center).
 """
 import pytest
 
+from artifacts import artifact_html
 from browser.viewer import open_viewer
-from obs_html.config import load_config
-from obs_html.render import render
 from test_features import plain, with_context_note
 
 
 pytestmark = pytest.mark.browser
-CONFIG = load_config()
 # The canaries that read the frame's sandbox flags; the viewer hides them.
 UNDECIDED = ("printing", "downloads", "popups")
 
@@ -31,7 +29,7 @@ def _capability_notices(frame) -> dict[str, str]:
 
 def test_without_a_floating_window_no_popup_code_and_no_separate_windows_notice(tmp_path, reader_browser) -> None:
     errors: list[str] = []
-    html = render(plain(), CONFIG)
+    html = artifact_html(plain())
     assert "window.open" not in html
     _page, frame = open_viewer(tmp_path, reader_browser, errors, html, "light")
     notices = _capability_notices(frame)
@@ -42,7 +40,7 @@ def test_without_a_floating_window_no_popup_code_and_no_separate_windows_notice(
 
 def test_a_host_that_hides_its_sandbox_flags_raises_nothing_at_load_for_them(tmp_path, reader_browser) -> None:
     errors: list[str] = []
-    _page, frame = open_viewer(tmp_path, reader_browser, errors, render(with_context_note(), CONFIG), "light")
+    _page, frame = open_viewer(tmp_path, reader_browser, errors, artifact_html(with_context_note()), "light")
     notices = _capability_notices(frame)
     assert not set(UNDECIDED) & set(notices), f"undecided canaries warned at load: {notices}"
     undecided = frame.locator("html").evaluate("() => globalThis.obsCapabilities.results"
@@ -58,7 +56,7 @@ def test_a_blocked_separate_window_shows_its_reason_inline_and_warns_once(tmp_pa
     from playwright.sync_api import expect
 
     errors: list[str] = []
-    _page, frame = open_viewer(tmp_path, reader_browser, errors, render(with_context_note(), CONFIG), "light")
+    _page, frame = open_viewer(tmp_path, reader_browser, errors, artifact_html(with_context_note()), "light")
     _capability_notices(frame)
     frame.locator("html").evaluate("() => { obsPages.setPaged(false); obsArtifact.activateChapter('one'); }")
     link = frame.locator("[data-chapter-body] a[href='#aside']")
@@ -97,7 +95,7 @@ UNDECIDED_CLIPBOARD = """
 
 def test_a_host_stand_in_is_in_place_before_the_artifacts_first_script(tmp_path, reader_browser) -> None:
     errors: list[str] = []
-    _page, frame = open_viewer(tmp_path, reader_browser, errors, render(plain(), CONFIG), "light",
+    _page, frame = open_viewer(tmp_path, reader_browser, errors, artifact_html(plain()), "light",
                                init_script="globalThis.standInFirst = !document.getElementById('reader-startup-script');")
     assert frame.locator("html").evaluate("() => globalThis.standInFirst") is True
     assert errors == []
@@ -107,7 +105,7 @@ def test_a_refused_copy_shows_the_reason_inline_and_warns_once(tmp_path, reader_
     from playwright.sync_api import expect
 
     errors: list[str] = []
-    _page, frame = open_viewer(tmp_path, reader_browser, errors, render(plain(), CONFIG), "light",
+    _page, frame = open_viewer(tmp_path, reader_browser, errors, artifact_html(plain()), "light",
                                init_script=UNDECIDED_CLIPBOARD)
     _capability_notices(frame)
     assert frame.locator("html").evaluate("() => globalThis.obsCapabilities.undecided('clipboard')")
@@ -132,7 +130,7 @@ def test_a_refused_copy_shows_the_reason_inline_and_warns_once(tmp_path, reader_
 
 def test_download_changed_html_help_names_the_remedy_where_downloads_are_undecided(tmp_path, reader_browser) -> None:
     errors: list[str] = []
-    _page, frame = open_viewer(tmp_path, reader_browser, errors, render(plain(), CONFIG), "light")
+    _page, frame = open_viewer(tmp_path, reader_browser, errors, artifact_html(plain()), "light")
     _capability_notices(frame)
     # A new comment changes the HTML; the changed-HTML entry then holds Download changed HTML.
     frame.locator("html").evaluate("""() => {

@@ -11,6 +11,7 @@ import sys
 
 import pytest
 
+from artifacts import artifact_html
 from browser.viewer import open_viewer
 from conftest import PIXEL, built_once
 from documents import chapter, document as build, node, paragraph
@@ -108,7 +109,7 @@ def test_an_image_without_data_shows_its_alt_text_and_never_its_url() -> None:
 def test_with_the_network_blocked_a_fetched_remote_image_renders_and_a_failed_one_shows_its_label(
         tmp_path, reader_browser) -> None:
     errors: list[str] = []
-    _page, frame = open_viewer(tmp_path, reader_browser, errors, render(_remote_document(), CONFIG), "light")
+    _page, frame = open_viewer(tmp_path, reader_browser, errors, artifact_html(_remote_document()), "light")
     subtitle = frame.locator(".document-subtitle").first
     image = subtitle.locator('img[alt="Fetched"]')
     image.wait_for()

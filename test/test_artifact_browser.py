@@ -2,8 +2,8 @@
 
 import pytest
 
+from artifacts import artifact_html
 from conftest import FIXTURE, PIXEL
-from obs_html import cli
 
 
 pytestmark = pytest.mark.browser
@@ -19,23 +19,42 @@ def artifact_page(fixture_artifact, reader_browser):
     page.goto(artifact.as_uri())
     page.wait_for_function("document.documentElement.dataset.artifactStatus === 'ready'")
     yield page
-    page.close()
     assert errors == []
 
 
-def test_figures_draw_their_plot_and_sankey(artifact_page) -> None:
-    artifact_page.evaluate("obsArtifact.activateChapter('appendix')")
-    artifact_page.wait_for_selector("#appendix--figure-response.figure-plot-ready")
-    assert artifact_page.locator("#appendix--figure-response .scatterlayer .trace").count() == 2
-    assert artifact_page.locator("#appendix--figure-flow .sankey-node").count() == 3
+@pytest.fixture(scope="module")
+def shared_artifact_page(fixture_artifact, shared_reader_browser):
+    """The fixture artifact opened once for the module's checks that only open a chapter and read it."""
+    page = shared_reader_browser.new_page(viewport={"width": 1200, "height": 1000})
+    errors = []
+    page.on("pageerror", lambda error: errors.append(str(error)))
+    page.on("console", lambda message: message.type == "error" and errors.append(message.text))
+    page.goto(fixture_artifact.as_uri())
+    page.wait_for_function("document.documentElement.dataset.artifactStatus === 'ready'")
+    return page, errors
 
 
-def test_base_tables_evaluate_document_records_and_marks_show_their_icon(artifact_page) -> None:
-    artifact_page.evaluate("obsArtifact.activateChapter('intro')")
-    rows = artifact_page.locator('[data-data-table="intro-base-1"] tbody tr[data-row-key]')
+@pytest.fixture
+def read_only_page(shared_artifact_page):
+    """The shared fixture artifact page for one read-only check; no page error may arise during it."""
+    page, errors = shared_artifact_page
+    yield page
+    assert errors == []
+
+
+def test_figures_draw_their_plot_and_sankey(read_only_page) -> None:
+    read_only_page.evaluate("obsArtifact.activateChapter('appendix')")
+    read_only_page.wait_for_selector("#appendix--figure-response.figure-plot-ready")
+    assert read_only_page.locator("#appendix--figure-response .scatterlayer .trace").count() == 2
+    assert read_only_page.locator("#appendix--figure-flow .sankey-node").count() == 3
+
+
+def test_base_tables_evaluate_document_records_and_marks_show_their_icon(read_only_page) -> None:
+    read_only_page.evaluate("obsArtifact.activateChapter('intro')")
+    rows = read_only_page.locator('[data-data-table="intro-base-1"] tbody tr[data-row-key]')
     rows.first.wait_for()
     assert [row.get_attribute("data-row-key") for row in rows.all()] == ["note:beta", "note:alpha"]
-    assert artifact_page.locator(".semantic-mark-icon--risk .resource-icon").inner_text() == "!"
+    assert read_only_page.locator(".semantic-mark-icon--risk .resource-icon").inner_text() == "!"
 
 
 def test_the_print_book_holds_every_front_page_and_chapter(artifact_page) -> None:
@@ -55,10 +74,8 @@ def test_everything_on_the_title_page_is_centered(tmp_path, reader_browser) -> N
     document["assets"].append({"id": "a", "href": "https://badges.test/a.png", "mediaType": "image/png",
                                "data": PIXEL})
     document["manifest"]["metadata"]["confidentiality"] = "Internal"
-    source = tmp_path / "document.json"
-    source.write_text(json.dumps(document), encoding="utf-8")
     artifact = tmp_path / "artifact.html"
-    cli.main([str(source), str(artifact)])
+    artifact.write_text(artifact_html(document), encoding="utf-8")
     page = reader_browser.new_page(viewport={"width": 1200, "height": 1000})
     page.goto(artifact.as_uri())
     page.wait_for_function("document.documentElement.dataset.artifactStatus === 'ready'")
@@ -83,7 +100,6 @@ def test_everything_on_the_title_page_is_centered(tmp_path, reader_browser) -> N
         boxes.push(['header: ' + heading.closest('.paper-sheet').querySelector('.paper-header').textContent.trim(), 0]);
         return boxes;
     }""")
-    page.close()
     texts = [text for text, _offset in offsets]
     for expected in ("Example org", "Fixture document", "Specification", "Bridge", "img", "Ada, Lin"):
         assert any(expected in text for text in texts), (expected, texts)

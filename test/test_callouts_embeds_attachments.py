@@ -9,6 +9,7 @@ import json
 
 import pytest
 
+from artifacts import artifact_html
 from conftest import ROOT
 from obs_html.config import load_config
 from obs_html.errors import InputError
@@ -182,7 +183,7 @@ def test_callout_tones_are_distinct_titled_cards_in_the_reader(tmp_path, reader_
     document = build("Doc", chapter("one", "One", *(_callout(kind, kind.capitalize(), f"{kind} body.")
                                                    for kind in kinds)))  # The core's titles.
     artifact = tmp_path / "artifact.html"
-    artifact.write_text(render(document, CONFIG), encoding="utf-8")
+    artifact.write_text(artifact_html(document), encoding="utf-8")
     page = reader_browser.new_page(viewport={"width": 1200, "height": 1000})
     errors = []
     page.on("pageerror", lambda error: errors.append(str(error)))
@@ -203,5 +204,4 @@ def test_callout_tones_are_distinct_titled_cards_in_the_reader(tmp_path, reader_
         assert len({card["border"] for card in cards}) == len(kinds)
         assert len({card["fill"] for card in cards}) == len(kinds)
         assert all(card["titleColor"] == card["border"] for card in cards)
-    page.close()
     assert errors == []

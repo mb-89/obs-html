@@ -4,10 +4,9 @@ from pathlib import Path
 
 import pytest
 
+from artifacts import artifact_html
 from documents import chapter, document, heading, paragraph
 from preview import SANDBOXES, click_where_visible, http_origin, open_preview
-from obs_html.config import load_config
-from obs_html.render import render
 
 
 def keep_screenshot(page, name: str) -> None:
@@ -18,12 +17,12 @@ def keep_screenshot(page, name: str) -> None:
 
 
 def preview_artifact() -> str:
-    return render(document(
+    return artifact_html(document(
         "Preview",
         chapter("one", "One", heading(1, "One"), paragraph("First chapter text.")),
         chapter("two", "Two", heading(1, "Two"), paragraph("Second chapter text.")),
         chapter("three", "Three", heading(1, "Three"), paragraph("Third chapter text.")),
-    ), load_config())
+    ))
 
 
 def open_page(reader_browser, path: Path, errors: list[str]):
@@ -60,10 +59,18 @@ def test_artifact_runs_as_srcdoc_of_a_scripts_only_sandbox(tmp_path: Path, reade
 
 
 
-@pytest.mark.browser
-def test_canaries_find_what_a_scripts_only_sandbox_limits(tmp_path: Path, reader_browser) -> None:
+@pytest.fixture(scope="module")
+def shared_sandboxed(tmp_path_factory, shared_reader_browser):
+    """The preview artifact opened once in the scripts-only sandbox, and the errors it raises, for
+    the module's checks that only read what its canaries found."""
     errors: list[str] = []
-    _page, frame = open_sandboxed(tmp_path, reader_browser, errors)
+    _page, frame = open_sandboxed(tmp_path_factory.mktemp("sandboxed"), shared_reader_browser, errors)
+    return frame, errors
+
+
+@pytest.mark.browser
+def test_canaries_find_what_a_scripts_only_sandbox_limits(shared_sandboxed) -> None:
+    frame, errors = shared_sandboxed
     limits = frame.locator("html").evaluate("() => globalThis.obsCapabilities.limits")
     assert [entry["key"] for entry in limits] == ["history", "storage", "clipboard"]
     assert all(entry["refused"] and entry["reason"] and entry["remedy"] for entry in limits)
@@ -223,12 +230,11 @@ def test_applying_or_clearing_a_filter_does_not_claim_the_html_changed(
 
 
 @pytest.mark.browser
-def test_each_canary_says_what_it_observed(tmp_path: Path, reader_browser) -> None:
+def test_each_canary_says_what_it_observed(shared_sandboxed) -> None:
     """The notice's details name each canary and what it saw, so its count can be read off."""
     from playwright.sync_api import expect
 
-    errors: list[str] = []
-    _page, frame = open_sandboxed(tmp_path, reader_browser, errors)
+    frame, errors = shared_sandboxed
     results = frame.locator("html").evaluate("() => globalThis.obsCapabilities.results")
     assert [entry["key"] for entry in results] == [
         "history", "storage", "printing", "downloads", "clipboard"]

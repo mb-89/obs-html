@@ -12,13 +12,12 @@ import sys
 from pathlib import Path
 
 import pytest
+from artifacts import artifact_html
 from browser.viewer import open_viewer
-from conftest import CORE_ROOT, ROOT
+from conftest import CORE_ROOT, ROOT, built_once
 from documents import chapter, document, heading, paragraph
 
 from obs_html.cli import main as obs_html
-from obs_html.config import load_config
-from obs_html.render import render
 
 pytestmark = pytest.mark.browser
 
@@ -81,14 +80,14 @@ def assert_contents_and_walk(tmp_path: Path, reader_browser, artifact: str, chap
 
 
 def band_artifact() -> str:
-    return render(document(
+    return artifact_html(document(
         "Band",
         chapter("one", LONG, heading(1, LONG), paragraph("Parent text."), children=(
             chapter("one-a", LONG + " too", heading(1, "Child"), paragraph("Child text."),
                     metadata={"status": "draft"}),
         )),
         chapter("two", "Two", heading(1, "Two"), paragraph("Second chapter text.")),
-    ), load_config())
+    ))
 
 
 @pytest.mark.parametrize("width", WIDTHS)
@@ -139,11 +138,11 @@ REPEATED_HEADINGS = """() => [...document.querySelectorAll(".paper-sheet")].flat
 def test_the_title_page_shows_the_document_type_once(tmp_path: Path, reader_browser) -> None:
     from playwright.sync_api import expect
 
-    artifact = render(document(
+    artifact = artifact_html(document(
         "Product", chapter("one", "One", heading(1, "One"), paragraph("Text.")),
         metadata={"document type": "Design specification", "product": {"name": "Widget"},
                   "confidentiality": "Internal"},
-    ), load_config())
+    ))
     errors: list[str] = []
     _page, frame = open_viewer(tmp_path, reader_browser, errors, artifact, "light")
     expect(frame.locator("[data-active-chapter]")).to_have_attribute("data-chapter", "home")
@@ -166,7 +165,7 @@ def test_the_contents_and_previous_next_walk_the_same_chapters(tmp_path: Path, r
     """The Document as the core emits a manifest with a hidden line: the hidden line is no chapter,
     and a note the manifest does not list is a `toc: false` chapter, reachable only by its link."""
     unlisted = {**chapter("secret", "Secret", paragraph("Reached by link only.")), "toc": False}
-    artifact = render(document(
+    artifact = artifact_html(document(
         "Walk",
         chapter("one", "One", paragraph("One."), children=(
             chapter("one-a", "One A", paragraph("One A.")),
@@ -174,32 +173,40 @@ def test_the_contents_and_previous_next_walk_the_same_chapters(tmp_path: Path, r
             chapter("one-b", "One B", paragraph("One B.")),
         )),
         chapter("two", "Two", paragraph("Two.")),
-    ), load_config())
+    ))
     assert_contents_and_walk(tmp_path, reader_browser, artifact, ["one", "one-a", "one-b", "two"])
 
 
+@pytest.fixture(scope="module")
+def commented_manifest_artifact(tmp_path_factory) -> str:
+    """A vault whose manifest comments lines out, built by obs-document and rendered by obs-html, once per run."""
+    def build(folder: Path) -> None:
+        vault = folder / "vault"
+        vault.mkdir()
+        (vault / "manifest.md").write_text(
+            "---\ntitle: Walk\n---\n- [[one]]\n  - [[one-a]]\n  %% - [[secret]] %%\n  - [[one-b]]\n"
+            "%%\n- [[gone]]\n%%\n- [[two]]\n", encoding="utf-8",
+        )
+        for name in ("one", "one-a", "one-b", "two"):
+            (vault / f"{name}.md").write_text(f"{name} body.\n", encoding="utf-8")
+        built, capabilities = folder / "document.json", folder / "capabilities.json"
+        subprocess.run([sys.executable, "-m", "obs.capabilities", "--notes",
+                        str(CORE_ROOT / "spec" / "capabilities"), "--output", str(capabilities)], check=True)
+        subprocess.run([sys.executable, "-m", "obs.document", "--source", str(vault / "manifest.md"),
+                        "--document", str(built), "--capability-reference", str(capabilities)], check=True)
+        assert obs_html([str(built), str(folder / "artifact.html")]) == 0
+
+    return (built_once(tmp_path_factory, "commented-manifest-artifact", build) / "artifact.html").read_text(
+        encoding="utf-8")
+
+
 def test_a_manifest_with_commented_lines_walks_its_visible_chapters_end_to_end(
-    tmp_path: Path, reader_browser,
+    tmp_path: Path, reader_browser, commented_manifest_artifact: str,
 ) -> None:
     """The same walk through obs-document and obs-html: the core hides the `%%` manifest lines,
     so the contents and previous/next walk one, one-a, one-b and two."""
-    vault = tmp_path / "vault"
-    vault.mkdir()
-    (vault / "manifest.md").write_text(
-        "---\ntitle: Walk\n---\n- [[one]]\n  - [[one-a]]\n  %% - [[secret]] %%\n  - [[one-b]]\n"
-        "%%\n- [[gone]]\n%%\n- [[two]]\n", encoding="utf-8",
-    )
-    for name in ("one", "one-a", "one-b", "two"):
-        (vault / f"{name}.md").write_text(f"{name} body.\n", encoding="utf-8")
-    built, capabilities = tmp_path / "document.json", tmp_path / "capabilities.json"
-    subprocess.run([sys.executable, "-m", "obs.capabilities", "--notes",
-                    str(CORE_ROOT / "spec" / "capabilities"), "--output", str(capabilities)], check=True)
-    subprocess.run([sys.executable, "-m", "obs.document", "--source", str(vault / "manifest.md"),
-                    "--document", str(built), "--capability-reference", str(capabilities)], check=True)
-    destination = tmp_path / "artifact.html"
-    assert obs_html([str(built), str(destination)]) == 0
     assert_contents_and_walk(
-        tmp_path, reader_browser, destination.read_text(encoding="utf-8"), ["one", "one-a", "one-b", "two"],
+        tmp_path, reader_browser, commented_manifest_artifact, ["one", "one-a", "one-b", "two"],
     )
 
 
@@ -220,8 +227,8 @@ HEADING_IN_VIEW = """() => {
 def test_a_whole_note_self_link_scrolls_back_to_its_heading(tmp_path: Path, reader_browser) -> None:
     """The self-link fixture with the Comments bar docked right: review mode makes the body wider
     than the reader, so the reader scrolls down and sideways to the note's link to itself. Clicking it shows the heading; activating it again at the top moves nothing."""
-    artifact = render(json.loads((ROOT / "test" / "fixtures" / "documents" / "self-link.json")
-                                 .read_text(encoding="utf-8")), load_config())
+    artifact = artifact_html(json.loads((ROOT / "test" / "fixtures" / "documents" / "self-link.json")
+                                 .read_text(encoding="utf-8")))
     errors: list[str] = []
     page, frame = open_viewer(tmp_path, reader_browser, errors, artifact, "light")
     frame.evaluate("""async () => {

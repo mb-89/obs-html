@@ -12,7 +12,7 @@ from obs_html import cli
 PIXEL = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
 
 
-def test_pdf_destination_prints_the_rendered_document(tmp_path, capsys) -> None:
+def test_pdf_destination_prints_the_rendered_document(pdf_browser, tmp_path, capsys) -> None:
     destination = tmp_path / "artifact.pdf"
     (tmp_path / "images").mkdir()
     (tmp_path / "images" / "logo.png").write_bytes(base64.b64decode(PIXEL))
@@ -25,7 +25,7 @@ def test_pdf_destination_prints_the_rendered_document(tmp_path, capsys) -> None:
     assert sorted(path.name for path in tmp_path.iterdir()) == ["artifact.pdf", "images"]
 
 
-def test_export_pdf_and_rendered_check_read_existing_html(fixture_artifact, tmp_path, capsys) -> None:
+def test_export_pdf_and_rendered_check_read_existing_html(pdf_browser, fixture_artifact, tmp_path, capsys) -> None:
     html = fixture_artifact
     cli.main(["--export-pdf", str(html), "--output", str(tmp_path / "artifact.pdf")])
     assert PdfReader(tmp_path / "artifact.pdf").pages
@@ -33,7 +33,7 @@ def test_export_pdf_and_rendered_check_read_existing_html(fixture_artifact, tmp_
     assert "status ready, 0 console errors," in capsys.readouterr().out
 
 
-def test_rendered_check_fails_on_console_errors(tmp_path, capsys) -> None:
+def test_rendered_check_fails_on_console_errors(pdf_browser, tmp_path, capsys) -> None:
     html = tmp_path / "broken.html"
     html.write_text('<!doctype html><html data-artifact-status="ready"><script>console.error("bad")</script>',
                     encoding="utf-8")
