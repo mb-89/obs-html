@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import base64
 import json
-import math
 import re
 import sys
 from contextlib import contextmanager
@@ -539,15 +538,8 @@ def _property_editor(node: dict[str, object], context: Context) -> str:
         raise InputError(source, f"{fence}.field", f"names {field!r}, which another property editor of the "
                          "note edits", "Keep one editor per field")
     definition: dict[str, object] = {"label": spec["label"], "maxLength": limit}
-    projection = spec.get("projection")
-    if projection is not None:
-        for branch in ("blank", "nonblank"):
-            for name, value in projection[branch].items():
-                if name == field or name.lower() in PROTECTED_FIELDS or name not in context.frontmatter \
-                        or not _projection_matches(context.frontmatter[name], value):
-                    raise InputError(source, f"{fence}.projection.{branch}.{name}", "must be another existing, "
-                                     "unprotected field of the same type", "Project onto such a field")
-        definition["projection"] = projection
+    if "projection" in spec:  # The core enforces its rules (obs capabilities/property-editors).
+        definition["projection"] = spec["projection"]
     context.editable[field] = definition
     label = escape(spec["label"])
     return ('<label class="property-editor">'
@@ -555,31 +547,6 @@ def _property_editor(node: dict[str, object], context: Context) -> str:
             f'<textarea data-property-editor data-property-note="{escape(context.chapter, quote=True)}" '
             f'data-property-field="{escape(field, quote=True)}" maxlength="{limit}" '
             f'aria-label="{escape(spec["label"], quote=True)}" rows="2"></textarea></label>\n')
-
-
-def _projection_kind(value: object) -> str | None:
-    """The kinds a projection may write, as artifact.js checks them: one primitive, or a list of one."""
-    if value is None:
-        return "null"
-    if isinstance(value, bool):
-        return "boolean"
-    if isinstance(value, str):
-        return "string"
-    if isinstance(value, (int, float)):
-        return "number" if math.isfinite(value) else None
-    if isinstance(value, list):
-        kinds = {_projection_kind(item) for item in value}
-        return "array" if None not in kinds and len(kinds) <= 1 else None
-    return None
-
-
-def _projection_matches(existing: object, projected: object) -> bool:
-    kind = _projection_kind(projected)
-    if kind is None or _projection_kind(existing) != kind:
-        return False
-    if kind != "array" or not existing or not projected:
-        return True
-    return _projection_kind(existing[0]) == _projection_kind(projected[0])
 
 
 CAPABILITIES: dict[str, Renderer] = {

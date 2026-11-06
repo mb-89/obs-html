@@ -113,42 +113,12 @@ def test_property_editor_projection_preserves_supported_arrays() -> None:
     assert notes["one"]["editableProperties"]["explanation"]["projection"] == projection
 
 
-@pytest.mark.parametrize("field", [
-    "title", "kind", "aliases", "term", "definition",
-    "__proto__", "constructor", "prototype", "Title", "KiNd",
-])
-@pytest.mark.parametrize("branch", ["blank", "nonblank"])
-def test_property_editor_projection_rejects_protected_fields(field, branch) -> None:
-    value, replacement = (["Original"], ["Changed"]) if field == "aliases" else ("Original", "Changed")
-    projection = {"blank": {field: replacement} if branch == "blank" else {"status": "Initial"},
-                  "nonblank": {field: replacement} if branch == "nonblank" else {"status": "Initial"}}
-    with pytest.raises(InputError) as failure:
-        render(_editor({"version": 1, "field": "explanation", "label": "Review", "projection": projection},
-                       {"explanation": "Original", "status": "Initial", field: value}), CONFIG)
-    assert (failure.value.source, failure.value.field) == ("chapter one", f"property-editor.projection.{branch}.{field}")
-
-
 @pytest.mark.parametrize("field,value", [("missing", "text"), ("explanation", 42), ("title", "semantic")])
 def test_property_editor_rejects_missing_nontext_or_semantic_fields(field, value) -> None:
     with pytest.raises(InputError) as failure:
         render(_editor({"version": 1, "field": field, "label": "Review"},
                        {"explanation": value, "title": value}), CONFIG)
     assert (failure.value.source, failure.value.field) == ("chapter one", "property-editor.field")
-
-
-@pytest.mark.parametrize("projection", [
-    {"blank": {"missing": "value"}, "nonblank": {"status": "ok"}},
-    {"blank": {"explanation": "replaced"}, "nonblank": {"status": "ok"}},
-    {"blank": {"status": {"nested": "value"}}, "nonblank": {"status": "ok"}},
-    {"blank": {"status": ["mixed", 2]}, "nonblank": {"status": "ok"}},
-    {"blank": {"status": 5}, "nonblank": {"status": "ok"}},
-])
-def test_property_editor_rejects_unsafe_or_type_mismatched_projection(projection) -> None:
-    with pytest.raises(InputError) as failure:
-        render(_editor({"version": 1, "field": "explanation", "label": "Review", "projection": projection},
-                       {"explanation": "Original", "status": "explained", "accepted": "yes"}), CONFIG)
-    [name] = projection["blank"]
-    assert (failure.value.source, failure.value.field) == ("chapter one", f"property-editor.projection.blank.{name}")
 
 
 @pytest.mark.parametrize("fence,field", [
