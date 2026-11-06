@@ -225,3 +225,73 @@ def test_the_readers_changes_survive_a_resize_between_the_table_and_the_rows(pho
     assert back == {"weight": "1", "mark": "−−"}
     assert page.evaluate("obsPugh.readerState()")[THREE]["weights"] == {"places": 1}
     assert errors == []
+
+
+# What a walk arrow lies over in the active chapter's screen (artifact-ui.md, Screens): each text and
+# matrix element sampled at its start, middle and end on its middle line, and the side gutters
+# beside the text, where the arrows float, every 40 px down the screen; each point where the
+# topmost element is an arrow is named.
+UNDER_ARROWS = """() => {
+    const body = document.querySelector('[data-active-chapter] .chapter-body');
+    const arrow = (x, y) => document.elementFromPoint(x, y)?.closest('.chapter-nav-zone');
+    const shown = node => node.getClientRects().length > 0;
+    const leaves = [...body.querySelectorAll('h1, h2, h3, p, li, dt, dd, th, td, button, [data-pugh-head], [data-pugh-mark]')]
+        .filter(node => shown(node) && node.textContent.trim());
+    const text = leaves.filter(node => {
+        const box = node.getBoundingClientRect(), y = box.top + box.height / 2;
+        return y > 0 && y < innerHeight && [box.left + 1, box.left + box.width / 2, box.right - 1].some(x => arrow(x, y));
+    }).map(node => node.dataset.pughMark || node.dataset.pughHead || node.textContent.trim().slice(0, 30));
+    const top = body.closest('[data-chapter-scroll]').getBoundingClientRect().top, gutters = [];
+    for (let y = top + 20; y < innerHeight; y += 40) for (const x of [4, innerWidth - 4]) if (arrow(x, y)) gutters.push(`gutter ${x},${Math.round(y)}`);
+    return [...text, ...gutters];
+}"""
+
+
+def test_in_screens_on_a_phone_no_walk_arrow_lies_over_the_screen(phone_browser, deck):
+    page, errors = _open(phone_browser, deck, 390, "three")
+    scroll = "document.querySelector('[data-active-chapter] .chapter-body').closest('[data-chapter-scroll]')"
+    covered = []
+    for top in range(0, page.evaluate(f"{scroll}.scrollHeight"), 600):
+        page.evaluate(f"{scroll}.scrollTo(0, {top})")
+        covered += page.evaluate(UNDER_ARROWS)
+    margins = page.evaluate("getComputedStyle(document.querySelector('[data-active-chapter] .chapter-body')).paddingInline")
+
+    assert page.evaluate("document.documentElement.classList.contains('screens-mode')")
+    assert covered == []
+    # The gutter the arrows held goes to the content: a text margin is left on each side.
+    assert margins == "12px"
+    assert errors == []
+
+
+def test_with_a_mouse_the_walk_arrows_stay_in_screens(reader_browser, deck):
+    page, errors = _open(reader_browser, deck, 1200, "three")
+    zones = page.evaluate("""() => [...document.querySelectorAll('.chapter-nav-zone')]
+        .map(zone => Math.round(zone.getBoundingClientRect().width))""")
+    margins = page.evaluate("getComputedStyle(document.querySelector('[data-active-chapter] .chapter-body')).paddingInline")
+
+    assert page.evaluate("document.documentElement.classList.contains('screens-mode')")
+    assert zones == [28, 28] and margins == "28px"
+    assert errors == []
+
+
+# The option card's visible lines, and the option's short name and label (artifact-ui.md, Decision figures).
+CARD = """anchor => {
+    const card = document.querySelector(`#${anchor} .pugh-option`);
+    const line = selector => { const node = card.querySelector(selector); return node && node.getClientRects().length ? node.textContent.trim() : null; };
+    return {name: line('.pugh-option-name'), label: line('.pugh-option-label'), what: line('.pugh-option-what')};
+}"""
+
+
+@pytest.mark.parametrize("anchor, labels", [
+    (THREE, [None, None, None]),
+    (FIVE, [None, None, None, "A page of the team wiki", None])])
+def test_the_option_card_says_each_name_once(phone_browser, deck, anchor, labels):
+    page, errors = _open(phone_browser, deck, 390, anchor.split("--")[0])
+    cards = []
+    for _ in labels:
+        cards.append(page.evaluate(CARD, anchor))
+        page.locator(f"#{anchor} .pugh-next").tap()
+
+    assert [card["label"] for card in cards] == labels
+    assert all(card["what"] for card in cards)
+    assert errors == []

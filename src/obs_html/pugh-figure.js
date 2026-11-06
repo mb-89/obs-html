@@ -26,6 +26,14 @@ globalThis.obsPugh = (() => {
   const signed = value => (value > 0 ? `+${number(value)}` : value < 0 ? `−${number(-value)}` : "0");
   const symbol = mark => (mark === null || mark === undefined ? "?" : engine().SYMBOL[Math.round(mark)]);
   const letterOf = index => String.fromCharCode(65 + index);
+  /** Whether an option's label says more than its short name, so the option card shows it under
+      it (artifact-ui.md, Decision figures): not where the short name's words are all the label's
+      words or a run of them, "Two lines" of "Keep two lines"; always where there is no short name. */
+  const labelAdds = (short, label) => {
+    const words = text => (text ?? "").toLowerCase().match(/[\p{L}\p{N}]+/gu) || [];
+    const name = words(short), said = words(label);
+    return !name.length || !said.some((_, start) => name.every((word, index) => said[start + index] === word));
+  };
   /** An option where there is room: its letter and short name, "B · Close". */
   const tag = option => (option.short ? `${option.letter} · ${option.short}` : option.letter);
 
@@ -194,7 +202,7 @@ globalThis.obsPugh = (() => {
     const card = element("div", {className: "pugh-option", tabIndex: 0},
       element("p", {className: "pugh-option-count", textContent: `Option ${option.letter} of ${count}`}),
       element("p", {className: "pugh-option-name"}, named(option)),
-      option.name !== option.short ? element("p", {className: "pugh-option-label", textContent: option.name}) : null,
+      labelAdds(option.short, option.name) ? element("p", {className: "pugh-option-label", textContent: option.name}) : null,
       option.what ? element("p", {className: "pugh-option-what", textContent: option.what}) : null);
     card.dataset.pughOption = option.letter;
     card.setAttribute("aria-roledescription", "options, one at a time");
@@ -689,5 +697,5 @@ globalThis.obsPugh = (() => {
   /** A figure's options as it letters and names them: letter, name and short name (model), for the
       bless pill's "Picked B · Close" (bless.js). */
   const options = spec => model(spec).options.map(({letter, name, short}) => ({letter, name, short}));
-  return {render, print, option, reveal, decide, allWeights, readerState, options, VIEW_NOTE};
+  return {render, print, option, reveal, decide, allWeights, readerState, options, labelAdds, VIEW_NOTE};
 })();
