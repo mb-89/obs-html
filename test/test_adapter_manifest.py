@@ -23,10 +23,22 @@ def test_adapter_manifest_declares_exactly_the_rendered_capabilities() -> None:
     assert _manifest()["capabilities"] == sorted(CAPABILITIES)
 
 
+def _note(capability: str, core_root: Path) -> str:
+    """The note of a declared capability: the core's capability note, or this adapter's own
+    behavior note (kind adapter-behavior), which lives in this adapter's specification."""
+    core, own = core_root / "spec" / "capabilities", ROOT / "spec" / "capabilities"
+    path = core / f"{capability}.md"
+    if not path.is_file():
+        path = own / f"{capability}.md"
+        assert path.is_file(), (
+            f"adapter.json: capability {capability} has no note in {core} or {own}; add its note")
+        assert re.search(r"^kind: adapter-behavior$", path.read_text(encoding="utf-8"), re.MULTILINE), path
+    return path.read_text(encoding="utf-8")
+
+
 def test_declared_capabilities_exist_in_the_core_reference(core_root: Path) -> None:
-    notes = core_root / "spec" / "capabilities"
     for capability in _manifest()["capabilities"]:
-        note = (notes / f"{capability}.md").read_text(encoding="utf-8")
+        note = _note(capability, core_root)
         assert re.search(rf"^  id: {re.escape(capability)}$", note, re.MULTILINE), capability
 
 
@@ -44,10 +56,8 @@ def test_fixture_is_a_contract_valid_document_using_every_capability(
     list: an adapter behavior (kind adapter-behavior) is no Document capability, and no vault
     yields an extensions node, which has no input-model contract yet (capabilities/extensions)."""
     document_validator.validate(document)
-    notes = core_root / "spec" / "capabilities"
     listed = [capability for capability in _manifest()["capabilities"] if capability != "extensions"
-              and re.search(r"^kind: capability$", (notes / f"{capability}.md").read_text(encoding="utf-8"),
-                            re.MULTILINE)]
+              and re.search(r"^kind: capability$", _note(capability, core_root), re.MULTILINE)]
     assert document["capabilities"] == listed
 
 
