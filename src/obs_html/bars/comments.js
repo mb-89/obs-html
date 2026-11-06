@@ -1203,7 +1203,7 @@
         clonedIsland.textContent = escapeJson(reviewedData);
         const artifactIsland = clone.querySelector("[data-artifact-data]");
         const model = globalThis.obsArtifact?.serializeModel?.() || artifactIsland.textContent;
-        globalThis.obsRunningHeader.snapshot(clone, JSON.parse(model).document.metadata);
+        globalThis.obsRunningHeader.snapshot(clone, JSON.parse(model).document.metadataHtml);
         clone.querySelectorAll("[data-review-gutter]").forEach((gutter) => gutter.remove());
         clone.querySelectorAll("[data-review-item]").forEach((item) => {
             item.removeAttribute("data-review-item");

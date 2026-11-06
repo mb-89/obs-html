@@ -142,10 +142,15 @@ def test_a_record_path_is_its_note_source_path() -> None:
     assert notes["items-beta"]["sourcePath"] == "items/beta.md"
 
 
-def test_frontmatter_wikilinks_link_the_chapter_their_record_path_names() -> None:
+def test_frontmatter_wikilinks_link_the_chapter_the_core_names() -> None:
     fields = {"dependsOn": ["[[capabilities/markdown]]", "[[wikilinks|Links]]", "[[gone]]", "[[detail]]"]}
+    links = [("capabilities/markdown", "capabilities-markdown", "capabilities/markdown"),
+             ("wikilinks", "capabilities-wikilinks", "Links"), ("gone", None, "gone"), ("detail", None, "detail")]
+    nodes = {f"dependsOn.{index}": [node("wikilinks", target=target, chapter=chapter_id, heading="", label=label)]
+             for index, (target, chapter_id, label) in enumerate(links)}
     source = build("Links", chapter("capabilities-markdown", "Markdown"),
-                   chapter("capabilities-wikilinks", "Wikilinks"), chapter("capabilities-bases", "Bases"),
+                   chapter("capabilities-wikilinks", "Wikilinks"),
+                   chapter("capabilities-bases", "Bases", metadata=fields, fields=nodes),
                    records=(
                        {"id": "capabilities-markdown", "type": "note", "path": "capabilities/markdown.md",
                         "fields": {}},
@@ -257,22 +262,28 @@ def test_island_compression_follows_the_settings(document, tmp_path) -> None:
     assert re.search(r'<script id="artifact-data" type="application/json"[^>]*data-compression="none"', html)
 
 
-def test_metadata_markdown_renders_inline_on_the_cover_and_in_the_frontmatter_panel(document) -> None:
+def test_metadata_renders_from_its_field_nodes_on_the_cover_and_in_the_frontmatter_panel(document) -> None:
     metadata = document["manifest"]["metadata"]
     metadata["subtitle"] = ("Bridge **subtitle** ![Obsidian](https://example.invalid/obsidian.svg) → "
                             "![HTML](https://example.invalid/html.svg) <b>raw</b>")
+    document["manifest"]["abstract"][0]["children"] = [{"type": "field", "attrs": {"name": "subtitle"}, "children": [
+        text("Bridge "), {"type": "strong", "attrs": {}, "children": [text("subtitle")]}, text(" "),
+        node("attachments", asset="obsidian", label="Obsidian"), text(" → "),
+        node("attachments", asset="html", label="HTML"), text(" <b>raw</b>")]}]
     document["assets"] += [  # The core fetched the first badge and could not fetch the second.
         {"id": "obsidian", "href": "https://example.invalid/obsidian.svg", "mediaType": "image/png", "data": PIXEL},
         {"id": "html", "href": "https://example.invalid/html.svg", "mediaType": "image/svg+xml"}]
     document["chapters"][0]["metadata"]["source"] = "https://example.org/a?b=1&c=2"
     document["chapters"][0]["content"][0]["attrs"]["metadata"]["source"] = "https://example.org/a?b=1&c=2"
+    document["chapters"][0]["content"][0]["children"] = [  # The core keeps a bare URL text.
+        {"type": "field", "attrs": {"name": "source"}, "children": [text("https://example.org/a?b=1&c=2")]}]
     notes = _notes(document)
     home = notes["home"]["html"]
     assert ('<div class="document-subtitle">Bridge <strong>subtitle</strong> '
             f'<img src="data:image/png;base64,{PIXEL}" alt="Obsidian"> → '
             '<span class="image-unavailable" role="img" aria-label="HTML">HTML</span> &lt;b&gt;raw&lt;/b&gt;</div>') in home
     panel = notes["intro"]["frontmatterHtml"]
-    assert panel["source"] == '<a href="https://example.org/a?b=1&amp;c=2">https://example.org/a?b=1&amp;c=2</a>'
+    assert panel["source"] == "https://example.org/a?b=1&amp;c=2"
     assert panel["tags"] == "a, b"
 
 

@@ -1,0 +1,82 @@
+"""Metadata renders from the Document's ``field`` nodes, never from the authored strings.
+
+The core parses every nonempty frontmatter string into one ``field`` node of inline nodes
+(obs markdown-frontmatter.md, Document node); the cover, the title page, the running header and
+the frontmatter panels render those nodes, so the strings in ``attrs.metadata`` are data only.
+"""
+import base64
+import json
+import subprocess
+import sys
+
+from conftest import PIXEL, built_once
+from obs_html.artifact_data import decode_artifact_data
+from obs_html.config import load_config
+from obs_html.render import render
+
+
+CONFIG = load_config()
+SUBTITLE = "A **bold** $x^2$ ![Mark](media/pixel.png)"
+
+
+def _vault_document(folder, core_root) -> None:
+    """A Document the core builds from a manifest and a chapter whose metadata holds Markdown and TeX."""
+    vault = folder / "vault"
+    (vault / "media").mkdir(parents=True)
+    (vault / "media" / "pixel.png").write_bytes(base64.b64decode(PIXEL))
+    (vault / "manifest.md").write_text(
+        f'---\ntitle: Fields\nsubtitle: "{SUBTITLE}"\ndocument type: "*Spec*"\n'
+        'product:\n  name: "**Widget**"\nconfidentiality: "`internal`"\nauthors: ["**Ada**", Lin]\n'
+        'organization: Org & Co\n---\n- [[chapter]]\n', encoding="utf-8")
+    (vault / "chapter.md").write_text(
+        '---\nformula: "$a+b$"\nraw: "<b>raw</b>"\nrank: 2\n---\n# Chapter\n\nText.\n', encoding="utf-8")
+    run = [sys.executable, "-m"]
+    subprocess.run([*run, "obs.capabilities", "--notes", str(core_root / "spec" / "capabilities"),
+                    "--output", str(folder / "capabilities.json")], check=True)
+    subprocess.run([*run, "obs.document", "--source", str(vault / "manifest.md"),
+                    "--document", str(folder / "document.json"),
+                    "--capability-reference", str(folder / "capabilities.json")], check=True)
+
+
+def _model(tmp_path_factory, core_root) -> dict:
+    """The island of the core's Document whose metadata strings no longer say what the nodes say:
+    whatever renders from a string shows the tampered text."""
+    folder = built_once(tmp_path_factory, "metadata-fields", lambda path: _vault_document(path, core_root))
+    document = json.loads((folder / "document.json").read_text(encoding="utf-8"))
+    frontmatter = next(node for node in document["manifest"]["abstract"] if node["type"] == "markdown-frontmatter")
+    for metadata in (document["manifest"]["metadata"], frontmatter["attrs"]["metadata"]):
+        metadata.update({"subtitle": "tampered", "document type": "tampered", "product": {"name": "tampered"}})
+    chapter = document["chapters"][0]
+    for metadata in (chapter["metadata"], chapter["content"][0]["attrs"]["metadata"]):
+        metadata["formula"] = "tampered"
+    return decode_artifact_data(render(document, CONFIG))
+
+
+def test_a_subtitle_renders_bold_text_a_formula_and_an_image_from_its_nodes(tmp_path_factory, core_root) -> None:
+    model = _model(tmp_path_factory, core_root)
+    home = next(note for note in model["notes"] if note["slug"] == "home")["html"]
+    subtitle = home.split('<div class="document-subtitle">', 1)[1].split("</div>", 1)[0]
+    assert subtitle.startswith("A <strong>bold</strong> <span class=\"math inline\"><math")
+    assert "<mi>x</mi>" in subtitle and "<mn>2</mn>" in subtitle
+    assert subtitle.endswith(f'<img src="data:image/png;base64,{PIXEL}" alt="Mark">')
+    assert '<p class="cover-type"><em>Spec</em></p>' in home
+    assert '<dd><strong>Ada</strong>, Lin</dd>' in home
+    assert "tampered" not in home
+
+
+def test_the_running_header_and_the_page_frame_read_the_metadata_html(tmp_path_factory, core_root) -> None:
+    metadata = _model(tmp_path_factory, core_root)["document"]["metadataHtml"]
+    assert metadata["document type"] == "<em>Spec</em>"
+    assert metadata["product.name"] == "<strong>Widget</strong>"
+    assert metadata["confidentiality"] == "<code>internal</code>"
+    assert metadata["authors"] == "<strong>Ada</strong>, Lin"
+    assert metadata["organization"] == "Org &amp; Co"
+
+
+def test_the_frontmatter_panel_renders_field_nodes_and_values_without_one_as_text(
+        tmp_path_factory, core_root) -> None:
+    note = next(note for note in _model(tmp_path_factory, core_root)["notes"] if note["slug"] == "chapter")
+    panel = note["frontmatterHtml"]
+    assert panel["formula"].startswith('<span class="math inline"><math') and "<mi>a</mi>" in panel["formula"]
+    assert panel["raw"] == "&lt;b&gt;raw&lt;/b&gt;"
+    assert panel["rank"] == "2"

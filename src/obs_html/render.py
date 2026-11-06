@@ -93,12 +93,13 @@ def _nothing(_node: dict[str, object], _context: Context) -> str:
 
 
 def _frontmatter(node: dict[str, object], context: Context) -> str:
-    """A chapter's frontmatter feeds its frontmatter panel, filters and Base rows, not its body; its
-    field nodes are the panel's display HTML, by dotted path."""
+    """A note's frontmatter feeds its frontmatter panel, filters and Base rows, not its body; its
+    field nodes are its display HTML, by dotted path: a chapter's panel, and the manifest's cover,
+    title page and running header (the manifest's abstract renders with no chapter)."""
     if context.chapter:
         context.frontmatter.update(node["attrs"]["metadata"])
-        context.fields[context.chapter] = {child["attrs"]["name"]: _nodes(child["children"], context)
-                                           for child in node["children"] if child["type"] == "field"}
+    context.fields[context.chapter or HOME] = {child["attrs"]["name"]: _nodes(child["children"], context)
+                                               for child in node["children"] if child["type"] == "field"}
     return ""
 
 
@@ -646,8 +647,10 @@ def _model(document: dict[str, object], config: Config, context: Context) -> dic
     settings = config.artifact
     title = manifest["title"]
     metadata = {key: value for key, value in manifest["metadata"].items() if key != "obsHtml"}
-    home_html = _cover(title, metadata, profile["heading"] == "compact", context) + _note_body(
-        manifest.get("abstract", []), "", context)
+    abstract = _note_body(manifest.get("abstract", []), "", context)  # It holds the metadata's field nodes.
+    # The display HTML of each value that shows: an empty value leaves its cover and header line out.
+    metadata_html = _frontmatter_html({key: value for key, value in metadata.items() if value}, HOME, context)
+    home_html = _cover(title, metadata, metadata_html, profile["heading"] == "compact") + abstract
     notes = [_note(0, title, HOME, HOME, {}, home_html, context)]
     notes.extend(_chapter_notes(document["chapters"], context, 0))
     _attach_records(document["records"], notes, context)
@@ -660,6 +663,7 @@ def _model(document: dict[str, object], config: Config, context: Context) -> dic
         "document": {
             "title": title,
             "metadata": metadata,
+            "metadataHtml": metadata_html,
             "pages": profile["pages"],
             "generation": {
                 "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -756,35 +760,36 @@ def _attach_records(records: list[dict[str, object]], notes: list[dict[str, obje
         })
 
 
-def _cover(title: str, metadata: dict[str, object], compact: bool, context: Context) -> str:
-    def value(item: object) -> str:
-        return escape(_text(item))
+def _cover(title: str, metadata: dict[str, object], html: dict[str, str], compact: bool) -> str:
+    """The cover or compact heading: each metadata value as its display HTML (_frontmatter_html)."""
+    def value(key: str) -> str:
+        return html.get(key, "") if metadata.get(key) else ""
 
     product = metadata.get("product") if isinstance(metadata.get("product"), dict) else {}
-    subtitle = _inline(metadata["subtitle"], context) if metadata.get("subtitle") else ""
+    products = [html.get(f"product.{key}", "") for key in ("name", "version") if product.get(key)]
+    subtitle = value("subtitle")
     if compact:
-        product_text = " ".join(value(product[key]) for key in ("name", "version") if product.get(key))
-        parts = [("cover-organization", value(metadata.get("organization", ""))),
-                 ("cover-product", product_text), ("cover-type", value(metadata.get("document type", "")))]
+        parts = [("cover-organization", value("organization")),
+                 ("cover-product", " ".join(products)), ("cover-type", value("document type"))]
         line = "".join(f'<span class="{name}">{text}</span>' for name, text in parts if text)
         line += f'<h1 class="document-title">{escape(title)}</h1>'
         if subtitle:
             line += f'<span class="document-subtitle">{subtitle}</span>'
         return ('<header class="document-heading document-heading--compact">'
                 f'<div class="compact-heading">{line}</div></header>\n')
-    product_html = "".join(f"<div>{value(product[key])}</div>" for key in ("name", "version") if product.get(key))
-    band = (f'<span class="cover-template">{value(metadata.get("template", ""))}</span>'
-            f'<span class="cover-organization">{value(metadata.get("organization", ""))}</span>')
-    facts = "".join(f"<dt>{escape(key.title())}</dt><dd>{value(metadata[key])}</dd>"
+    product_html = "".join(f"<div>{item}</div>" for item in products)
+    band = (f'<span class="cover-template">{value("template")}</span>'
+            f'<span class="cover-organization">{value("organization")}</span>')
+    facts = "".join(f"<dt>{escape(key.title())}</dt><dd>{value(key)}</dd>"
                     for key in COVER_FIELDS if metadata.get(key))
-    legal = "".join(f'<p class="cover-{key}">{value(metadata[key])}</p>'
+    legal = "".join(f'<p class="cover-{key}">{value(key)}</p>'
                     for key in ("copyright", "confidentiality") if metadata.get(key))
     return (
         '<header class="document-heading">'
         + (f'<div class="cover-product">{product_html}</div>' if product_html else "")
         + f'<div class="cover-band">{band}</div><div class="cover-frame">'
         + f'<h1 class="document-title">{escape(title)}</h1>'
-        + (f'<p class="cover-type">{value(metadata["document type"])}</p>' if metadata.get("document type") else "")
+        + (f'<p class="cover-type">{value("document type")}</p>' if metadata.get("document type") else "")
         + (f'<div class="document-subtitle">{subtitle}</div>' if subtitle else "")
         + legal + "</div>"
         + f'<div class="cover-facts-frame"><dl class="cover-facts">{facts}</dl></div></header>\n'
@@ -1073,7 +1078,7 @@ def _shell(model: dict[str, object], limits: list[dict[str, str]], stylesheet: s
                           f'data-runtime-bundle="{escape(runtime_id, quote=True)}">'
                           + re.sub(r"</script", r"<\\/script", runtime_source, flags=re.IGNORECASE)
                           + "</script>")
-    header_metadata = escape(serialize_artifact_data(model["document"]["metadata"]), quote=True)
+    header_metadata = escape(serialize_artifact_data(model["document"]["metadataHtml"]), quote=True)
     return f"""<!doctype html>
 <html lang="en" data-theme="{escape(startup['theme'])}">
 <head>
@@ -1282,11 +1287,10 @@ INLINE = MarkdownIt("commonmark", {"html": False})
 
 
 def _inline(value: object, context: Context | None = None) -> str:
-    """Inline Markdown of a metadata string (bold, links, images such as badges); raw HTML stays text.
-
-    The Document carries metadata values as authored strings, so their inline Markdown is
-    rendered here, as the interim adapter did, until the core carries them as nodes. With a
-    context, wikilinks link the chapter their note record names (see _frontmatter_link).
+    """Inline Markdown of a string a node attribute carries (a callout title, a card metric's label:
+    bold, links, images such as badges); raw HTML stays text. Metadata never comes here: it renders
+    from its field nodes (_field_html). With a context, wikilinks link the chapter their note
+    record names (see _frontmatter_link).
     """
     source = _text(value)
     if re.fullmatch(r"https?://[^\s<>]+", source, re.IGNORECASE):
@@ -1304,7 +1308,7 @@ IMAGE_TAG = re.compile(r'<img src="([^"]*)" alt="([^"]*)"[^>]*>')
 
 
 def _metadata_image(match: re.Match[str], context: Context) -> str:
-    """An image in a metadata string renders from the asset the core made of its reference."""
+    """An image in an attribute string renders from the asset the core made of its reference."""
     href = unescape(match[1])
     asset = next((item for item in context.files.values() if item["href"] == href), {"href": href})
     return _image(asset, unescape(match[2]))
@@ -1362,10 +1366,11 @@ def _frontmatter_html(metadata: dict[str, object], slug: str, context: Context) 
 
 
 def _field_html(slug: str, name: str, value: object, context: Context) -> str:
-    """A field's display HTML: its field node where the chapter's frontmatter carries one (a nonempty
-    string), else its value as text; a record's fields, which carry no nodes, are inline Markdown."""
+    """A field's display HTML: its field node where the note's frontmatter carries one (a nonempty
+    string), else its value as text. A value without a field node (a number, a boolean, a record's
+    field) is not Markdown: nothing here parses a metadata string."""
     fields = context.fields.get(slug, {})
-    return fields[name] if name in fields else _inline("null" if value is None else value, context)
+    return fields[name] if name in fields else escape("null" if value is None else _text(value))
 
 
 def _flatten(value: object, prefix: str = ""):
