@@ -9,9 +9,14 @@ PACKAGED names inside `src/obs_html` and ships its files as package data; the re
 `[tool.uv] cache-keys` in pyproject.toml makes uv build again when the hook or a lockfile changes.
 spec/architecture.md, Packaged browser assets, owns the design.
 """
+import base64
+import hashlib
+import io
+import json
 import os
 import shutil
 import subprocess
+import tarfile
 import tempfile
 from pathlib import Path
 from typing import Callable
@@ -34,27 +39,71 @@ class BuildError(Exception):
         super().__init__(f"obs-html build (hatch_build.py): {source}: {field}: {problem}. Remedy: {remedy}.")
 
 
-def npm_ci(package: Path, work: Path, run=subprocess.run) -> Path:
-    """Install the npm package folder ``package`` from its lockfile into ``work``; its node_modules."""
+def _lockfile_packages(lockfile: Path) -> dict:
+    """The lockfile's ``packages``: each installed package by its path, with its version and integrity."""
+    return json.loads(lockfile.read_text(encoding="utf-8"))["packages"]
+
+
+def pinned_files(package: Path, files: list[str], work: Path, run=subprocess.run) -> Path:
+    """Unpack ``files``, paths below node_modules, from the tarballs of the npm packages they belong
+    to, at the versions the lockfile of ``package`` pins, into ``work``; the node_modules folder.
+
+    Only those packages' own tarballs are fetched (one ``npm pack``, from npm's cache where it has
+    them), not their dependencies, and each is checked against the lockfile's integrity."""
     lockfile = package / "package-lock.json"
     remedy = f"install Node.js and check that npm reaches its registry, then build again; {lockfile} pins it"
+    pinned = _lockfile_packages(lockfile)
+    names = sorted({_npm_package(file) for file in files})
+    for name in names:
+        if f"node_modules/{name}" not in pinned:
+            raise BuildError(lockfile, f"packages.node_modules/{name}", "the lockfile pins no such package",
+                             f"add {name} to {package / 'package.json'} and run npm install there")
     npm = shutil.which("npm")
     if npm is None:
-        raise BuildError(lockfile, "npm ci", "npm is not on PATH", remedy)
-    for name in ("package.json", "package-lock.json"):
-        shutil.copy2(package / name, work / name)
-    result = run([npm, "ci", "--ignore-scripts", "--prefer-offline", "--no-audit", "--no-fund"], cwd=work,
-                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding="utf-8", errors="replace")
+        raise BuildError(lockfile, "npm pack", "npm is not on PATH", remedy)
+    tarballs = work / "tarballs"
+    tarballs.mkdir()
+    result = run([npm, "pack", "--json", "--prefer-offline", "--pack-destination", str(tarballs),
+                  *(f"{name}@{pinned[f'node_modules/{name}']['version']}" for name in names)], cwd=work,
+                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding="utf-8", errors="replace")
     if result.returncode:
-        raise BuildError(lockfile, "npm ci", f"failed (exit code {result.returncode}):\n{result.stdout}", remedy)
-    return work / "node_modules"
+        raise BuildError(lockfile, "npm pack", f"failed (exit code {result.returncode}):\n{result.stderr}{result.stdout}",
+                         remedy)
+    installed = work / "node_modules"
+    for name, packed in zip(names, json.loads(result.stdout)):
+        tarball = (tarballs / packed["filename"]).read_bytes()
+        integrity = pinned[f"node_modules/{name}"]["integrity"]
+        if f"sha512-{base64.b64encode(hashlib.sha512(tarball).digest()).decode()}" != integrity:
+            raise BuildError(lockfile, f"packages.node_modules/{name}.integrity",
+                             f"the tarball npm fetched, {packed['filename']}, is not the one the lockfile pins",
+                             "clear npm's cache with `npm cache clean --force`, then build again")
+        with tarfile.open(fileobj=io.BytesIO(tarball), mode="r:gz") as archive:
+            members = {member.name.removeprefix("package/"): member for member in archive.getmembers()
+                       if member.isfile()}
+            for file in files:
+                member = members.get(file.removeprefix(f"{name}/")) if _npm_package(file) == name else None
+                if member is not None:
+                    target = installed / file
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    target.write_bytes(archive.extractfile(member).read())
+    return installed
+
+
+def _npm_package(file: str) -> str:
+    """The npm package a path below node_modules belongs to: its first segment, two where scoped."""
+    parts = file.split("/")
+    return "/".join(parts[:2] if parts[0].startswith("@") else parts[:1])
 
 
 def maths(root: Path, work: Path, folder: Path) -> None:
     """The maths library, math.js, with its licences, from its lockfile ``maths/package-lock.json``."""
-    installed = npm_ci(root / MATHS, work) / "mathjs"
+    installed = pinned_files(root / MATHS, [f"mathjs/{path}" for path in MATHS_FILES.values()], work)
     for name, path in MATHS_FILES.items():
-        shutil.copy2(installed / path, folder / name)
+        if not (installed / "mathjs" / path).is_file():
+            raise BuildError(root / MATHS / "package-lock.json", f"mathjs/{path}",
+                             "its pinned tarball holds no such file",
+                             "pin a version that has it, or change MATHS_FILES in hatch_build.py to its new path")
+        shutil.copy2(installed / "mathjs" / path, folder / name)
 
 
 def spec(root: Path, work: Path, folder: Path) -> None:
