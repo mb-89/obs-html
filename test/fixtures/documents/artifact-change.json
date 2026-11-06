@@ -474,5 +474,6 @@
     "markdown",
     "markdown-frontmatter",
     "property-editors"
-  ]
+  ],
+  "cssSnippets": []
 }
