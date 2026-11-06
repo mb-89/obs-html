@@ -1,0 +1,4558 @@
+{
+  "schemaVersion": 1,
+  "manifest": {
+    "title": "Feature fixture",
+    "path": "manifest.md",
+    "metadata": {
+      "title": "Feature fixture",
+      "obsHtml": {
+        "figures": {
+          "numbering": "chapter"
+        }
+      }
+    },
+    "abstract": [
+      {
+        "type": "markdown-frontmatter",
+        "attrs": {
+          "metadata": {
+            "title": "Feature fixture",
+            "obsHtml": {
+              "figures": {
+                "numbering": "chapter"
+              }
+            }
+          }
+        },
+        "children": [
+          {
+            "type": "field",
+            "attrs": {
+              "name": "title"
+            },
+            "children": [
+              {
+                "type": "text",
+                "attrs": {},
+                "children": [],
+                "text": "Feature fixture"
+              }
+            ]
+          },
+          {
+            "type": "field",
+            "attrs": {
+              "name": "obsHtml.figures.numbering"
+            },
+            "children": [
+              {
+                "type": "text",
+                "attrs": {},
+                "children": [],
+                "text": "chapter"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "manifest",
+        "attrs": {},
+        "children": []
+      }
+    ]
+  },
+  "chapters": [
+    {
+      "id": "overview",
+      "title": "Overview",
+      "content": [
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "overview"
+          },
+          "children": []
+        },
+        {
+          "type": "markdown",
+          "attrs": {},
+          "children": []
+        },
+        {
+          "type": "section",
+          "attrs": {
+            "level": 1
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Overview"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "attrs": {},
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Every reader feature once: "
+            },
+            {
+              "type": "wikilinks",
+              "attrs": {
+                "target": "figures",
+                "chapter": "figures",
+                "heading": "",
+                "label": "figures"
+              },
+              "children": []
+            },
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": ", "
+            },
+            {
+              "type": "wikilinks",
+              "attrs": {
+                "target": "tables",
+                "chapter": "tables",
+                "heading": "",
+                "label": "tables"
+              },
+              "children": []
+            },
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": ", "
+            },
+            {
+              "type": "wikilinks",
+              "attrs": {
+                "target": "prose",
+                "chapter": "prose",
+                "heading": "",
+                "label": "prose"
+              },
+              "children": []
+            },
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": " and an "
+            },
+            {
+              "type": "wikilinks",
+              "attrs": {
+                "target": "aside",
+                "chapter": "aside",
+                "heading": "",
+                "label": "aside"
+              },
+              "children": []
+            },
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": " outside the reading order."
+            }
+          ]
+        }
+      ],
+      "children": [],
+      "metadata": {}
+    },
+    {
+      "id": "figures",
+      "title": "Figures",
+      "content": [
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "figures"
+          },
+          "children": []
+        },
+        {
+          "type": "markdown",
+          "attrs": {},
+          "children": []
+        },
+        {
+          "type": "section",
+          "attrs": {
+            "level": 1
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Figures"
+            }
+          ]
+        },
+        {
+          "type": "section",
+          "attrs": {
+            "level": 2
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Image"
+            }
+          ]
+        },
+        {
+          "type": "figures",
+          "attrs": {
+            "kind": "image",
+            "caption": [
+              {
+                "type": "paragraph",
+                "attrs": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "attrs": {},
+                    "children": [],
+                    "text": "The image figure."
+                  }
+                ]
+              }
+            ],
+            "block": "image-figure"
+          },
+          "children": [
+            {
+              "type": "image",
+              "attrs": {
+                "mediaType": "image/svg+xml",
+                "data": "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MCAyMCI+PHJlY3Qgd2lkdGg9IjIwIiBoZWlnaHQ9IjIwIiBmaWxsPSIjNTg3ODk0Ii8+PGNpcmNsZSBjeD0iMzAiIGN5PSIxMCIgcj0iOCIgZmlsbD0iIzczODY5YSIvPjwvc3ZnPg=="
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "type": "section",
+          "attrs": {
+            "level": 2
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Plot"
+            }
+          ]
+        },
+        {
+          "type": "figures",
+          "attrs": {
+            "kind": "plot",
+            "caption": [
+              {
+                "type": "paragraph",
+                "attrs": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "attrs": {},
+                    "children": [],
+                    "text": "The plot figure."
+                  }
+                ]
+              }
+            ],
+            "block": "plot-figure"
+          },
+          "children": [
+            {
+              "type": "plot",
+              "attrs": {
+                "descriptor": {
+                  "schemaVersion": 1,
+                  "id": "response",
+                  "data": {
+                    "traces": [
+                      {
+                        "label": "measured",
+                        "x": [
+                          0,
+                          1,
+                          2
+                        ],
+                        "y": [
+                          1,
+                          4,
+                          9
+                        ]
+                      },
+                      {
+                        "label": "model",
+                        "x": [
+                          0,
+                          1,
+                          2
+                        ],
+                        "y": [
+                          1,
+                          3,
+                          8
+                        ],
+                        "mode": "lines+markers"
+                      }
+                    ]
+                  },
+                  "panels": [
+                    {
+                      "id": "main",
+                      "bounds": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 720,
+                        "height": 320
+                      },
+                      "grid": {
+                        "row": 0,
+                        "column": 0,
+                        "rowSpan": 1,
+                        "columnSpan": 1
+                      },
+                      "axes": [
+                        {
+                          "id": "time",
+                          "scale": "linear",
+                          "limits": {
+                            "minimum": 0,
+                            "maximum": 2
+                          },
+                          "label": "Time"
+                        },
+                        {
+                          "id": "value",
+                          "scale": "log",
+                          "limits": {
+                            "minimum": 1,
+                            "maximum": 10
+                          },
+                          "label": "Value"
+                        }
+                      ]
+                    }
+                  ],
+                  "provenance": {
+                    "command": [
+                      "generate-response"
+                    ]
+                  }
+                }
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "attrs": {},
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Paragraph 1 of the closing text, which reads on after the content above it. Paragraph 1 of the closing text, which reads on after the content above it. Paragraph 1 of the closing text, which reads on after the content above it."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "attrs": {},
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Paragraph 2 of the closing text, which reads on after the content above it. Paragraph 2 of the closing text, which reads on after the content above it. Paragraph 2 of the closing text, which reads on after the content above it."
+            }
+          ]
+        }
+      ],
+      "children": [
+        {
+          "id": "equations",
+          "title": "Equations",
+          "content": [
+            {
+              "type": "chapter-inclusion",
+              "attrs": {
+                "id": "equations"
+              },
+              "children": []
+            },
+            {
+              "type": "markdown",
+              "attrs": {},
+              "children": []
+            },
+            {
+              "type": "section",
+              "attrs": {
+                "level": 1
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "Equations"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "attrs": {},
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "The plot figure is "
+                },
+                {
+                  "type": "wikilinks",
+                  "attrs": {
+                    "target": "figures",
+                    "chapter": "figures",
+                    "heading": "^plot-figure",
+                    "label": "Figures > ^plot-figure",
+                    "figure": "plot-figure"
+                  },
+                  "children": []
+                },
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "."
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "attrs": {
+                "level": 2
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "Parabola"
+                }
+              ]
+            },
+            {
+              "type": "figures",
+              "attrs": {
+                "kind": "equations",
+                "caption": [
+                  {
+                    "type": "paragraph",
+                    "attrs": {},
+                    "children": [
+                      {
+                        "type": "text",
+                        "attrs": {},
+                        "children": [],
+                        "text": "The equations figure."
+                      }
+                    ]
+                  }
+                ],
+                "block": "equations-figure"
+              },
+              "children": [
+                {
+                  "type": "equations",
+                  "attrs": {
+                    "equations": [
+                      {
+                        "source": "y = a*x**2",
+                        "lhs": {
+                          "symbol": "y"
+                        },
+                        "rhs": {
+                          "op": "mul",
+                          "args": [
+                            {
+                              "symbol": "a"
+                            },
+                            {
+                              "op": "pow",
+                              "args": [
+                                {
+                                  "symbol": "x"
+                                },
+                                {
+                                  "number": 2
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      }
+                    ],
+                    "variables": {
+                      "x": {
+                        "quantity": {
+                          "unit": "",
+                          "dimension": {},
+                          "value": 0,
+                          "siValue": 0.0,
+                          "range": [
+                            -2,
+                            2
+                          ],
+                          "siRange": [
+                            -2.0,
+                            2.0
+                          ]
+                        }
+                      },
+                      "a": {
+                        "quantity": {
+                          "unit": "",
+                          "dimension": {},
+                          "value": 1,
+                          "siValue": 1.0,
+                          "range": [
+                            0.5,
+                            2
+                          ],
+                          "siRange": [
+                            0.5,
+                            2.0
+                          ]
+                        }
+                      },
+                      "y": {
+                        "quantity": {
+                          "unit": "",
+                          "dimension": {}
+                        }
+                      }
+                    },
+                    "unknowns": [
+                      "y"
+                    ],
+                    "solution": {
+                      "method": "exact",
+                      "branches": [
+                        {
+                          "y": {
+                            "op": "mul",
+                            "args": [
+                              {
+                                "symbol": "a"
+                              },
+                              {
+                                "op": "pow",
+                                "args": [
+                                  {
+                                    "symbol": "x"
+                                  },
+                                  {
+                                    "number": 2
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    },
+                    "plot": {
+                      "sweep": "x",
+                      "x": {
+                        "source": "x",
+                        "tree": {
+                          "symbol": "x"
+                        },
+                        "dimension": {}
+                      },
+                      "y": [
+                        {
+                          "source": "y",
+                          "tree": {
+                            "symbol": "y"
+                          },
+                          "dimension": {},
+                          "axis": "primary"
+                        }
+                      ],
+                      "parallelCoordinates": {
+                        "shown": false,
+                        "axes": [
+                          {
+                            "label": "a",
+                            "variable": "a",
+                            "dimension": {},
+                            "values": [
+                              0.5,
+                              0.875,
+                              1.25,
+                              1.625,
+                              2.0
+                            ],
+                            "siValues": [
+                              0.5,
+                              0.875,
+                              1.25,
+                              1.625,
+                              2
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "children": []
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "attrs": {
+                "level": 2
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "Decision"
+                }
+              ]
+            },
+            {
+              "type": "figures",
+              "attrs": {
+                "kind": "pugh",
+                "caption": [
+                  {
+                    "type": "paragraph",
+                    "attrs": {},
+                    "children": [
+                      {
+                        "type": "text",
+                        "attrs": {},
+                        "children": [],
+                        "text": "The decision figure."
+                      }
+                    ]
+                  }
+                ],
+                "block": "decision-figure"
+              },
+              "children": [
+                {
+                  "type": "pugh",
+                  "attrs": {
+                    "matrix": {
+                      "title": "Which option",
+                      "chosen": "A",
+                      "criteria": [
+                        {
+                          "key": "err",
+                          "label": "Error",
+                          "weight": 3,
+                          "better": "lower",
+                          "tolerance": 0.1,
+                          "floor": 0
+                        },
+                        {
+                          "key": "speed",
+                          "label": "Speed",
+                          "weight": 2,
+                          "better": "higher",
+                          "tolerance": 0.1,
+                          "floor": 0
+                        },
+                        {
+                          "key": "cost",
+                          "label": "Cost of ownership",
+                          "weight": 1,
+                          "better": "lower",
+                          "tolerance": 0.25,
+                          "floor": 1
+                        }
+                      ],
+                      "candidates": [
+                        {
+                          "key": "D",
+                          "label": "What runs today",
+                          "what": "The datum: nothing changes.",
+                          "values": {
+                            "err": 1,
+                            "speed": 10,
+                            "cost": 9
+                          },
+                          "wins": "Nothing to migrate."
+                        },
+                        {
+                          "key": "A",
+                          "label": "Precise",
+                          "what": "Precise but dear.",
+                          "values": {
+                            "err": 0.4,
+                            "speed": 10.5,
+                            "cost": 19
+                          },
+                          "tieBreak": 2,
+                          "losses": [
+                            "A new licence",
+                            "Training"
+                          ]
+                        },
+                        {
+                          "key": "B",
+                          "label": "Quick",
+                          "what": "Quick and cheap.",
+                          "values": {
+                            "err": 0.85,
+                            "speed": 30,
+                            "cost": 4
+                          },
+                          "tieBreak": 1,
+                          "wins": "Runs on a phone."
+                        },
+                        {
+                          "key": "C",
+                          "label": "Middling",
+                          "values": {
+                            "err": 0.95,
+                            "speed": 22,
+                            "cost": 9
+                          },
+                          "tieBreak": 0
+                        }
+                      ],
+                      "datum": {
+                        "prefer": [
+                          "D"
+                        ]
+                      },
+                      "sensitivity": {
+                        "seed": 3,
+                        "draws": 2000
+                      },
+                      "checklist": [
+                        {
+                          "item": "Does it keep the data in the EU?",
+                          "answer": "All of them do.",
+                          "pass": true
+                        },
+                        {
+                          "item": "Is there a second supplier?",
+                          "answer": "Not for this kind of system.",
+                          "pass": false
+                        }
+                      ]
+                    }
+                  },
+                  "children": []
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "attrs": {},
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "Paragraph 1 of the closing text, which reads on after the content above it. Paragraph 1 of the closing text, which reads on after the content above it. Paragraph 1 of the closing text, which reads on after the content above it."
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "attrs": {},
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "Paragraph 2 of the closing text, which reads on after the content above it. Paragraph 2 of the closing text, which reads on after the content above it. Paragraph 2 of the closing text, which reads on after the content above it."
+                }
+              ]
+            }
+          ],
+          "children": [
+            {
+              "id": "tables",
+              "title": "Tables",
+              "content": [
+                {
+                  "type": "chapter-inclusion",
+                  "attrs": {
+                    "id": "tables"
+                  },
+                  "children": []
+                },
+                {
+                  "type": "markdown",
+                  "attrs": {},
+                  "children": []
+                },
+                {
+                  "type": "section",
+                  "attrs": {
+                    "level": 1
+                  },
+                  "children": [
+                    {
+                      "type": "text",
+                      "attrs": {},
+                      "children": [],
+                      "text": "Tables"
+                    }
+                  ]
+                },
+                {
+                  "type": "bases",
+                  "attrs": {
+                    "source": "filters: 'kind == \"item\"'\nproperties:\n  description: {displayName: Description}\nviews:\n  - type: table\n    name: Items\n    order: [file.name, rank, description]\n    sort: [{property: rank, direction: ASC}]\n",
+                    "spec": {
+                      "filters": "kind == \"item\"",
+                      "properties": {
+                        "description": {
+                          "displayName": "Description"
+                        }
+                      },
+                      "views": [
+                        {
+                          "type": "table",
+                          "name": "Items",
+                          "order": [
+                            "file.name",
+                            "rank",
+                            "description"
+                          ],
+                          "sort": [
+                            {
+                              "property": "rank",
+                              "direction": "ASC"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  },
+                  "children": []
+                },
+                {
+                  "type": "paragraph",
+                  "attrs": {},
+                  "children": [
+                    {
+                      "type": "text",
+                      "attrs": {},
+                      "children": [],
+                      "text": "Paragraph 1 of the closing text, which reads on after the content above it. Paragraph 1 of the closing text, which reads on after the content above it. Paragraph 1 of the closing text, which reads on after the content above it."
+                    }
+                  ]
+                },
+                {
+                  "type": "paragraph",
+                  "attrs": {},
+                  "children": [
+                    {
+                      "type": "text",
+                      "attrs": {},
+                      "children": [],
+                      "text": "Paragraph 2 of the closing text, which reads on after the content above it. Paragraph 2 of the closing text, which reads on after the content above it. Paragraph 2 of the closing text, which reads on after the content above it."
+                    }
+                  ]
+                }
+              ],
+              "children": [],
+              "metadata": {}
+            }
+          ],
+          "metadata": {}
+        }
+      ],
+      "metadata": {}
+    },
+    {
+      "id": "prose",
+      "title": "Prose",
+      "content": [
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "prose"
+          },
+          "children": []
+        },
+        {
+          "type": "markdown",
+          "attrs": {},
+          "children": []
+        },
+        {
+          "type": "section",
+          "attrs": {
+            "level": 1
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Prose"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "attrs": {},
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "See "
+            },
+            {
+              "type": "wikilinks",
+              "attrs": {
+                "target": "figures",
+                "chapter": "figures",
+                "heading": "Plot",
+                "label": "the plot"
+              },
+              "children": []
+            },
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": ", "
+            },
+            {
+              "type": "text",
+              "attrs": {
+                "link": "the-site"
+              },
+              "children": [],
+              "text": "the site"
+            },
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": " and "
+            },
+            {
+              "type": "attachments",
+              "attrs": {
+                "asset": "a-logo",
+                "label": "a logo"
+              },
+              "children": []
+            },
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": ". "
+            },
+            {
+              "type": "code",
+              "attrs": {},
+              "children": [],
+              "text": "x < y"
+            },
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": " "
+            },
+            {
+              "type": "marks",
+              "attrs": {
+                "category": "risk",
+                "id": "limit"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "attrs": {},
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Open question. "
+            },
+            {
+              "type": "marks",
+              "attrs": {
+                "category": "question",
+                "id": "scope_question"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "type": "callouts",
+          "attrs": {
+            "kind": "warning",
+            "title": [
+              {
+                "type": "text",
+                "attrs": {},
+                "children": [],
+                "text": "Check the limits"
+              }
+            ]
+          },
+          "children": [
+            {
+              "type": "paragraph",
+              "attrs": {},
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "The callout's body links "
+                },
+                {
+                  "type": "wikilinks",
+                  "attrs": {
+                    "target": "tables",
+                    "chapter": "tables",
+                    "heading": "",
+                    "label": "tables"
+                  },
+                  "children": []
+                },
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "section",
+          "attrs": {
+            "level": 2
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Lists"
+            }
+          ]
+        },
+        {
+          "type": "list",
+          "attrs": {
+            "ordered": true,
+            "tight": true
+          },
+          "children": [
+            {
+              "type": "list-item",
+              "attrs": {},
+              "children": [
+                {
+                  "type": "paragraph",
+                  "attrs": {},
+                  "children": [
+                    {
+                      "type": "text",
+                      "attrs": {},
+                      "children": [],
+                      "text": "one"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "list-item",
+              "attrs": {},
+              "children": [
+                {
+                  "type": "paragraph",
+                  "attrs": {},
+                  "children": [
+                    {
+                      "type": "text",
+                      "attrs": {},
+                      "children": [],
+                      "text": "two"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "list",
+          "attrs": {
+            "ordered": false,
+            "tight": true
+          },
+          "children": [
+            {
+              "type": "list-item",
+              "attrs": {},
+              "children": [
+                {
+                  "type": "paragraph",
+                  "attrs": {},
+                  "children": [
+                    {
+                      "type": "text",
+                      "attrs": {},
+                      "children": [],
+                      "text": "a"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "list-item",
+              "attrs": {},
+              "children": [
+                {
+                  "type": "paragraph",
+                  "attrs": {},
+                  "children": [
+                    {
+                      "type": "text",
+                      "attrs": {},
+                      "children": [],
+                      "text": "b"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "section",
+          "attrs": {
+            "level": 2
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Code"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "attrs": {
+            "language": "text"
+          },
+          "children": [],
+          "text": "plain code\n"
+        },
+        {
+          "type": "paragraph",
+          "attrs": {},
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Paragraph 1 of the closing text, which reads on after the content above it. Paragraph 1 of the closing text, which reads on after the content above it. Paragraph 1 of the closing text, which reads on after the content above it."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "attrs": {},
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Paragraph 2 of the closing text, which reads on after the content above it. Paragraph 2 of the closing text, which reads on after the content above it. Paragraph 2 of the closing text, which reads on after the content above it."
+            }
+          ]
+        }
+      ],
+      "children": [],
+      "metadata": {}
+    },
+    {
+      "id": "references",
+      "title": "References",
+      "content": [
+        {
+          "type": "markdown-frontmatter",
+          "attrs": {
+            "metadata": {
+              "status": "draft"
+            }
+          },
+          "children": [
+            {
+              "type": "field",
+              "attrs": {
+                "name": "status"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "draft"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "references"
+          },
+          "children": []
+        },
+        {
+          "type": "markdown",
+          "attrs": {},
+          "children": []
+        },
+        {
+          "type": "section",
+          "attrs": {
+            "level": 1
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "References"
+            }
+          ]
+        },
+        {
+          "type": "registers",
+          "attrs": {
+            "target": "sources.base",
+            "heading": "",
+            "base": {
+              "filters": "kind == \"reference\"",
+              "properties": {
+                "obsHtml.label": {
+                  "displayName": "No."
+                }
+              },
+              "views": [
+                {
+                  "type": "table",
+                  "order": [
+                    "obsHtml.label",
+                    "document",
+                    "description"
+                  ],
+                  "obs": {
+                    "members": [
+                      {
+                        "path": "source-a.md",
+                        "label": "[1]"
+                      },
+                      {
+                        "path": "source-b.md",
+                        "label": "[2]"
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            "view": null,
+            "rows": [
+              [
+                "source-a",
+                "source-b"
+              ]
+            ]
+          },
+          "children": []
+        },
+        {
+          "type": "property-editors",
+          "attrs": {
+            "source": "version: 1\nfield: status\nlabel: Status\n",
+            "spec": {
+              "version": 1,
+              "field": "status",
+              "label": "Status"
+            },
+            "writes": [
+              "status"
+            ]
+          },
+          "children": []
+        },
+        {
+          "type": "paragraph",
+          "attrs": {},
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Paragraph 1 of the closing text, which reads on after the content above it. Paragraph 1 of the closing text, which reads on after the content above it. Paragraph 1 of the closing text, which reads on after the content above it."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "attrs": {},
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Paragraph 2 of the closing text, which reads on after the content above it. Paragraph 2 of the closing text, which reads on after the content above it. Paragraph 2 of the closing text, which reads on after the content above it."
+            }
+          ]
+        }
+      ],
+      "children": [],
+      "metadata": {
+        "status": "draft"
+      }
+    },
+    {
+      "id": "aside",
+      "title": "Aside",
+      "toc": false,
+      "content": [
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "aside"
+          },
+          "children": []
+        },
+        {
+          "type": "markdown",
+          "attrs": {},
+          "children": []
+        },
+        {
+          "type": "section",
+          "attrs": {
+            "level": 1
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Aside"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "attrs": {},
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "A note a link opens as context."
+            }
+          ]
+        }
+      ],
+      "children": [],
+      "metadata": {}
+    },
+    {
+      "id": "item-01",
+      "title": "Item 01",
+      "toc": false,
+      "content": [
+        {
+          "type": "markdown-frontmatter",
+          "attrs": {
+            "metadata": {
+              "kind": "item",
+              "rank": 1,
+              "description": "Item 1 of the paged table, with a description long enough to wrap in a narrow column."
+            }
+          },
+          "children": [
+            {
+              "type": "field",
+              "attrs": {
+                "name": "kind"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "item"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "description"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "Item 1 of the paged table, with a description long enough to wrap in a narrow column."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "item-01"
+          },
+          "children": []
+        }
+      ],
+      "children": [],
+      "metadata": {
+        "kind": "item",
+        "rank": 1,
+        "description": "Item 1 of the paged table, with a description long enough to wrap in a narrow column."
+      }
+    },
+    {
+      "id": "item-02",
+      "title": "Item 02",
+      "toc": false,
+      "content": [
+        {
+          "type": "markdown-frontmatter",
+          "attrs": {
+            "metadata": {
+              "kind": "item",
+              "rank": 2,
+              "description": "Item 2 of the paged table, with a description long enough to wrap in a narrow column."
+            }
+          },
+          "children": [
+            {
+              "type": "field",
+              "attrs": {
+                "name": "kind"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "item"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "description"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "Item 2 of the paged table, with a description long enough to wrap in a narrow column."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "item-02"
+          },
+          "children": []
+        }
+      ],
+      "children": [],
+      "metadata": {
+        "kind": "item",
+        "rank": 2,
+        "description": "Item 2 of the paged table, with a description long enough to wrap in a narrow column."
+      }
+    },
+    {
+      "id": "item-03",
+      "title": "Item 03",
+      "toc": false,
+      "content": [
+        {
+          "type": "markdown-frontmatter",
+          "attrs": {
+            "metadata": {
+              "kind": "item",
+              "rank": 3,
+              "description": "Item 3 of the paged table, with a description long enough to wrap in a narrow column."
+            }
+          },
+          "children": [
+            {
+              "type": "field",
+              "attrs": {
+                "name": "kind"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "item"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "description"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "Item 3 of the paged table, with a description long enough to wrap in a narrow column."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "item-03"
+          },
+          "children": []
+        }
+      ],
+      "children": [],
+      "metadata": {
+        "kind": "item",
+        "rank": 3,
+        "description": "Item 3 of the paged table, with a description long enough to wrap in a narrow column."
+      }
+    },
+    {
+      "id": "item-04",
+      "title": "Item 04",
+      "toc": false,
+      "content": [
+        {
+          "type": "markdown-frontmatter",
+          "attrs": {
+            "metadata": {
+              "kind": "item",
+              "rank": 4,
+              "description": "Item 4 of the paged table, with a description long enough to wrap in a narrow column."
+            }
+          },
+          "children": [
+            {
+              "type": "field",
+              "attrs": {
+                "name": "kind"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "item"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "description"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "Item 4 of the paged table, with a description long enough to wrap in a narrow column."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "item-04"
+          },
+          "children": []
+        }
+      ],
+      "children": [],
+      "metadata": {
+        "kind": "item",
+        "rank": 4,
+        "description": "Item 4 of the paged table, with a description long enough to wrap in a narrow column."
+      }
+    },
+    {
+      "id": "item-05",
+      "title": "Item 05",
+      "toc": false,
+      "content": [
+        {
+          "type": "markdown-frontmatter",
+          "attrs": {
+            "metadata": {
+              "kind": "item",
+              "rank": 5,
+              "description": "Item 5 of the paged table, with a description long enough to wrap in a narrow column."
+            }
+          },
+          "children": [
+            {
+              "type": "field",
+              "attrs": {
+                "name": "kind"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "item"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "description"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "Item 5 of the paged table, with a description long enough to wrap in a narrow column."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "item-05"
+          },
+          "children": []
+        }
+      ],
+      "children": [],
+      "metadata": {
+        "kind": "item",
+        "rank": 5,
+        "description": "Item 5 of the paged table, with a description long enough to wrap in a narrow column."
+      }
+    },
+    {
+      "id": "item-06",
+      "title": "Item 06",
+      "toc": false,
+      "content": [
+        {
+          "type": "markdown-frontmatter",
+          "attrs": {
+            "metadata": {
+              "kind": "item",
+              "rank": 6,
+              "description": "Item 6 of the paged table, with a description long enough to wrap in a narrow column."
+            }
+          },
+          "children": [
+            {
+              "type": "field",
+              "attrs": {
+                "name": "kind"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "item"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "description"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "Item 6 of the paged table, with a description long enough to wrap in a narrow column."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "item-06"
+          },
+          "children": []
+        }
+      ],
+      "children": [],
+      "metadata": {
+        "kind": "item",
+        "rank": 6,
+        "description": "Item 6 of the paged table, with a description long enough to wrap in a narrow column."
+      }
+    },
+    {
+      "id": "item-07",
+      "title": "Item 07",
+      "toc": false,
+      "content": [
+        {
+          "type": "markdown-frontmatter",
+          "attrs": {
+            "metadata": {
+              "kind": "item",
+              "rank": 7,
+              "description": "Item 7 of the paged table, with a description long enough to wrap in a narrow column."
+            }
+          },
+          "children": [
+            {
+              "type": "field",
+              "attrs": {
+                "name": "kind"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "item"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "description"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "Item 7 of the paged table, with a description long enough to wrap in a narrow column."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "item-07"
+          },
+          "children": []
+        }
+      ],
+      "children": [],
+      "metadata": {
+        "kind": "item",
+        "rank": 7,
+        "description": "Item 7 of the paged table, with a description long enough to wrap in a narrow column."
+      }
+    },
+    {
+      "id": "item-08",
+      "title": "Item 08",
+      "toc": false,
+      "content": [
+        {
+          "type": "markdown-frontmatter",
+          "attrs": {
+            "metadata": {
+              "kind": "item",
+              "rank": 8,
+              "description": "Item 8 of the paged table, with a description long enough to wrap in a narrow column."
+            }
+          },
+          "children": [
+            {
+              "type": "field",
+              "attrs": {
+                "name": "kind"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "item"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "description"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "Item 8 of the paged table, with a description long enough to wrap in a narrow column."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "item-08"
+          },
+          "children": []
+        }
+      ],
+      "children": [],
+      "metadata": {
+        "kind": "item",
+        "rank": 8,
+        "description": "Item 8 of the paged table, with a description long enough to wrap in a narrow column."
+      }
+    },
+    {
+      "id": "item-09",
+      "title": "Item 09",
+      "toc": false,
+      "content": [
+        {
+          "type": "markdown-frontmatter",
+          "attrs": {
+            "metadata": {
+              "kind": "item",
+              "rank": 9,
+              "description": "Item 9 of the paged table, with a description long enough to wrap in a narrow column."
+            }
+          },
+          "children": [
+            {
+              "type": "field",
+              "attrs": {
+                "name": "kind"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "item"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "description"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "Item 9 of the paged table, with a description long enough to wrap in a narrow column."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "item-09"
+          },
+          "children": []
+        }
+      ],
+      "children": [],
+      "metadata": {
+        "kind": "item",
+        "rank": 9,
+        "description": "Item 9 of the paged table, with a description long enough to wrap in a narrow column."
+      }
+    },
+    {
+      "id": "item-10",
+      "title": "Item 10",
+      "toc": false,
+      "content": [
+        {
+          "type": "markdown-frontmatter",
+          "attrs": {
+            "metadata": {
+              "kind": "item",
+              "rank": 10,
+              "description": "Item 10 of the paged table, with a description long enough to wrap in a narrow column."
+            }
+          },
+          "children": [
+            {
+              "type": "field",
+              "attrs": {
+                "name": "kind"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "item"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "description"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "Item 10 of the paged table, with a description long enough to wrap in a narrow column."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "item-10"
+          },
+          "children": []
+        }
+      ],
+      "children": [],
+      "metadata": {
+        "kind": "item",
+        "rank": 10,
+        "description": "Item 10 of the paged table, with a description long enough to wrap in a narrow column."
+      }
+    },
+    {
+      "id": "item-11",
+      "title": "Item 11",
+      "toc": false,
+      "content": [
+        {
+          "type": "markdown-frontmatter",
+          "attrs": {
+            "metadata": {
+              "kind": "item",
+              "rank": 11,
+              "description": "Item 11 of the paged table, with a description long enough to wrap in a narrow column."
+            }
+          },
+          "children": [
+            {
+              "type": "field",
+              "attrs": {
+                "name": "kind"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "item"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "description"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "Item 11 of the paged table, with a description long enough to wrap in a narrow column."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "item-11"
+          },
+          "children": []
+        }
+      ],
+      "children": [],
+      "metadata": {
+        "kind": "item",
+        "rank": 11,
+        "description": "Item 11 of the paged table, with a description long enough to wrap in a narrow column."
+      }
+    },
+    {
+      "id": "item-12",
+      "title": "Item 12",
+      "toc": false,
+      "content": [
+        {
+          "type": "markdown-frontmatter",
+          "attrs": {
+            "metadata": {
+              "kind": "item",
+              "rank": 12,
+              "description": "Item 12 of the paged table, with a description long enough to wrap in a narrow column."
+            }
+          },
+          "children": [
+            {
+              "type": "field",
+              "attrs": {
+                "name": "kind"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "item"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "description"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "Item 12 of the paged table, with a description long enough to wrap in a narrow column."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "item-12"
+          },
+          "children": []
+        }
+      ],
+      "children": [],
+      "metadata": {
+        "kind": "item",
+        "rank": 12,
+        "description": "Item 12 of the paged table, with a description long enough to wrap in a narrow column."
+      }
+    },
+    {
+      "id": "item-13",
+      "title": "Item 13",
+      "toc": false,
+      "content": [
+        {
+          "type": "markdown-frontmatter",
+          "attrs": {
+            "metadata": {
+              "kind": "item",
+              "rank": 13,
+              "description": "Item 13 of the paged table, with a description long enough to wrap in a narrow column."
+            }
+          },
+          "children": [
+            {
+              "type": "field",
+              "attrs": {
+                "name": "kind"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "item"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "description"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "Item 13 of the paged table, with a description long enough to wrap in a narrow column."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "item-13"
+          },
+          "children": []
+        }
+      ],
+      "children": [],
+      "metadata": {
+        "kind": "item",
+        "rank": 13,
+        "description": "Item 13 of the paged table, with a description long enough to wrap in a narrow column."
+      }
+    },
+    {
+      "id": "item-14",
+      "title": "Item 14",
+      "toc": false,
+      "content": [
+        {
+          "type": "markdown-frontmatter",
+          "attrs": {
+            "metadata": {
+              "kind": "item",
+              "rank": 14,
+              "description": "Item 14 of the paged table, with a description long enough to wrap in a narrow column."
+            }
+          },
+          "children": [
+            {
+              "type": "field",
+              "attrs": {
+                "name": "kind"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "item"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "description"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "Item 14 of the paged table, with a description long enough to wrap in a narrow column."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "item-14"
+          },
+          "children": []
+        }
+      ],
+      "children": [],
+      "metadata": {
+        "kind": "item",
+        "rank": 14,
+        "description": "Item 14 of the paged table, with a description long enough to wrap in a narrow column."
+      }
+    },
+    {
+      "id": "item-15",
+      "title": "Item 15",
+      "toc": false,
+      "content": [
+        {
+          "type": "markdown-frontmatter",
+          "attrs": {
+            "metadata": {
+              "kind": "item",
+              "rank": 15,
+              "description": "Item 15 of the paged table, with a description long enough to wrap in a narrow column."
+            }
+          },
+          "children": [
+            {
+              "type": "field",
+              "attrs": {
+                "name": "kind"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "item"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "description"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "Item 15 of the paged table, with a description long enough to wrap in a narrow column."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "item-15"
+          },
+          "children": []
+        }
+      ],
+      "children": [],
+      "metadata": {
+        "kind": "item",
+        "rank": 15,
+        "description": "Item 15 of the paged table, with a description long enough to wrap in a narrow column."
+      }
+    },
+    {
+      "id": "item-16",
+      "title": "Item 16",
+      "toc": false,
+      "content": [
+        {
+          "type": "markdown-frontmatter",
+          "attrs": {
+            "metadata": {
+              "kind": "item",
+              "rank": 16,
+              "description": "Item 16 of the paged table, with a description long enough to wrap in a narrow column."
+            }
+          },
+          "children": [
+            {
+              "type": "field",
+              "attrs": {
+                "name": "kind"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "item"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "description"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "Item 16 of the paged table, with a description long enough to wrap in a narrow column."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "item-16"
+          },
+          "children": []
+        }
+      ],
+      "children": [],
+      "metadata": {
+        "kind": "item",
+        "rank": 16,
+        "description": "Item 16 of the paged table, with a description long enough to wrap in a narrow column."
+      }
+    },
+    {
+      "id": "item-17",
+      "title": "Item 17",
+      "toc": false,
+      "content": [
+        {
+          "type": "markdown-frontmatter",
+          "attrs": {
+            "metadata": {
+              "kind": "item",
+              "rank": 17,
+              "description": "Item 17 of the paged table, with a description long enough to wrap in a narrow column."
+            }
+          },
+          "children": [
+            {
+              "type": "field",
+              "attrs": {
+                "name": "kind"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "item"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "description"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "Item 17 of the paged table, with a description long enough to wrap in a narrow column."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "item-17"
+          },
+          "children": []
+        }
+      ],
+      "children": [],
+      "metadata": {
+        "kind": "item",
+        "rank": 17,
+        "description": "Item 17 of the paged table, with a description long enough to wrap in a narrow column."
+      }
+    },
+    {
+      "id": "item-18",
+      "title": "Item 18",
+      "toc": false,
+      "content": [
+        {
+          "type": "markdown-frontmatter",
+          "attrs": {
+            "metadata": {
+              "kind": "item",
+              "rank": 18,
+              "description": "Item 18 of the paged table, with a description long enough to wrap in a narrow column."
+            }
+          },
+          "children": [
+            {
+              "type": "field",
+              "attrs": {
+                "name": "kind"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "item"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "description"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "Item 18 of the paged table, with a description long enough to wrap in a narrow column."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "item-18"
+          },
+          "children": []
+        }
+      ],
+      "children": [],
+      "metadata": {
+        "kind": "item",
+        "rank": 18,
+        "description": "Item 18 of the paged table, with a description long enough to wrap in a narrow column."
+      }
+    },
+    {
+      "id": "item-19",
+      "title": "Item 19",
+      "toc": false,
+      "content": [
+        {
+          "type": "markdown-frontmatter",
+          "attrs": {
+            "metadata": {
+              "kind": "item",
+              "rank": 19,
+              "description": "Item 19 of the paged table, with a description long enough to wrap in a narrow column."
+            }
+          },
+          "children": [
+            {
+              "type": "field",
+              "attrs": {
+                "name": "kind"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "item"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "description"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "Item 19 of the paged table, with a description long enough to wrap in a narrow column."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "item-19"
+          },
+          "children": []
+        }
+      ],
+      "children": [],
+      "metadata": {
+        "kind": "item",
+        "rank": 19,
+        "description": "Item 19 of the paged table, with a description long enough to wrap in a narrow column."
+      }
+    },
+    {
+      "id": "item-20",
+      "title": "Item 20",
+      "toc": false,
+      "content": [
+        {
+          "type": "markdown-frontmatter",
+          "attrs": {
+            "metadata": {
+              "kind": "item",
+              "rank": 20,
+              "description": "Item 20 of the paged table, with a description long enough to wrap in a narrow column."
+            }
+          },
+          "children": [
+            {
+              "type": "field",
+              "attrs": {
+                "name": "kind"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "item"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "description"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "Item 20 of the paged table, with a description long enough to wrap in a narrow column."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "item-20"
+          },
+          "children": []
+        }
+      ],
+      "children": [],
+      "metadata": {
+        "kind": "item",
+        "rank": 20,
+        "description": "Item 20 of the paged table, with a description long enough to wrap in a narrow column."
+      }
+    },
+    {
+      "id": "item-21",
+      "title": "Item 21",
+      "toc": false,
+      "content": [
+        {
+          "type": "markdown-frontmatter",
+          "attrs": {
+            "metadata": {
+              "kind": "item",
+              "rank": 21,
+              "description": "Item 21 of the paged table, with a description long enough to wrap in a narrow column."
+            }
+          },
+          "children": [
+            {
+              "type": "field",
+              "attrs": {
+                "name": "kind"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "item"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "description"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "Item 21 of the paged table, with a description long enough to wrap in a narrow column."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "item-21"
+          },
+          "children": []
+        }
+      ],
+      "children": [],
+      "metadata": {
+        "kind": "item",
+        "rank": 21,
+        "description": "Item 21 of the paged table, with a description long enough to wrap in a narrow column."
+      }
+    },
+    {
+      "id": "item-22",
+      "title": "Item 22",
+      "toc": false,
+      "content": [
+        {
+          "type": "markdown-frontmatter",
+          "attrs": {
+            "metadata": {
+              "kind": "item",
+              "rank": 22,
+              "description": "Item 22 of the paged table, with a description long enough to wrap in a narrow column."
+            }
+          },
+          "children": [
+            {
+              "type": "field",
+              "attrs": {
+                "name": "kind"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "item"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "description"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "Item 22 of the paged table, with a description long enough to wrap in a narrow column."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "item-22"
+          },
+          "children": []
+        }
+      ],
+      "children": [],
+      "metadata": {
+        "kind": "item",
+        "rank": 22,
+        "description": "Item 22 of the paged table, with a description long enough to wrap in a narrow column."
+      }
+    },
+    {
+      "id": "item-23",
+      "title": "Item 23",
+      "toc": false,
+      "content": [
+        {
+          "type": "markdown-frontmatter",
+          "attrs": {
+            "metadata": {
+              "kind": "item",
+              "rank": 23,
+              "description": "Item 23 of the paged table, with a description long enough to wrap in a narrow column."
+            }
+          },
+          "children": [
+            {
+              "type": "field",
+              "attrs": {
+                "name": "kind"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "item"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "description"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "Item 23 of the paged table, with a description long enough to wrap in a narrow column."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "item-23"
+          },
+          "children": []
+        }
+      ],
+      "children": [],
+      "metadata": {
+        "kind": "item",
+        "rank": 23,
+        "description": "Item 23 of the paged table, with a description long enough to wrap in a narrow column."
+      }
+    },
+    {
+      "id": "item-24",
+      "title": "Item 24",
+      "toc": false,
+      "content": [
+        {
+          "type": "markdown-frontmatter",
+          "attrs": {
+            "metadata": {
+              "kind": "item",
+              "rank": 24,
+              "description": "Item 24 of the paged table, with a description long enough to wrap in a narrow column."
+            }
+          },
+          "children": [
+            {
+              "type": "field",
+              "attrs": {
+                "name": "kind"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "item"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "description"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "Item 24 of the paged table, with a description long enough to wrap in a narrow column."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "item-24"
+          },
+          "children": []
+        }
+      ],
+      "children": [],
+      "metadata": {
+        "kind": "item",
+        "rank": 24,
+        "description": "Item 24 of the paged table, with a description long enough to wrap in a narrow column."
+      }
+    },
+    {
+      "id": "source-a",
+      "title": "Source A",
+      "toc": false,
+      "content": [
+        {
+          "type": "markdown-frontmatter",
+          "attrs": {
+            "metadata": {
+              "document": "[Source A](overview.md)",
+              "description": "A source of the fixture.",
+              "kind": "reference"
+            }
+          },
+          "children": [
+            {
+              "type": "field",
+              "attrs": {
+                "name": "document"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {
+                    "link": "source-a"
+                  },
+                  "children": [],
+                  "text": "Source A"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "description"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "A source of the fixture."
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "kind"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "reference"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "references",
+          "attrs": {
+            "metadata": {
+              "document": "[Source A](overview.md)",
+              "description": "A source of the fixture.",
+              "kind": "reference"
+            }
+          },
+          "children": []
+        },
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "source-a"
+          },
+          "children": []
+        }
+      ],
+      "children": [],
+      "metadata": {
+        "document": "[Source A](overview.md)",
+        "description": "A source of the fixture.",
+        "kind": "reference"
+      }
+    },
+    {
+      "id": "source-b",
+      "title": "Source B",
+      "toc": false,
+      "content": [
+        {
+          "type": "markdown-frontmatter",
+          "attrs": {
+            "metadata": {
+              "document": "Unlinked source",
+              "description": "A source of the fixture.",
+              "kind": "reference"
+            }
+          },
+          "children": [
+            {
+              "type": "field",
+              "attrs": {
+                "name": "document"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "Unlinked source"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "description"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "A source of the fixture."
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "kind"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "reference"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "references",
+          "attrs": {
+            "metadata": {
+              "document": "Unlinked source",
+              "description": "A source of the fixture.",
+              "kind": "reference"
+            }
+          },
+          "children": []
+        },
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "source-b"
+          },
+          "children": []
+        }
+      ],
+      "children": [],
+      "metadata": {
+        "document": "Unlinked source",
+        "description": "A source of the fixture.",
+        "kind": "reference"
+      }
+    }
+  ],
+  "links": [
+    {
+      "id": "figures",
+      "href": "figures",
+      "label": "figures"
+    },
+    {
+      "id": "tables",
+      "href": "tables",
+      "label": "tables"
+    },
+    {
+      "id": "prose",
+      "href": "prose",
+      "label": "prose"
+    },
+    {
+      "id": "aside",
+      "href": "aside",
+      "label": "aside"
+    },
+    {
+      "id": "figures-plot-figure",
+      "href": "figures",
+      "label": "Figures > ^plot-figure"
+    },
+    {
+      "id": "the-plot",
+      "href": "figures",
+      "label": "the plot"
+    },
+    {
+      "id": "the-site",
+      "href": "https://example.org/",
+      "label": "the site"
+    },
+    {
+      "id": "source-a",
+      "href": "overview.md",
+      "label": "Source A"
+    }
+  ],
+  "assets": [
+    {
+      "id": "a-logo",
+      "href": "logo.png",
+      "mediaType": "image/png",
+      "path": "logo.png",
+      "data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
+    }
+  ],
+  "records": [
+    {
+      "id": "aside",
+      "type": "note",
+      "path": "aside.md",
+      "fields": {},
+      "fieldNodes": []
+    },
+    {
+      "id": "equations",
+      "type": "note",
+      "path": "equations.md",
+      "fields": {},
+      "fieldNodes": []
+    },
+    {
+      "id": "figures",
+      "type": "note",
+      "path": "figures.md",
+      "fields": {},
+      "fieldNodes": []
+    },
+    {
+      "id": "item-01",
+      "type": "note",
+      "path": "item-01.md",
+      "fields": {
+        "kind": "item",
+        "rank": 1,
+        "description": "Item 1 of the paged table, with a description long enough to wrap in a narrow column."
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "kind"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "item"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "description"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Item 1 of the paged table, with a description long enough to wrap in a narrow column."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "item-02",
+      "type": "note",
+      "path": "item-02.md",
+      "fields": {
+        "kind": "item",
+        "rank": 2,
+        "description": "Item 2 of the paged table, with a description long enough to wrap in a narrow column."
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "kind"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "item"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "description"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Item 2 of the paged table, with a description long enough to wrap in a narrow column."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "item-03",
+      "type": "note",
+      "path": "item-03.md",
+      "fields": {
+        "kind": "item",
+        "rank": 3,
+        "description": "Item 3 of the paged table, with a description long enough to wrap in a narrow column."
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "kind"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "item"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "description"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Item 3 of the paged table, with a description long enough to wrap in a narrow column."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "item-04",
+      "type": "note",
+      "path": "item-04.md",
+      "fields": {
+        "kind": "item",
+        "rank": 4,
+        "description": "Item 4 of the paged table, with a description long enough to wrap in a narrow column."
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "kind"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "item"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "description"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Item 4 of the paged table, with a description long enough to wrap in a narrow column."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "item-05",
+      "type": "note",
+      "path": "item-05.md",
+      "fields": {
+        "kind": "item",
+        "rank": 5,
+        "description": "Item 5 of the paged table, with a description long enough to wrap in a narrow column."
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "kind"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "item"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "description"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Item 5 of the paged table, with a description long enough to wrap in a narrow column."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "item-06",
+      "type": "note",
+      "path": "item-06.md",
+      "fields": {
+        "kind": "item",
+        "rank": 6,
+        "description": "Item 6 of the paged table, with a description long enough to wrap in a narrow column."
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "kind"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "item"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "description"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Item 6 of the paged table, with a description long enough to wrap in a narrow column."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "item-07",
+      "type": "note",
+      "path": "item-07.md",
+      "fields": {
+        "kind": "item",
+        "rank": 7,
+        "description": "Item 7 of the paged table, with a description long enough to wrap in a narrow column."
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "kind"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "item"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "description"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Item 7 of the paged table, with a description long enough to wrap in a narrow column."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "item-08",
+      "type": "note",
+      "path": "item-08.md",
+      "fields": {
+        "kind": "item",
+        "rank": 8,
+        "description": "Item 8 of the paged table, with a description long enough to wrap in a narrow column."
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "kind"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "item"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "description"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Item 8 of the paged table, with a description long enough to wrap in a narrow column."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "item-09",
+      "type": "note",
+      "path": "item-09.md",
+      "fields": {
+        "kind": "item",
+        "rank": 9,
+        "description": "Item 9 of the paged table, with a description long enough to wrap in a narrow column."
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "kind"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "item"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "description"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Item 9 of the paged table, with a description long enough to wrap in a narrow column."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "item-10",
+      "type": "note",
+      "path": "item-10.md",
+      "fields": {
+        "kind": "item",
+        "rank": 10,
+        "description": "Item 10 of the paged table, with a description long enough to wrap in a narrow column."
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "kind"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "item"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "description"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Item 10 of the paged table, with a description long enough to wrap in a narrow column."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "item-11",
+      "type": "note",
+      "path": "item-11.md",
+      "fields": {
+        "kind": "item",
+        "rank": 11,
+        "description": "Item 11 of the paged table, with a description long enough to wrap in a narrow column."
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "kind"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "item"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "description"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Item 11 of the paged table, with a description long enough to wrap in a narrow column."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "item-12",
+      "type": "note",
+      "path": "item-12.md",
+      "fields": {
+        "kind": "item",
+        "rank": 12,
+        "description": "Item 12 of the paged table, with a description long enough to wrap in a narrow column."
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "kind"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "item"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "description"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Item 12 of the paged table, with a description long enough to wrap in a narrow column."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "item-13",
+      "type": "note",
+      "path": "item-13.md",
+      "fields": {
+        "kind": "item",
+        "rank": 13,
+        "description": "Item 13 of the paged table, with a description long enough to wrap in a narrow column."
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "kind"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "item"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "description"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Item 13 of the paged table, with a description long enough to wrap in a narrow column."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "item-14",
+      "type": "note",
+      "path": "item-14.md",
+      "fields": {
+        "kind": "item",
+        "rank": 14,
+        "description": "Item 14 of the paged table, with a description long enough to wrap in a narrow column."
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "kind"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "item"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "description"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Item 14 of the paged table, with a description long enough to wrap in a narrow column."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "item-15",
+      "type": "note",
+      "path": "item-15.md",
+      "fields": {
+        "kind": "item",
+        "rank": 15,
+        "description": "Item 15 of the paged table, with a description long enough to wrap in a narrow column."
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "kind"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "item"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "description"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Item 15 of the paged table, with a description long enough to wrap in a narrow column."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "item-16",
+      "type": "note",
+      "path": "item-16.md",
+      "fields": {
+        "kind": "item",
+        "rank": 16,
+        "description": "Item 16 of the paged table, with a description long enough to wrap in a narrow column."
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "kind"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "item"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "description"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Item 16 of the paged table, with a description long enough to wrap in a narrow column."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "item-17",
+      "type": "note",
+      "path": "item-17.md",
+      "fields": {
+        "kind": "item",
+        "rank": 17,
+        "description": "Item 17 of the paged table, with a description long enough to wrap in a narrow column."
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "kind"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "item"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "description"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Item 17 of the paged table, with a description long enough to wrap in a narrow column."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "item-18",
+      "type": "note",
+      "path": "item-18.md",
+      "fields": {
+        "kind": "item",
+        "rank": 18,
+        "description": "Item 18 of the paged table, with a description long enough to wrap in a narrow column."
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "kind"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "item"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "description"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Item 18 of the paged table, with a description long enough to wrap in a narrow column."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "item-19",
+      "type": "note",
+      "path": "item-19.md",
+      "fields": {
+        "kind": "item",
+        "rank": 19,
+        "description": "Item 19 of the paged table, with a description long enough to wrap in a narrow column."
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "kind"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "item"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "description"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Item 19 of the paged table, with a description long enough to wrap in a narrow column."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "item-20",
+      "type": "note",
+      "path": "item-20.md",
+      "fields": {
+        "kind": "item",
+        "rank": 20,
+        "description": "Item 20 of the paged table, with a description long enough to wrap in a narrow column."
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "kind"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "item"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "description"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Item 20 of the paged table, with a description long enough to wrap in a narrow column."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "item-21",
+      "type": "note",
+      "path": "item-21.md",
+      "fields": {
+        "kind": "item",
+        "rank": 21,
+        "description": "Item 21 of the paged table, with a description long enough to wrap in a narrow column."
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "kind"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "item"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "description"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Item 21 of the paged table, with a description long enough to wrap in a narrow column."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "item-22",
+      "type": "note",
+      "path": "item-22.md",
+      "fields": {
+        "kind": "item",
+        "rank": 22,
+        "description": "Item 22 of the paged table, with a description long enough to wrap in a narrow column."
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "kind"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "item"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "description"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Item 22 of the paged table, with a description long enough to wrap in a narrow column."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "item-23",
+      "type": "note",
+      "path": "item-23.md",
+      "fields": {
+        "kind": "item",
+        "rank": 23,
+        "description": "Item 23 of the paged table, with a description long enough to wrap in a narrow column."
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "kind"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "item"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "description"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Item 23 of the paged table, with a description long enough to wrap in a narrow column."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "item-24",
+      "type": "note",
+      "path": "item-24.md",
+      "fields": {
+        "kind": "item",
+        "rank": 24,
+        "description": "Item 24 of the paged table, with a description long enough to wrap in a narrow column."
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "kind"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "item"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "description"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Item 24 of the paged table, with a description long enough to wrap in a narrow column."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "manifest",
+      "type": "note",
+      "path": "manifest.md",
+      "fields": {
+        "title": "Feature fixture",
+        "obsHtml": {
+          "figures": {
+            "numbering": "chapter"
+          }
+        }
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "title"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Feature fixture"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "obsHtml.figures.numbering"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "chapter"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "overview",
+      "type": "note",
+      "path": "overview.md",
+      "fields": {},
+      "fieldNodes": []
+    },
+    {
+      "id": "prose",
+      "type": "note",
+      "path": "prose.md",
+      "fields": {},
+      "fieldNodes": []
+    },
+    {
+      "id": "references",
+      "type": "note",
+      "path": "references.md",
+      "fields": {
+        "status": "draft"
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "status"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "draft"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "source-a",
+      "type": "note",
+      "path": "source-a.md",
+      "fields": {
+        "document": "[Source A](overview.md)",
+        "description": "A source of the fixture.",
+        "kind": "reference"
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "document"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {
+                "link": "source-a"
+              },
+              "children": [],
+              "text": "Source A"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "description"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "A source of the fixture."
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "kind"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "reference"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "source-b",
+      "type": "note",
+      "path": "source-b.md",
+      "fields": {
+        "document": "Unlinked source",
+        "description": "A source of the fixture.",
+        "kind": "reference"
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "document"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Unlinked source"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "description"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "A source of the fixture."
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "kind"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "reference"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tables",
+      "type": "note",
+      "path": "tables.md",
+      "fields": {},
+      "fieldNodes": []
+    },
+    {
+      "id": "chapter-overview",
+      "type": "chapter",
+      "note": "overview",
+      "fields": {
+        "chapter": "Overview",
+        "title": "Overview",
+        "depth": "0",
+        "slug": "overview",
+        "sourcePath": "overview.md"
+      }
+    },
+    {
+      "id": "chapter-figures",
+      "type": "chapter",
+      "note": "figures",
+      "fields": {
+        "chapter": "Figures",
+        "title": "Figures",
+        "depth": "0",
+        "slug": "figures",
+        "sourcePath": "figures.md"
+      }
+    },
+    {
+      "id": "chapter-equations",
+      "type": "chapter",
+      "note": "equations",
+      "fields": {
+        "chapter": "Equations",
+        "title": "Equations",
+        "depth": "1",
+        "slug": "equations",
+        "sourcePath": "equations.md"
+      }
+    },
+    {
+      "id": "chapter-tables",
+      "type": "chapter",
+      "note": "tables",
+      "fields": {
+        "chapter": "Tables",
+        "title": "Tables",
+        "depth": "2",
+        "slug": "tables",
+        "sourcePath": "tables.md"
+      }
+    },
+    {
+      "id": "chapter-prose",
+      "type": "chapter",
+      "note": "prose",
+      "fields": {
+        "chapter": "Prose",
+        "title": "Prose",
+        "depth": "0",
+        "slug": "prose",
+        "sourcePath": "prose.md"
+      }
+    },
+    {
+      "id": "chapter-references",
+      "type": "chapter",
+      "note": "references",
+      "fields": {
+        "chapter": "References",
+        "title": "References",
+        "depth": "0",
+        "slug": "references",
+        "sourcePath": "references.md"
+      }
+    },
+    {
+      "id": "tag-prose-risk-limit",
+      "type": "tag",
+      "note": "prose",
+      "fields": {
+        "sourcePath": "prose.md",
+        "type": "risk",
+        "label": "limit",
+        "text": "See [[figures#Plot|the plot]], [the site](https://example.org/) and ![a logo](logo.png). `x < y`",
+        "source": "Prose"
+      }
+    },
+    {
+      "id": "tag-prose-question-scope-question",
+      "type": "tag",
+      "note": "prose",
+      "fields": {
+        "sourcePath": "prose.md",
+        "type": "question",
+        "label": "scope_question",
+        "text": "Open question.",
+        "source": "Prose"
+      }
+    },
+    {
+      "id": "document-metadata-title",
+      "type": "documentMetadata",
+      "fields": {
+        "key": "title",
+        "value": "Feature fixture"
+      }
+    }
+  ],
+  "semanticResources": [],
+  "diagnostics": [],
+  "capabilities": [
+    "attachments",
+    "bases",
+    "callouts",
+    "chapter-inclusion",
+    "equation-figures",
+    "figure-descriptor",
+    "figures",
+    "manifest",
+    "markdown",
+    "markdown-frontmatter",
+    "marks",
+    "property-editors",
+    "pugh-decisions",
+    "references",
+    "registers",
+    "wikilinks"
+  ],
+  "cssSnippets": [],
+  "sourceArchive": {
+    "files": [
+      {
+        "path": "aside.md",
+        "data": "IyBBc2lkZQoKQSBub3RlIGEgbGluayBvcGVucyBhcyBjb250ZXh0Lgo="
+      },
+      {
+        "path": "drawing.svg",
+        "data": "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MCAyMCI+PHJlY3Qgd2lkdGg9IjIwIiBoZWlnaHQ9IjIwIiBmaWxsPSIjNTg3ODk0Ii8+PGNpcmNsZSBjeD0iMzAiIGN5PSIxMCIgcj0iOCIgZmlsbD0iIzczODY5YSIvPjwvc3ZnPg=="
+      },
+      {
+        "path": "equations.md",
+        "data": "IyBFcXVhdGlvbnMKClRoZSBwbG90IGZpZ3VyZSBpcyBbW2ZpZ3VyZXMjXnBsb3QtZmlndXJlXV0uCgojIyBQYXJhYm9sYQoKYGBgZmlndXJlCnZlcnNpb246IDEKa2luZDogZXF1YXRpb25zCmNhcHRpb246IFRoZSBlcXVhdGlvbnMgZmlndXJlLgpjb250ZW50OgogIGVxdWF0aW9uczogeSA9IGEqeCoqMgogIHZhcmlhYmxlczoKICAgIHg6IHtkZWZhdWx0OiAwLCByYW5nZTogWy0yLCAyXX0KICAgIGE6IHtkZWZhdWx0OiAxLCByYW5nZTogWzAuNSwgMl19CiAgICB5OiB7fQogIHBsb3Q6IHt4OiB4LCB5OiB5fQpgYGAKXmVxdWF0aW9ucy1maWd1cmUKCiMjIERlY2lzaW9uCgpgYGBmaWd1cmUKdmVyc2lvbjogMQpraW5kOiBwdWdoCmNhcHRpb246IFRoZSBkZWNpc2lvbiBmaWd1cmUuCmNvbnRlbnQ6IHsidGl0bGUiOiAiV2hpY2ggb3B0aW9uIiwgImNob3NlbiI6ICJBIiwgImNyaXRlcmlhIjogW3sia2V5IjogImVyciIsICJsYWJlbCI6ICJFcnJvciIsICJ3ZWlnaHQiOiAzLCAiYmV0dGVyIjogImxvd2VyIiwgInRvbGVyYW5jZSI6IDAuMSwgImZsb29yIjogMH0sIHsia2V5IjogInNwZWVkIiwgImxhYmVsIjogIlNwZWVkIiwgIndlaWdodCI6IDIsICJiZXR0ZXIiOiAiaGlnaGVyIiwgInRvbGVyYW5jZSI6IDAuMSwgImZsb29yIjogMH0sIHsia2V5IjogImNvc3QiLCAibGFiZWwiOiAiQ29zdCBvZiBvd25lcnNoaXAiLCAid2VpZ2h0IjogMSwgImJldHRlciI6ICJsb3dlciIsICJ0b2xlcmFuY2UiOiAwLjI1LCAiZmxvb3IiOiAxfV0sICJjYW5kaWRhdGVzIjogW3sia2V5IjogIkQiLCAibGFiZWwiOiAiV2hhdCBydW5zIHRvZGF5IiwgIndoYXQiOiAiVGhlIGRhdHVtOiBub3RoaW5nIGNoYW5nZXMuIiwgInZhbHVlcyI6IHsiZXJyIjogMSwgInNwZWVkIjogMTAsICJjb3N0IjogOX0sICJ3aW5zIjogIk5vdGhpbmcgdG8gbWlncmF0ZS4ifSwgeyJrZXkiOiAiQSIsICJsYWJlbCI6ICJQcmVjaXNlIiwgIndoYXQiOiAiUHJlY2lzZSBidXQgZGVhci4iLCAidmFsdWVzIjogeyJlcnIiOiAwLjQsICJzcGVlZCI6IDEwLjUsICJjb3N0IjogMTl9LCAidGllQnJlYWsiOiAyLCAibG9zc2VzIjogWyJBIG5ldyBsaWNlbmNlIiwgIlRyYWluaW5nIl19LCB7ImtleSI6ICJCIiwgImxhYmVsIjogIlF1aWNrIiwgIndoYXQiOiAiUXVpY2sgYW5kIGNoZWFwLiIsICJ2YWx1ZXMiOiB7ImVyciI6IDAuODUsICJzcGVlZCI6IDMwLCAiY29zdCI6IDR9LCAidGllQnJlYWsiOiAxLCAid2lucyI6ICJSdW5zIG9uIGEgcGhvbmUuIn0sIHsia2V5IjogIkMiLCAibGFiZWwiOiAiTWlkZGxpbmciLCAidmFsdWVzIjogeyJlcnIiOiAwLjk1LCAic3BlZWQiOiAyMiwgImNvc3QiOiA5fSwgInRpZUJyZWFrIjogMH1dLCAiZGF0dW0iOiB7InByZWZlciI6IFsiRCJdfSwgInNlbnNpdGl2aXR5IjogeyJzZWVkIjogMywgImRyYXdzIjogMjAwMH0sICJjaGVja2xpc3QiOiBbeyJpdGVtIjogIkRvZXMgaXQga2VlcCB0aGUgZGF0YSBpbiB0aGUgRVU/IiwgImFuc3dlciI6ICJBbGwgb2YgdGhlbSBkby4iLCAicGFzcyI6IHRydWV9LCB7Iml0ZW0iOiAiSXMgdGhlcmUgYSBzZWNvbmQgc3VwcGxpZXI/IiwgImFuc3dlciI6ICJOb3QgZm9yIHRoaXMga2luZCBvZiBzeXN0ZW0uIiwgInBhc3MiOiBmYWxzZX1dfQpgYGAKXmRlY2lzaW9uLWZpZ3VyZQoKUGFyYWdyYXBoIDEgb2YgdGhlIGNsb3NpbmcgdGV4dCwgd2hpY2ggcmVhZHMgb24gYWZ0ZXIgdGhlIGNvbnRlbnQgYWJvdmUgaXQuIFBhcmFncmFwaCAxIG9mIHRoZSBjbG9zaW5nIHRleHQsIHdoaWNoIHJlYWRzIG9uIGFmdGVyIHRoZSBjb250ZW50IGFib3ZlIGl0LiBQYXJhZ3JhcGggMSBvZiB0aGUgY2xvc2luZyB0ZXh0LCB3aGljaCByZWFkcyBvbiBhZnRlciB0aGUgY29udGVudCBhYm92ZSBpdC4gCgpQYXJhZ3JhcGggMiBvZiB0aGUgY2xvc2luZyB0ZXh0LCB3aGljaCByZWFkcyBvbiBhZnRlciB0aGUgY29udGVudCBhYm92ZSBpdC4gUGFyYWdyYXBoIDIgb2YgdGhlIGNsb3NpbmcgdGV4dCwgd2hpY2ggcmVhZHMgb24gYWZ0ZXIgdGhlIGNvbnRlbnQgYWJvdmUgaXQuIFBhcmFncmFwaCAyIG9mIHRoZSBjbG9zaW5nIHRleHQsIHdoaWNoIHJlYWRzIG9uIGFmdGVyIHRoZSBjb250ZW50IGFib3ZlIGl0LiAK"
+      },
+      {
+        "path": "figures.md",
+        "data": "IyBGaWd1cmVzCgojIyBJbWFnZQoKYGBgZmlndXJlCnZlcnNpb246IDEKa2luZDogaW1hZ2UKY2FwdGlvbjogVGhlIGltYWdlIGZpZ3VyZS4Kc291cmNlOiBkcmF3aW5nLnN2ZwpgYGAKXmltYWdlLWZpZ3VyZQoKIyMgUGxvdAoKYGBgZmlndXJlCnZlcnNpb246IDEKa2luZDogcGxvdApjYXB0aW9uOiBUaGUgcGxvdCBmaWd1cmUuCmNvbnRlbnQ6IHsic2NoZW1hVmVyc2lvbiI6IDEsICJpZCI6ICJyZXNwb25zZSIsICJkYXRhIjogeyJ0cmFjZXMiOiBbeyJsYWJlbCI6ICJtZWFzdXJlZCIsICJ4IjogWzAsIDEsIDJdLCAieSI6IFsxLCA0LCA5XX0sIHsibGFiZWwiOiAibW9kZWwiLCAieCI6IFswLCAxLCAyXSwgInkiOiBbMSwgMywgOF0sICJtb2RlIjogImxpbmVzK21hcmtlcnMifV19LCAicGFuZWxzIjogW3siaWQiOiAibWFpbiIsICJib3VuZHMiOiB7IngiOiAwLCAieSI6IDAsICJ3aWR0aCI6IDcyMCwgImhlaWdodCI6IDMyMH0sICJncmlkIjogeyJyb3ciOiAwLCAiY29sdW1uIjogMCwgInJvd1NwYW4iOiAxLCAiY29sdW1uU3BhbiI6IDF9LCAiYXhlcyI6IFt7ImlkIjogInRpbWUiLCAic2NhbGUiOiAibGluZWFyIiwgImxpbWl0cyI6IHsibWluaW11bSI6IDAsICJtYXhpbXVtIjogMn0sICJsYWJlbCI6ICJUaW1lIn0sIHsiaWQiOiAidmFsdWUiLCAic2NhbGUiOiAibG9nIiwgImxpbWl0cyI6IHsibWluaW11bSI6IDEsICJtYXhpbXVtIjogMTB9LCAibGFiZWwiOiAiVmFsdWUifV19XSwgInByb3ZlbmFuY2UiOiB7ImNvbW1hbmQiOiBbImdlbmVyYXRlLXJlc3BvbnNlIl19fQpgYGAKXnBsb3QtZmlndXJlCgpQYXJhZ3JhcGggMSBvZiB0aGUgY2xvc2luZyB0ZXh0LCB3aGljaCByZWFkcyBvbiBhZnRlciB0aGUgY29udGVudCBhYm92ZSBpdC4gUGFyYWdyYXBoIDEgb2YgdGhlIGNsb3NpbmcgdGV4dCwgd2hpY2ggcmVhZHMgb24gYWZ0ZXIgdGhlIGNvbnRlbnQgYWJvdmUgaXQuIFBhcmFncmFwaCAxIG9mIHRoZSBjbG9zaW5nIHRleHQsIHdoaWNoIHJlYWRzIG9uIGFmdGVyIHRoZSBjb250ZW50IGFib3ZlIGl0LiAKClBhcmFncmFwaCAyIG9mIHRoZSBjbG9zaW5nIHRleHQsIHdoaWNoIHJlYWRzIG9uIGFmdGVyIHRoZSBjb250ZW50IGFib3ZlIGl0LiBQYXJhZ3JhcGggMiBvZiB0aGUgY2xvc2luZyB0ZXh0LCB3aGljaCByZWFkcyBvbiBhZnRlciB0aGUgY29udGVudCBhYm92ZSBpdC4gUGFyYWdyYXBoIDIgb2YgdGhlIGNsb3NpbmcgdGV4dCwgd2hpY2ggcmVhZHMgb24gYWZ0ZXIgdGhlIGNvbnRlbnQgYWJvdmUgaXQuIAo="
+      },
+      {
+        "path": "item-01.md",
+        "data": "LS0tCmtpbmQ6IGl0ZW0KcmFuazogMQpkZXNjcmlwdGlvbjogSXRlbSAxIG9mIHRoZSBwYWdlZCB0YWJsZSwgd2l0aCBhIGRlc2NyaXB0aW9uIGxvbmcgZW5vdWdoIHRvIHdyYXAgaW4gYSBuYXJyb3cgY29sdW1uLgotLS0K"
+      },
+      {
+        "path": "item-02.md",
+        "data": "LS0tCmtpbmQ6IGl0ZW0KcmFuazogMgpkZXNjcmlwdGlvbjogSXRlbSAyIG9mIHRoZSBwYWdlZCB0YWJsZSwgd2l0aCBhIGRlc2NyaXB0aW9uIGxvbmcgZW5vdWdoIHRvIHdyYXAgaW4gYSBuYXJyb3cgY29sdW1uLgotLS0K"
+      },
+      {
+        "path": "item-03.md",
+        "data": "LS0tCmtpbmQ6IGl0ZW0KcmFuazogMwpkZXNjcmlwdGlvbjogSXRlbSAzIG9mIHRoZSBwYWdlZCB0YWJsZSwgd2l0aCBhIGRlc2NyaXB0aW9uIGxvbmcgZW5vdWdoIHRvIHdyYXAgaW4gYSBuYXJyb3cgY29sdW1uLgotLS0K"
+      },
+      {
+        "path": "item-04.md",
+        "data": "LS0tCmtpbmQ6IGl0ZW0KcmFuazogNApkZXNjcmlwdGlvbjogSXRlbSA0IG9mIHRoZSBwYWdlZCB0YWJsZSwgd2l0aCBhIGRlc2NyaXB0aW9uIGxvbmcgZW5vdWdoIHRvIHdyYXAgaW4gYSBuYXJyb3cgY29sdW1uLgotLS0K"
+      },
+      {
+        "path": "item-05.md",
+        "data": "LS0tCmtpbmQ6IGl0ZW0KcmFuazogNQpkZXNjcmlwdGlvbjogSXRlbSA1IG9mIHRoZSBwYWdlZCB0YWJsZSwgd2l0aCBhIGRlc2NyaXB0aW9uIGxvbmcgZW5vdWdoIHRvIHdyYXAgaW4gYSBuYXJyb3cgY29sdW1uLgotLS0K"
+      },
+      {
+        "path": "item-06.md",
+        "data": "LS0tCmtpbmQ6IGl0ZW0KcmFuazogNgpkZXNjcmlwdGlvbjogSXRlbSA2IG9mIHRoZSBwYWdlZCB0YWJsZSwgd2l0aCBhIGRlc2NyaXB0aW9uIGxvbmcgZW5vdWdoIHRvIHdyYXAgaW4gYSBuYXJyb3cgY29sdW1uLgotLS0K"
+      },
+      {
+        "path": "item-07.md",
+        "data": "LS0tCmtpbmQ6IGl0ZW0KcmFuazogNwpkZXNjcmlwdGlvbjogSXRlbSA3IG9mIHRoZSBwYWdlZCB0YWJsZSwgd2l0aCBhIGRlc2NyaXB0aW9uIGxvbmcgZW5vdWdoIHRvIHdyYXAgaW4gYSBuYXJyb3cgY29sdW1uLgotLS0K"
+      },
+      {
+        "path": "item-08.md",
+        "data": "LS0tCmtpbmQ6IGl0ZW0KcmFuazogOApkZXNjcmlwdGlvbjogSXRlbSA4IG9mIHRoZSBwYWdlZCB0YWJsZSwgd2l0aCBhIGRlc2NyaXB0aW9uIGxvbmcgZW5vdWdoIHRvIHdyYXAgaW4gYSBuYXJyb3cgY29sdW1uLgotLS0K"
+      },
+      {
+        "path": "item-09.md",
+        "data": "LS0tCmtpbmQ6IGl0ZW0KcmFuazogOQpkZXNjcmlwdGlvbjogSXRlbSA5IG9mIHRoZSBwYWdlZCB0YWJsZSwgd2l0aCBhIGRlc2NyaXB0aW9uIGxvbmcgZW5vdWdoIHRvIHdyYXAgaW4gYSBuYXJyb3cgY29sdW1uLgotLS0K"
+      },
+      {
+        "path": "item-10.md",
+        "data": "LS0tCmtpbmQ6IGl0ZW0KcmFuazogMTAKZGVzY3JpcHRpb246IEl0ZW0gMTAgb2YgdGhlIHBhZ2VkIHRhYmxlLCB3aXRoIGEgZGVzY3JpcHRpb24gbG9uZyBlbm91Z2ggdG8gd3JhcCBpbiBhIG5hcnJvdyBjb2x1bW4uCi0tLQo="
+      },
+      {
+        "path": "item-11.md",
+        "data": "LS0tCmtpbmQ6IGl0ZW0KcmFuazogMTEKZGVzY3JpcHRpb246IEl0ZW0gMTEgb2YgdGhlIHBhZ2VkIHRhYmxlLCB3aXRoIGEgZGVzY3JpcHRpb24gbG9uZyBlbm91Z2ggdG8gd3JhcCBpbiBhIG5hcnJvdyBjb2x1bW4uCi0tLQo="
+      },
+      {
+        "path": "item-12.md",
+        "data": "LS0tCmtpbmQ6IGl0ZW0KcmFuazogMTIKZGVzY3JpcHRpb246IEl0ZW0gMTIgb2YgdGhlIHBhZ2VkIHRhYmxlLCB3aXRoIGEgZGVzY3JpcHRpb24gbG9uZyBlbm91Z2ggdG8gd3JhcCBpbiBhIG5hcnJvdyBjb2x1bW4uCi0tLQo="
+      },
+      {
+        "path": "item-13.md",
+        "data": "LS0tCmtpbmQ6IGl0ZW0KcmFuazogMTMKZGVzY3JpcHRpb246IEl0ZW0gMTMgb2YgdGhlIHBhZ2VkIHRhYmxlLCB3aXRoIGEgZGVzY3JpcHRpb24gbG9uZyBlbm91Z2ggdG8gd3JhcCBpbiBhIG5hcnJvdyBjb2x1bW4uCi0tLQo="
+      },
+      {
+        "path": "item-14.md",
+        "data": "LS0tCmtpbmQ6IGl0ZW0KcmFuazogMTQKZGVzY3JpcHRpb246IEl0ZW0gMTQgb2YgdGhlIHBhZ2VkIHRhYmxlLCB3aXRoIGEgZGVzY3JpcHRpb24gbG9uZyBlbm91Z2ggdG8gd3JhcCBpbiBhIG5hcnJvdyBjb2x1bW4uCi0tLQo="
+      },
+      {
+        "path": "item-15.md",
+        "data": "LS0tCmtpbmQ6IGl0ZW0KcmFuazogMTUKZGVzY3JpcHRpb246IEl0ZW0gMTUgb2YgdGhlIHBhZ2VkIHRhYmxlLCB3aXRoIGEgZGVzY3JpcHRpb24gbG9uZyBlbm91Z2ggdG8gd3JhcCBpbiBhIG5hcnJvdyBjb2x1bW4uCi0tLQo="
+      },
+      {
+        "path": "item-16.md",
+        "data": "LS0tCmtpbmQ6IGl0ZW0KcmFuazogMTYKZGVzY3JpcHRpb246IEl0ZW0gMTYgb2YgdGhlIHBhZ2VkIHRhYmxlLCB3aXRoIGEgZGVzY3JpcHRpb24gbG9uZyBlbm91Z2ggdG8gd3JhcCBpbiBhIG5hcnJvdyBjb2x1bW4uCi0tLQo="
+      },
+      {
+        "path": "item-17.md",
+        "data": "LS0tCmtpbmQ6IGl0ZW0KcmFuazogMTcKZGVzY3JpcHRpb246IEl0ZW0gMTcgb2YgdGhlIHBhZ2VkIHRhYmxlLCB3aXRoIGEgZGVzY3JpcHRpb24gbG9uZyBlbm91Z2ggdG8gd3JhcCBpbiBhIG5hcnJvdyBjb2x1bW4uCi0tLQo="
+      },
+      {
+        "path": "item-18.md",
+        "data": "LS0tCmtpbmQ6IGl0ZW0KcmFuazogMTgKZGVzY3JpcHRpb246IEl0ZW0gMTggb2YgdGhlIHBhZ2VkIHRhYmxlLCB3aXRoIGEgZGVzY3JpcHRpb24gbG9uZyBlbm91Z2ggdG8gd3JhcCBpbiBhIG5hcnJvdyBjb2x1bW4uCi0tLQo="
+      },
+      {
+        "path": "item-19.md",
+        "data": "LS0tCmtpbmQ6IGl0ZW0KcmFuazogMTkKZGVzY3JpcHRpb246IEl0ZW0gMTkgb2YgdGhlIHBhZ2VkIHRhYmxlLCB3aXRoIGEgZGVzY3JpcHRpb24gbG9uZyBlbm91Z2ggdG8gd3JhcCBpbiBhIG5hcnJvdyBjb2x1bW4uCi0tLQo="
+      },
+      {
+        "path": "item-20.md",
+        "data": "LS0tCmtpbmQ6IGl0ZW0KcmFuazogMjAKZGVzY3JpcHRpb246IEl0ZW0gMjAgb2YgdGhlIHBhZ2VkIHRhYmxlLCB3aXRoIGEgZGVzY3JpcHRpb24gbG9uZyBlbm91Z2ggdG8gd3JhcCBpbiBhIG5hcnJvdyBjb2x1bW4uCi0tLQo="
+      },
+      {
+        "path": "item-21.md",
+        "data": "LS0tCmtpbmQ6IGl0ZW0KcmFuazogMjEKZGVzY3JpcHRpb246IEl0ZW0gMjEgb2YgdGhlIHBhZ2VkIHRhYmxlLCB3aXRoIGEgZGVzY3JpcHRpb24gbG9uZyBlbm91Z2ggdG8gd3JhcCBpbiBhIG5hcnJvdyBjb2x1bW4uCi0tLQo="
+      },
+      {
+        "path": "item-22.md",
+        "data": "LS0tCmtpbmQ6IGl0ZW0KcmFuazogMjIKZGVzY3JpcHRpb246IEl0ZW0gMjIgb2YgdGhlIHBhZ2VkIHRhYmxlLCB3aXRoIGEgZGVzY3JpcHRpb24gbG9uZyBlbm91Z2ggdG8gd3JhcCBpbiBhIG5hcnJvdyBjb2x1bW4uCi0tLQo="
+      },
+      {
+        "path": "item-23.md",
+        "data": "LS0tCmtpbmQ6IGl0ZW0KcmFuazogMjMKZGVzY3JpcHRpb246IEl0ZW0gMjMgb2YgdGhlIHBhZ2VkIHRhYmxlLCB3aXRoIGEgZGVzY3JpcHRpb24gbG9uZyBlbm91Z2ggdG8gd3JhcCBpbiBhIG5hcnJvdyBjb2x1bW4uCi0tLQo="
+      },
+      {
+        "path": "item-24.md",
+        "data": "LS0tCmtpbmQ6IGl0ZW0KcmFuazogMjQKZGVzY3JpcHRpb246IEl0ZW0gMjQgb2YgdGhlIHBhZ2VkIHRhYmxlLCB3aXRoIGEgZGVzY3JpcHRpb24gbG9uZyBlbm91Z2ggdG8gd3JhcCBpbiBhIG5hcnJvdyBjb2x1bW4uCi0tLQo="
+      },
+      {
+        "path": "logo.png",
+        "asset": "a-logo"
+      },
+      {
+        "path": "manifest.md",
+        "data": "LS0tCnRpdGxlOiBGZWF0dXJlIGZpeHR1cmUKb2JzSHRtbDoge2ZpZ3VyZXM6IHtudW1iZXJpbmc6IGNoYXB0ZXJ9fQotLS0KLSBbW292ZXJ2aWV3XV0KLSBbW2ZpZ3VyZXNdXQogIC0gW1tlcXVhdGlvbnNdXQogICAgLSBbW3RhYmxlc11dCi0gW1twcm9zZV1dCi0gW1tyZWZlcmVuY2VzXV0K"
+      },
+      {
+        "path": "overview.md",
+        "data": "IyBPdmVydmlldwoKRXZlcnkgcmVhZGVyIGZlYXR1cmUgb25jZTogW1tmaWd1cmVzXV0sIFtbdGFibGVzXV0sIFtbcHJvc2VdXSBhbmQgYW4gW1thc2lkZV1dIG91dHNpZGUgdGhlIHJlYWRpbmcgb3JkZXIuCg=="
+      },
+      {
+        "path": "prose.md",
+        "data": "IyBQcm9zZQoKU2VlIFtbZmlndXJlcyNQbG90fHRoZSBwbG90XV0sIFt0aGUgc2l0ZV0oaHR0cHM6Ly9leGFtcGxlLm9yZy8pIGFuZCAhW2EgbG9nb10obG9nby5wbmcpLiBgeCA8IHlgICNtYXJrL3Jpc2svbGltaXQKCk9wZW4gcXVlc3Rpb24uICNtYXJrL3F1ZXN0aW9uL3Njb3BlX3F1ZXN0aW9uCgo+IFshd2FybmluZ10gQ2hlY2sgdGhlIGxpbWl0cwo+IFRoZSBjYWxsb3V0J3MgYm9keSBsaW5rcyBbW3RhYmxlc11dLgoKIyMgTGlzdHMKCjEuIG9uZQoyLiB0d28KCi0gYQotIGIKCiMjIENvZGUKCmBgYHRleHQKcGxhaW4gY29kZQpgYGAKClBhcmFncmFwaCAxIG9mIHRoZSBjbG9zaW5nIHRleHQsIHdoaWNoIHJlYWRzIG9uIGFmdGVyIHRoZSBjb250ZW50IGFib3ZlIGl0LiBQYXJhZ3JhcGggMSBvZiB0aGUgY2xvc2luZyB0ZXh0LCB3aGljaCByZWFkcyBvbiBhZnRlciB0aGUgY29udGVudCBhYm92ZSBpdC4gUGFyYWdyYXBoIDEgb2YgdGhlIGNsb3NpbmcgdGV4dCwgd2hpY2ggcmVhZHMgb24gYWZ0ZXIgdGhlIGNvbnRlbnQgYWJvdmUgaXQuIAoKUGFyYWdyYXBoIDIgb2YgdGhlIGNsb3NpbmcgdGV4dCwgd2hpY2ggcmVhZHMgb24gYWZ0ZXIgdGhlIGNvbnRlbnQgYWJvdmUgaXQuIFBhcmFncmFwaCAyIG9mIHRoZSBjbG9zaW5nIHRleHQsIHdoaWNoIHJlYWRzIG9uIGFmdGVyIHRoZSBjb250ZW50IGFib3ZlIGl0LiBQYXJhZ3JhcGggMiBvZiB0aGUgY2xvc2luZyB0ZXh0LCB3aGljaCByZWFkcyBvbiBhZnRlciB0aGUgY29udGVudCBhYm92ZSBpdC4gCg=="
+      },
+      {
+        "path": "references.md",
+        "data": "LS0tCnN0YXR1czogZHJhZnQKLS0tCiMgUmVmZXJlbmNlcwoKIVtbc291cmNlcy5iYXNlXV0KCmBgYHByb3BlcnR5LWVkaXRvcgp2ZXJzaW9uOiAxCmZpZWxkOiBzdGF0dXMKbGFiZWw6IFN0YXR1cwpgYGAKClBhcmFncmFwaCAxIG9mIHRoZSBjbG9zaW5nIHRleHQsIHdoaWNoIHJlYWRzIG9uIGFmdGVyIHRoZSBjb250ZW50IGFib3ZlIGl0LiBQYXJhZ3JhcGggMSBvZiB0aGUgY2xvc2luZyB0ZXh0LCB3aGljaCByZWFkcyBvbiBhZnRlciB0aGUgY29udGVudCBhYm92ZSBpdC4gUGFyYWdyYXBoIDEgb2YgdGhlIGNsb3NpbmcgdGV4dCwgd2hpY2ggcmVhZHMgb24gYWZ0ZXIgdGhlIGNvbnRlbnQgYWJvdmUgaXQuIAoKUGFyYWdyYXBoIDIgb2YgdGhlIGNsb3NpbmcgdGV4dCwgd2hpY2ggcmVhZHMgb24gYWZ0ZXIgdGhlIGNvbnRlbnQgYWJvdmUgaXQuIFBhcmFncmFwaCAyIG9mIHRoZSBjbG9zaW5nIHRleHQsIHdoaWNoIHJlYWRzIG9uIGFmdGVyIHRoZSBjb250ZW50IGFib3ZlIGl0LiBQYXJhZ3JhcGggMiBvZiB0aGUgY2xvc2luZyB0ZXh0LCB3aGljaCByZWFkcyBvbiBhZnRlciB0aGUgY29udGVudCBhYm92ZSBpdC4gCg=="
+      },
+      {
+        "path": "source-a.md",
+        "data": "LS0tCmRvY3VtZW50OiAnW1NvdXJjZSBBXShvdmVydmlldy5tZCknCmRlc2NyaXB0aW9uOiBBIHNvdXJjZSBvZiB0aGUgZml4dHVyZS4Ka2luZDogcmVmZXJlbmNlCi0tLQo="
+      },
+      {
+        "path": "source-b.md",
+        "data": "LS0tCmRvY3VtZW50OiAnVW5saW5rZWQgc291cmNlJwpkZXNjcmlwdGlvbjogQSBzb3VyY2Ugb2YgdGhlIGZpeHR1cmUuCmtpbmQ6IHJlZmVyZW5jZQotLS0K"
+      },
+      {
+        "path": "sources.base",
+        "data": "ZmlsdGVyczogJ2tpbmQgPT0gInJlZmVyZW5jZSInCnByb3BlcnRpZXM6CiAgb2JzSHRtbC5sYWJlbDoKICAgIGRpc3BsYXlOYW1lOiBOby4Kdmlld3M6CiAgLSB0eXBlOiB0YWJsZQogICAgb3JkZXI6IFtvYnNIdG1sLmxhYmVsLCBkb2N1bWVudCwgZGVzY3JpcHRpb25dCiAgICBvYnM6CiAgICAgIG1lbWJlcnM6CiAgICAgICAgLSBwYXRoOiBzb3VyY2UtYS5tZAogICAgICAgICAgbGFiZWw6ICdbMV0nCiAgICAgICAgLSBwYXRoOiBzb3VyY2UtYi5tZAogICAgICAgICAgbGFiZWw6ICdbMl0nCg=="
+      },
+      {
+        "path": "tables.md",
+        "data": "IyBUYWJsZXMKCmBgYGJhc2UKZmlsdGVyczogJ2tpbmQgPT0gIml0ZW0iJwpwcm9wZXJ0aWVzOgogIGRlc2NyaXB0aW9uOiB7ZGlzcGxheU5hbWU6IERlc2NyaXB0aW9ufQp2aWV3czoKICAtIHR5cGU6IHRhYmxlCiAgICBuYW1lOiBJdGVtcwogICAgb3JkZXI6IFtmaWxlLm5hbWUsIHJhbmssIGRlc2NyaXB0aW9uXQogICAgc29ydDogW3twcm9wZXJ0eTogcmFuaywgZGlyZWN0aW9uOiBBU0N9XQpgYGAKClBhcmFncmFwaCAxIG9mIHRoZSBjbG9zaW5nIHRleHQsIHdoaWNoIHJlYWRzIG9uIGFmdGVyIHRoZSBjb250ZW50IGFib3ZlIGl0LiBQYXJhZ3JhcGggMSBvZiB0aGUgY2xvc2luZyB0ZXh0LCB3aGljaCByZWFkcyBvbiBhZnRlciB0aGUgY29udGVudCBhYm92ZSBpdC4gUGFyYWdyYXBoIDEgb2YgdGhlIGNsb3NpbmcgdGV4dCwgd2hpY2ggcmVhZHMgb24gYWZ0ZXIgdGhlIGNvbnRlbnQgYWJvdmUgaXQuIAoKUGFyYWdyYXBoIDIgb2YgdGhlIGNsb3NpbmcgdGV4dCwgd2hpY2ggcmVhZHMgb24gYWZ0ZXIgdGhlIGNvbnRlbnQgYWJvdmUgaXQuIFBhcmFncmFwaCAyIG9mIHRoZSBjbG9zaW5nIHRleHQsIHdoaWNoIHJlYWRzIG9uIGFmdGVyIHRoZSBjb250ZW50IGFib3ZlIGl0LiBQYXJhZ3JhcGggMiBvZiB0aGUgY2xvc2luZyB0ZXh0LCB3aGljaCByZWFkcyBvbiBhZnRlciB0aGUgY29udGVudCBhYm92ZSBpdC4gCg=="
+      }
+    ],
+    "build": {
+      "repository": "https://github.com/mb-89/obs",
+      "commit": "0000000000000000000000000000000000000000",
+      "lockfiles": {
+        "uv.lock": {
+          "obs": "0.0.0"
+        }
+      },
+      "arguments": [
+        "--adapter",
+        "html",
+        "--destination",
+        "document.html",
+        "--embed-source"
+      ]
+    }
+  }
+}

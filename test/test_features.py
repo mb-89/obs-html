@@ -3,6 +3,7 @@
 Each feature's inclusion condition decides whether its code and its canary are in the HTML; no
 source of the artifact calls a browser dialog (artifact-ui.md, notice center).
 """
+import dataclasses
 import json
 import re
 from importlib.resources import files
@@ -13,8 +14,9 @@ import canaries
 from conftest import FIXTURE, PIXEL, ROOT
 from documents import chapter, document, heading, node, paragraph
 from obs_html import features
+from obs_html.artifact_data import decode_artifact_data
 from obs_html.config import load_config
-from obs_html.features import FEATURES
+from obs_html.features import FEATURES, Feature, Part
 from obs_html.figures import FIGURE_KINDS
 from obs_html.render import render
 
@@ -139,6 +141,37 @@ def test_every_feature_has_cases_and_its_canary_and_code_exist() -> None:
             assert part.condition, f"{feature.key}/{part.key}: its condition names what ships the part"
             for name in part.code:
                 assert SOURCE.joinpath(name).is_file(), f"{feature.key}/{part.key}: missing {name}"
+
+
+def missing_from_the_feature_fixture(artifact: str, registry=FEATURES) -> list[str]:
+    """Each registered feature, and each part of one, that the feature fixture's artifact does not
+    carry by the registry's own conditions."""
+    model = decode_artifact_data(artifact)
+    return [f"{feature.key}{'/' + part.key if part else ''}" for feature in registry
+            for part in (None, *feature.parts)
+            if not (part or feature).included(model, False)]
+
+
+def test_the_feature_fixture_carries_every_registered_feature_and_part(feature_artifact: str) -> None:
+    """The browser tier tests every feature on the feature fixture (obs quality.md, Testing
+    boundaries), so the fixture carries each one the registry declares."""
+    missing = missing_from_the_feature_fixture(feature_artifact)
+    assert not missing, (
+        f"test/test_features.py: the feature fixture (test/fixtures/documents/features.json) lacks the "
+        f"registered features {missing} (obs_html.features.FEATURES). Remedy: give the features vault of "
+        "test/fixtures/build_documents.py what meets each condition, then rebuild it with "
+        "`uv run python test/fixtures/build_documents.py <obs checkout> features`.")
+
+
+def test_a_newly_registered_feature_or_part_must_appear_in_the_feature_fixture(feature_artifact: str) -> None:
+    """The check is not vacuous: a feature or part added to the registry whose condition the
+    fixture does not meet is named."""
+    never = lambda _model, _trusted_runtime: False  # noqa: E731
+    added = Feature("added", "a condition the feature fixture does not meet", never)
+    part = Part("added-part", "a condition the feature fixture does not meet", never, ())
+    registry = (*FEATURES, added, dataclasses.replace(FEATURES[0], parts=(part,)))
+    assert missing_from_the_feature_fixture(feature_artifact, registry) == [
+        "added", f"{FEATURES[0].key}/added-part"]
 
 
 @pytest.mark.parametrize("feature", FEATURES, ids=lambda feature: feature.key)

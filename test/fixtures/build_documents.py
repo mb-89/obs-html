@@ -680,14 +680,86 @@ def source_archive(root: Path) -> None:
     (root / "intro.md").write_text("# Intro\n\nText.\n\n![[pixel.png]]\n", encoding="utf-8")
 
 
+FEATURE_ITEMS = 24
+"""The feature fixture's item notes: more than one table page (cfg.json, tablePageSize)."""
+FEATURE_PROSE = "\n\n".join(f"Paragraph {index} of the closing text, which reads on after the content above it. " * 3
+                              for index in range(1, 3))
+"""Text after a chapter's interactive content, as a real document's chapters have."""
+
+
+def features(root: Path) -> None:
+    """The browser tier's feature fixture (obs quality.md, Testing boundaries): a few chapters in
+    which every feature of the registry (features.py, FEATURES, with every part) appears, read in
+    both views by the reading script and the covered-control sweep (test_parity_browser.py). It is
+    archived (--embed-source) for the source-archive part; a note outside the reading order,
+    opened as context, needs popups; the plot figure needs plotting, the equation figure
+    equations and the decision figure pugh. Its chapters also hold what those checks read in obs's spec: prose with links,
+    marks, an image, a callout and nested headings; a paged table of notes outside the contents;
+    a figure reference across chapters; a register and a property editor. As in obs's spec, the
+    chapters the reading script walks are nested three deep, with headings. Each chapter's
+    interactive content is followed by text, as in a real document. test_features.py fails where
+    a registered feature is missing. Not a moved interim vault."""
+    (root / "manifest.md").write_text(
+        "---\ntitle: Feature fixture\nobsHtml: {figures: {numbering: chapter}}\n---\n"
+        "- [[overview]]\n- [[figures]]\n  - [[equations]]\n    - [[tables]]\n"
+        "- [[prose]]\n- [[references]]\n", encoding="utf-8")
+    (root / "overview.md").write_text(
+        "# Overview\n\nEvery reader feature once: [[figures]], [[tables]], [[prose]] and an "
+        "[[aside]] outside the reading order.\n", encoding="utf-8")
+    (root / "aside.md").write_text("# Aside\n\nA note a link opens as context.\n", encoding="utf-8")
+    (root / "drawing.svg").write_text(GALLERY_SVG, encoding="utf-8")
+    (root / "figures.md").write_text(
+        "# Figures\n\n## Image\n\n```figure\nversion: 1\nkind: image\ncaption: The image figure.\nsource: drawing.svg\n```\n"
+        f"^image-figure\n\n## Plot\n\n```figure\nversion: 1\nkind: plot\ncaption: The plot figure.\ncontent: {json.dumps(RESPONSE)}\n```\n"
+        f"^plot-figure\n\n{FEATURE_PROSE}\n", encoding="utf-8")
+    (root / "equations.md").write_text(
+        "# Equations\n\nThe plot figure is [[figures#^plot-figure]].\n\n## Parabola\n\n"
+        f"```figure\nversion: 1\nkind: equations\ncaption: The equations figure.\ncontent:\n{_indent(PARABOLA)}```\n"
+        f"^equations-figure\n\n## Decision\n\n```figure\nversion: 1\nkind: pugh\ncaption: The decision figure.\n"
+        f"content: {json.dumps(DECISION)}\n```\n^decision-figure\n\n{FEATURE_PROSE}\n", encoding="utf-8")
+    (root / "tables.md").write_text(
+        "# Tables\n\n```base\nfilters: 'kind == \"item\"'\n"
+        "properties:\n  description: {displayName: Description}\n"
+        "views:\n  - type: table\n    name: Items\n    order: [file.name, rank, description]\n"
+        f"    sort: [{{property: rank, direction: ASC}}]\n```\n\n{FEATURE_PROSE}\n", encoding="utf-8")
+    for index in range(1, FEATURE_ITEMS + 1):
+        (root / f"item-{index:02}.md").write_text(
+            f"---\nkind: item\nrank: {index}\ndescription: Item {index} of the paged table, "
+            "with a description long enough to wrap in a narrow column.\n---\n", encoding="utf-8")
+    (root / "logo.png").write_bytes(base64.b64decode(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="))
+    (root / "prose.md").write_text(
+        "# Prose\n\nSee [[figures#Plot|the plot]], [the site](https://example.org/) and "
+        "![a logo](logo.png). `x < y` #mark/risk/limit\n\n"
+        "Open question. #mark/question/scope_question\n\n"
+        "> [!warning] Check the limits\n> The callout's body links [[tables]].\n\n"
+        "## Lists\n\n1. one\n2. two\n\n- a\n- b\n\n## Code\n\n```text\nplain code\n```\n\n"
+        f"{FEATURE_PROSE}\n", encoding="utf-8")
+    (root / "references.md").write_text(
+        "---\nstatus: draft\n---\n# References\n\n![[sources.base]]\n\n"
+        f"```property-editor\nversion: 1\nfield: status\nlabel: Status\n```\n\n{FEATURE_PROSE}\n",
+        encoding="utf-8")
+    (root / "sources.base").write_text(
+        "filters: 'kind == \"reference\"'\n"
+        "properties:\n  obsHtml.label:\n    displayName: No.\n"
+        "views:\n  - type: table\n    order: [obsHtml.label, document, description]\n"
+        "    obs:\n      members:\n        - path: source-a.md\n          label: '[1]'\n"
+        "        - path: source-b.md\n          label: '[2]'\n", encoding="utf-8")
+    for name, text in (("source-a", "[Source A](overview.md)"), ("source-b", "Unlinked source")):
+        (root / f"{name}.md").write_text(
+            f"---\ndocument: '{text}'\ndescription: A source of the fixture.\nkind: reference\n---\n",
+            encoding="utf-8")
+
+
 VAULTS = {"figures": figures, "equations": equations, "pugh": pugh, "document": document, "complete": complete, "artifact-change": artifact_change, "projections": projections,
           "table-help": table_help, "structural": structural, "callouts": callouts,
           "registers": registers, "cards": cards,
           "property-editor-projection": property_editor_projection, "self-link": self_link,
-          "figure-references": figure_references, "source-archive": source_archive}
+          "figure-references": figure_references, "source-archive": source_archive,
+          "features": features}
 RUNS_COMMANDS = {"document"}
 """The vaults whose cmd fences the build runs (obs-document --execute-commands): ``echo`` only."""
-EMBEDS_SOURCE = {"source-archive"}
+EMBEDS_SOURCE = {"source-archive", "features"}
 """The vaults the build archives (obs-document --embed-source)."""
 FIXTURE_BUILD = {"repository": "https://github.com/mb-89/obs", "commit": "0" * 40,
                  "lockfiles": {"uv.lock": {"obs": "0.0.0"}},

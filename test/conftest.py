@@ -19,6 +19,9 @@ network_guard.install()
 
 ROOT = Path(__file__).parents[1]
 FIXTURE = ROOT / "test" / "fixtures" / "documents" / "document.json"
+# The browser tier's feature fixture (obs quality.md, Testing boundaries): every registered feature
+# in a few chapters (test/fixtures/build_documents.py, features).
+FEATURE_FIXTURE = ROOT / "test" / "fixtures" / "documents" / "features.json"
 CORE_ROOT = ROOT.parents[1]
 
 
@@ -91,6 +94,19 @@ def fixture_artifact(tmp_path_factory) -> Path:
             "test/conftest.py: obs-html could not render the fixture Document test/fixtures/documents/document.json"
 
     return built_once(tmp_path_factory, "fixture-artifact", build) / "artifact.html"
+
+
+@pytest.fixture(scope="session")
+def feature_artifact(tmp_path_factory) -> str:
+    """The feature fixture rendered by this adapter, once per run and shared by every worker; the
+    browser tier's reading script and covered-control sweep read it in place of obs's spec."""
+    from obs_html import cli
+
+    def build(folder: Path) -> None:
+        assert cli.main([str(FEATURE_FIXTURE), str(folder / "artifact.html")]) == 0, \
+            "test/conftest.py: obs-html could not render the feature fixture test/fixtures/documents/features.json"
+
+    return (built_once(tmp_path_factory, "feature-artifact", build) / "artifact.html").read_text(encoding="utf-8")
 
 
 def _uv(*arguments: str, cwd: Path, environment: dict[str, str]) -> None:
