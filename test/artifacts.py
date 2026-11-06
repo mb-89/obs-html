@@ -2,7 +2,7 @@
 
 Reader: a browser test that opens an artifact of a Document it writes itself.
 
-A browser test never renders on its own: it asks
+A browser test never renders on its own (test/structure/test_quality.py): it asks
 ``artifact_html`` for the artifact of its Document and render options, and every later ask for
 the same Document and options, in any test of the process, reads the same artifact. The module's
 tests share one worker of the complete suite, so a Document is rendered once per run. An input
