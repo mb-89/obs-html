@@ -136,7 +136,7 @@ def _pugh_body(attrs: dict, alt: str, _source: str, _links: dict[str, FigureLink
     summary = (f'{escape(matrix.get("title", "Decision"))}: {len(matrix["candidates"])} options on '
                f'{len(matrix["criteria"])} criteria.')
     return Body(f'<div class="figure-live pugh-figure" aria-label="Decision"><p class="pugh-static">{summary}</p></div>',
-                {"kind": "pugh", "alt": alt or "Decision", "matrix": matrix})
+                {"kind": "pugh", "alt": alt or "Decision", "matrix": matrix, "shortNames": attrs["shortNames"]})
 
 
 FIGURE_KINDS: dict[str, FigureKind] = {

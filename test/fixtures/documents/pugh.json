@@ -193,7 +193,13 @@
                       "pass": false
                     }
                   ]
-                }
+                },
+                "shortNames": [
+                  "What runs today",
+                  "Precise",
+                  "Quick",
+                  "Middling"
+                ]
               },
               "children": []
             }
@@ -365,7 +371,19 @@
                     }
                   ],
                   "checklistWeight": 2
-                }
+                },
+                "shortNames": [
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
               },
               "children": []
             }
