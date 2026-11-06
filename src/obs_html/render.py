@@ -305,7 +305,7 @@ def _file(asset: dict[str, str], label: str, context: Context) -> str:
 def _download(asset: dict[str, str], label: str) -> str:
     """The evidence edition's attachment: a download of the asset's embedded bytes, named like the
     vault file and showing its type and size. Its help on use is the downloads feature's
-    (features.py, downloads)."""
+    (features.py, downloads: attachment-download.js)."""
     filename = PurePosixPath(asset["path"]).name
     size = len(base64.b64decode(asset["data"]))
     kind = PurePosixPath(filename).suffix.removeprefix(".").upper() or asset["mediaType"]

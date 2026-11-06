@@ -90,3 +90,20 @@ def test_clicking_the_evidence_download_saves_the_asset_bytes(editions, reader_b
     download.value.save_as(saved)
     assert saved.read_bytes() == REPORT
     assert errors == []
+
+
+@pytest.mark.browser
+def test_the_evidence_download_help_names_the_downloads_remedy_where_downloads_are_undecided(
+        editions, reader_browser, tmp_path) -> None:
+    """Claude's viewer hides its sandbox flags, so the downloads canary cannot decide; the
+    attachment download, like every download of the downloads feature, then names the remedy."""
+    from browser.viewer import open_viewer
+
+    errors: list[str] = []
+    _page, frame = open_viewer(tmp_path, reader_browser, errors,
+                               editions["evidence"].read_text(encoding="utf-8"), "light")
+    frame.locator("html").evaluate("obsPages.setPaged(false); obsArtifact.activateChapter('chapter')")
+    control = frame.locator("[data-active-chapter] [data-attachment-download]")
+    control.focus()
+    assert "Open the HTML file directly in a browser to download." in control.get_attribute("data-hover-help")
+    assert errors == []
