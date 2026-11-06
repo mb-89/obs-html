@@ -304,6 +304,25 @@ def test_a_pdf_destination_of_an_archived_document_carries_the_archive(tmp_path:
         assert opened.read("vault/scripts/build.py") == SCRIPT
 
 
+def test_export_pdf_of_an_archived_artifact_carries_the_archive(tmp_path: Path, monkeypatch) -> None:
+    """--export-pdf attaches the ZIP the HTML embeds, as the interim's --export-pdf does, and
+    prints an HTML without one with no attachment; printing itself is the browser's (test_pdf.py)."""
+    from obs_html import pdf as printing
+
+    monkeypatch.setattr(printing, "export_pdf", lambda _html: blank_pdf())
+    plain = archived()
+    del plain["sourceArchive"]
+    for name, source in (("archived", archived()), ("plain", plain)):
+        html = tmp_path / f"{name}.html"
+        html.write_text(render(source, CONFIG), encoding="utf-8")
+        assert cli.main(["--export-pdf", str(html), "--output", str(tmp_path / f"{name}.pdf")]) == 0
+
+    attachments = PdfReader(tmp_path / "archived.pdf").attachments
+    assert attachments == {ARCHIVE_NAME: [embedded((tmp_path / "archived.html").read_text(encoding="utf-8"),
+                                                   "archived.html")]}
+    assert PdfReader(tmp_path / "plain.pdf").attachments == {}
+
+
 def test_listed_snippets_follow_every_packaged_style_in_listed_order() -> None:
     html = render(archived(["print", "house"]), CONFIG)
     styles = STYLE.findall(html)
