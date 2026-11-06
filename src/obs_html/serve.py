@@ -170,6 +170,7 @@ class _Handler(http.server.SimpleHTTPRequestHandler):
         except ValueError:
             raise _Refused(411, "Content-Length", "is missing", "Send the payload with its length") from None
         if length > self.limit:
+            self._discard(length)  # Read before answering: a client still sending would see a broken pipe.
             raise _Refused(413, "body", f"has {length} bytes, more than execution.serveAnswersMaxBytes ({self.limit})",
                            "Send fewer answers, or raise the limit in a settings file passed with --config")
         try:
@@ -180,6 +181,10 @@ class _Handler(http.server.SimpleHTTPRequestHandler):
             raise _Refused(400, "body", f"is a JSON {type(payload).__name__}, not an object",
                            f"Send the answers as one JSON object; see {OWNER}")
         return payload
+
+    def _discard(self, length: int) -> None:
+        while length > 0 and (chunk := self.rfile.read(min(length, 65536))):
+            length -= len(chunk)
 
     def _answer(self, status: int, body: dict) -> None:
         data = json.dumps(body).encode("utf-8")
