@@ -12,7 +12,7 @@ import math
 from html import escape
 from typing import Iterator
 
-from .figures import FigureError, checked_traces, panel_axes, sankey_svg, unsupported
+from .figures import checked_traces, figure_error, panel_axes, panel_field, sankey_svg, unsupported
 
 STYLE = ("text{font:12px sans-serif;fill:#1f2933}.figure-tick{font-size:11px;fill:#52606d}"
          ".sankey-label,.sankey-link-label{font:12px sans-serif;fill:#1f2933}")
@@ -23,31 +23,34 @@ MARGIN = {"left": 64, "right": 16, "top": 16, "bottom": 48}
 HOME = "home"
 
 
-def document_figures(document: dict) -> Iterator[tuple[str, dict]]:
-    """Each FigureDescriptor in Document order, named like its anchor in the HTML artifact."""
-    def walk(nodes: list[dict], chapter: str) -> Iterator[tuple[str, dict]]:
+def document_figures(document: dict) -> Iterator[tuple[str, dict, str]]:
+    """Each FigureDescriptor in Document order, named like its anchor in the HTML artifact, with
+    the note of its figure fence (as an error names it)."""
+    paths = {record["id"]: record["path"] for record in document["records"] if record["type"] == "note"}
+
+    def walk(nodes: list[dict], chapter: str, source: str) -> Iterator[tuple[str, dict, str]]:
         for node in nodes:
             if node["type"] == "figure-descriptor":
                 descriptor = node["attrs"]["descriptor"]
-                yield f"{chapter}--figure-{descriptor['id']}", descriptor
-            yield from walk(node.get("children", []), chapter)
+                yield f"{chapter}--figure-{descriptor['id']}", descriptor, source
+            yield from walk(node.get("children", []), chapter, source)
 
-    yield from walk(document["manifest"]["abstract"], HOME)
+    yield from walk(document["manifest"]["abstract"], HOME, document["manifest"]["path"])
     stack = list(reversed(document["chapters"]))
     while stack:
         chapter = stack.pop()
-        yield from walk(chapter["content"], chapter["id"])
+        yield from walk(chapter["content"], chapter["id"], paths.get(chapter["id"], f"chapter {chapter['id']}"))
         stack.extend(reversed(chapter["children"]))
 
 
-def figure_svg(descriptor: dict) -> str:
-    """One FigureDescriptor as a standalone SVG document."""
+def figure_svg(descriptor: dict, source: str) -> str:
+    """One FigureDescriptor as a standalone SVG document; ``source`` is the note of its fence."""
     data = descriptor["data"]
     if "sankey" in data:
-        return sankey_svg(descriptor, STYLE)
+        return sankey_svg(descriptor, STYLE, source)
     if "traces" in data:
-        return _plot_svg(descriptor)
-    raise unsupported(descriptor["id"])
+        return _plot_svg(descriptor, source)
+    raise unsupported(source)
 
 
 def _number(value: float) -> str:
@@ -55,10 +58,10 @@ def _number(value: float) -> str:
     return "0" if text == "-0" else text
 
 
-def _plot_svg(descriptor: dict) -> str:
+def _plot_svg(descriptor: dict, source: str) -> str:
     name = descriptor["id"]
     panels = descriptor["panels"]
-    traces = checked_traces(descriptor)
+    traces = checked_traces(descriptor, source)
     width = max(panel["bounds"]["x"] + panel["bounds"]["width"] for panel in panels)
     height = max(panel["bounds"]["y"] + panel["bounds"]["height"] for panel in panels)
     parts = [
@@ -70,7 +73,7 @@ def _plot_svg(descriptor: dict) -> str:
     for panel in panels:
         on_panel = [(index, trace) for index, trace in enumerate(traces)
                     if trace.get("panel", panels[0]["id"]) == panel["id"]]
-        parts.append(_panel(descriptor, panel, on_panel))
+        parts.append(_panel(descriptor, panel, on_panel, source))
     parts.append("</svg>\n")
     return "".join(parts)
 
@@ -78,12 +81,12 @@ def _plot_svg(descriptor: dict) -> str:
 class _Scale:
     """Maps an axis's values onto a pixel range, linearly or in decades."""
 
-    def __init__(self, descriptor: dict, axis: dict, start: float, end: float) -> None:
+    def __init__(self, axis: dict, field: str, start: float, end: float, source: str) -> None:
         self.log = axis["scale"] == "log"
         self.low, self.high = axis["limits"]["minimum"], axis["limits"]["maximum"]
         if self.low == self.high:
-            raise FigureError(f"Figure {descriptor['id']}: axis {axis['id']} needs a minimum "
-                              "different from its maximum; widen its limits.")
+            raise figure_error(source, f"{field}.limits", "have a minimum equal to their maximum",
+                               "Widen the axis's limits")
         self.start, self.end = start, end
 
     def _t(self, value: float) -> float:
@@ -109,16 +112,18 @@ class _Scale:
         return [index * step for index in range(first, last + 1)]
 
 
-def _panel(descriptor: dict, panel: dict, traces: list[tuple[int, dict]]) -> str:
-    x_axis, y_axis = panel_axes(descriptor, panel)
+def _panel(descriptor: dict, panel: dict, traces: list[tuple[int, dict]], source: str) -> str:
+    x_axis, y_axis = panel_axes(descriptor, panel, source)
+    field = panel_field(descriptor, panel)
     bounds = panel["bounds"]
     left, right = bounds["x"] + MARGIN["left"], bounds["x"] + bounds["width"] - MARGIN["right"]
     top, bottom = bounds["y"] + MARGIN["top"], bounds["y"] + bounds["height"] - MARGIN["bottom"]
     if right <= left or bottom <= top:
-        raise FigureError(
-            f"Figure {descriptor['id']}: panel {panel['id']} is too small to draw; give its bounds "
-            f"at least {MARGIN['left'] + MARGIN['right'] + 1} by {MARGIN['top'] + MARGIN['bottom'] + 1}.")
-    x, y = _Scale(descriptor, x_axis, left, right), _Scale(descriptor, y_axis, bottom, top)
+        raise figure_error(source, f"{field}.bounds", "are too small to draw the panel",
+                           f"Give its bounds at least {MARGIN['left'] + MARGIN['right'] + 1} by "
+                           f"{MARGIN['top'] + MARGIN['bottom'] + 1}")
+    x, y = (_Scale(x_axis, f"{field}.axes[0]", left, right, source),
+            _Scale(y_axis, f"{field}.axes[1]", bottom, top, source))
     clip = f"{descriptor['id']}-{panel['id']}-plot"
     n = _number
     parts = [

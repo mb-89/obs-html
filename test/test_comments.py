@@ -3,7 +3,8 @@ from pathlib import Path
 
 import pytest
 
-from obs_html.comments import CommentError, extract_comments
+from obs_html.comments import extract_comments
+from obs_html.errors import InputError
 from obs_html.config import load_config
 from obs_html.render import render
 
@@ -15,6 +16,13 @@ def write_artifact(path: Path, island: object) -> None:
         "</script><script>throw new Error('must not execute')</script>",
         encoding="utf-8",
     )
+
+
+def _refused(artifact: Path, field: str) -> None:
+    """Extraction fails naming the reviewed HTML and the JSON path in its comment island."""
+    with pytest.raises(InputError) as failure:
+        extract_comments(artifact)
+    assert (failure.value.source, failure.value.field) == (str(artifact), f"script#obs-comments{field}")
 
 
 def test_extract_comments_preserves_scoped_batch_association(tmp_path: Path) -> None:
@@ -34,20 +42,20 @@ def test_extract_comments_preserves_scoped_batch_association(tmp_path: Path) -> 
     assert extracted.count("One reason") == 1
 
 
-@pytest.mark.parametrize("batch", [
-    None, {}, {"scope": [], "items": []}, {"scope": "other", "items": []},
-    {"scope": "section", "items": []}, {"scope": "chapter", "items": [None]},
-    {"scope": "chapter", "items": [{"chapter": "", "item": "item-1"}]},
-    {"scope": "chapter", "items": [{"chapter": "one", "item": "bad"}]},
-    {"scope": "section", "items": [{"chapter": "one", "item": "item-1"}] * 2},
+@pytest.mark.parametrize("batch, field", [
+    (None, "scope"), ({}, "scope"), ({"scope": [], "items": []}, "scope"),
+    ({"scope": "other", "items": []}, "scope"),
+    ({"scope": "section", "items": []}, "items"), ({"scope": "chapter", "items": [None]}, "items[0]"),
+    ({"scope": "chapter", "items": [{"chapter": "", "item": "item-1"}]}, "items[0].chapter"),
+    ({"scope": "chapter", "items": [{"chapter": "one", "item": "bad"}]}, "items[0].item"),
+    ({"scope": "section", "items": [{"chapter": "one", "item": "item-1"}] * 2}, "items[1]"),
 ])
-def test_extract_comments_rejects_malformed_batch(tmp_path: Path, batch) -> None:
+def test_extract_comments_rejects_malformed_batch(tmp_path: Path, batch, field) -> None:
     artifact = tmp_path / "reviewed.html"
     write_artifact(artifact, {"version": 2, "annotations": [{
         "id": "c1", "target": {"chapter": "one"}, "text": "", "batch": batch,
     }]})
-    with pytest.raises(CommentError, match="batch"):
-        extract_comments(artifact)
+    _refused(artifact, f".annotations[0].batch.{field}")
 
 
 def test_extract_comments_lists_anonymized_candidates_deterministically(tmp_path: Path) -> None:
@@ -91,8 +99,7 @@ def test_extract_comments_rejects_multiple_islands(tmp_path: Path) -> None:
     island = '<script id="obs-comments" type="application/json">{"version":2,"annotations":[]}</script>'
     artifact.write_text(island + island, encoding="utf-8")
 
-    with pytest.raises(CommentError, match="exactly one"):
-        extract_comments(artifact)
+    _refused(artifact, "")
 
 
 def test_extract_comments_rejects_invalid_replies(tmp_path: Path) -> None:
@@ -113,8 +120,7 @@ def test_extract_comments_rejects_invalid_replies(tmp_path: Path) -> None:
         },
     )
 
-    with pytest.raises(CommentError, match="replies must be an array"):
-        extract_comments(artifact)
+    _refused(artifact, ".annotations[0].replies")
 
 
 def test_generated_artifact_comment_island_round_trips_to_extractor(tmp_path: Path, document) -> None:
@@ -250,16 +256,16 @@ def test_extract_comments_accepts_row_reviews_and_detail_selection_targets(tmp_p
     assert "Detail comment" in extract_comments(artifact)
 
 
-@pytest.mark.parametrize("scope", [
-    {"table": "t", "detail": True},
-    {"table": "t", "row": "r", "detail": "yes"},
-    {"row": "r", "detail": True},
-    {"column": "subject"},
-    {"table": "t", "row": "r", "detail": False, "column": "subject"},
-    {"table": "t", "row": "r", "detail": True, "column": ""},
-    {"table": "t", "row": "r", "detail": True, "column": 1},
+@pytest.mark.parametrize("scope, field", [
+    ({"table": "t", "detail": True}, "row"),
+    ({"table": "t", "row": "r", "detail": "yes"}, "detail"),
+    ({"row": "r", "detail": True}, "table"),
+    ({"column": "subject"}, "table"),
+    ({"table": "t", "row": "r", "detail": False, "column": "subject"}, "column"),
+    ({"table": "t", "row": "r", "detail": True, "column": ""}, "column"),
+    ({"table": "t", "row": "r", "detail": True, "column": 1}, "column"),
 ])
-def test_extract_comments_rejects_invalid_table_selection_scopes(tmp_path: Path, scope) -> None:
+def test_extract_comments_rejects_invalid_table_selection_scopes(tmp_path: Path, scope, field) -> None:
     artifact = tmp_path / "reviewed.html"
     write_artifact(artifact, {
         "version": 2,
@@ -268,8 +274,7 @@ def test_extract_comments_rejects_invalid_table_selection_scopes(tmp_path: Path,
             "target": {"chapter": "one", **scope},
         }],
     })
-    with pytest.raises(CommentError):
-        extract_comments(artifact)
+    _refused(artifact, f".annotations[0].target.{field}")
 
 
 def test_extract_comments_rejects_duplicate_review_decisions(tmp_path: Path) -> None:
@@ -290,5 +295,4 @@ def test_extract_comments_rejects_duplicate_review_decisions(tmp_path: Path) -> 
         },
     )
 
-    with pytest.raises(CommentError, match="duplicated"):
-        extract_comments(artifact)
+    _refused(artifact, ".reviews[1]")

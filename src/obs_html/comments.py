@@ -5,14 +5,34 @@ from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any
 
+from obs_html.errors import InputError, field_path
 
-class CommentError(ValueError):
-    """Raised when returned HTML has an invalid comment island."""
+
+ISLAND = "script#obs-comments"
+"""The comment island as a message's field names it; its JSON paths follow."""
+REMEDY = ("Extract from the HTML the artifact saved after review, unedited; its comment panel writes "
+          "the island")
+
+
+class _Island:
+    """Where a comment-island error is: the reviewed HTML file and a JSON path in its island."""
+
+    def __init__(self, source: Path) -> None:
+        self.source = source
+
+    def error(self, parts: list[object], problem: str, remedy: str = REMEDY) -> InputError:
+        return InputError(self.source, field_path(parts, ISLAND), problem, remedy)
+
+    def text(self, value: Any, parts: list[object]) -> str:
+        if not isinstance(value, str) or not value.strip():
+            raise self.error(parts, "must be non-empty text")
+        return value.strip()
 
 
 class _CommentIslandParser(HTMLParser):
-    def __init__(self) -> None:
+    def __init__(self, island: _Island) -> None:
         super().__init__(convert_charrefs=False)
+        self.island = island
         self.islands: list[str] = []
         self._chunks: list[str] | None = None
 
@@ -20,7 +40,7 @@ class _CommentIslandParser(HTMLParser):
         attributes = dict(attrs)
         if tag == "script" and attributes.get("id") == "obs-comments":
             if self._chunks is not None:
-                raise CommentError("Comment islands may not be nested.")
+                raise self.island.error([], "is nested inside another comment island")
             self._chunks = []
 
     def handle_data(self, data: str) -> None:
@@ -34,72 +54,77 @@ class _CommentIslandParser(HTMLParser):
 
 
 def extract_comments(artifact_path: Path) -> str:
-    parser = _CommentIslandParser()
-    parser.feed(artifact_path.read_text(encoding="utf-8-sig"))
+    island = _Island(artifact_path)
+    parser = _CommentIslandParser(island)
+    try:
+        parser.feed(artifact_path.read_text(encoding="utf-8-sig"))
+    except (OSError, UnicodeError) as error:
+        raise InputError(artifact_path, "", f"cannot be read as UTF-8 HTML ({error})",
+                         "Name the reviewed HTML file the artifact saved") from error
     parser.close()
     if len(parser.islands) != 1:
-        raise CommentError(
-            f"Reviewed HTML must contain exactly one obs-comments island; found {len(parser.islands)}."
-        )
+        raise island.error([], f"occurs {len(parser.islands)} times, not once", REMEDY)
     try:
         raw = json.loads(parser.islands[0])
     except json.JSONDecodeError as error:
-        raise CommentError(f"Invalid obs-comments JSON: {error.msg}.") from error
-    annotations = _validate_island(raw)
+        raise island.error([], f"is not JSON ({error.msg} at line {error.lineno}, column {error.colno})") \
+            from error
+    annotations = _validate_island(raw, island)
     return _format_candidates(annotations)
 
 
-def _validate_island(raw: Any) -> list[dict[str, Any]]:
+def _validate_island(raw: Any, island: _Island) -> list[dict[str, Any]]:
     if not isinstance(raw, dict) or raw.get("version") != 2:
-        raise CommentError("Comment island must be a version 2 object.")
+        raise island.error(["version"], "is not 2, the version of a comment island obs-html reads")
     annotations = raw.get("annotations")
     if not isinstance(annotations, list):
-        raise CommentError("Comment island annotations must be an array.")
-    _validate_review_data(raw)
+        raise island.error(["annotations"], "must be a list")
+    _validate_review_data(raw, island)
     normalized = []
     seen_ids: set[str] = set()
-    for index, annotation in enumerate(annotations, start=1):
+    for index, annotation in enumerate(annotations):
+        where: list[object] = ["annotations", index]
         if not isinstance(annotation, dict):
-            raise CommentError(f"Comment {index} must be an object.")
-        comment_id = _required_string(annotation.get("id"), f"Comment {index} id")
+            raise island.error(where, "must be a mapping")
+        comment_id = island.text(annotation.get("id"), [*where, "id"])
         if comment_id in seen_ids:
-            raise CommentError(f"Comment id is duplicated: {comment_id}.")
+            raise island.error([*where, "id"], f"is {comment_id!r}, the id of an earlier comment")
         seen_ids.add(comment_id)
-        target = _validate_target(annotation.get("target"), comment_id)
-        node = _validate_node(annotation, f"Comment {comment_id}", seen_ids, known_id=comment_id)
-        batch = {"batch": _validate_batch(annotation["batch"])} if "batch" in annotation else {}
+        target = _validate_target(annotation.get("target"), [*where, "target"], island)
+        node = _validate_node(annotation, where, seen_ids, island, known_id=comment_id)
+        batch = {"batch": _validate_batch(annotation["batch"], [*where, "batch"], island)} \
+            if "batch" in annotation else {}
         normalized.append({**node, "target": target, **batch})
     return normalized
 
 
-def _validate_review_data(raw: dict[str, Any]) -> None:
+def _validate_review_data(raw: dict[str, Any], island: _Island) -> None:
     reviewers = raw.get("reviewers", [])
     if not isinstance(reviewers, list):
-        raise CommentError("Comment island reviewers must be an array.")
-    normalized_reviewers = []
-    for index, reviewer in enumerate(reviewers, start=1):
-        normalized_reviewers.append(_required_string(reviewer, f"Reviewer {index}"))
+        raise island.error(["reviewers"], "must be a list")
+    normalized_reviewers = [island.text(reviewer, ["reviewers", index]) for index, reviewer in enumerate(reviewers)]
     if len(normalized_reviewers) != len(set(normalized_reviewers)):
-        raise CommentError("Comment island reviewers must be unique.")
+        raise island.error(["reviewers"], "names a reviewer twice")
 
     reviews = raw.get("reviews", [])
     if not isinstance(reviews, list):
-        raise CommentError("Comment island reviews must be an array.")
+        raise island.error(["reviews"], "must be a list")
     seen: set[tuple[str, str, str]] = set()
-    for index, review in enumerate(reviews, start=1):
+    for index, review in enumerate(reviews):
+        where: list[object] = ["reviews", index]
         if not isinstance(review, dict):
-            raise CommentError(f"Review {index} must be an object.")
-        chapter = _required_string(review.get("chapter"), f"Review {index} chapter")
-        item = _required_string(review.get("item"), f"Review {index} item")
+            raise island.error(where, "must be a mapping")
+        chapter = island.text(review.get("chapter"), [*where, "chapter"])
+        item = island.text(review.get("item"), [*where, "item"])
         if not _is_review_item(item):
-            raise CommentError(f"Review {index} item must be a review item identifier.")
-        reviewer = _required_string(review.get("reviewer"), f"Review {index} reviewer")
+            raise island.error([*where, "item"], f"is {item!r}, not a review item identifier (item-N or row-TABLE:KEY)")
+        reviewer = island.text(review.get("reviewer"), [*where, "reviewer"])
         state = review.get("state")
         if state not in {"accepted", "rejected"}:
-            raise CommentError(f"Review {index} has invalid state: {state}.")
+            raise island.error([*where, "state"], f"is {state!r}, not accepted or rejected")
         key = (chapter, item, reviewer)
         if key in seen:
-            raise CommentError(f"Review decision is duplicated: {chapter} {item} {reviewer}.")
+            raise island.error(where, f"repeats the decision of {reviewer} on {chapter} {item}")
         seen.add(key)
 
 
@@ -111,23 +136,24 @@ def _is_review_item(item: str) -> bool:
     )
 
 
-def _validate_batch(raw: Any) -> dict[str, Any]:
+def _validate_batch(raw: Any, where: list[object], island: _Island) -> dict[str, Any]:
     if not isinstance(raw, dict) or raw.get("scope") not in ("section", "chapter", "document"):
-        raise CommentError("Comment batch scope must be section, chapter or document.")
+        raise island.error([*where, "scope"], "is not section, chapter or document")
     items = raw.get("items")
     if not isinstance(items, list) or not items:
-        raise CommentError("Comment batch items must be a non-empty array.")
+        raise island.error([*where, "items"], "must be a non-empty list")
     normalized = []
     seen = set()
-    for identity in items:
+    for index, identity in enumerate(items):
+        place = [*where, "items", index]
         if not isinstance(identity, dict):
-            raise CommentError("Comment batch identity must be an object.")
-        chapter = _required_string(identity.get("chapter"), "Comment batch chapter")
-        item = _required_string(identity.get("item"), "Comment batch item")
+            raise island.error(place, "must be a mapping")
+        chapter = island.text(identity.get("chapter"), [*place, "chapter"])
+        item = island.text(identity.get("item"), [*place, "item"])
         if not _is_review_item(item):
-            raise CommentError("Comment batch item must be a review item identifier.")
+            raise island.error([*place, "item"], f"is {item!r}, not a review item identifier (item-N or row-TABLE:KEY)")
         if (chapter, item) in seen:
-            raise CommentError("Comment batch items must be unique.")
+            raise island.error(place, f"repeats {chapter} {item}")
         seen.add((chapter, item))
         normalized.append({"chapter": chapter, "item": item})
     return {"scope": raw["scope"], "items": normalized}
@@ -135,33 +161,34 @@ def _validate_batch(raw: Any) -> dict[str, Any]:
 
 def _validate_node(
     raw: dict[str, Any],
-    label: str,
+    where: list[object],
     seen_ids: set[str],
+    island: _Island,
     *,
     known_id: str | None = None,
 ) -> dict[str, Any]:
-    comment_id = known_id or _required_string(raw.get("id"), f"{label} id")
+    comment_id = known_id or island.text(raw.get("id"), [*where, "id"])
     if known_id is None:
         if comment_id in seen_ids:
-            raise CommentError(f"Comment id is duplicated: {comment_id}.")
+            raise island.error([*where, "id"], f"is {comment_id!r}, the id of an earlier comment")
         seen_ids.add(comment_id)
     status = raw.get("status", "open")
     if status not in {"open", "resolved"}:
-        raise CommentError(f"Comment {comment_id} has invalid status: {status}.")
+        raise island.error([*where, "status"], f"is {status!r}, not open or resolved")
     author = raw.get("author", "")
     if not isinstance(author, str):
-        raise CommentError(f"Comment {comment_id} author must be text.")
+        raise island.error([*where, "author"], "must be text")
     text = raw.get("text")
     if not isinstance(text, str):
-        raise CommentError(f"Comment {comment_id} text must be text.")
+        raise island.error([*where, "text"], "must be text")
     raw_replies = raw.get("replies", [])
     if not isinstance(raw_replies, list):
-        raise CommentError(f"Comment {comment_id} replies must be an array.")
+        raise island.error([*where, "replies"], "must be a list")
     replies = []
-    for index, reply in enumerate(raw_replies, start=1):
+    for index, reply in enumerate(raw_replies):
         if not isinstance(reply, dict):
-            raise CommentError(f"Comment {comment_id} reply {index} must be an object.")
-        replies.append(_validate_node(reply, f"Comment {comment_id} reply {index}", seen_ids))
+            raise island.error([*where, "replies", index], "must be a mapping")
+        replies.append(_validate_node(reply, [*where, "replies", index], seen_ids, island))
     return {
         "id": comment_id,
         "status": status,
@@ -171,44 +198,36 @@ def _validate_node(
     }
 
 
-def _validate_target(raw: Any, comment_id: str) -> dict[str, Any]:
+def _validate_target(raw: Any, where: list[object], island: _Island) -> dict[str, Any]:
     if not isinstance(raw, dict):
-        raise CommentError(f"Comment {comment_id} target must be an object.")
-    target: dict[str, Any] = {
-        "chapter": _required_string(raw.get("chapter"), f"Comment {comment_id} target chapter")
-    }
+        raise island.error(where, "must be a mapping")
+    target: dict[str, Any] = {"chapter": island.text(raw.get("chapter"), [*where, "chapter"])}
     for key in ("quote", "prefix", "suffix"):
         value = raw.get(key, "")
         if not isinstance(value, str):
-            raise CommentError(f"Comment {comment_id} target {key} must be text.")
+            raise island.error([*where, key], "must be text")
         if value:
             target[key] = value
     for key in ("start", "end"):
         value = raw.get(key)
         if value is not None:
             if isinstance(value, bool) or not isinstance(value, int) or value < 0:
-                raise CommentError(f"Comment {comment_id} target {key} must be a non-negative integer.")
+                raise island.error([*where, key], f"is {value!r}, not a non-negative whole number")
             target[key] = value
     if "table" in raw or "row" in raw or "detail" in raw or "column" in raw:
-        target["table"] = _required_string(raw.get("table"), f"Comment {comment_id} table")
-        target["row"] = _required_string(raw.get("row"), f"Comment {comment_id} row")
+        target["table"] = island.text(raw.get("table"), [*where, "table"])
+        target["row"] = island.text(raw.get("row"), [*where, "row"])
         if not isinstance(raw.get("detail"), bool):
-            raise CommentError(f"Comment {comment_id} detail must be a boolean.")
+            raise island.error([*where, "detail"], "must be true or false")
         target["detail"] = raw["detail"]
         if "column" in raw:
             if not raw["detail"]:
-                raise CommentError(f"Comment {comment_id} column requires a detail target.")
-            target["column"] = _required_string(raw["column"], f"Comment {comment_id} column")
+                raise island.error([*where, "column"], "needs detail: true")
+            target["column"] = island.text(raw["column"], [*where, "column"])
     if "start" in target or "end" in target:
         if "start" not in target or "end" not in target or target["end"] < target["start"]:
-            raise CommentError(f"Comment {comment_id} target positions are invalid.")
+            raise island.error([*where, "end"], "needs a start and an end no smaller than it")
     return target
-
-
-def _required_string(value: Any, label: str) -> str:
-    if not isinstance(value, str) or not value.strip():
-        raise CommentError(f"{label} must be non-empty text.")
-    return value.strip()
 
 
 def _format_candidates(annotations: list[dict[str, Any]]) -> str:

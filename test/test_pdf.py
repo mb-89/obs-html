@@ -41,4 +41,5 @@ def test_rendered_check_fails_on_console_errors(tmp_path, capsys) -> None:
         cli.main(["--check-rendered", str(html)])
     assert exit_info.value.code == 2
     error = capsys.readouterr().err
-    assert "Console error: bad" in error and "1 console errors" in error
+    assert "Console error: bad" in error  # The console's own error, as the check reports it.
+    assert f"\n{html}: --check-rendered: " in f"\n{error}", error

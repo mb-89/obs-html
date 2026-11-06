@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "manifest": {
     "title": "Design notes",
+    "path": "manifest.md",
     "metadata": {
       "title": "Design notes"
     },

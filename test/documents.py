@@ -62,7 +62,7 @@ def document(title: str, *chapters: dict, metadata: dict | None = None,
     manifest_frontmatter = [frontmatter(metadata, fields)] if fields else []
     result = {
         "schemaVersion": 1,
-        "manifest": {"title": title, "metadata": metadata,
+        "manifest": {"title": title, "path": "manifest.md", "metadata": metadata,
                      "abstract": [node("manifest"), node("markdown"), *manifest_frontmatter, *abstract]},
         "chapters": list(chapters), "links": [], "assets": [],
         "records": [{**record, "fieldNodes": field_nodes(record["fields"])}

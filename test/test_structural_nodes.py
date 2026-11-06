@@ -14,7 +14,8 @@ from conftest import CORE_ROOT, ROOT
 from documents import chapter, document as build, paragraph, text
 from obs_html.artifact_data import decode_artifact_data
 from obs_html.config import load_config
-from obs_html.render import RenderError, render
+from obs_html.errors import InputError
+from obs_html.render import render
 
 
 CONFIG = load_config()
@@ -92,11 +93,10 @@ def test_an_untitled_note_callout_shows_the_core_title_and_the_adapter_adds_none
 
 def test_an_invalid_formula_names_the_chapter_the_formula_and_the_remedy() -> None:
     formula = {"type": "math", "attrs": {"display": False}, "children": [], "text": "x^"}
-    with pytest.raises(RenderError) as raised:
+    with pytest.raises(InputError) as raised:
         render(build("Doc", chapter("one", "One", paragraph(formula))), CONFIG)
-    message = str(raised.value)
-    assert message.startswith("Chapter one: math formula 'x^'")
-    assert "Remedy:" in message
+    assert (raised.value.source, raised.value.field) == ("chapter one", "body")
+    assert "'x^'" in raised.value.problem  # The formula as authored.
 
 
 def test_an_invented_node_type_raises_one_limited_function_warning_naming_it(capsys) -> None:

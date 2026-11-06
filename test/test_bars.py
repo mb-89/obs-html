@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from documents import chapter, document, heading, paragraph
+from obs_html.errors import InputError
 from obs_html.bars import discover_bars
 from obs_html.config import load_config
 from obs_html.render import render
@@ -71,8 +72,9 @@ def test_a_bar_cannot_carry_its_runtime_as_a_python_string(tmp_path: Path, monke
     monkeypatch.syspath_prepend(str(tmp_path))
     importlib.invalidate_caches()
 
-    with pytest.raises(TypeError, match="notes.js"):
+    with pytest.raises(InputError) as failure:
         discover_bars("inline_bars")
+    assert (failure.value.source, failure.value.field) == ("inline_bars.notes", "BAR.script")
 
 
 def test_shipped_bar_runtimes_are_their_sibling_scripts() -> None:

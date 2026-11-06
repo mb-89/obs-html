@@ -4,13 +4,15 @@ Each test builds a contract-valid Document as the core emits it (see the core's 
 a callout's ``kind`` is the canonical type, its ``title`` the authored rest of the marker line;
 an attachment names a Document asset; an embed keeps its target and the chapter it resolves to).
 """
+import re
 import json
 
 import pytest
 
 from conftest import ROOT
 from obs_html.config import load_config
-from obs_html.render import RenderError, render
+from obs_html.errors import InputError
+from obs_html.render import render
 from obs_html.artifact_data import decode_artifact_data
 
 from conftest import PIXEL
@@ -85,8 +87,11 @@ def test_important_is_an_untitled_emphasis_card_that_accepts_a_title() -> None:
 
 
 def test_an_unknown_callout_kind_names_the_chapter_the_kind_and_the_remedy() -> None:
-    with pytest.raises(RenderError, match=r"Chapter one: callout kind 'shout' .*regenerate"):
+    with pytest.raises(InputError) as failure:
         _html(_callout("shout", "", "Body."))
+    assert failure.value.source == "Document of manifest.md"
+    assert re.fullmatch(r"chapters\[0\]\.content\[\d+\]\.attrs\.kind", failure.value.field), failure.value.field
+    assert "obs-document" in failure.value.remedy
 
 
 IMAGE = {"id": "logo", "href": "images/logo.png", "mediaType": "image/png", "path": "images/logo.png",
@@ -112,8 +117,11 @@ def test_an_unlabelled_file_attachment_is_labelled_by_its_file_name() -> None:
 
 
 def test_an_attachment_naming_an_unknown_asset_names_the_chapter_and_the_remedy() -> None:
-    with pytest.raises(RenderError, match=r"Chapter one: attachment names asset 'gone'.*regenerate"):
+    with pytest.raises(InputError) as failure:
         _html(paragraph(node("attachments", asset="gone", label="x")))
+    assert failure.value.source == "Document of manifest.md"
+    assert re.fullmatch(r"chapters\[0\]\.content\[\d+\]\.children\[0\]\.attrs\.asset", failure.value.field), failure.value.field
+    assert "obs-document" in failure.value.remedy
 
 
 def test_attachments_never_carry_an_absolute_local_path() -> None:

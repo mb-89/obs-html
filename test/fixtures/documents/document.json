@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "manifest": {
     "title": "Fixture document",
+    "path": "manifest.md",
     "metadata": {
       "title": "Fixture document",
       "document type": "Specification",

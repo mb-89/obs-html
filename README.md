@@ -53,13 +53,25 @@ the Document and validates the Document before it calls an adapter
 adapter does not check them again. It refuses a Document of another schema version and what it
 cannot render, such as a Base filter outside the subset it evaluates.
 
-Its own inputs fail in the core's message form, `<file or note>: <field path>: <what is wrong>.
-<remedy>.`: the settings file of `--config` (`cfg.schema.json`), the `obsHtml` presentation keys
-of the manifest (`profile.schema.json`, named `manifest note`, since a Document does not carry
-the manifest's path) and of Base properties, the `--style` folder, and the command-line arguments
-(named `obs-html`). One formatter, `src/obs_html/errors.py`, writes them; it follows the core's
-rule without importing the core. A test matches such an error by its source and field path, never
-by its wording.
+Every error it raises takes the core's message form, `<source>: <field path>: <what is wrong>.
+<remedy>.`. The source is where to look:
+
+- a note, by its vault-relative path, for what the note's author wrote: the `obsHtml` keys of the
+  manifest (`profile.schema.json`, named by the Document's `manifest.path`) and of Base
+  properties, a fence such as `property-editor.field` or `base.views[0].filters`, a figure's
+  descriptor (`figure.data...`), a frontmatter field;
+- `Document of <manifest path>`, with the node's path in the Document (for example
+  `chapters[0].content[3].attrs.kind`), for what the current core never writes: the remedy is to
+  rebuild the Document with `obs-document`;
+- a file: the settings file of `--config` (`cfg.schema.json`), a style module's `assets.json`,
+  a returned artifact's comment island (`script#obs-comments...`), a PDF or raster
+  `obs-html-inspect` reads;
+- a command, `obs-html` or `obs-html-inspect`, for its arguments, and `obs-html artifact` for what
+  the finished artifact would expose of the build machine.
+
+One formatter, `src/obs_html/errors.py`, writes them; it follows the core's rule without importing
+the core, and `test/test_errors.py` fails on a raise that does not go through it. A test matches
+an error by its source and field path, never by its wording.
 
 ## Images and attachments
 
