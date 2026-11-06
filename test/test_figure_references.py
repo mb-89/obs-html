@@ -80,6 +80,24 @@ def test_conjunctions_come_from_the_configuration() -> None:
         f"See Figures {_link('a', '2.1')} plus {_link('b', '2.2')} and {_link('c', 'Figure 2.3')}.")
 
 
+def _settings(tmp_path: Path, conjunctions: list[str]) -> Path:
+    settings = tmp_path / "settings.json"
+    settings.write_text(json.dumps({"artifact": {"figureReferences": {"conjunctions": conjunctions}}}),
+                        encoding="utf-8")
+    return settings
+
+
+def test_more_than_64_conjunctions_are_refused(tmp_path) -> None:
+    settings = _settings(tmp_path, [f"word{index}" for index in range(65)])
+
+    with pytest.raises(InputError) as failure:
+        load_config(settings)
+
+    assert failure.value.source == str(settings)
+    assert failure.value.field == "artifact.figureReferences.conjunctions"
+    assert "cfg.schema.json" in failure.value.remedy
+
+
 def test_a_labelled_reference_needs_no_number() -> None:
     document = _figures(_document(), numbering="none")
     document["chapters"][1]["content"] = [node for node in document["chapters"][1]["content"]

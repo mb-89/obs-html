@@ -109,9 +109,9 @@
           "required": ["conjunctions"],
           "properties": {
             "conjunctions": {
-              "description": "The words that, besides whitespace and a comma, may separate references that merge into one plural reference.",
-              "type": "array", "minItems": 1, "uniqueItems": true,
-              "items": {"type": "string", "pattern": "^\\S+$", "maxLength": 32}
+              "description": "The words or phrases that, besides whitespace and a comma, may separate references that merge into one plural reference.",
+              "type": "array", "minItems": 1, "maxItems": 64, "uniqueItems": true,
+              "items": {"type": "string", "pattern": "^\\S(?:.*\\S)?$", "maxLength": 32}
             }
           }
         },
