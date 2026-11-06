@@ -176,7 +176,7 @@
       {
         "type": "bases",
         "attrs": {
-          "source": "filters: 'note[\"bottom line\"] != null'\nviews:\n  - type: table\n    name: Conclusions\n    order: [chapter, bottom line]\nobsHtml: {records: chapter}\n",
+          "source": "filters: 'note[\"bottom line\"] != null'\nviews:\n  - type: table\n    name: Conclusions\n    order: [chapter, bottom line]\nobs: {records: chapter}\n",
           "spec": {
             "filters": "note[\"bottom line\"] != null",
             "views": [
@@ -189,7 +189,7 @@
                 ]
               }
             ],
-            "obsHtml": {
+            "obs": {
               "records": "chapter"
             }
           }
@@ -213,7 +213,7 @@
       {
         "type": "bases",
         "attrs": {
-          "source": "filters:\n  not:\n    or:\n      - 'key == \"title\"'\n      - 'key == \"subtitle\"'\nviews:\n  - type: table\n    name: Metadata\n    order: [key, value]\nobsHtml: {records: documentMetadata}\n",
+          "source": "filters:\n  not:\n    or:\n      - 'key == \"title\"'\n      - 'key == \"subtitle\"'\nviews:\n  - type: table\n    name: Metadata\n    order: [key, value]\nobs: {records: documentMetadata}\n",
           "spec": {
             "filters": {
               "not": {
@@ -233,7 +233,7 @@
                 ]
               }
             ],
-            "obsHtml": {
+            "obs": {
               "records": "documentMetadata"
             }
           }
@@ -703,9 +703,9 @@
         {
           "type": "bases",
           "attrs": {
-            "source": "obsHtml: {records: glossary}\nviews:\n  - type: table\n    order: [term, definition]\n",
+            "source": "obs: {records: glossary}\nviews:\n  - type: table\n    order: [term, definition]\n",
             "spec": {
-              "obsHtml": {
+              "obs": {
                 "records": "glossary"
               },
               "views": [
@@ -724,7 +724,7 @@
         {
           "type": "bases",
           "attrs": {
-            "source": "filters: 'table == \"abbreviations\"'\nproperties:\n  term:\n    displayName: Term\n  citation:\n    displayName: Citation\nviews:\n  - type: table\n    order: [term, citation]\nobsHtml: {records: glossary}\n",
+            "source": "filters: 'table == \"abbreviations\"'\nproperties:\n  term:\n    displayName: Term\n  citation:\n    displayName: Citation\nviews:\n  - type: table\n    order: [term, citation]\nobs: {records: glossary}\n",
             "spec": {
               "filters": "table == \"abbreviations\"",
               "properties": {
@@ -744,7 +744,7 @@
                   ]
                 }
               ],
-              "obsHtml": {
+              "obs": {
                 "records": "glossary"
               }
             }
@@ -788,9 +788,9 @@
         {
           "type": "bases",
           "attrs": {
-            "source": "obsHtml: {records: tag}\nviews:\n  - type: table\n    order: [label, text, source]\n",
+            "source": "obs: {records: tag}\nviews:\n  - type: table\n    order: [label, text, source]\n",
             "spec": {
-              "obsHtml": {
+              "obs": {
                 "records": "tag"
               },
               "views": [
@@ -865,7 +865,7 @@
                         "document",
                         "description"
                       ],
-                      "obsHtml": {
+                      "obs": {
                         "members": [
                           {
                             "path": "reference.md",
@@ -883,8 +883,8 @@
                 "view": null,
                 "rows": [
                   [
-                    "quiet-reference",
-                    "reference"
+                    "reference",
+                    "quiet-reference"
                   ]
                 ]
               },
@@ -910,7 +910,7 @@
                         "obsHtml.label",
                         "document"
                       ],
-                      "obsHtml": {
+                      "obs": {
                         "members": [
                           {
                             "path": "quiet-reference.md",
@@ -1092,9 +1092,9 @@
         {
           "type": "bases",
           "attrs": {
-            "source": "obsHtml: {records: glossary}\nviews:\n  - type: table\n    order: [term, definition]\n",
+            "source": "obs: {records: glossary}\nviews:\n  - type: table\n    order: [term, definition]\n",
             "spec": {
-              "obsHtml": {
+              "obs": {
                 "records": "glossary"
               },
               "views": [

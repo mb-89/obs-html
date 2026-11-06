@@ -7,8 +7,8 @@ builds every vault with the current core each run and fails on a refused vault o
 Document, so a core change cannot hide behind them. The
 vaults are the interim adapter's test vaults in obs (test_browser.py, test_artifact_changes.py,
 test_record_projections.py, test_table_help_browser.py), changed where a docstring says so.
-Regenerate after changing a vault, with an obs checkout whose core accepts ``obsHtml`` keys in
-Bases (the core this adapter was built against refused them; the Documents validate against the core's schema,
+Regenerate after changing a vault, with an obs checkout whose core reads the ``obs`` keys of
+Bases (input-model#Core and adapter namespaces; the Documents validate against the core's schema,
 which test_moved_dom_contracts.py checks)::
 
     uv run python test/fixtures/build_documents.py <obs checkout> [vault ...]
@@ -58,15 +58,15 @@ def complete(root: Path) -> None:
             "Canonical datum A flatness.\n"
         ),
         "glossary": (
-            '# Glossary\n\nSee [[bluf]].\n\n```base\nobsHtml: {records: glossary}\n'
+            '# Glossary\n\nSee [[bluf]].\n\n```base\nobs: {records: glossary}\n'
             "views:\n  - type: table\n    order: [term, definition]\n```\n\n"
             "```base\nfilters: 'table == \"abbreviations\"'\n"
             "properties:\n  term:\n    displayName: Term\n"
             "  citation:\n    displayName: Citation\n"
-            "views:\n  - type: table\n    order: [term, citation]\nobsHtml: {records: glossary}\n```\n"
+            "views:\n  - type: table\n    order: [term, citation]\nobs: {records: glossary}\n```\n"
         ),
         "tags": (
-            '# Tags\n\n```base\nobsHtml: {records: tag}\n'
+            '# Tags\n\n```base\nobs: {records: tag}\n'
             "views:\n  - type: table\n    order: [label, text, source]\n```\n"
         ),
         "conclusion": (
@@ -77,7 +77,7 @@ def complete(root: Path) -> None:
         "bluf": (
             "---\nkind: glossary\nterm: BLUF\naliases: [Conclusion upfront]\n"
             "definition: The principle of presenting the [[bottom line]] first.\n---\n# BLUF\n\n[[details]]\n"
-            "\n```base\nobsHtml: {records: glossary}\n"
+            "\n```base\nobs: {records: glossary}\n"
             "views:\n  - type: table\n    order: [term, definition]\n```\n"
         ),
         "details": "# Extra details\n\n[[bottom line]] [[metadata-only]]\n\n## More\n\nNested content.\n",
@@ -109,12 +109,12 @@ def complete(root: Path) -> None:
         "filters: 'kind == \"reference\"'\n"
         "properties:\n  obsHtml.label:\n    displayName: No.\n"
         "views:\n  - type: table\n    order: [obsHtml.label, document, description]\n"
-        "    obsHtml:\n      members:\n        - path: reference.md\n          label: '[1]'\n"
+        "    obs:\n      members:\n        - path: reference.md\n          label: '[1]'\n"
         "        - path: quiet-reference.md\n          label: '[2]'\n", encoding="utf-8")
     (root / "lettered.base").write_text(
         "filters: 'kind == \"reference\"'\n"
         "views:\n  - type: table\n    order: [obsHtml.label, document]\n"
-        "    obsHtml:\n      members:\n        - path: quiet-reference.md\n          label: B\n"
+        "    obs:\n      members:\n        - path: quiet-reference.md\n          label: B\n"
         "        - path: reference.md\n          label: A\n", encoding="utf-8")
     manifest = root / "manifest.md"
     manifest.write_text(
@@ -127,11 +127,11 @@ def complete(root: Path) -> None:
         "\n> [!important]\n> Abstract prose.\n"
         "\n```base\nfilters: 'note[\"bottom line\"] != null'\n"
         "views:\n  - type: table\n    name: Conclusions\n    order: [chapter, bottom line]\n"
-        "obsHtml: {records: chapter}\n```\n"
+        "obs: {records: chapter}\n```\n"
         "\n## Metadata\n"
         "\n```base\nfilters:\n  not:\n    or:\n      - 'key == \"title\"'\n      - 'key == \"subtitle\"'\n"
         "views:\n  - type: table\n    name: Metadata\n    order: [key, value]\n"
-        "obsHtml: {records: documentMetadata}\n```\n",
+        "obs: {records: documentMetadata}\n```\n",
         encoding="utf-8",
     )
 
@@ -150,13 +150,13 @@ def artifact_change(root: Path) -> None:
             "---\nexplanation: Original\nstatus: draft\n---\n"
             f"# {slug.title()}\n\nReviewable text.\n\n![Sample](sample.svg)\n\n"
             "```property-editor\nversion: 1\nfield: explanation\nlabel: Explanation\n```\n\n"
-            "```base\nobsHtml: {records: note}\nviews:\n"
+            "```base\nobs: {records: note}\nviews:\n"
             "  - type: table\n    order: [title, status, explanation]\n```\n", encoding="utf-8",
         )
 
 
 def _base(filters: str, order: str, records: str = "") -> str:
-    profile = f"obsHtml: {{records: {records}}}\n" if records else ""
+    profile = f"obs: {{records: {records}}}\n" if records else ""
     return (f"```base\nfilters:\n  and: [{filters}]\nviews:\n  - type: table\n    order: [{order}]\n"
             f"{profile}```\n\n")
 
@@ -267,21 +267,21 @@ def registers(root: Path) -> None:
         "filters: 'kind == \"point\"'\n"
         "views:\n"
         "  - type: table\n    name: Labelled\n    order: [file.name, obsHtml.label]\n"
-        "    obsHtml:\n      members:\n        - path: c-point.md\n          label: C\n"
+        "    obs:\n      members:\n        - path: c-point.md\n          label: C\n"
         "        - path: a-point.md\n          label: A\n"
         "  - type: table\n    name: Second\n    order: [file.name]\n"
-        "    obsHtml:\n      members:\n        - path: b-point.md\n",
+        "    obs:\n      members:\n        - path: b-point.md\n",
         encoding="utf-8",
     )
     (root / "types.base").write_text(
         "views:\n"
-        "  - {type: table, name: Notes, filters: 'kind == \"point\"', order: [file.name], obsHtml: {records: note}}\n"
-        "  - {type: table, name: Chapters, order: [chapter], obsHtml: {records: chapter}}\n"
-        "  - {type: table, name: Tags, filters: 'type == \"risk\"', order: [label, text], obsHtml: {records: tag}}\n"
-        "  - {type: table, name: Glossary, order: [term, definition], obsHtml: {records: glossary}}\n"
+        "  - {type: table, name: Notes, filters: 'kind == \"point\"', order: [file.name], obs: {records: note}}\n"
+        "  - {type: table, name: Chapters, order: [chapter], obs: {records: chapter}}\n"
+        "  - {type: table, name: Tags, filters: 'type == \"risk\"', order: [label, text], obs: {records: tag}}\n"
+        "  - {type: table, name: Glossary, order: [term, definition], obs: {records: glossary}}\n"
         "  - {type: table, name: Metadata, filters: 'key != \"title\"', order: [key, value],"
-        " obsHtml: {records: documentMetadata}}\n"
-        "  - {type: table, name: History, order: [version, date, change], obsHtml: {records: documentHistory}}\n",
+        " obs: {records: documentMetadata}}\n"
+        "  - {type: table, name: History, order: [version, date, change], obs: {records: documentHistory}}\n",
         encoding="utf-8",
     )
     (root / "points.md").write_text("# Points\n\nAll views.\n\n![[points.base]]\n", encoding="utf-8")
@@ -331,8 +331,8 @@ def cards(root: Path) -> None:
              "link": "#overview", "secondaryLink": "#target", "tone": "negative",
              "toneRules": [{"value": "secondary", "when": "zero", "tone": "positive"}]},
             {"label": "Reviewed open", "where": [{"field": "status", "equals": "open"}], "tone": "positive",
-             "obsHtml": {"projection": "review"}}]},
-        {"title": "Series", "body": "", "metricStyle": "pills", "obsHtml": {"metricsFrom": {
+             "obs": {"projection": "review"}}]},
+        {"title": "Series", "body": "", "metricStyle": "pills", "obs": {"metricsFrom": {
             "sourceNote": "groups", "property": "groups.list", "labelProperty": "name",
             "distinctProperty": "field", "where": point, "tone": "positive",
             "toneRules": [{"value": "primary", "when": "zero", "tone": "negative"}],
@@ -424,6 +424,6 @@ if __name__ == "__main__":
     if len(sys.argv) < 2 or unknown:
         raise SystemExit("test/fixtures/build_documents.py: usage: build_documents.py <obs checkout> [vault ...]"
                          f"{'; unknown vault ' + ', '.join(unknown) if unknown else ''}. Remedy: name an obs "
-                         "checkout whose core accepts obsHtml keys in Bases, and vaults among "
+                         "checkout whose core reads obs keys in Bases, and vaults among "
                          f"{', '.join(VAULTS)} (none builds all).")
     main(Path(sys.argv[1]).resolve(), sys.argv[2:])

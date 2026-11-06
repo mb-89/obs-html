@@ -45,7 +45,7 @@
         {
           "type": "cards-metrics",
           "attrs": {
-            "source": "{\"version\": 1, \"cards\": [{\"title\": \"Outer\", \"body\": \"Points as a table:\\n\\n```base\\nfilters: 'kind == \\\"point\\\"'\\nviews:\\n  - type: table\\n    order: [file.name, status]\\n```\\n\\n```cards\\n{\\\"version\\\": 1, \\\"cards\\\": [{\\\"title\\\": \\\"Inner\\\", \\\"body\\\": \\\"Nested **body** with [[target]].\\\"}]}\\n```\\n\"}, {\"title\": \"Metrics\", \"body\": \"\", \"metricStyle\": \"lines\", \"metrics\": [{\"key\": \"open-share\", \"label\": \"Open share\", \"where\": [{\"field\": \"status\", \"equals\": \"open\"}], \"denominator\": [{\"field\": \"kind\", \"equals\": \"point\"}], \"link\": \"#target\", \"tone\": \"neutral\", \"toneRules\": [{\"value\": \"remaining\", \"when\": \"positive\", \"tone\": \"warning\"}]}, {\"label\": \"Points (open)\", \"from\": \"counts/points\", \"where\": [], \"secondary\": \"counts/open\", \"link\": \"#overview\", \"secondaryLink\": \"#target\", \"tone\": \"negative\", \"toneRules\": [{\"value\": \"secondary\", \"when\": \"zero\", \"tone\": \"positive\"}]}, {\"label\": \"Reviewed open\", \"where\": [{\"field\": \"status\", \"equals\": \"open\"}], \"tone\": \"positive\", \"obsHtml\": {\"projection\": \"review\"}}]}, {\"title\": \"Series\", \"body\": \"\", \"metricStyle\": \"pills\", \"obsHtml\": {\"metricsFrom\": {\"sourceNote\": \"groups\", \"property\": \"groups.list\", \"labelProperty\": \"name\", \"distinctProperty\": \"field\", \"where\": [{\"field\": \"kind\", \"equals\": \"point\"}], \"tone\": \"positive\", \"toneRules\": [{\"value\": \"primary\", \"when\": \"zero\", \"tone\": \"negative\"}], \"link\": {\"note\": \"overview\", \"groupProperty\": \"status\"}}}}]}\n",
+            "source": "{\"version\": 1, \"cards\": [{\"title\": \"Outer\", \"body\": \"Points as a table:\\n\\n```base\\nfilters: 'kind == \\\"point\\\"'\\nviews:\\n  - type: table\\n    order: [file.name, status]\\n```\\n\\n```cards\\n{\\\"version\\\": 1, \\\"cards\\\": [{\\\"title\\\": \\\"Inner\\\", \\\"body\\\": \\\"Nested **body** with [[target]].\\\"}]}\\n```\\n\"}, {\"title\": \"Metrics\", \"body\": \"\", \"metricStyle\": \"lines\", \"metrics\": [{\"key\": \"open-share\", \"label\": \"Open share\", \"where\": [{\"field\": \"status\", \"equals\": \"open\"}], \"denominator\": [{\"field\": \"kind\", \"equals\": \"point\"}], \"link\": \"#target\", \"tone\": \"neutral\", \"toneRules\": [{\"value\": \"remaining\", \"when\": \"positive\", \"tone\": \"warning\"}]}, {\"label\": \"Points (open)\", \"from\": \"counts/points\", \"where\": [], \"secondary\": \"counts/open\", \"link\": \"#overview\", \"secondaryLink\": \"#target\", \"tone\": \"negative\", \"toneRules\": [{\"value\": \"secondary\", \"when\": \"zero\", \"tone\": \"positive\"}]}, {\"label\": \"Reviewed open\", \"where\": [{\"field\": \"status\", \"equals\": \"open\"}], \"tone\": \"positive\", \"obs\": {\"projection\": \"review\"}}]}, {\"title\": \"Series\", \"body\": \"\", \"metricStyle\": \"pills\", \"obs\": {\"metricsFrom\": {\"sourceNote\": \"groups\", \"property\": \"groups.list\", \"labelProperty\": \"name\", \"distinctProperty\": \"field\", \"where\": [{\"field\": \"kind\", \"equals\": \"point\"}], \"tone\": \"positive\", \"toneRules\": [{\"value\": \"primary\", \"when\": \"zero\", \"tone\": \"negative\"}], \"link\": {\"note\": \"overview\", \"groupProperty\": \"status\"}}}}]}\n",
             "spec": {
               "version": 1,
               "cards": [
@@ -108,7 +108,7 @@
                         }
                       ],
                       "tone": "positive",
-                      "obsHtml": {
+                      "obs": {
                         "projection": "review"
                       }
                     }
@@ -118,7 +118,7 @@
                   "title": "Series",
                   "body": "",
                   "metricStyle": "pills",
-                  "obsHtml": {
+                  "obs": {
                     "metricsFrom": {
                       "sourceNote": "groups",
                       "property": "groups.list",

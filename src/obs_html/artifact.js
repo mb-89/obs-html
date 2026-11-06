@@ -120,7 +120,7 @@
     };
     const records = notes.map(makeRecord);
     const recordsBySlug = new Map(records.map((record) => [record.slug, record]));
-    const isDocument = (record) => record?.frontmatter?.obsHtml?.document !== false;
+    const isDocument = (record) => record?.frontmatter?.obs?.document !== false;
     // An ignored note (obs markdown-frontmatter, Ignored notes) is never selected or counted
     // automatically; explicit links still reach it.
     const selectable = (record) => record?.ignored !== true;
@@ -752,7 +752,7 @@
 
     // `ownFields` are the row's own filter fields (generic-tables, Bases filter grammar);
     // `values` are the displayed cells and may add flattened frontmatter text. `recordType`
-    // only partitions rows for obsHtml.records and is never a filter field.
+    // only partitions rows for obs.records and is never a filter field.
     const tableRecord = (key, values, options = {}) => {
         const text = Object.values(values).join(" ");
         return {
@@ -1298,8 +1298,8 @@
             .filter((item) => item !== undefined && item !== null);
         const filters = parts.length ? {and: parts} : undefined;
         const query = baseFilterExpression(filters);
-        // Without obsHtml.records a view selects canonical notes, as in Obsidian (generic-tables).
-        const recordType = view.obsHtml?.records ?? definition.obsHtml?.records;
+        // Without obs.records a view selects canonical notes, as in Obsidian (generic-tables).
+        const recordType = view.obs?.records ?? definition.obs?.records;
         const nativeNotes = !recordType;
         // Projected rows resolve their own fields first, then the owner note (generic-tables).
         const compiled = globalThis.obsBases.compileFilter(filters, (row, field) => {
@@ -1333,31 +1333,28 @@
                     globalThis.obsBases.recordValue(owner, field) !== undefined)),
             });
         });
-        // A view's members order the core's rows and label them (generic-tables); the core selected
-        // them, so a member names a row here or nothing.
-        const members = view.obsHtml?.members;
+        // A view's members label the core's rows (generic-tables); the core selected them and sent
+        // them in member order, so a member names a row here or nothing, and the order stays.
+        const members = view.obs?.members;
         if (coreKeys && members) {
             const notePath = (row) => recordsBySlug.get(row.noteId)?.sourcePath ?? row.values.sourcePath;
-            const position = new Map(members.map((member, index) => [member.path, index]));
-            const place = row => position.get(notePath(row)) ?? members.length;
-            rows = rows.map((row, index) => ({row, index}))
-                .sort((left, right) => place(left.row) - place(right.row) || left.index - right.index)
-                .map(({row}) => {
-                    const member = members[position.get(notePath(row))];
-                    if (!member) return row;
-                    const label = member.label ?? "";
-                    const cells = {...row.cells};
-                    if (member.label !== undefined && row.noteId) {
-                        cells["obsHtml.label"] = {type: "detail", href: `#${row.noteId}`, label};
-                    }
-                    return {
-                        ...row,
-                        values: {...row.values, "obsHtml.label": label},
-                        ownFields: {...row.ownFields, "obsHtml.label": label},
-                        fields: {...row.fields, "obshtml.label": [label]},
-                        cells,
-                    };
-                });
+            const byPath = new Map(members.map(member => [member.path, member]));
+            rows = rows.map(row => {
+                const member = byPath.get(notePath(row));
+                if (!member) return row;
+                const label = member.label ?? "";
+                const cells = {...row.cells};
+                if (member.label !== undefined && row.noteId) {
+                    cells["obsHtml.label"] = {type: "detail", href: `#${row.noteId}`, label};
+                }
+                return {
+                    ...row,
+                    values: {...row.values, "obsHtml.label": label},
+                    ownFields: {...row.ownFields, "obsHtml.label": label},
+                    fields: {...row.fields, "obshtml.label": [label]},
+                    cells,
+                };
+            });
         }
         const matched = rows.filter((row) => selection.match(row));
         const fields = [...new Set([
@@ -1617,7 +1614,6 @@
                     delete state.presentation;
                     delete state.widths;
                     mount(rendered.element);
-                    document.dispatchEvent(new CustomEvent("obs-reader-state-change"));
                 },
                 columns: definition.columns,
                 availableColumns: definition.availableColumns,
@@ -1630,7 +1626,6 @@
                 onPresentationChange: staticView ? undefined : (presentation, defaults) => {
                     state.presentation = savedPresentations?.[table.key] === undefined &&
                         JSON.stringify(presentation) === JSON.stringify(defaults) ? undefined : presentation;
-                    document.dispatchEvent(new CustomEvent("obs-reader-state-change"));
                 },
                 // Resized widths are session-only view state: not reader state, not an artifact change.
                 initialColumnWidths: state.widths,
@@ -3311,7 +3306,6 @@
             } else {
                 viewSelections.delete(key);
             }
-            document.dispatchEvent(new CustomEvent("obs-reader-state-change"));
         },
         ping,
         records,
