@@ -305,7 +305,7 @@
         input.type = "search";
         input.setAttribute("aria-label", "Filter table");
         input.placeholder = "Filter table";
-        input.dataset.hoverHelp = 'Use field:value, /regex/, AND, OR, NOT, and nested parentheses.';
+        input.dataset.hoverHelp = 'Use field:value, /regex/ (/regex/c matches case), AND, OR, NOT, and nested parentheses.';
         const status = document.createElement("span");
         status.className = "data-table-status";
         status.setAttribute("aria-live", "polite");
