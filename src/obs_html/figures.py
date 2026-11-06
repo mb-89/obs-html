@@ -204,7 +204,9 @@ def _sankey_validator():
 
 def _sankey_graph(graph, source: str, field: str = "data.sankey"):
     """A Sankey graph, checked as this adapter draws it: a sankey figure's ``graph`` or a
-    descriptor's ``data.sankey``, against the core's shape, then the rules a schema cannot state."""
+    descriptor's ``data.sankey``, against the core's shape, then the rules a schema cannot state.
+    obs-document checks the shape and the link ends already; a Document file given to obs-html
+    directly arrives unchecked, so this check stays."""
     error = schema_error(list(_sankey_validator().iter_errors(graph)), source,
                          "obs capabilities/figure-descriptor", prefix=f"{FIGURE}.{field}")
     if error is not None:
