@@ -292,10 +292,11 @@ PAGE_FRAME = """() => [...document.querySelectorAll(
 
 
 @pytest.mark.parametrize("width", [360, 390])
-def test_the_deck_opens_in_screens_on_a_phone_that_fit_and_walk_by_swipe_and_arrows(deck, phone_browser,
-                                                                                    width: int) -> None:
+def test_the_deck_opens_in_screens_on_a_phone_that_fit_and_walk_by_swipe_and_keys(deck, phone_browser,
+                                                                                  width: int) -> None:
     """artifact-ui.md, Screens: no sideways scroll, no page frame, the band's title and position, and the
-    band fits (Reading shell, the top band); swipe and the arrows walk, and Home has no cover."""
+    band fits (Reading shell, the top band); swipe and the keys walk, the arrows are hidden on touch, and
+    Home has no cover."""
     from playwright.sync_api import expect
 
     page = phone_browser.new_page(viewport={"width": width, "height": 780})
@@ -311,22 +312,25 @@ def test_the_deck_opens_in_screens_on_a_phone_that_fit_and_walk_by_swipe_and_arr
     expect(page.locator("[data-screens-title]")).to_have_attribute("title", "Bless verdicts, two decisions")
     assert page.evaluate(PAGE_FRAME) == 0
     assert "Chapter 1 of 2" in [item["name"] for item in _fits(page)]
-    # The chapter takes the reader's width inside the gutter that holds the arrows.
+    # The chapter takes the reader's width; on touch the arrows are hidden.
     body = page.locator("[data-chapter-body]").bounding_box()
     assert body["width"] >= width - 2 * 32
+    expect(page.locator("[data-step]")).to_have_count(2)
+    assert page.locator("[data-step]").evaluate_all("steps => steps.filter(step => step.getClientRects().length)") == []
 
     page.evaluate(SWIPE, ["[data-chapter-body] h1", -120])
     expect(page.locator("[data-active-chapter]")).to_have_attribute("data-chapter", "swipe")
     expect(position).to_have_text("2 / 2")
     _fits(page)
-    page.locator("[data-step='-1']").click()
+    page.evaluate(SWIPE, ["[data-chapter-body] h1", 120])
     expect(page.locator("[data-active-chapter]")).to_have_attribute("data-chapter", "record")
-    page.locator("[data-step='-1']").click()
+    page.evaluate("obsArtifact.whenChapterReady()")
+    page.keyboard.press("ArrowLeft")
     expect(page.locator("[data-active-chapter]")).to_have_attribute("data-chapter", "home")
     expect(position).to_be_hidden()
     assert page.evaluate(PAGE_FRAME) == 0
     _fits(page)
-    page.locator("[data-step='1']").click()
+    page.keyboard.press("ArrowRight")
     expect(position).to_have_text("1 / 2")
     assert errors == []
 
