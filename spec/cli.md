@@ -118,7 +118,9 @@ artifact's data island is packed, so reading it by hand needs a decoder.
 
 It prints the chapter as the generator stored it in the artifact's data, without starting a
 browser: what the reader runtime changes on load, such as interactive table controls, is not
-included; `--check-rendered` covers the opened page. Chapter ids are the note slugs the artifact's table of
+included; `--check-rendered` covers the opened page. It prints the artifact's static text, so it
+cannot show a label the artifact computes at runtime, such as a count or a figure number that
+depends on the reader's filter. Chapter ids are the note slugs the artifact's table of
 contents uses; an unknown id lists the available ones.
 
 `obs-html --print-chapter HTML CHAPTER` and `obs-html-interim --print-chapter HTML ID` take the
