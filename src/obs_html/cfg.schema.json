@@ -51,6 +51,7 @@
         "tableIconWidthPixels",
         "tableDetailFontSizePoints",
         "dockPaneMinimumPixels",
+        "borderedTags",
         "facetDistinctRatio",
         "filterPresets"
       ],
@@ -145,6 +146,17 @@
           "type": "integer",
           "minimum": 32,
           "maximum": 320
+        },
+        "borderedTags": {
+          "type": "array",
+          "uniqueItems": true,
+          "description": "Tag kinds whose paragraphs one shared neutral card encloses, titled with the opted-in kinds (artifact-ui, Content sections). None by default.",
+          "items": {
+            "enum": [
+              "open_point", "risk", "assumption", "issue",
+              "decision", "warning", "question", "idea"
+            ]
+          }
         },
         "tableColumnMinimumPixels": {
           "type": "integer",

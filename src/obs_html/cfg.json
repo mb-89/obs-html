@@ -69,6 +69,7 @@
     "tableIconWidthPixels": 44,
     "tableDetailFontSizePoints": 10,
     "dockPaneMinimumPixels": 80,
+    "borderedTags": [],
     "facetDistinctRatio": 0.5,
     "filterPresets": [
       {
