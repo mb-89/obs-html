@@ -245,3 +245,18 @@ def test_each_canary_says_what_it_observed(tmp_path: Path, reader_browser) -> No
             expect(observed).to_have_count(1)
             assert observed.evaluate("(term) => term.nextElementSibling.textContent") == entry["observation"]
     assert errors == []
+
+
+@pytest.mark.browser
+@pytest.mark.parametrize("frame_kind", list(SANDBOXES))
+def test_opening_a_preview_fails_at_once_when_the_artifact_cannot_start(
+        tmp_path: Path, reader_browser, frame_kind: str) -> None:
+    """open_preview waits on the artifact's ready event; a failed startup fails it, naming its owner."""
+    from playwright.sync_api import Error
+
+    artifact = re.sub(r"(<script[^>]*data-artifact-data[^>]*>)[^<]*", r"\1{}", preview_artifact(), count=1)
+    assert artifact != preview_artifact(), "the artifact's data island was not found"
+    errors: list[str] = []
+    with http_origin(tmp_path) as origin, pytest.raises(Error, match="test/preview.py"):
+        open_preview(tmp_path, reader_browser, errors, artifact, frame_kind,
+                     origin if frame_kind == "same-origin" else None)
