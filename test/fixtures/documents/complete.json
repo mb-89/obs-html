@@ -157,7 +157,7 @@
         "type": "callouts",
         "attrs": {
           "kind": "important",
-          "title": ""
+          "title": []
         },
         "children": [
           {

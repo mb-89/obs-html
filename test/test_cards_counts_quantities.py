@@ -17,7 +17,7 @@ from obs_html.render import render
 from obs_html.artifact_data import decode_artifact_data
 
 from conftest import ROOT
-from documents import chapter, document as build, node, paragraph, text
+from documents import card_document, chapter, document as build, node, paragraph, text
 
 
 CONFIG = load_config()
@@ -66,12 +66,16 @@ def _html(*content: dict) -> str:
     return _notes(_document(*content))["one"]["html"]
 
 
-def _cards(*cards: dict, bodies: tuple[list[dict], ...] = ()) -> dict:
-    """The node of a cards fence; ``bodies`` holds each card's body nodes, empty by default."""
+def _cards(*cards: dict, bodies: tuple[list[dict], ...] = (), titles: tuple[list[dict], ...] = (),
+           labels: tuple[list[list[dict]], ...] = ()) -> dict:
+    """The node of a cards fence; ``bodies`` holds each card's body nodes, empty by default, and
+    ``titles`` and ``labels`` each card's title and metric label nodes, by default the one text
+    node the core parses plain text into."""
     spec = {"version": 1, "cards": list(cards)}
     result = node("cards-metrics", source=json.dumps(spec), spec=spec)
-    result["children"] = [{"type": "document", "attrs": {}, "children": list(body)}
-                          for body in (bodies or tuple([] for _ in cards))]
+    result["children"] = [
+        card_document(card, body, titles[index] if titles else None, labels[index] if labels else None)
+        for index, (card, body) in enumerate(zip(cards, bodies or tuple([] for _ in cards)))]
     return result
 
 
@@ -110,7 +114,7 @@ def test_cards_render_titled_sections_with_metric_slots_and_markdown_bodies() ->
     assert ('<div class="record-metrics "><div data-record-metric="0" role="status" aria-busy="true">'
             'Calculating…</div><div data-record-metric="1" role="status" aria-busy="true">Calculating…</div></div>'
             '<p>Ordinary <strong>operations</strong>.</p>\n</section>') in html
-    assert _card_payload(html) == metrics
+    assert _card_payload(html) == [{**metric, "labelHtml": metric["label"]} for metric in metrics]
     assert ('<section class="content-card record-card" data-record-card="[]">'
             '<header class="content-card-title">Evidence</header>'
             '<p>Unfiltered.</p>\n</section></div>\n') in html
@@ -177,7 +181,7 @@ def test_the_metric_contract_reaches_the_runtime_as_the_interim_adapter_ships_it
     def cards(markup: str) -> list[tuple[list[dict], str | None]]:
         result = []
         for section in markup.split('<section class="content-card record-card" ')[1:]:
-            payload = [{key: value for key, value in metric.items() if key != "valueHtml"}
+            payload = [{key: value for key, value in metric.items() if key not in {"valueHtml", "labelHtml"}}
                        for metric in _card_payload(section)]
             series = section.split('data-record-series="')[1].split('"')[0] if "data-record-series" in section else None
             result.append((payload, series))
@@ -201,7 +205,7 @@ def test_a_compound_metric_value_is_the_primary_and_secondary_quantity_links() -
               "toneRules": [{"value": "secondary", "when": "positive", "tone": "negative"}]}
     html = _html(_cards({"title": "Coverage", "body": "", "metricStyle": "lines", "metrics": [metric]}))
     [payload] = _card_payload(html)
-    assert payload == {**metric, "valueHtml": (
+    assert payload == {**metric, "labelHtml": "Findings (unexplained)", "valueHtml": (
         '<a class="internal-link" href="#counts-total" data-quantity-reference="counts/total.md" '
         'aria-busy="true" role="status">Calculating…</a> (<a class="internal-link" href="#counts-subset" '
         'data-quantity-reference="counts/subset.md" aria-busy="true" role="status">Calculating…</a>)')}
@@ -255,3 +259,17 @@ def test_the_core_owns_the_count_query_contract_so_the_adapter_renders_what_it_r
     total = next(item for item in source["chapters"] if item["id"] == "counts-total")
     total["content"][3] = node("count-query", query={"distinct": "identity"})
     assert "counts-total" in _notes(source)
+
+
+def test_a_card_title_and_a_metric_label_render_their_nodes_with_the_core_s_link_label() -> None:
+    """A heading link in a card title or a metric label shows the label the core gave the link
+    (obs capabilities/wikilinks#Link text, capabilities/cards-metrics#Document node)."""
+    link = node("wikilinks", target="one", chapter="one", heading="Authorization",
+                label="Command Fences > Authorization")
+    metric = {"label": "Open [[one#Authorization]]", "where": []}
+    html = _html(_cards({"title": "See [[one#Authorization]]", "body": "", "metrics": [metric]},
+                        titles=([text("See "), link],),
+                        labels=([[{"type": "emphasis", "attrs": {}, "children": [text("Open")]}, text(" "), link]],)))
+    anchor = '<a class="internal-link" href="#one">Command Fences &gt; Authorization</a>'
+    assert f'<header class="content-card-title">See {anchor}</header>' in html
+    assert _card_payload(html)[0]["labelHtml"] == f"<em>Open</em> {anchor}"
