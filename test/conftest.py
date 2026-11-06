@@ -19,6 +19,9 @@ network_guard.install()
 
 ROOT = Path(__file__).parents[1]
 FIXTURE = ROOT / "test" / "fixtures" / "documents" / "document.json"
+# The browser tier's feature fixture (obs quality.md, Testing boundaries): every registered feature
+# in a few chapters (test/fixtures/build_documents.py, features).
+FEATURE_FIXTURE = ROOT / "test" / "fixtures" / "documents" / "features.json"
 CORE_ROOT = ROOT.parents[1]
 
 
@@ -40,8 +43,10 @@ bounds = _core_module("bounds")
 
 
 def pytest_sessionstart(session):
-    """A focused run installs the suite's Node test packages where they are missing or stale."""
+    """A focused run installs the suite's Node test packages where they are missing or stale; the
+    JUnit report, where the run writes one, names the part's worker count (test/suite.py)."""
     suite.set_up_focused_run(session.config)
+    suite.record_workers(session.config)
 
 
 @pytest.fixture(scope="session")
@@ -52,9 +57,12 @@ def core_root() -> Path:
 
 @pytest.fixture(scope="session")
 def document_validator(core_root: Path) -> Draft202012Validator:
+    # Every core schema, by its file name, which the Document schema's references name
+    # (figure.schema.json, answers.schema.json).
     schemas = core_root / "src" / "obs"
-    figure = json.loads((schemas / "figure.schema.json").read_text(encoding="utf-8"))
-    registry = Registry().with_resource("figure.schema.json", Resource.from_contents(figure))
+    registry = Registry().with_resources(
+        (path.name, Resource.from_contents(json.loads(path.read_text(encoding="utf-8"))))
+        for path in schemas.glob("*.schema.json"))
     schema = json.loads((schemas / "document.schema.json").read_text(encoding="utf-8"))
     return Draft202012Validator(schema, registry=registry)
 
@@ -91,6 +99,19 @@ def fixture_artifact(tmp_path_factory) -> Path:
             "test/conftest.py: obs-html could not render the fixture Document test/fixtures/documents/document.json"
 
     return built_once(tmp_path_factory, "fixture-artifact", build) / "artifact.html"
+
+
+@pytest.fixture(scope="session")
+def feature_artifact(tmp_path_factory) -> str:
+    """The feature fixture rendered by this adapter, once per run and shared by every worker; the
+    browser tier's reading script and covered-control sweep read it in place of obs's spec."""
+    from obs_html import cli
+
+    def build(folder: Path) -> None:
+        assert cli.main([str(FEATURE_FIXTURE), str(folder / "artifact.html")]) == 0, \
+            "test/conftest.py: obs-html could not render the feature fixture test/fixtures/documents/features.json"
+
+    return (built_once(tmp_path_factory, "feature-artifact", build) / "artifact.html").read_text(encoding="utf-8")
 
 
 def _uv(*arguments: str, cwd: Path, environment: dict[str, str]) -> None:

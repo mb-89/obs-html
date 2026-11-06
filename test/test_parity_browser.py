@@ -1,16 +1,19 @@
-"""The spec artifact held to features.md's reading rows, in Claude-preview-like frames.
+"""The feature fixture's artifact held to features.md's reading rows, in Claude-preview-like frames.
 
 Reader: whoever changes how the artifact reads, navigates or prints, and the dispatcher reading
 [parity/features.md](parity/features.md), whose rows name these tests.
 
-obs's spec, as this adapter renders the core's Document of it (test/spec_artifact.py), is opened
+The feature fixture, in which every registered feature appears
+(test/fixtures/build_documents.py, features; conftest.py, feature_artifact), is opened
 in both preview-like frames (test/preview.py). One interaction script walks it: Home,
 previous/next by pointer and keyboard, the contents menu, the filter, a view selection, a figure
 reference, and icon counts per region in every chapter. Each step is held to what the design
 notes and the artifact's own contents say: the arrows and keys walk the contents' chapters in
 order, Home returns to the first, a contents link opens its chapter, a filter that matches
 nothing disables both arrows, reader state is never a change, and every icon is painted. The
-expectations were the interim adapter's observations on the same spec until obs#3 deleted it.
+expectations were the interim adapter's observations on obs's spec until obs#3 deleted it; the
+checks moved from the spec to the feature fixture so that the browser tier does not grow with the
+spec (obs quality.md, Testing boundaries).
 
 A second check sweeps the artifact in the same frames for covered controls
 (test/browser/control-coverage.js) at four widths, one test per frame and width, in both views and
@@ -21,11 +24,13 @@ Each test opens the artifact once, in one page its checks reuse. Pointer and key
 real input, one round trip each; every other observation is computed in the page and returned as
 one structure (the icon counts of every chapter in one evaluation), and Python checks them.
 
-A third check prints one spec chapter with --print-chapter, in both formats: the HTML form is the
-chapter as the artifact stores it, and the text form is its blocks without markup.
+A third check prints one chapter of obs's spec, as this adapter renders the core's Document of it
+(test/spec_artifact.py), with --print-chapter, in both formats: the HTML form is the chapter as
+the artifact stores it, and the text form is its blocks without markup. It needs the real spec:
+the chapter's command fence captured the spec's own CLI help.
 
-Run it alone with `uv run pytest test/test_parity_browser.py`; it builds the artifact once per
-run, without the network: the core's Document through the core's test/offline_obs_document.py.
+Run it alone with `uv run pytest test/test_parity_browser.py`; it renders each artifact once per
+run, the spec without the network: the core's Document through the core's test/offline_obs_document.py.
 Each test runs on its own worker in the complete suite: one per frame for the interaction
 script and one per frame and width for the sweep.
 """
@@ -138,10 +143,9 @@ POINTER = """(element) => {
 # centre of its bounding box.
 FIRST_LINE_POINTER = POINTER.replace("element.getBoundingClientRect()", "element.getClientRects()[0]")
 
-# A figure reference in obs's spec and its figure's block anchor (obs input-model, Figure captions
-# and references): the reference is in the wikilinks chapter, the figure in the figures chapter.
-FIGURE_REFERENCE = ("capabilities-wikilinks", "#capabilities-figures/block-generic-figure",
-                    "capabilities-figures--block-generic-figure")
+# A figure reference in the feature fixture and its figure's block anchor (obs input-model, Figure
+# captions and references): the reference is in the equations chapter, the figure in the figures chapter.
+FIGURE_REFERENCE = ("equations", "#figures/block-plot-figure", "figures--block-plot-figure")
 # Opens a chapter the contents do not list by a click event on a link to it, which the
 # artifact's own link handling routes as a reader's link; the link is removed again. Settles.
 OPEN_CHAPTER = "async (slug) => {" + HELPERS + """
@@ -341,8 +345,8 @@ def check_steps(steps: list[tuple[str, object]]) -> list[str]:
 @pytest.mark.parametrize("frame_kind", [
     pytest.param(frame_kind, marks=pytest.mark.xdist_group(f"parity-{frame_kind}")) for frame_kind in SANDBOXES])
 def test_the_artifact_reads_as_its_contents_and_design_notes_say_in_preview_frames(
-        tmp_path: Path, reader_browser, spec_html: str, frame_kind: str) -> None:
-    steps, violations, errors = observe(tmp_path, reader_browser, spec_html, frame_kind)
+        tmp_path: Path, reader_browser, feature_artifact: str, frame_kind: str) -> None:
+    steps, violations, errors = observe(tmp_path, reader_browser, feature_artifact, frame_kind)
     problems = check_steps(steps)
     problems += [f"design notes: {violation}" for violation in violations]
     problems += [f"page error: {error}" for error in errors]
@@ -433,9 +437,9 @@ def covered_controls(tmp_path: Path, browser, artifact: str, frame_kind: str, na
                  marks=pytest.mark.xdist_group(f"coverage-{frame_kind}-{width}"))
     for frame_kind in SANDBOXES for width in WIDTHS])
 def test_no_control_is_covered_in_preview_frames(
-        tmp_path: Path, overlay_scrollbar_browser, spec_html: str, frame_kind: str, width: int) -> None:
+        tmp_path: Path, overlay_scrollbar_browser, feature_artifact: str, frame_kind: str, width: int) -> None:
     """No visible control lies under another element's pointer area (test/browser/control-coverage.js)."""
-    ours = covered_controls(tmp_path, overlay_scrollbar_browser, spec_html, frame_kind, "adapter", width)
+    ours = covered_controls(tmp_path, overlay_scrollbar_browser, feature_artifact, frame_kind, "adapter", width)
     problems = [
         f"page error: {where}" if control == "page error" else f"{control} is covered {where} by "
         + "; ".join(f"{covering} (in {', '.join(chapters)})" for covering, chapters in coverings.items())
