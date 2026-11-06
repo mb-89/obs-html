@@ -358,3 +358,78 @@ def test_every_metric_field_and_a_metric_series_count_as_the_interim_runtime_cou
         drill_down("#overview", [{"field": "kind", "equals": "point"}, {"field": "status", "equals": label}])
         for label in ("open", "closed")]
     assert errors == []
+
+
+def test_every_drill_down_shows_exactly_the_rows_its_count_counted(tmp_path, reader_browser) -> None:
+    """The ``cards`` fixture Document holds every kind of count with a drill-down: card metrics,
+    a projected metric (under an active projection), a count query (a secondary quantity), a
+    metric series and a dynamic Sankey. Each drill-down, followed as a reader follows it, shows
+    exactly the rows its count counted (obs capabilities/cards-metrics#Drill-downs)."""
+    document = json.loads((ROOT / "test" / "fixtures" / "documents" / "cards.json").read_text(encoding="utf-8"))
+    records = {record["path"].removesuffix(".md"): record["fields"] for record in document["records"] if "path" in record}
+    page, errors = _open(tmp_path, reader_browser, document)
+    from playwright.sync_api import expect
+    page.evaluate("obsPages.setPaged(false); obsArtifact.activateChapter('overview')")
+    page.evaluate("obsCards.setProjection('review', {'b-point.md': {status: 'open'}})")
+    select = "([query, key]) => obsRecordMetrics.select(query, key).map(record => `note:${record.slug}`).sort()"
+    kinds: set[str] = set()
+
+    def follow(kind: str, link, counted: list[str]) -> None:
+        link.click()
+        rows = page.locator("[data-active-chapter] [data-data-table]").first.locator("[data-row-key]")
+        expect(rows).to_have_count(len(counted))
+        assert sorted(rows.evaluate_all("rows => rows.map(row => row.dataset.rowKey)")) == counted, kind
+        kinds.add(kind)
+        page.evaluate("obsArtifact.activateChapter('overview')")
+
+    for card in page.locator("[data-active-chapter] [data-record-card]").all():
+        metrics = json.loads(card.get_attribute("data-record-card"))
+        slots = card.locator(".record-metrics").first
+        for index, metric in enumerate(metrics):
+            slot = slots.locator(f"[data-record-metric='{index}']")
+            projection = (metric.get("obs") or {}).get("projection", "")
+            query = {"where": metric["where"], **({"from": metric["from"]} if "from" in metric else {})}
+            if projection:
+                assert page.evaluate(select, [query, projection]) != page.evaluate(select, [query, ""])
+            if "link" in metric:
+                link = slot.locator("[data-quantity-reference]").first if "secondary" in metric \
+                    else slot.locator(".record-metric-value")
+                follow("projected metric" if projection else "card metric", link,
+                       page.evaluate(select, [query, projection]))
+            if "secondaryLink" in metric:
+                follow("count query", slot.locator("[data-quantity-reference]").nth(1),
+                       page.evaluate(select, [records[metric["secondary"]]["query"], ""]))
+        if series := card.get_attribute("data-record-series"):
+            series = json.loads(series)
+            entries = records[series["sourceNote"]]
+            for part in series["property"].split("."):
+                entries = entries[part]
+            for index, entry in enumerate(entries, start=len(metrics)):
+                where = [*series["where"], {"field": series["link"]["groupProperty"],
+                                            "equals": entry[series["labelProperty"]]}]
+                follow("series", slots.locator(f"[data-record-metric='{index}'] .record-metric-value"),
+                       page.evaluate(select, [{"where": where}, ""]))
+
+    figure = page.locator("[data-active-chapter] [data-figure-kind='sankey']")
+    graph = json.loads(figure.get_attribute("data-figure-spec"))
+    retained = ("() => obsArtifact.records.filter(record => obsArtifact.selectable(record) && "
+                "obsArtifact.matchesFilter(record)).map(record => `note:${record.slug}`).sort()")
+    linked = ("([population, where]) => obsArtifact.records.filter(record => obsArtifact.selectable(record) && "
+              "obsQuery.compileConditions(population).match(record) && obsQuery.compileConditions(where).match(record))"
+              ".map(record => `note:${record.slug}`).sort()")
+    links = [{**link, "rows": page.evaluate(linked, [graph["data"]["where"], link["where"]])} for link in graph["links"]]
+    assert figure.locator(".sankey-link").evaluate_all("links => links.map(link => link.dataset.flowValue)") == [
+        str(len(link["rows"])) for link in links if link["rows"]]
+    for node_spec in graph["nodes"]:
+        incident = [link for link in links if node_spec["id"] in (link["source"], link["target"])]
+        counted = sorted({row for link in incident for row in link["rows"]})
+        if "records" in node_spec:
+            assert counted == sorted(set(counted) & set(page.evaluate(linked, [graph["data"]["where"],
+                                                                               node_spec["records"]["where"]])))
+        figure.locator(f"[data-node-id='{node_spec['id']}']").click()
+        page.wait_for_function(f"(counted => JSON.stringify(({retained})()) === JSON.stringify(counted))", arg=counted)
+        kinds.add("sankey")
+        # The reader's filter hides the overview chapter itself, so the reader returns to it.
+        page.evaluate("obsFilter.setExpression(''); obsArtifact.activateChapter('overview')")
+    assert kinds == {"card metric", "projected metric", "count query", "series", "sankey"}
+    assert errors == []
