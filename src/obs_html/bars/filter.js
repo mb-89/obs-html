@@ -95,7 +95,8 @@
         else selections.delete(field);
         syncSelections();
         const selected = [...selections].map(([selectedField, items]) => {
-            const clauses = items.map((item) => exactClause(selectedField, item));
+            // A pill counts one exact spelling, so its clause matches case (obs artifact-ui, Filter attributes).
+            const clauses = items.map((item) => exactClause(selectedField, item, true));
             return clauses.length > 1 ? `(${clauses.join(" OR ")})` : clauses[0];
         });
         input.value = [selectionBase, ...selected].filter(Boolean).join(" AND ");

@@ -804,8 +804,7 @@
         const fields = contributions.length ? contributions.filter(link =>
           sankeyConditionsMatch(record, link.where)).map(link => link.unique) : [node.unique];
         return fields.flatMap(field => {
-          const value = record.fields[field?.toLocaleLowerCase()];
-          return (Array.isArray(value) ? value : [value]).filter(item => item !== undefined && item !== "");
+          return field ? globalThis.obsQuery.propertyTexts(record, field).filter(item => item !== "") : [];
         });
       })).size;
       const words = sankeyCountLabels(spec);
