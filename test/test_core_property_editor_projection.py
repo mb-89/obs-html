@@ -5,11 +5,14 @@ The core-built Document ``fixtures/documents/property-editor-projection.json`` (
 the ``property-editors`` node's ``attrs.spec``; the artifact keeps it as the editor's static data.
 """
 import json
+import re
 
 from conftest import ROOT
 from obs_html.artifact_data import decode_artifact_data
 from obs_html.config import load_config
 from obs_html.render import render
+
+SOURCE = ROOT / "src" / "obs_html"
 
 
 DOCUMENT = json.loads((ROOT / "test" / "fixtures" / "documents" / "property-editor-projection.json")
@@ -26,3 +29,14 @@ def test_the_projection_of_a_core_built_document_is_the_editors_static_data() ->
         "nonblank": {"status": "explained", "accepted": "yes", "outputs": ["System", "Labels"]},
     }
     assert 'data-property-field="explanation"' in note["html"]
+
+
+def test_no_projection_rule_check_remains_in_the_adapter() -> None:
+    """The core owns the projection rules (obs capabilities/property-editors#Projection rules):
+    the adapter's Python reads a projection only as data, and its schema checks only its shape."""
+    for path in SOURCE.glob("*.py"):
+        for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            assert not re.search(r"projection.*(PROTECTED_FIELDS|frontmatter|InputError)|_projection_",
+                                 line), f"{path.name}:{number}: {line.strip()}"
+    schema = json.loads((SOURCE / "property-editor.schema.json").read_text(encoding="utf-8"))
+    assert "$ref" not in schema["$defs"]["projectionFields"]["propertyNames"]

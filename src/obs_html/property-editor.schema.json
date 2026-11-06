@@ -45,7 +45,7 @@
     "projectionFields": {
       "type": "object",
       "minProperties": 1,
-      "propertyNames": {"$ref": "#/$defs/editableField", "minLength": 1, "maxLength": 128},
+      "propertyNames": {"minLength": 1, "maxLength": 128},
       "additionalProperties": {"$ref": "#/$defs/projectionValue"}
     }
   }
