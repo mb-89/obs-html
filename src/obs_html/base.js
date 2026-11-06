@@ -1,5 +1,8 @@
 (() => {
-    const schema = JSON.parse(document.querySelector("#base-schema").textContent);
+    // The Bases schema (#base-schema) ships only with the tables feature (features.py), so it is
+    // read on first use: a page without a Base table never asks for it.
+    let schemaCache;
+    const schema = () => schemaCache ??= JSON.parse(document.querySelector("#base-schema").textContent);
     const isObject = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
     const supportedProperty = field => {
         if (/^note(?:\.file\.|\["file\.)/.test(field) || /^(?:formula|this)\./.test(field) || field.startsWith("file.") &&
@@ -9,7 +12,7 @@
     };
 
     // This validator implements only the JSON Schema keywords used by the shared Bases schema.
-    const validateNode = (value, rule, path = "root", owner = schema) => {
+    const validateNode = (value, rule, path = "root", owner = schema()) => {
         if (rule.$ref) {
             const [file, fragment] = rule.$ref.split("#");
             if (file) {
@@ -104,7 +107,7 @@
     };
 
     const validate = (definition) => {
-        validateNode(definition, schema);
+        validateNode(definition, schema());
         Object.keys(definition.properties || {}).forEach(supportedProperty);
         compileFilter(definition.filters, () => undefined);
         definition.views.forEach(view => {
@@ -156,7 +159,7 @@
     const unsupportedFilter = (filter) => new TypeError(`Unsupported Bases filter: ${
         typeof filter === "string" ? filter : JSON.stringify(filter)}`);
     const comparison = (filter) => {
-        comparisonPattern ??= new RegExp(schema.$defs.comparison.pattern);
+        comparisonPattern ??= new RegExp(schema().$defs.comparison.pattern);
         const match = typeof filter === "string" ? filter.match(comparisonPattern) : null;
         if (!match) throw unsupportedFilter(filter);
         const [, simple, spaced, operator, literal] = match;
@@ -334,7 +337,7 @@
         });
     };
     globalThis.obsBases = {
-        validate, parse, dump, filterExpression, compileFilter, assigned, quoteField, recordValue, referenceRecords,
+        validate, parse, dump, filterExpression, compileFilter, assigned, recordValue, referenceRecords,
         project, expandMetadata, textMatcher, escapePattern, fold,
     };
 })();

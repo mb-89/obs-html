@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from conftest import ROOT
-from documents import chapter, document, heading, paragraph
+from documents import chapter, document, heading, node, paragraph
 from obs_html.config import load_config
 from obs_html.render import render
 
@@ -63,7 +63,9 @@ def test_filter_and_search_are_separate_discovered_bars(tmp_path: Path) -> None:
 
 
 def test_table_reference_contract_covers_headers_groups_and_footer(tmp_path: Path) -> None:
+    # A Base table ships the data-table runtime (features.py, tables) that the contract drives.
+    base = node("bases", source="", spec={"views": [{"type": "table", "name": "Items", "order": ["file.name"]}]})
     artifact = write_artifact(tmp_path / "artifact.html", document(
-        "Tables", chapter("chapter", "Chapter", heading(1, "Chapter"))))
+        "Tables", chapter("chapter", "Chapter", heading(1, "Chapter"), base)))
     run_artifact_dom_contract(artifact, "--table-controls-only")
 

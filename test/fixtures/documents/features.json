@@ -385,6 +385,81 @@
           ]
         },
         {
+          "type": "section",
+          "attrs": {
+            "level": 2
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Flow"
+            }
+          ]
+        },
+        {
+          "type": "figures",
+          "attrs": {
+            "kind": "sankey",
+            "caption": [
+              {
+                "type": "paragraph",
+                "attrs": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "attrs": {},
+                    "children": [],
+                    "text": "The Sankey figure."
+                  }
+                ]
+              }
+            ],
+            "block": "sankey-figure"
+          },
+          "children": [
+            {
+              "type": "sankey",
+              "attrs": {
+                "graph": {
+                  "version": 1,
+                  "nodes": [
+                    {
+                      "id": "in",
+                      "label": "Input",
+                      "stage": 0
+                    },
+                    {
+                      "id": "out",
+                      "label": "Output",
+                      "stage": 1
+                    },
+                    {
+                      "id": "loss",
+                      "label": "Loss",
+                      "stage": 1
+                    }
+                  ],
+                  "links": [
+                    {
+                      "source": "in",
+                      "target": "out",
+                      "value": 8
+                    },
+                    {
+                      "source": "in",
+                      "target": "loss",
+                      "value": 2
+                    }
+                  ]
+                }
+              },
+              "children": []
+            }
+          ]
+        },
+        {
           "type": "paragraph",
           "attrs": {},
           "children": [
@@ -4940,7 +5015,11 @@
       },
       {
         "path": "figures.md",
-        "data": "IyBGaWd1cmVzCgojIyBJbWFnZQoKYGBgZmlndXJlCnZlcnNpb246IDEKa2luZDogaW1hZ2UKY2FwdGlvbjogVGhlIGltYWdlIGZpZ3VyZS4Kc291cmNlOiBkcmF3aW5nLnN2ZwpgYGAKXmltYWdlLWZpZ3VyZQoKIyMgUGxvdAoKYGBgZmlndXJlCnZlcnNpb246IDEKa2luZDogcGxvdApjYXB0aW9uOiBUaGUgcGxvdCBmaWd1cmUuCmNvbnRlbnQ6IHsic2NoZW1hVmVyc2lvbiI6IDEsICJpZCI6ICJyZXNwb25zZSIsICJkYXRhIjogeyJ0cmFjZXMiOiBbeyJsYWJlbCI6ICJtZWFzdXJlZCIsICJ4IjogWzAsIDEsIDJdLCAieSI6IFsxLCA0LCA5XX0sIHsibGFiZWwiOiAibW9kZWwiLCAieCI6IFswLCAxLCAyXSwgInkiOiBbMSwgMywgOF0sICJtb2RlIjogImxpbmVzK21hcmtlcnMifV19LCAicGFuZWxzIjogW3siaWQiOiAibWFpbiIsICJib3VuZHMiOiB7IngiOiAwLCAieSI6IDAsICJ3aWR0aCI6IDcyMCwgImhlaWdodCI6IDMyMH0sICJncmlkIjogeyJyb3ciOiAwLCAiY29sdW1uIjogMCwgInJvd1NwYW4iOiAxLCAiY29sdW1uU3BhbiI6IDF9LCAiYXhlcyI6IFt7ImlkIjogInRpbWUiLCAic2NhbGUiOiAibGluZWFyIiwgImxpbWl0cyI6IHsibWluaW11bSI6IDAsICJtYXhpbXVtIjogMn0sICJsYWJlbCI6ICJUaW1lIn0sIHsiaWQiOiAidmFsdWUiLCAic2NhbGUiOiAibG9nIiwgImxpbWl0cyI6IHsibWluaW11bSI6IDEsICJtYXhpbXVtIjogMTB9LCAibGFiZWwiOiAiVmFsdWUifV19XSwgInByb3ZlbmFuY2UiOiB7ImNvbW1hbmQiOiBbImdlbmVyYXRlLXJlc3BvbnNlIl19fQpgYGAKXnBsb3QtZmlndXJlCgpQYXJhZ3JhcGggMSBvZiB0aGUgY2xvc2luZyB0ZXh0LCB3aGljaCByZWFkcyBvbiBhZnRlciB0aGUgY29udGVudCBhYm92ZSBpdC4gUGFyYWdyYXBoIDEgb2YgdGhlIGNsb3NpbmcgdGV4dCwgd2hpY2ggcmVhZHMgb24gYWZ0ZXIgdGhlIGNvbnRlbnQgYWJvdmUgaXQuIFBhcmFncmFwaCAxIG9mIHRoZSBjbG9zaW5nIHRleHQsIHdoaWNoIHJlYWRzIG9uIGFmdGVyIHRoZSBjb250ZW50IGFib3ZlIGl0LiAKClBhcmFncmFwaCAyIG9mIHRoZSBjbG9zaW5nIHRleHQsIHdoaWNoIHJlYWRzIG9uIGFmdGVyIHRoZSBjb250ZW50IGFib3ZlIGl0LiBQYXJhZ3JhcGggMiBvZiB0aGUgY2xvc2luZyB0ZXh0LCB3aGljaCByZWFkcyBvbiBhZnRlciB0aGUgY29udGVudCBhYm92ZSBpdC4gUGFyYWdyYXBoIDIgb2YgdGhlIGNsb3NpbmcgdGV4dCwgd2hpY2ggcmVhZHMgb24gYWZ0ZXIgdGhlIGNvbnRlbnQgYWJvdmUgaXQuIAo="
+        "data": "IyBGaWd1cmVzCgojIyBJbWFnZQoKYGBgZmlndXJlCnZlcnNpb246IDEKa2luZDogaW1hZ2UKY2FwdGlvbjogVGhlIGltYWdlIGZpZ3VyZS4Kc291cmNlOiBkcmF3aW5nLnN2ZwpgYGAKXmltYWdlLWZpZ3VyZQoKIyMgUGxvdAoKYGBgZmlndXJlCnZlcnNpb246IDEKa2luZDogcGxvdApjYXB0aW9uOiBUaGUgcGxvdCBmaWd1cmUuCmNvbnRlbnQ6IHsic2NoZW1hVmVyc2lvbiI6IDEsICJpZCI6ICJyZXNwb25zZSIsICJkYXRhIjogeyJ0cmFjZXMiOiBbeyJsYWJlbCI6ICJtZWFzdXJlZCIsICJ4IjogWzAsIDEsIDJdLCAieSI6IFsxLCA0LCA5XX0sIHsibGFiZWwiOiAibW9kZWwiLCAieCI6IFswLCAxLCAyXSwgInkiOiBbMSwgMywgOF0sICJtb2RlIjogImxpbmVzK21hcmtlcnMifV19LCAicGFuZWxzIjogW3siaWQiOiAibWFpbiIsICJib3VuZHMiOiB7IngiOiAwLCAieSI6IDAsICJ3aWR0aCI6IDcyMCwgImhlaWdodCI6IDMyMH0sICJncmlkIjogeyJyb3ciOiAwLCAiY29sdW1uIjogMCwgInJvd1NwYW4iOiAxLCAiY29sdW1uU3BhbiI6IDF9LCAiYXhlcyI6IFt7ImlkIjogInRpbWUiLCAic2NhbGUiOiAibGluZWFyIiwgImxpbWl0cyI6IHsibWluaW11bSI6IDAsICJtYXhpbXVtIjogMn0sICJsYWJlbCI6ICJUaW1lIn0sIHsiaWQiOiAidmFsdWUiLCAic2NhbGUiOiAibG9nIiwgImxpbWl0cyI6IHsibWluaW11bSI6IDEsICJtYXhpbXVtIjogMTB9LCAibGFiZWwiOiAiVmFsdWUifV19XSwgInByb3ZlbmFuY2UiOiB7ImNvbW1hbmQiOiBbImdlbmVyYXRlLXJlc3BvbnNlIl19fQpgYGAKXnBsb3QtZmlndXJlCgojIyBGbG93CgpgYGBmaWd1cmUKdmVyc2lvbjogMQpraW5kOiBzYW5rZXkKY2FwdGlvbjogVGhlIFNhbmtleSBmaWd1cmUuCnNvdXJjZTogZmxvdy5qc29uCmBgYApec2Fua2V5LWZpZ3VyZQoKUGFyYWdyYXBoIDEgb2YgdGhlIGNsb3NpbmcgdGV4dCwgd2hpY2ggcmVhZHMgb24gYWZ0ZXIgdGhlIGNvbnRlbnQgYWJvdmUgaXQuIFBhcmFncmFwaCAxIG9mIHRoZSBjbG9zaW5nIHRleHQsIHdoaWNoIHJlYWRzIG9uIGFmdGVyIHRoZSBjb250ZW50IGFib3ZlIGl0LiBQYXJhZ3JhcGggMSBvZiB0aGUgY2xvc2luZyB0ZXh0LCB3aGljaCByZWFkcyBvbiBhZnRlciB0aGUgY29udGVudCBhYm92ZSBpdC4gCgpQYXJhZ3JhcGggMiBvZiB0aGUgY2xvc2luZyB0ZXh0LCB3aGljaCByZWFkcyBvbiBhZnRlciB0aGUgY29udGVudCBhYm92ZSBpdC4gUGFyYWdyYXBoIDIgb2YgdGhlIGNsb3NpbmcgdGV4dCwgd2hpY2ggcmVhZHMgb24gYWZ0ZXIgdGhlIGNvbnRlbnQgYWJvdmUgaXQuIFBhcmFncmFwaCAyIG9mIHRoZSBjbG9zaW5nIHRleHQsIHdoaWNoIHJlYWRzIG9uIGFmdGVyIHRoZSBjb250ZW50IGFib3ZlIGl0LiAK"
+      },
+      {
+        "path": "flow.json",
+        "data": "eyJ2ZXJzaW9uIjogMSwgIm5vZGVzIjogW3siaWQiOiAiaW4iLCAibGFiZWwiOiAiSW5wdXQiLCAic3RhZ2UiOiAwfSwgeyJpZCI6ICJvdXQiLCAibGFiZWwiOiAiT3V0cHV0IiwgInN0YWdlIjogMX0sIHsiaWQiOiAibG9zcyIsICJsYWJlbCI6ICJMb3NzIiwgInN0YWdlIjogMX1dLCAibGlua3MiOiBbeyJzb3VyY2UiOiAiaW4iLCAidGFyZ2V0IjogIm91dCIsICJ2YWx1ZSI6IDh9LCB7InNvdXJjZSI6ICJpbiIsICJ0YXJnZXQiOiAibG9zcyIsICJ2YWx1ZSI6IDJ9XX0="
       },
       {
         "path": "item-01.md",

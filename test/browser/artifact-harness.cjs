@@ -16,6 +16,8 @@ const NAME = "test/browser/artifact-harness.cjs";
 const STARTUP_SCRIPTS = ["reader-startup-script", "running-header-script", "artifact-bootstrap-script"];
 const RUNTIME_SCRIPTS = ["query-script", "yaml-script", "base-script", "data-table-script",
     "assets-script", "notices-script", "canonical-transaction-script", "artifact-script", "pages-script"];
+// The runtime scripts a feature owns (obs_html/features.py, elements), which ship only with it.
+const FEATURE_SCRIPTS = new Set(["yaml-script", "data-table-script"]);
 
 class HarnessError extends Error {
     constructor(step, problem, remedy) {
@@ -166,7 +168,8 @@ async function open(artifactPath, linkedomPath) {
     await context.obsHtmlDataReady;
     await context.obsHtmlReady;
     vm.runInContext("globalThis.obsStartup = undefined;", context);
-    RUNTIME_SCRIPTS.forEach((id) => runScript(document, context, id));
+    RUNTIME_SCRIPTS.filter((id) => !FEATURE_SCRIPTS.has(id) || document.getElementById(id))
+        .forEach((id) => runScript(document, context, id));
     return {window, document, context, parseHTML, TextRange, timers, runTimers};
 }
 

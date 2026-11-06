@@ -1,7 +1,8 @@
-"""The feature registry (obs_html.features): a host-dependent reader feature ships only when used.
+"""The feature registry (obs_html.features): a reader feature ships only when used.
 
-Each feature's inclusion condition decides whether its code and its canary are in the HTML; no
-source of the artifact calls a browser dialog (artifact-ui.md, notice center).
+Each feature's inclusion condition decides whether its code, its page elements and, for a feature
+that needs something of the host, its canary are in the HTML; no source of the artifact calls a
+browser dialog (artifact-ui.md, notice center).
 """
 import dataclasses
 import json
@@ -101,6 +102,14 @@ EQUATIONS = next(item["children"][0]["attrs"] for chapter_ in RESPONSE["chapters
 DECISIONS = json.loads((ROOT / "test" / "fixtures" / "documents" / "pugh.json").read_text(encoding="utf-8"))
 PUGH = next(item["children"][0]["attrs"] for chapter_ in DECISIONS["chapters"] for item in chapter_["content"]
             if item["type"] == "figures" and item["attrs"]["kind"] == "pugh")
+FIGURES = json.loads((ROOT / "test" / "fixtures" / "documents" / "figures.json").read_text(encoding="utf-8"))
+SANKEY = next(item["children"][0]["attrs"] for chapter_ in FIGURES["chapters"] for item in chapter_["content"]
+              if item["type"] == "figures" and item["attrs"]["kind"] == "sankey")
+
+
+def fixture(name: str) -> dict:
+    """A committed fixture Document (test/fixtures/documents/<name>.json)."""
+    return json.loads((ROOT / "test" / "fixtures" / "documents" / f"{name}.json").read_text(encoding="utf-8"))
 
 
 # Feature key -> Documents that meet its condition and Documents that do not.
@@ -119,6 +128,12 @@ CASES = {
                  [plain(), with_figure("image", IMAGE)]),
     "equations": ([with_figure("equations", EQUATIONS)], [plain(), with_figure("plot", PLOT)]),
     "pugh": ([with_figure("pugh", PUGH)], [plain(), with_figure("equations", EQUATIONS)]),
+    "sankey": ([with_figure("sankey", SANKEY)], [plain(), with_figure("pugh", PUGH)]),
+    "tables": ([with_guided_card()], [plain(), with_figure("pugh", PUGH)]),
+    "options-menu": ([with_guided_card(), with_figure("image", IMAGE)], [plain(), with_bless()]),
+    "figures": ([with_figure("image", IMAGE), with_figure("pugh", PUGH)], [plain(), with_guided_card()]),
+    "cards": ([fixture("cards")], [plain(), with_figure("pugh", PUGH)]),
+    "property-editor": ([fixture("property-editor-projection")], [plain(), with_guided_card()]),
 }
 
 
@@ -157,7 +172,11 @@ def test_every_feature_has_cases_and_its_canary_and_code_exist() -> None:
     assert sorted(feature.key for feature in FEATURES) == sorted(CASES), (
         "test_features.py: CASES names each feature of obs_html.features.FEATURES")
     for feature in FEATURES:
-        assert SOURCE.joinpath(feature.canary).is_file(), f"{feature.key}: missing {feature.canary}"
+        assert (feature.canary is None) is (not feature.host), f"{feature.key}: a canary exactly where it needs the host"
+        assert feature.canary is None or SOURCE.joinpath(feature.canary).is_file(), \
+            f"{feature.key}: missing {feature.canary}"
+        assert not SOURCE.joinpath(f"canaries/{feature.key}.js").is_file() or feature.host, \
+            f"{feature.key}: canaries/{feature.key}.js ships with no feature that needs the host"
         assert feature.condition, f"{feature.key}: its condition names what puts it in the artifact"
         for name in feature.code:
             assert SOURCE.joinpath(name).is_file(), f"{feature.key}: missing {name}"
@@ -199,21 +218,23 @@ def test_a_newly_registered_feature_or_part_must_appear_in_the_feature_fixture(f
 
 
 @pytest.mark.parametrize("feature", FEATURES, ids=lambda feature: feature.key)
-def test_the_inclusion_condition_decides_whether_code_and_canary_ship(feature) -> None:
+def test_the_inclusion_condition_decides_whether_code_elements_and_canary_ship(feature) -> None:
     included, excluded = CASES[feature.key]
-    canary = SOURCE.joinpath(feature.canary).read_text(encoding="utf-8").strip()
+    canary = SOURCE.joinpath(feature.canary).read_text(encoding="utf-8").strip() if feature.canary else None
     code = [SOURCE.joinpath(name).read_text(encoding="utf-8").strip() for name in feature.code]
+    elements = [f'id="{element}"' for element in feature.elements]
     for source in included:
-        html = render(source, CONFIG)
-        assert f'id="canary-{feature.key}"' in html and canary in html, (
-            f"{feature.key}: {source['manifest']['title']} meets '{feature.condition}' but lacks its canary")
-        assert all(part in html for part in code), f"{feature.key}: code missing from {source['manifest']['title']}"
+        html, title = render(source, CONFIG), source["manifest"]["title"]
+        assert canary is None or f'id="canary-{feature.key}"' in html and canary in html, (
+            f"{feature.key}: {title} meets '{feature.condition}' but lacks its canary")
+        assert all(part in html for part in code), f"{feature.key}: code missing from {title}"
+        assert all(element in html for element in elements), f"{feature.key}: elements missing from {title}"
     for source in excluded:
-        html = render(source, CONFIG)
-        assert f'id="canary-{feature.key}"' not in html and canary not in html, (
-            f"{feature.key}: {source['manifest']['title']} does not meet '{feature.condition}' but ships its canary")
-        assert not any(part in html for part in code), (
-            f"{feature.key}: code shipped in {source['manifest']['title']}")
+        html, title = render(source, CONFIG), source["manifest"]["title"]
+        assert f'id="canary-{feature.key}"' not in html and (canary is None or canary not in html), (
+            f"{feature.key}: {title} does not meet '{feature.condition}' but ships its canary")
+        assert not any(part in html for part in code), f"{feature.key}: code shipped in {title}"
+        assert not any(element in html for element in elements), f"{feature.key}: elements shipped in {title}"
 
 
 def test_no_source_calls_a_browser_dialog_and_no_dialogs_canary_ships() -> None:

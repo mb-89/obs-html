@@ -142,7 +142,8 @@ def _pugh_body(attrs: dict, alt: str, _source: str, _links: dict[str, FigureLink
 FIGURE_KINDS: dict[str, FigureKind] = {
     "image": FigureKind(_image_body, authored=True),
     "svg": FigureKind(_svg_body, authored=True),
-    "sankey": FigureKind(_sankey_body),
+    # Drawn in the page by its own script (sankey-figure.js), whose counts follow the filter.
+    "sankey": FigureKind(_sankey_body, features=("sankey",)),
     "plot": FigureKind(_plot_body, options=("legend",), features=("plotting",)),
     # A diagram's body is the SVG the core drew at build time: no diagram library ships.
     "mermaid": FigureKind(_svg_body),

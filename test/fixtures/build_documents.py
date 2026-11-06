@@ -702,8 +702,8 @@ def features(root: Path) -> None:
     both views by the reading script and the covered-control sweep (test_parity_browser.py). It is
     archived (--embed-source) for the source-archive part; it opens in screens, the view the
     sweep reads beside pages, for screens; a note outside the reading order,
-    opened as context, needs popups; the plot figure needs plotting, the equation figure
-    equations and the decision figure pugh; the prose chapter, with the decision figure, asks for a
+    opened as context, needs popups; the plot figure needs plotting, the Sankey figure sankey, the
+    equation figure equations and the decision figure pugh; the prose chapter, with the decision figure, asks for a
     bless, which needs answers and bless. Its chapters also hold what those checks read in obs's spec: prose with
     links, marks, an image, a callout and nested headings; a paged table of notes outside the contents;
     a figure reference across chapters; a register and a property editor; a card group with metrics
@@ -724,7 +724,9 @@ def features(root: Path) -> None:
     (root / "figures.md").write_text(
         "# Figures\n\n## Image\n\n```figure\nversion: 1\nkind: image\ncaption: The image figure.\nsource: drawing.svg\n```\n"
         f"^image-figure\n\n## Plot\n\n```figure\nversion: 1\nkind: plot\ncaption: The plot figure.\ncontent: {json.dumps(RESPONSE)}\n```\n"
-        f"^plot-figure\n\n{FEATURE_PROSE}\n", encoding="utf-8")
+        f"^plot-figure\n\n## Flow\n\n```figure\nversion: 1\nkind: sankey\ncaption: The Sankey figure.\n"
+        f"source: flow.json\n```\n^sankey-figure\n\n{FEATURE_PROSE}\n", encoding="utf-8")
+    (root / "flow.json").write_text(json.dumps(FLOW["data"]["sankey"]), encoding="utf-8")
     (root / "equations.md").write_text(
         "# Equations\n\nThe plot figure is [[figures#^plot-figure]].\n\n## Parabola\n\n"
         f"```figure\nversion: 1\nkind: equations\ncaption: The equations figure.\ncontent:\n{_indent(PARABOLA)}```\n"

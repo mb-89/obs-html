@@ -122,7 +122,7 @@
     }
 
     const renderFields = () => {
-        globalThis.obsDataTable.renderFilterFields({
+        globalThis.obsFilterFields.render({
             container: fieldList,
             facets: globalThis.obsArtifact.facetFields(
                 globalThis.obsArtifact.filterRecords(), queryProfile.fields),

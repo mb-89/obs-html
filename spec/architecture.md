@@ -80,6 +80,15 @@ not glyph/graphic/color literals. Obsidian action compatibility belongs to
 One embedded data-table runtime owns table filtering, hierarchical rows, rendered cells, and column
 order.
 
+An artifact carries only the runtime its Document uses. Each script, stylesheet or page element
+that only some Documents use belongs to a reader feature of the registry (`features.py`), which
+declares the condition that ships it, its code, its styles and the page elements the renderer
+writes for it; the renderer keeps no list of its own. A Document without a Base table carries no
+data-table runtime, Bases schema or YAML library, one without a figure no figure runtime, and a
+figure kind's own script (the Sankey drawing, the decision engine) ships only with that kind. A
+runtime that calls into a feature's script does so only where the feature's content is on the
+page, so a script left out leaves no call behind.
+
 The Markdown parser adapts each `base` fence into a declarative table definition attached to
 its ordinary chapter; the runtime has no Appendix or named-register knowledge.
 

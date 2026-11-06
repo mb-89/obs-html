@@ -1421,7 +1421,8 @@ def _shell(model: dict[str, object], limits: list[dict[str, str]], stylesheet: s
     bars = discover_bars()
     features = included_features(model, trusted_runtime is not None)
     canaries = "".join(f'\n  <script id="canary-{feature.key}">\n{read(feature.canary)}  </script>'
-                       for feature in features)
+                       for feature in features if feature.canary)
+    elements = {element for feature in features for element in feature.elements}
     parts = [part for feature in features for part in feature.shipped(model, trusted_runtime is not None)]
     feature_code = "".join(f"{read(name)}\n" for feature in features for name in feature.code)
     feature_code += "".join(f"{read(name)}\n" for part in parts for name in part.code)
@@ -1432,12 +1433,11 @@ def _shell(model: dict[str, object], limits: list[dict[str, str]], stylesheet: s
         pdf_library = ('<script id="pdf-library-script">/* ' + read("vendor", "pdf-lib.LICENSE") + " */\n"
                        + read("vendor", "pdf-lib.min.js").replace("</script", "<\\/script") + "</script>")
     bar_scripts = "\n".join(f"\n{bar.script}" for bar in bars if bar.script)
-    data = serialize_artifact_data(model)
     title = model["document"]["title"]
     figure_assets = ""
-    if "data-artifact-figure" in data:
+    if "figure-script" in elements:
         plotly = ""
-        if any(feature.key == "plotting" for feature in features):
+        if "plotly-script" in elements:
             figures = config.artifact["figures"]
             if figures["plotlyDelivery"] == "cdn":
                 plotly = (f'<script id="plotly-script" src="{figures["plotlyCdnUrl"]}" '
@@ -1449,21 +1449,30 @@ def _shell(model: dict[str, object], limits: list[dict[str, str]], stylesheet: s
                           + read("vendor", "plotly-basic.min.js").replace("</script", "<\\/script")
                           + "</script>")
         maths = ""
-        if any(feature.key == "equations" for feature in features):
+        if "maths-script" in elements:
             maths = ('<script id="maths-script">/* ' + maths_library_licence() + " */\n"
                      + maths_library().replace("</script", "<\\/script") + "</script>")
         engine = ""
-        if any(feature.key == "pugh" for feature in features):
+        if "pugh-engine-script" in elements:
             engine = '<script id="pugh-engine-script">' + pugh_engine().replace("</script", "<\\/script") + "</script>"
         figure_assets = (f'<style id="figure-styles">{read("figures.css")}</style>{plotly}{maths}{engine}'
                          f'<script id="figure-script">{read("figures.js")}</script>')
     card_assets = ""
-    if "data-record-cards" in data or any(note["frontmatter"].get("kind") == "quantity"
-                                          and "query" in note["frontmatter"] for note in model["notes"]):
+    if "cards-script" in elements:
         card_assets = f'<script id="cards-script">{read("cards.js")}</script>'
     property_assets = ""
-    if "data-property-editor" in data:
+    if "property-editor-script" in elements:
         property_assets = f'<script id="property-editor-script">{read("properties.js")}</script>'
+    base_schema = assets_schema = yaml_library = data_table = ""
+    if "base-schema" in elements:  # with the schema of the assets it refers to
+        base_schema = f'<script id="base-schema" type="application/json">{read("base.schema.json")}</script>'
+        assets_schema = (f'<script type="application/json" data-json-schema="assets.schema.json">'
+                         f'{read("assets.schema.json")}</script>')
+    if "yaml-script" in elements:
+        yaml_library = (f'<script id="yaml-script">\n/* {read("vendor", "js-yaml.LICENSE")} */\n'
+                        f'{read("vendor", "js-yaml.min.js")}\n  </script>')
+    if "data-table-script" in elements:
+        data_table = f'<script id="data-table-script">\n{read("table.js")}\n  </script>'
     startup = model["reading"]
     reader_startup = "".join(
         f"    {line}\n" for line in read("reader-startup.js")
@@ -1557,20 +1566,14 @@ def _shell(model: dict[str, object], limits: list[dict[str, str]], stylesheet: s
   <script id="query-script">
 {read("query.js")}
   </script>
-  <script id="base-schema" type="application/json">{read("base.schema.json")}</script>
-  <script id="case-folding" type="application/json">{files("obs").joinpath("case-folding.json").read_text(encoding="utf-8")}</script>
-  <script type="application/json" data-json-schema="assets.schema.json">{read("assets.schema.json")}</script>
-  <script id="yaml-script">
-/* {read("vendor", "js-yaml.LICENSE")} */
-{read("vendor", "js-yaml.min.js")}
-  </script>
+  {base_schema}
+  <script id="case-folding" type="application/json">{_case_folding()}</script>
+  {assets_schema}
+  {yaml_library}
   <script id="base-script">
 {read("base.js")}
   </script>
-  <script id="data-table-script">
-{read("options-menu.js")}
-{read("table.js")}
-  </script>
+  {data_table}
   <script id="zip-rewrite-script">{read("zip-rewrite.js")}</script>
   <script id="payload-script">{read("payloads.js")}</script>
   <script id="assets-script">{read("assets.js")}</script>
@@ -1581,6 +1584,7 @@ def _shell(model: dict[str, object], limits: list[dict[str, str]], stylesheet: s
   </script>
   {pdf_library}
   <script id="artifact-script">
+{read("filter-fields.js")}
 {read("hover-card.js")}
 {feature_code}{read("artifact.js")}
   </script>
@@ -1602,6 +1606,13 @@ def _shell(model: dict[str, object], limits: list[dict[str, str]], stylesheet: s
 </body>
 </html>
 """
+
+
+def _case_folding() -> str:
+    """The core's case-folding table (obs/case-folding.json) as compact JSON: the same table, without
+    the file's layout, in the page's own encoding."""
+    table = json.loads(files("obs").joinpath("case-folding.json").read_text(encoding="utf-8"))
+    return json.dumps(table, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
 
 
 def _json_island(value: object) -> str:

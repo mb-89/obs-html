@@ -1,14 +1,17 @@
-"""Host-dependent reader features: the one place such a feature is declared.
+"""Reader features that not every artifact needs: the one place such a feature is declared.
 
-Reader: whoever adds or changes a reader feature that needs something of the page showing the
-HTML (artifact-ui.md, notice center).
+Reader: whoever adds or changes a reader feature whose code, styles or page elements ship only
+with the Documents that use it, or one that needs something of the page showing the HTML
+(artifact-ui.md, notice center).
 
 Each entry names the feature's key, the condition that puts it in the artifact, the package
-scripts that hold its own code and controls (beyond the reader's shared scripts), and its canary,
-``canaries/<key>.js``, which declares the feature's name, why a host blocks it, the remedy and the
-probe that capabilities.js runs. The renderer includes a feature's code and canary only when its
-condition holds, so a feature the Document does not use has no code, control, canary or notice.
-A figure kind that needs a host ability or a library names the feature's key in its
+scripts that hold its own code and controls (beyond the reader's shared scripts), the page
+elements the renderer writes only for it (by id), and, for a feature that needs something of the
+page showing the HTML (``host``), its canary, ``canaries/<key>.js``, which declares the feature's
+name, why a host blocks it, the remedy and the probe that capabilities.js runs. The renderer
+includes a feature's code, elements and canary only when its condition holds, so a feature the
+Document does not use has no code, control, element, canary or notice.
+A figure kind that needs a host ability, a library or a script of its own names the feature's key in its
 FigureKind.features (figures.py); the feature's condition reads those declarations, so the kind
 registry has no inclusion mechanism of its own. A feature's part ships code only where its own condition holds as
 well, under the feature's canary: the downloads feature's source-archive part attaches the source
@@ -24,6 +27,7 @@ from importlib.resources import files
 import re
 from typing import Callable
 
+from .artifact_data import serialize_artifact_data
 from .errors import InputError
 from .figures import FIGURE_KINDS
 
@@ -75,14 +79,18 @@ class Feature:
     parts: tuple[Part, ...] = ()
     styles: tuple[str, ...] = ()
     """Package stylesheets that ship with the feature, after the packaged styles."""
+    elements: tuple[str, ...] = ()
+    """Ids of the page elements (render.py, _shell) the renderer writes only with the feature."""
+    host: bool = True
+    """Whether the feature needs something of the page showing the HTML, so it has a canary."""
 
     def shipped(self, model: dict, trusted_runtime: bool) -> tuple[Part, ...]:
         """The parts the artifact carries along with the feature."""
         return tuple(part for part in self.parts if part.included(model, trusted_runtime))
 
     @property
-    def canary(self) -> str:
-        return f"canaries/{self.key}.js"
+    def canary(self) -> str | None:
+        return f"canaries/{self.key}.js" if self.host else None
 
 
 def _always(_model: dict, _trusted_runtime: bool) -> bool:
@@ -121,7 +129,7 @@ FIGURE_KIND = re.compile(r'data-figure-kind="([a-z][a-z0-9-]*)"')
 
 def _figures_need(key: str) -> Callable[[dict, bool], bool]:
     """Whether a figure of the artifact is of a kind that declares the feature ``key`` (figures.py,
-    FigureKind.features): a figure kind needs a host ability or a library only through here."""
+    FigureKind.features): a figure kind needs a host ability, a library or a script of its own only through here."""
     def included(model: dict, _trusted_runtime: bool) -> bool:
         kinds = {kind for note in model["notes"] for kind in FIGURE_KIND.findall(note["html"])}
         return any(key in FIGURE_KINDS[kind].features for kind in kinds if kind in FIGURE_KINDS)
@@ -143,6 +151,36 @@ def _source_archive(model: dict, _trusted_runtime: bool) -> bool:
     return model.get("sourceArchiveComplete") is True
 
 
+def _tables(model: dict, _trusted_runtime: bool) -> bool:
+    """A note holds a Base table (render.py, the bases renderer; artifact.js, renderChapterTables)."""
+    return any(note["tables"] for note in model["notes"])
+
+
+def _marked(marker: str) -> Callable[[dict, bool], bool]:
+    """Whether the artifact's model holds ``marker``, the attribute the renderer writes on the
+    element a feature's script finds (a figure, a record card, a property editor)."""
+    def included(model: dict, _trusted_runtime: bool) -> bool:
+        return marker in serialize_artifact_data(model)
+    return included
+
+
+def _figures(model: dict, trusted_runtime: bool) -> bool:
+    """A figure (figures.py): its frame, styles and script."""
+    return _marked("data-artifact-figure")(model, trusted_runtime)
+
+
+def _options_menu(model: dict, trusted_runtime: bool) -> bool:
+    """A Base table or a figure, which share the one options menu (artifact-ui.md, Interactive engineering figures)."""
+    return _tables(model, trusted_runtime) or _figures(model, trusted_runtime)
+
+
+def _cards(model: dict, trusted_runtime: bool) -> bool:
+    """Record cards, or a quantity note that counts by a query (cards.js)."""
+    return _marked("data-record-cards")(model, trusted_runtime) or any(
+        note["frontmatter"].get("kind") == "quantity" and "query" in note["frontmatter"]
+        for note in model["notes"])
+
+
 FEATURES: tuple[Feature, ...] = (
     Feature("history", "always: every chapter has an address", _always),
     Feature("storage", "always: reader settings are kept", _always),
@@ -162,11 +200,27 @@ FEATURES: tuple[Feature, ...] = (
     Feature("popups", "a guided card, a note a link opens as context, or a trusted runtime",
             _floating_window, ("guided-card.js",)),
     Feature("plotting", "a figure of a kind that needs the plotting library (figures.py, FIGURE_KINDS): "
-            "a stored-data plot or an equation figure", _figures_need("plotting")),
+            "a stored-data plot or an equation figure", _figures_need("plotting"),
+            elements=("plotly-script",)),
     Feature("equations", "a figure of a kind that needs the maths library (figures.py, FIGURE_KINDS): "
-            "an equation figure", _figures_need("equations"), ("equations.js",)),
+            "an equation figure", _figures_need("equations"), ("equations.js",),
+            elements=("maths-script",)),
     Feature("pugh", "a figure of a kind that needs the decision engine (figures.py, FIGURE_KINDS): "
-            "a decision figure", _figures_need("pugh"), ("pugh-figure.js",)),
+            "a decision figure", _figures_need("pugh"), ("pugh-figure.js",),
+            elements=("pugh-engine-script",)),
+    Feature("sankey", "a figure of a kind drawn by the Sankey script (figures.py, FIGURE_KINDS): a Sankey "
+            "figure", _figures_need("sankey"), ("sankey-figure.js",), host=False),
+    Feature("tables", "a note with a Base table: the data table, the Bases schema and the YAML library "
+            "its definition editor reads", _tables,
+            elements=("data-table-script", "base-schema", "yaml-script"), host=False),
+    Feature("options-menu", "a Base table or a figure: their one options menu (options-menu.js)",
+            _options_menu, ("options-menu.js",), host=False),
+    Feature("figures", "a figure: its frame's styles and script", _figures,
+            elements=("figure-styles", "figure-script"), host=False),
+    Feature("cards", "record cards, or a quantity note that counts by a query", _cards,
+            elements=("cards-script",), host=False),
+    Feature("property-editor", "a property editor", _marked("data-property-editor"),
+            elements=("property-editor-script",), host=False),
 )
 
 

@@ -26,14 +26,19 @@ def canary_source(feature: features.Feature) -> str:
 
 def canaries(html: str) -> list[str]:
     """The key of each canary an artifact without a trusted runtime runs, in registry order."""
-    return [feature.key for feature in features.included(decode_artifact_data(html), False)]
+    return [feature.key for feature in _with_canary(html)]
+
+
+def _with_canary(html: str) -> list[features.Feature]:
+    """The features an artifact without a trusted runtime carries that have a canary, in registry order."""
+    return [feature for feature in features.included(decode_artifact_data(html), False) if feature.canary]
 
 
 def undecided_where_flags_hidden(html: str) -> list[str]:
     """The canaries of ``canaries(html)`` that cannot decide in a frame that hides its sandbox flags,
     on a page obs-html serve did not serve, in registry order."""
     undecided = []
-    for feature in features.included(decode_artifact_data(html), False):
+    for feature in _with_canary(html):
         source = canary_source(feature)
         if SANDBOX_FLAGS in source or PARAMETER in source:
             undecided.append(feature.key)
