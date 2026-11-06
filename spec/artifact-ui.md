@@ -742,7 +742,9 @@ deck; the reader walks the deck and gives each page a verdict with a key, never 
 On such a chapter the top band shows, left of the notice icons:
 
 - **The pill:** the chapter's state: Bless pending, Blessed, Declined, Question or Picked B,
-  "· sent" once sent, "· needs a comment" while a comment is missing.
+  with the picked option's short name where the band has room ("Picked B · Close", the
+  decision figure's own short name, [[#Decision figures]]), then "· sent" once sent and
+  "· needs a comment" while a comment is missing.
 - **The keys:** four squares of the band's size: Bless (✓), Decline (✗), Ask (?) and Pick (⇄),
   Pick only where the chapter has a decision figure.
 - **The comment:** Decline, Ask and Pick open a one-line comment entry in the band, directly
@@ -762,7 +764,8 @@ its heading: the verdict, the picked option, the comment and the reader's change
 tripwires; its pill reads "· recorded" and it has no keys. An outdated answer shows the same way,
 marked outdated, and the chapter asks again.
 
-When the band is short of space, the breadcrumbs shrink first. Then the pill truncates, and
+When the band is short of space, the breadcrumbs shrink first. Then the pill drops what follows
+its state, whole ("Picked B · Close · sent" reads "Picked B"), then the state truncates, and
 then it shows only its state colour, as a square of the band's size; its label stays its
 tooltip and accessible name. Only then do the band's squares shrink. No key is dropped.
 

@@ -1968,8 +1968,33 @@ math {
     min-width: max(var(--top-control-size), clamp(0rem, var(--bless-pill-step), 4.6rem));
     overflow: hidden;
     padding: clamp(0rem, var(--bless-pill-step), 0.3rem) clamp(0rem, var(--bless-pill-step), 0.55rem);
+}
+
+/* The state, then each detail ("· Close", "· sent") as a part of its own: a detail that does not
+   fit wraps onto a second line the pill's one-line height hides, so it drops whole; the state
+   truncates once it alone does not fit. */
+.bless-pill:not([hidden]) {
+    align-content: flex-start;
+    display: inline-flex;
+    flex-wrap: wrap;
+    max-height: max(calc(1lh + 2 * clamp(0rem, var(--bless-pill-step), 0.3rem) + 2 * var(--border-width)),
+        clamp(0rem, -1 * var(--bless-pill-step), var(--top-control-size)));
+}
+
+.bless-pill-state,
+.bless-pill-detail {
+    white-space: pre;
+}
+
+.bless-pill-state {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
     text-overflow: ellipsis;
-    white-space: nowrap;
+}
+
+.bless-pill-detail {
+    flex: none;
 }
 
 .bless-pill[data-bless-state="bless"],

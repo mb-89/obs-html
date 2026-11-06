@@ -11,6 +11,7 @@ to the real obs-html serve (test/serving.py); the answers it writes build the an
 shows each verdict read-only.
 """
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -276,7 +277,7 @@ def test_the_answered_deck_shows_each_verdict_read_only(built, reader_browser) -
     expect(record.locator("[data-bless-record-verdict]")).to_have_text("Picked C · Answers file alone")
     expect(record.locator("[data-bless-record-comment]")).to_have_text("C needs no second place.")
     expect(record).to_contain_text("Weight of Places that hold it: 1 (was 3)")
-    expect(page.locator("[data-bless-pill]")).to_have_text("Picked C · recorded")
+    expect(page.locator("[data-bless-pill]")).to_have_text("Picked C · Answers file alone · recorded")
     expect(page.locator("[data-bless-key]:visible")).to_have_count(0)
     expect(page.locator("[data-bless-send]")).to_be_hidden()
     expect(page.locator(f"#{FIGURE} [data-pugh-weight]")).to_have_count(0)  # The figure shows the answer read-only.
@@ -374,4 +375,36 @@ def test_the_band_of_a_nested_bless_chapter_fits_at_360_px(phone_browser, tmp_pa
     names = [item["name"] for item in _fits(page)]
     assert names == ["Home", "Choose chapter", "Choose subchapter", "Show frontmatter", "Chapter 2 of 2", PENDING,
                      "Bless", "Decline", "Ask", "Pick", "Send 0 of 2 verdicts", "Open bars menu"]
+    # A pick names its option by the figure's short name; the band still fits.
+    page.locator('[data-bless-key="pick"]').click()
+    page.locator("[data-bless-pick]").last.click()
+    assert re.fullmatch(r"Picked [A-Z] · \S.* · needs a comment", page.locator("[data-bless-pill]").get_attribute("title"))
+    _fits(page)
+    assert errors == []
+
+
+# What the pill shows: its parts on its one visible line (base.css, the pill), and its label.
+PILL = """() => { const pill = document.querySelector('[data-bless-pill]'), box = pill.getBoundingClientRect();
+    return {label: pill.title, shown: [...pill.children].filter(part => {
+        const line = part.getBoundingClientRect();
+        return line.width > 0 && line.bottom <= box.bottom + 0.5;
+    }).map(part => part.textContent).join('')}; }"""
+SHORT = "Picked C · Answers file alone"
+
+
+@pytest.mark.parametrize(("width", "shown"), [(360, ""), (390, ""), (520, "Picked C"), (660, SHORT), (1100, SHORT)])
+def test_the_pill_names_the_pick_by_its_short_name_where_the_band_has_room(deck, phone_browser, width: int,
+                                                                         shown: str) -> None:
+    """artifact-ui.md, Bless verdicts: "Picked C · <short name>" where the band has room; short of it,
+    the details drop whole ("Picked C"), and on a phone's bless band the pill is a square, its label
+    its tooltip. The short name is the decision figure's own (obsPugh.options)."""
+    page = phone_browser.new_page(viewport={"width": width, "height": 780})
+    errors: list[str] = []
+    page.on("pageerror", lambda error: errors.append(str(error)))
+    page.goto(f"{deck.as_uri()}#record")
+    page.wait_for_function("document.documentElement.dataset.artifactStatus === 'ready'")
+    page.locator('[data-bless-key="pick"]').click()
+    page.locator(f'[data-bless-pick="{FIGURE}:C"]').click()
+    assert page.evaluate(PILL) == {"label": f"{SHORT} · needs a comment", "shown": shown}
+    _fits(page)
     assert errors == []
