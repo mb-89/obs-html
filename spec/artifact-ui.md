@@ -207,6 +207,11 @@ failures have their form in [[input-model#Chapter content]].
   registry (`FIGURE_KINDS`): its body renderer, its view options and the reader features it
   needs (`features.py`); adding one never changes the frame.
 
+  A kind that registers view options gets the figure options menu below its expand button;
+  a kind without options shows none. The menu is the tables' options menu, one component
+  (`options-menu.js`) with the same control, placement and behaviour. What it changes (a plot's
+  legend, for example) is classified in [[artifact-ui#What counts as a change]].
+
   An anchor is `<note-slug>--block-<name>` for a figure with a block id, otherwise
   `<note-slug>--figure-<name>`, where name is a plot's descriptor id or the figure's position
   among the note's figures.
@@ -1436,8 +1441,8 @@ change since it was opened or last saved.
   sorting, grouping, pagination, open or closed panels and bars, navigation, scrolling and
   appearance. It raises neither the changed-HTML entry nor the unload warning, also where a
   saved copy persists it; the applied filter has its own information entry.
-- A resized column width is session-only view state: it is never saved, never a change and
-  not reader state.
+- A resized column width and a choice in a figure's options menu are session-only view state:
+  never saved, never a change and not reader state.
 - Returning every change to its state when opened or last saved leaves no change.
 
 ## Content sections

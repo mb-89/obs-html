@@ -821,7 +821,7 @@ input[data-property-single-line]:focus {
     transform: translateY(-50%);
 }
 
-.data-table-options-toggle {
+.options-menu-toggle {
     position: relative;
     font-size: 0.8rem;
     height: 1.4rem;
@@ -1294,7 +1294,7 @@ math {
     padding-inline-end: 2.5rem;
 }
 
-.data-table-options {
+.options-menu {
     background: var(--color-surface-raised);
     border: var(--border-width) solid var(--color-border);
     border-radius: var(--radius-small);
@@ -1305,18 +1305,18 @@ math {
     inset: auto;
     margin: 0;
     width: min(24rem, calc(100vw - 3rem));
-    max-height: min(32rem, 70vh, var(--table-options-available-height, 70vh));
+    max-height: min(32rem, 70vh, var(--options-menu-available-height, 70vh));
     overflow-y: auto;
     z-index: 5;
     cursor: default;
     font-weight: normal;
 }
 
-.data-table-options[hidden] {
+.options-menu[hidden] {
     display: none;
 }
 
-.data-table-options:popover-open {
+.options-menu:popover-open {
     display: grid;
 }
 
@@ -1333,7 +1333,7 @@ math {
     margin: 0.35rem 0;
 }
 
-.data-table-options .filter-pill[aria-expanded="true"] {
+.options-menu .filter-pill[aria-expanded="true"] {
     background: var(--color-accent-soft);
     border-color: var(--color-accent);
 }

@@ -64,7 +64,8 @@ class FigureKind:
     body: Callable[[dict, str, str], Body]
     """The body from the kind's node attrs, the figure's accessible name and its note."""
     options: tuple[str, ...] = ()
-    """The view options figures.js offers in the figure's options menu (FIGURE_OPTIONS keys)."""
+    """The view options of the figure's options menu: keys of figures.js's FIGURE_OPTIONS, whose
+    changes are session-only view state. A kind without options shows no menu."""
     features: tuple[str, ...] = ()
     """The keys of the reader features (features.py) a figure of this kind needs."""
 
@@ -112,19 +113,23 @@ FIGURE_KINDS: dict[str, FigureKind] = {
     "image": FigureKind(_image_body),
     "svg": FigureKind(_svg_body),
     "sankey": FigureKind(_sankey_body),
-    "plot": FigureKind(_plot_body, features=("plotting",)),
+    "plot": FigureKind(_plot_body, options=("legend",), features=("plotting",)),
 }
 """The figure kinds this adapter renders, by the core's kind (obs src/obs/figure.py, FIGURE_KINDS)."""
 
 
-def frame(kind: str, body: Body, anchor: str, caption: list[str], number: str = "") -> str:
+def frame(kind: str, body: Body, anchor: str, caption: list[str], number: str = "",
+          options: tuple[str, ...] = ()) -> str:
     """The one figure frame of every kind: the body, then the caption with its number.
 
     ``caption`` holds the caption's paragraphs as phrasing HTML; ``number`` is the figure's
-    generated number, shown only before a caption.
+    generated number, shown only before a caption; ``options`` are the view options of the
+    figure's options menu, which figures.js builds only where there are some.
     """
     presents = body.presents or kind
     attributes = f' id="{escape(anchor, quote=True)}"'
+    if options:
+        attributes += f' data-figure-options="{escape(" ".join(options), quote=True)}"'
     number_html = f'<span class="figure-number">{escape(number)}:</span> ' if number and caption else ""
     if number_html:
         attributes += f' data-figure-number="{escape(number, quote=True)}"'
@@ -157,7 +162,7 @@ def render_figure(node: dict, chapter: str, position: int, caption: list[str], c
         anchor = f"{chapter}--block-{attrs['block']}"
     else:
         anchor = f"{chapter}--figure-{body.name or position}"
-    return frame(attrs["kind"], body, anchor, caption, number)
+    return frame(attrs["kind"], body, anchor, caption, number, kind.options)
 
 
 @cache

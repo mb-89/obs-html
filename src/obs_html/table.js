@@ -286,20 +286,12 @@
 
         const controls = document.createElement("div");
         controls.className = "data-table-controls";
-        const optionsToggle = document.createElement("button");
-        optionsToggle.className = "icon-button data-table-options-toggle";
-        optionsToggle.type = "button";
-        optionsToggle.setAttribute("aria-label", "Table options");
-        optionsToggle.setAttribute("aria-expanded", "false");
-        optionsToggle.title = "Table options";
-        globalThis.obsAssets.replace(optionsToggle, "options");
+        const {toggle: optionsToggle, panel: options, close: closeOptions} = globalThis.obsOptionsMenu({
+            label: "Table options", toggleClass: "data-table-options-toggle", panelClass: "data-table-options",
+        });
         const filterBadge = globalThis.obsAssets.create("filter");
         filterBadge.classList.add("filter-status-icon");
         optionsToggle.append(filterBadge);
-        const options = document.createElement("div");
-        options.className = "data-table-options";
-        options.setAttribute("popover", "manual");
-        options.hidden = true;
         const input = document.createElement("input");
         input.className = "data-table-filter";
         input.type = "search";
@@ -407,46 +399,14 @@
             event.preventDefault();
             event.stopPropagation();
         });
-        const closeOptions = () => {
-            if (!options.hidden) options.hidePopover();
-            options.hidden = true;
-            optionsToggle.setAttribute("aria-expanded", "false");
-        };
-        optionsToggle.addEventListener("click", () => {
-            if (!options.hidden) {
-                closeOptions();
-                return;
-            }
-            options.hidden = false;
-            options.showPopover();
-            const anchor = optionsToggle.getBoundingClientRect();
-            const bounds = options.getBoundingClientRect();
-            options.style.left = `${Math.max(8, Math.min(
-                anchor.right - bounds.width, window.innerWidth - bounds.width - 8,
-            ))}px`;
-            options.style.top = `${anchor.bottom + 4}px`;
-            options.style.setProperty(
-                "--table-options-available-height",
-                `${Math.max(0, window.innerHeight - anchor.bottom - 12)}px`,
-            );
-            optionsToggle.setAttribute("aria-expanded", "true");
-        });
-        const outsideClick = (event) => {
-            if (!shell.isConnected) {
-                document.removeEventListener("pointerdown", outsideClick);
-                document.removeEventListener("keydown", escapeOptions);
-                document.removeEventListener("pointerdown", handleResizePointerDown, true);
-                document.removeEventListener("keydown", handleResizeKeydown, true);
-                document.removeEventListener("click", handleClearFilter);
-                return;
-            }
-            if (!controls.contains(event.target) && !options.contains(event.target)) closeOptions();
-        };
-        const escapeOptions = (event) => {
-            if (event.key === "Escape") closeOptions();
+        const outsideClick = () => {
+            if (shell.isConnected) return;
+            document.removeEventListener("pointerdown", outsideClick);
+            document.removeEventListener("pointerdown", handleResizePointerDown, true);
+            document.removeEventListener("keydown", handleResizeKeydown, true);
+            document.removeEventListener("click", handleClearFilter);
         };
         document.addEventListener("pointerdown", outsideClick);
-        document.addEventListener("keydown", escapeOptions);
 
         const scroller = document.createElement("div");
         scroller.className = "data-table-scroll";

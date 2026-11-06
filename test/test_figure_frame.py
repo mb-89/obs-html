@@ -108,3 +108,32 @@ def test_a_border_token_set_once_frames_every_kind(figures_artifact, reader_brow
 
     assert [frame["left"] for frame in frames] == ["3px solid rgb(200, 0, 0)"] * len(KINDS)
     assert errors == []
+
+
+@pytest.mark.browser
+def test_only_kinds_with_options_show_the_tables_options_menu_whose_changes_stay_in_the_view(
+    figures_artifact, reader_browser,
+) -> None:
+    page, errors = _open(reader_browser, figures_artifact)
+    menus = page.evaluate("""() => [...document.querySelectorAll('.obs-figure')].map(figure => [
+        figure.dataset.figureKind,
+        figure.querySelectorAll(':scope > .figure-expand').length,
+        figure.querySelectorAll(':scope > .options-menu-toggle').length])""")
+    stored = page.evaluate("JSON.stringify(Object.entries(localStorage).sort())")
+
+    plot = page.locator(".obs-figure[data-figure-kind='plot']")
+    plot.locator(":scope > .options-menu-toggle").click()
+    plot.locator(".options-menu").get_by_role("button", name="Legend").click()
+    page.wait_for_function("!document.querySelector(\".obs-figure[data-figure-kind='plot'] g.legend\")")
+
+    assert menus == [[kind, 1, int(FIGURE_KINDS[kind].options != ())] for kind in KINDS]
+    assert [kind for kind in KINDS if FIGURE_KINDS[kind].options] == ["plot"]
+    assert plot.locator(".options-menu").get_by_role("button", name="Legend").get_attribute("aria-pressed") == "false"
+    assert page.evaluate("JSON.stringify(Object.entries(localStorage).sort())") == stored  # Nothing is saved.
+    assert errors == []
+
+
+def test_tables_and_figures_build_their_options_menu_from_one_component() -> None:
+    package = ROOT / "src" / "obs_html"
+    for script in ("table.js", "figures.js"):
+        assert "globalThis.obsOptionsMenu({" in (package / script).read_text(encoding="utf-8"), script

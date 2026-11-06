@@ -85,6 +85,14 @@
     z-index: 11;
 }
 
+/* The options menu sits below the expand button (options-menu.js, shared with tables). */
+.figure-options-toggle {
+    position: absolute;
+    right: 0.7rem;
+    top: 2.7rem;
+    z-index: 11;
+}
+
 .figure-expand>.resource-icon {
     height: 1.2rem;
     width: 1.2rem;

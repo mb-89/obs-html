@@ -1242,6 +1242,7 @@ def _shell(model: dict[str, object], limits: list[dict[str, str]], stylesheet: s
 {read("base.js")}
   </script>
   <script id="data-table-script">
+{read("options-menu.js")}
 {read("table.js")}
   </script>
   <script id="zip-rewrite-script">{read("zip-rewrite.js")}</script>
