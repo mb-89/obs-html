@@ -69,6 +69,9 @@
     artifactDownload.type = "button";
     artifactDownload.dataset.artifactDownload = "";
     artifactDownload.textContent = "Download changed HTML";
+    // A blocked download cannot be observed, so where the canary could not decide, the help names the remedy.
+    const downloadHint = globalThis.obsCapabilities?.hint("downloads");
+    if (downloadHint) artifactDownload.dataset.hoverHelp = downloadHint;
     const changedHtmlNotice = {
         id: "changed-html", severity: "information", title: "This HTML has changed",
         details: [
@@ -762,7 +765,10 @@
             showCopyFeedback("Comments copied to clipboard.");
         } catch (error) {
             const detail = error instanceof Error ? error.message : String(error);
-            showCopyFeedback(`Comments could not be copied to clipboard: ${detail}`, true);
+            // Where the canary could not decide, a rejected write is the observed refusal.
+            const reason = globalThis.obsCapabilities?.fail("clipboard",
+                `navigator.clipboard.writeText rejected: ${detail}`);
+            showCopyFeedback(`Comments could not be copied to clipboard: ${detail}${reason ? ` ${reason}` : ""}`, true);
             console.error("Comments could not be copied to clipboard.", error);
         }
     };

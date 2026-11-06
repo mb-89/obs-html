@@ -505,18 +505,12 @@
           ]
         },
         {
-          "type": "paragraph",
-          "attrs": {},
-          "children": [
-            {
-              "type": "embeds",
-              "attrs": {
-                "target": "guide/usage",
-                "chapter": "guide-usage"
-              },
-              "children": []
-            }
-          ]
+          "type": "embeds",
+          "attrs": {
+            "target": "guide/usage",
+            "chapter": "guide-usage"
+          },
+          "children": []
         },
         {
           "type": "list",
@@ -1011,52 +1005,46 @@
           ]
         },
         {
-          "type": "paragraph",
-          "attrs": {},
-          "children": [
-            {
-              "type": "registers",
-              "attrs": {
-                "target": "items.base",
-                "heading": "",
-                "base": {
-                  "filters": "kind == \"item\"",
-                  "views": [
-                    {
-                      "type": "table",
-                      "name": "Items",
-                      "order": [
-                        "file.name",
-                        "rank"
-                      ]
-                    },
-                    {
-                      "type": "table",
-                      "name": "Ranked",
-                      "filters": "rank != null",
-                      "order": [
-                        "file.name",
-                        "rank"
-                      ]
-                    }
+          "type": "registers",
+          "attrs": {
+            "target": "items.base",
+            "heading": "",
+            "base": {
+              "filters": "kind == \"item\"",
+              "views": [
+                {
+                  "type": "table",
+                  "name": "Items",
+                  "order": [
+                    "file.name",
+                    "rank"
                   ]
                 },
-                "view": null,
-                "rows": [
-                  [
-                    "alpha",
-                    "beta",
-                    "gamma"
-                  ],
-                  [
-                    "alpha",
-                    "beta"
+                {
+                  "type": "table",
+                  "name": "Ranked",
+                  "filters": "rank != null",
+                  "order": [
+                    "file.name",
+                    "rank"
                   ]
-                ]
-              },
-              "children": []
-            }
-          ]
+                }
+              ]
+            },
+            "view": null,
+            "rows": [
+              [
+                "alpha",
+                "beta",
+                "gamma"
+              ],
+              [
+                "alpha",
+                "beta"
+              ]
+            ]
+          },
+          "children": []
         }
       ],
       "children": [],

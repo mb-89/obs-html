@@ -842,100 +842,88 @@
           ]
         },
         {
-          "type": "paragraph",
-          "attrs": {},
-          "children": [
-            {
-              "type": "registers",
-              "attrs": {
-                "target": "numbered.base",
-                "heading": "",
-                "base": {
-                  "filters": "kind == \"reference\"",
-                  "properties": {
-                    "obsHtml.label": {
-                      "displayName": "No."
-                    }
-                  },
-                  "views": [
-                    {
-                      "type": "table",
-                      "order": [
-                        "obsHtml.label",
-                        "document",
-                        "description"
-                      ],
-                      "obs": {
-                        "members": [
-                          {
-                            "path": "reference.md",
-                            "label": "[1]"
-                          },
-                          {
-                            "path": "quiet-reference.md",
-                            "label": "[2]"
-                          }
-                        ]
-                      }
-                    }
-                  ]
-                },
-                "view": null,
-                "rows": [
-                  [
-                    "reference",
-                    "quiet-reference"
-                  ]
-                ]
+          "type": "registers",
+          "attrs": {
+            "target": "numbered.base",
+            "heading": "",
+            "base": {
+              "filters": "kind == \"reference\"",
+              "properties": {
+                "obsHtml.label": {
+                  "displayName": "No."
+                }
               },
-              "children": []
-            }
-          ]
+              "views": [
+                {
+                  "type": "table",
+                  "order": [
+                    "obsHtml.label",
+                    "document",
+                    "description"
+                  ],
+                  "obs": {
+                    "members": [
+                      {
+                        "path": "reference.md",
+                        "label": "[1]"
+                      },
+                      {
+                        "path": "quiet-reference.md",
+                        "label": "[2]"
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            "view": null,
+            "rows": [
+              [
+                "reference",
+                "quiet-reference"
+              ]
+            ]
+          },
+          "children": []
         },
         {
-          "type": "paragraph",
-          "attrs": {},
-          "children": [
-            {
-              "type": "registers",
-              "attrs": {
-                "target": "lettered.base",
-                "heading": "",
-                "base": {
-                  "filters": "kind == \"reference\"",
-                  "views": [
-                    {
-                      "type": "table",
-                      "order": [
-                        "obsHtml.label",
-                        "document"
-                      ],
-                      "obs": {
-                        "members": [
-                          {
-                            "path": "quiet-reference.md",
-                            "label": "B"
-                          },
-                          {
-                            "path": "reference.md",
-                            "label": "A"
-                          }
-                        ]
+          "type": "registers",
+          "attrs": {
+            "target": "lettered.base",
+            "heading": "",
+            "base": {
+              "filters": "kind == \"reference\"",
+              "views": [
+                {
+                  "type": "table",
+                  "order": [
+                    "obsHtml.label",
+                    "document"
+                  ],
+                  "obs": {
+                    "members": [
+                      {
+                        "path": "quiet-reference.md",
+                        "label": "B"
+                      },
+                      {
+                        "path": "reference.md",
+                        "label": "A"
                       }
-                    }
-                  ]
-                },
-                "view": null,
-                "rows": [
-                  [
-                    "quiet-reference",
-                    "reference"
-                  ]
-                ]
-              },
-              "children": []
-            }
-          ]
+                    ]
+                  }
+                }
+              ]
+            },
+            "view": null,
+            "rows": [
+              [
+                "quiet-reference",
+                "reference"
+              ]
+            ]
+          },
+          "children": []
         }
       ],
       "children": [],
