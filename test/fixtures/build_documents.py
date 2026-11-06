@@ -259,8 +259,8 @@ def registers(root: Path) -> None:
     two views with different view-level members, embedded whole and by one view heading;
     ``types.base`` has one view per record type."""
     (root / "manifest.md").write_text(
-        "---\ntitle: Registers\nstatus: draft\nhistory:\n  - {version: '1', date: '2026-01-01', change: First}\n"
-        "  - {version: '2', change: Second}\n---\n- [[points]]\n- [[second]]\n- [[types]]\n",
+        "---\ntitle: Registers\nstatus: draft\nhistory:\n  - {version: '1', date: '2026-01-01', author: Ann, change: First}\n"
+        "  - {version: '2', author: Ann, change: Second}\n---\n- [[points]]\n- [[second]]\n- [[types]]\n",
         encoding="utf-8",
     )
     (root / "points.base").write_text(
