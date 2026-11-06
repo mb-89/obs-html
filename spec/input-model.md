@@ -66,6 +66,10 @@ obsHtml:
 - `heading` presents the cover metadata at the top of Home. `cover` (default) is the title box,
   which `pages` can also place as the title sheet.
 
+  An empty cover field (blank text, null, an empty list or mapping, or a `product` whose
+  name and version are blank) is left out of the cover, the compact line and the artifact's
+  metadata. The core keeps it in the Document; leaving it out is this adapter's choice.
+
   `compact` is one line: organization, product
   name and version, document type and title (subtitle last), separated by `·`; the other cover
   fields (template, people, document number, legal entity, copyright, confidentiality) are not shown.

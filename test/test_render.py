@@ -52,6 +52,26 @@ def test_front_pages_follow_the_profile_order(document) -> None:
     assert "obsHtml" not in model["document"]["metadata"]
 
 
+@pytest.mark.parametrize("compact", [False, True], ids=["cover", "compact"])
+def test_empty_cover_fields_are_left_out_of_the_cover_and_the_artifact_metadata(document, compact) -> None:
+    """adapters/html input-model, heading: the core keeps empty fields in the Document; the
+    adapter leaves them out of what it renders."""
+    empty = {"template": "", "organization": "", "document number": None, "authors": [],
+             "copyright": "", "product": {"name": "", "version": ""}}
+    document["manifest"]["metadata"].update(empty)
+    if compact:
+        document["manifest"]["metadata"]["obsHtml"].update(heading="compact", pages=[{"page": "contents"}])
+    model = _model(document)
+    home = model["notes"][0]["html"]
+    for name in ("cover-template", "cover-organization", "cover-product", "cover-copyright"):
+        assert f'class="{name}"' not in home, name
+    assert "<dt>Authors</dt>" not in home and "<dt>Document Number</dt>" not in home
+    assert '<p class="cover-type">Specification</p>' in home or '<span class="cover-type">' in home
+    for shown in (model["document"]["metadata"], model["document"]["metadataHtml"]):
+        assert not set(empty) & set(shown), shown
+    assert model["document"]["metadata"]["document type"] == "Specification"
+
+
 def test_defaults_apply_without_a_profile(document) -> None:
     del document["manifest"]["metadata"]["obsHtml"]
     model = _model(document)
