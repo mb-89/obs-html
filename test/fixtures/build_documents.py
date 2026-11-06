@@ -390,7 +390,8 @@ def document(root: Path) -> None:
     (root / "guide" / "usage.md").write_text("## Usage\n\n### Details\n\nBody.\n", encoding="utf-8")
     (root / "appendix.md").write_text(
         "No heading here. See [[datum]] and [[other]].\n\n"
-        f"```figure\n{json.dumps(RESPONSE)}\n```\n\n```figure\n{json.dumps(FLOW)}\n```\n\n"
+        f"```figure\nversion: 1\nkind: plot\ncontent: {json.dumps(RESPONSE)}\n```\n\n"
+        f"```figure\nversion: 1\nkind: plot\ncontent: {json.dumps(FLOW)}\n```\n\n"
         "> [!warning] Check the limits\n> The badge ![Logo](images/logo.png) marks it.\n\n"
         f"```cards\n{CARDS}\n```\n\n![[items.base]]\n", encoding="utf-8")
     (root / "items.base").write_text(
@@ -423,7 +424,30 @@ def property_editor_projection(root: Path) -> None:
     )
 
 
-VAULTS = {"document": document, "complete": complete, "artifact-change": artifact_change, "projections": projections,
+GALLERY_SVG = ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 20">'
+               '<rect width="20" height="20" fill="#587894"/><circle cx="30" cy="10" r="8" fill="#73869a"/></svg>')
+
+
+def figures(root: Path) -> None:
+    """One figure of each kind (test_figure_frame.py), captioned and numbered by chapter, each with
+    a block id; the image and the Sankey read their content from files, the others inline. Not a
+    moved interim vault: it is the adapter's own fixture of the one figure frame."""
+    (root / "manifest.md").write_text(
+        "---\ntitle: Figures\nobsHtml: {figures: {numbering: chapter}}\n---\n- [[gallery]]\n", encoding="utf-8")
+    (root / "drawing.svg").write_text(GALLERY_SVG, encoding="utf-8")
+    (root / "flow.json").write_text(json.dumps(FLOW["data"]["sankey"]), encoding="utf-8")
+    fences = {
+        "image": "source: drawing.svg",
+        "svg": f"content: {json.dumps(GALLERY_SVG)}\npanels: [{{id: left, title: Square, box: [0, 0, 20, 20]}}]",
+        "sankey": "source: flow.json\ncountLabels: {unit: items}",
+        "plot": f"content: {json.dumps(RESPONSE)}",
+    }
+    (root / "gallery.md").write_text("# Gallery\n\n" + "".join(
+        f"```figure\nversion: 1\nkind: {kind}\ncaption: The {kind} figure, see [[gallery]].\n{fence}\n```\n"
+        f"^{kind}-figure\n\n" for kind, fence in fences.items()), encoding="utf-8")
+
+
+VAULTS = {"figures": figures, "document": document, "complete": complete, "artifact-change": artifact_change, "projections": projections,
           "table-help": table_help, "structural": structural, "callouts": callouts,
           "registers": registers, "cards": cards,
           "property-editor-projection": property_editor_projection}

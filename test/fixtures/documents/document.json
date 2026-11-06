@@ -743,164 +743,180 @@
           ]
         },
         {
-          "type": "figure-descriptor",
+          "type": "figures",
           "attrs": {
-            "descriptor": {
-              "schemaVersion": 1,
-              "id": "response",
-              "data": {
-                "traces": [
-                  {
-                    "label": "measured",
-                    "x": [
-                      0,
-                      1,
-                      2
-                    ],
-                    "y": [
-                      1,
-                      4,
-                      9
+            "kind": "plot"
+          },
+          "children": [
+            {
+              "type": "plot",
+              "attrs": {
+                "descriptor": {
+                  "schemaVersion": 1,
+                  "id": "response",
+                  "data": {
+                    "traces": [
+                      {
+                        "label": "measured",
+                        "x": [
+                          0,
+                          1,
+                          2
+                        ],
+                        "y": [
+                          1,
+                          4,
+                          9
+                        ]
+                      },
+                      {
+                        "label": "model",
+                        "x": [
+                          0,
+                          1,
+                          2
+                        ],
+                        "y": [
+                          1,
+                          3,
+                          8
+                        ],
+                        "mode": "lines+markers"
+                      }
                     ]
                   },
-                  {
-                    "label": "model",
-                    "x": [
-                      0,
-                      1,
-                      2
-                    ],
-                    "y": [
-                      1,
-                      3,
-                      8
-                    ],
-                    "mode": "lines+markers"
-                  }
-                ]
-              },
-              "panels": [
-                {
-                  "id": "main",
-                  "bounds": {
-                    "x": 0,
-                    "y": 0,
-                    "width": 720,
-                    "height": 320
-                  },
-                  "grid": {
-                    "row": 0,
-                    "column": 0,
-                    "rowSpan": 1,
-                    "columnSpan": 1
-                  },
-                  "axes": [
+                  "panels": [
                     {
-                      "id": "time",
-                      "scale": "linear",
-                      "limits": {
-                        "minimum": 0,
-                        "maximum": 2
+                      "id": "main",
+                      "bounds": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 720,
+                        "height": 320
                       },
-                      "label": "Time"
-                    },
-                    {
-                      "id": "value",
-                      "scale": "log",
-                      "limits": {
-                        "minimum": 1,
-                        "maximum": 10
+                      "grid": {
+                        "row": 0,
+                        "column": 0,
+                        "rowSpan": 1,
+                        "columnSpan": 1
                       },
-                      "label": "Value"
-                    }
-                  ]
-                }
-              ],
-              "provenance": {
-                "command": [
-                  "generate-response"
-                ]
-              }
-            }
-          },
-          "children": []
-        },
-        {
-          "type": "figure-descriptor",
-          "attrs": {
-            "descriptor": {
-              "schemaVersion": 1,
-              "id": "flow",
-              "data": {
-                "sankey": {
-                  "version": 1,
-                  "nodes": [
-                    {
-                      "id": "in",
-                      "label": "Input",
-                      "stage": 0
-                    },
-                    {
-                      "id": "out",
-                      "label": "Output",
-                      "stage": 1
-                    },
-                    {
-                      "id": "loss",
-                      "label": "Loss",
-                      "stage": 1
+                      "axes": [
+                        {
+                          "id": "time",
+                          "scale": "linear",
+                          "limits": {
+                            "minimum": 0,
+                            "maximum": 2
+                          },
+                          "label": "Time"
+                        },
+                        {
+                          "id": "value",
+                          "scale": "log",
+                          "limits": {
+                            "minimum": 1,
+                            "maximum": 10
+                          },
+                          "label": "Value"
+                        }
+                      ]
                     }
                   ],
-                  "links": [
-                    {
-                      "source": "in",
-                      "target": "out",
-                      "value": 8
-                    },
-                    {
-                      "source": "in",
-                      "target": "loss",
-                      "value": 2
-                    }
-                  ]
+                  "provenance": {
+                    "command": [
+                      "generate-response"
+                    ]
+                  }
                 }
               },
-              "panels": [
-                {
-                  "id": "flow",
-                  "bounds": {
-                    "x": 0,
-                    "y": 0,
-                    "width": 700,
-                    "height": 680
-                  },
-                  "grid": {
-                    "row": 0,
-                    "column": 0,
-                    "rowSpan": 1,
-                    "columnSpan": 1
-                  },
-                  "axes": [
-                    {
-                      "id": "stage",
-                      "scale": "linear",
-                      "limits": {
-                        "minimum": 0,
-                        "maximum": 1
-                      },
-                      "label": "Stage"
-                    }
-                  ]
-                }
-              ],
-              "provenance": {
-                "command": [
-                  "generate-flow"
-                ]
-              }
+              "children": []
             }
+          ]
+        },
+        {
+          "type": "figures",
+          "attrs": {
+            "kind": "plot"
           },
-          "children": []
+          "children": [
+            {
+              "type": "plot",
+              "attrs": {
+                "descriptor": {
+                  "schemaVersion": 1,
+                  "id": "flow",
+                  "data": {
+                    "sankey": {
+                      "version": 1,
+                      "nodes": [
+                        {
+                          "id": "in",
+                          "label": "Input",
+                          "stage": 0
+                        },
+                        {
+                          "id": "out",
+                          "label": "Output",
+                          "stage": 1
+                        },
+                        {
+                          "id": "loss",
+                          "label": "Loss",
+                          "stage": 1
+                        }
+                      ],
+                      "links": [
+                        {
+                          "source": "in",
+                          "target": "out",
+                          "value": 8
+                        },
+                        {
+                          "source": "in",
+                          "target": "loss",
+                          "value": 2
+                        }
+                      ]
+                    }
+                  },
+                  "panels": [
+                    {
+                      "id": "flow",
+                      "bounds": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 700,
+                        "height": 680
+                      },
+                      "grid": {
+                        "row": 0,
+                        "column": 0,
+                        "rowSpan": 1,
+                        "columnSpan": 1
+                      },
+                      "axes": [
+                        {
+                          "id": "stage",
+                          "scale": "linear",
+                          "limits": {
+                            "minimum": 0,
+                            "maximum": 1
+                          },
+                          "label": "Stage"
+                        }
+                      ]
+                    }
+                  ],
+                  "provenance": {
+                    "command": [
+                      "generate-flow"
+                    ]
+                  }
+                }
+              },
+              "children": []
+            }
+          ]
         },
         {
           "type": "callouts",
@@ -2523,6 +2539,7 @@
     "count-query",
     "embeds",
     "figure-descriptor",
+    "figures",
     "manifest",
     "markdown",
     "markdown-frontmatter",
