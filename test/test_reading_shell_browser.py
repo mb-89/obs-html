@@ -1,17 +1,19 @@
 """The reading shell's top band, the title page and the chapter walk, in Claude's artifact viewer.
 
 The design owners are spec/artifact-ui.md (Reading shell: the one-row top band;
-Paged view: no text twice in one view) and obs's spec/design_input/input-model.md (chapters: the table
-of contents and previous/next walk the same non-hidden manifest lines). Each test opens the
+Paged view: no text twice in one view; chapter navigation: a link to a whole note opens it at its
+heading) and obs's spec/design_input/input-model.md (chapters: the table of contents and
+previous/next walk the same non-hidden manifest lines). Each test opens the
 artifact in the viewer fixture (test/browser/viewer.py).
 """
+import json
 import subprocess
 import sys
 from pathlib import Path
 
 import pytest
 from browser.viewer import open_viewer
-from conftest import CORE_ROOT
+from conftest import CORE_ROOT, ROOT
 from documents import chapter, document, heading, paragraph
 
 from obs_html.cli import main as obs_html
@@ -199,3 +201,46 @@ def test_a_manifest_with_commented_lines_walks_its_visible_chapters_end_to_end(
     assert_contents_and_walk(
         tmp_path, reader_browser, destination.read_text(encoding="utf-8"), ["one", "one-a", "one-b", "two"],
     )
+
+
+# Where the reader shows the chapter heading's text: the scroller's offsets and the text's box
+# against the scroller's visible box.
+HEADING_IN_VIEW = """() => {
+    const scroller = document.querySelector(".chapter-scroll");
+    const range = document.createRange();
+    range.selectNodeContents(document.querySelector("[data-chapter-body] h1"));
+    const text = range.getBoundingClientRect(), view = scroller.getBoundingClientRect();
+    return {chapter: document.querySelector("[data-active-chapter]").dataset.chapter,
+            scrollTop: scroller.scrollTop, scrollLeft: scroller.scrollLeft,
+            inView: text.left >= view.left && text.right <= view.right &&
+                text.top >= view.top && text.bottom <= view.bottom};
+}"""
+
+
+def test_a_whole_note_self_link_scrolls_back_to_its_heading(tmp_path: Path, reader_browser) -> None:
+    """The self-link fixture with the Comments bar docked right: review mode makes the body wider
+    than the reader, so the reader scrolls down and sideways to the note's link to itself. Clicking it shows the heading; activating it again at the top moves nothing."""
+    artifact = render(json.loads((ROOT / "test" / "fixtures" / "documents" / "self-link.json")
+                                 .read_text(encoding="utf-8")), load_config())
+    errors: list[str] = []
+    page, frame = open_viewer(tmp_path, reader_browser, errors, artifact, "light")
+    frame.evaluate("""async () => {
+        obsPages.setPaged(false);
+        await obsArtifact.activateChapter("long");
+        await obsArtifact.whenChapterReady();
+        obsArtifact.openBar("comments", "right");
+    }""")
+    link = frame.locator('[data-chapter-body] a.internal-link[href="#long"]')
+    # Scrolled down and sideways to the link, past the heading's start.
+    link.evaluate("""(link) => link.scrollIntoView({block: "center", inline: "center", behavior: "instant"})""")
+    assert frame.evaluate(HEADING_IN_VIEW)["scrollLeft"] > 0, "the fixture no longer makes the reader scroll sideways"
+    box = link.bounding_box()
+    page.mouse.click(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
+    frame.evaluate("globalThis.obsArtifact.whenChapterReady()")
+    at_heading = {"chapter": "long", "scrollTop": 0, "scrollLeft": 0, "inView": True}
+    assert frame.evaluate(HEADING_IN_VIEW) == at_heading
+    link.evaluate("(link) => link.click()")
+    frame.evaluate("globalThis.obsArtifact.whenChapterReady()")
+    assert frame.evaluate(HEADING_IN_VIEW) == at_heading
+    assert frame.locator("[data-floating-window]:visible").count() == 0
+    assert errors == []
