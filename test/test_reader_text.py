@@ -1,4 +1,4 @@
-"""Reader-facing text names no kind (obs spec/design_input/artifact-ui.md, Reader-facing text).
+"""Reader-facing text names no kind (spec/artifact-ui.md, Reader-facing text).
 
 The scan reads the strings the reader can see and fails on the words "document" or "report":
 

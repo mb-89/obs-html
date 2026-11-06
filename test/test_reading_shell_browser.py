@@ -1,7 +1,7 @@
 """The reading shell's top band, the title page and the chapter walk, in Claude's artifact viewer.
 
-The design owners are spec/design_input/artifact-ui.md (Reading shell: the one-row top band;
-Paged view: no text twice in one view) and spec/design_input/input-model.md (chapters: the table
+The design owners are spec/artifact-ui.md (Reading shell: the one-row top band;
+Paged view: no text twice in one view) and obs's spec/design_input/input-model.md (chapters: the table
 of contents and previous/next walk the same non-hidden manifest lines). Each test opens the
 artifact in the viewer fixture (test/browser/viewer.py).
 """
