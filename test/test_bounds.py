@@ -8,3 +8,7 @@ def test_every_test_has_its_tier_timeout(request) -> None:
     wrong = [item.nodeid for item in items
              if [mark.args[0] for mark in item.iter_markers("timeout")][:1] != [bounds.TIMEOUTS[bounds.tier(item)]]]
     assert wrong == []
+
+
+def test_each_test_names_its_tier_in_its_report(request) -> None:
+    assert (bounds.TIER_PROPERTY, bounds.tier(request.node)) in request.node.user_properties
