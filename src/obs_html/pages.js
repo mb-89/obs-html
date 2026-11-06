@@ -720,7 +720,7 @@
             const author = document.createElement("span");
             author.innerHTML = joined("authors", "organization");
             const reference = document.createElement("span");
-            reference.innerHTML = joined("sap number", "template");
+            reference.innerHTML = joined("document number", "template");
             const number = document.createElement("span");
             number.className = "paper-page-number";
             const previous = [...destination.children].slice(0, index)

@@ -672,7 +672,7 @@
             document.title,
             metadata.product?.name,
             metadata["document type"],
-            metadata["sap number"],
+            metadata["document number"],
         ].filter(Boolean).join(" · ");
         const lines = [
             `# Comments — ${identity || "Untitled"}`,

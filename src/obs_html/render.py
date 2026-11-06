@@ -48,7 +48,7 @@ PROFILE_DEFAULTS = {
     "figures": {"numbering": "none", "label": "Figure", "labelPlural": "Figures"},
     "query": {"scope": "chapters"},
 }
-COVER_FIELDS = ("authors", "reviewers", "approvers", "sap number", "legal entity")
+COVER_FIELDS = ("authors", "reviewers", "approvers", "document number", "legal entity")
 HOME = "home"
 MANIFEST = "manifest note"
 """Where a manifest field comes from: a Document does not carry its manifest note's path."""
