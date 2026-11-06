@@ -740,20 +740,33 @@
     inset-inline: 0 auto;
 }
 
-.pugh-matrix .pugh-picks .bless-column-pick {
-    margin: 0 auto;
-}
-
-.pugh-rows .pugh-picks {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem;
-    justify-content: start;
-}
-
-.pugh-rows .pugh-picks > .bless-column-pick {
-    flex: none;
+/* The radio row (pugh-figure.js, pickRadios): a radio under each option, None of the above after
+   the row's name; on a phone each radio fills its cell, one tap. */
+.pugh-picks input[type="radio"] {
+    accent-color: var(--color-accent);
+    block-size: 1.1rem;
+    cursor: pointer;
+    inline-size: 1.1rem;
     margin: 0;
+}
+
+.pugh-pick-none {
+    cursor: pointer;
+    font-weight: 400;
+    margin-inline-start: 0.6rem;
+    white-space: nowrap;
+}
+
+.pugh-pick-none input[type="radio"] {
+    vertical-align: -0.15rem;
+}
+
+.pugh-pick-cell {
+    align-items: center;
+    block-size: 2rem;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
 }
 
 /* The total line keeps the stepper's room, so its cells stand under the marks. */

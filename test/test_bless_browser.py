@@ -246,7 +246,7 @@ def test_send_hands_the_payload_with_the_weights_the_reader_set(built, reader_br
         weight.fill("1")
         weight.dispatch_event("change")
         expect(page.locator(f"#{FIGURE}")).to_have_attribute("data-pugh-winner", "B")
-        page.locator(f'#{FIGURE} [data-bless-column-pick="{FIGURE}:C"]').click()
+        page.locator(f'#{FIGURE} [data-pugh-pick="C"]').click()
         expect(page.locator("[data-bless-comment]")).to_be_focused()
         page.locator("[data-bless-comment]").fill("C needs no second place.")
         page.locator("[data-bless-comment]").press("Enter")
@@ -488,10 +488,13 @@ def test_a_verdict_never_walks_and_a_second_press_clears_it(deck, phone_browser)
     page.locator('[data-bless-key="pick"]').click()
     page.locator(f'[data-bless-pick="{FIGURE}:C"]').click()
     assert page.evaluate(f"obsBless.picked('{FIGURE}')") == "C"
+    # The figure's radio row shows the band's pick and clears with it (artifact-ui.md, The decision matrix).
+    expect(page.locator(f'#{FIGURE} [data-pugh-pick="C"]')).to_be_checked()
     page.locator(f'[data-bless-pick="{FIGURE}:C"]').click()
     expect(pill).to_have_text(PENDING)
     expect(entry).to_be_hidden()
     assert page.evaluate(f"obsBless.picked('{FIGURE}')") is None
+    expect(page.locator(f'#{FIGURE} [data-pugh-pick]:checked')).to_have_count(0)
     page.evaluate(f"obsBless.pick('{FIGURE}', 'C')")
     expect(pill).to_have_text("Picked C · Answers file alone · needs a comment")
     page.evaluate(f"obsBless.pick('{FIGURE}', 'C')")
