@@ -3188,8 +3188,10 @@
         }
         registeredApplication = {id: bundle.id, actions};
     };
-    const trustedExtensions = new Map([globalThis.ObsHtmlAttachmentReplacement]
-        .filter(Boolean).map(extension => [extension.namespace, extension.create]));
+    // Each trusted extension registers itself in obsHtmlTrustedExtensions (attachment-replacement.js,
+    // answers.js); this map knows the ones the artifact ships.
+    const trustedExtensions = new Map((globalThis.obsHtmlTrustedExtensions || [])
+        .map(extension => [extension.namespace, extension.create]));
     const trustedExtension = namespace => {
         const create = trustedExtensions.get(namespace);
         if (!create) {
@@ -3348,6 +3350,7 @@
         validateApplicationRuntime,
         dispatchApplicationAction,
         trustedExtension,
+        sendAnswers: payload => globalThis.ObsHtmlAnswers.send(payload),
         openFloatingWindow: options => floatingWindow.open(options),
         showApplicationError,
         get revision() { return canonicalRevision; },

@@ -22,6 +22,7 @@ RENAMED_KEYS = {"report": "artifact"}
 @dataclass(frozen=True)
 class Config:
     rendered_check_timeout_seconds: int
+    serve_answers_max_bytes: int
     timing_relative_threshold: float
     timing_absolute_threshold_seconds: float
     print_default: dict[str, str]
@@ -87,6 +88,7 @@ def _config(override_path: Path | None, override: dict[str, object], project_pat
     artifact = config["artifact"]
     return Config(
         rendered_check_timeout_seconds=config["execution"]["renderedCheckTimeoutSeconds"],
+        serve_answers_max_bytes=config["execution"]["serveAnswersMaxBytes"],
         timing_relative_threshold=config["timings"]["relativeThreshold"],
         timing_absolute_threshold_seconds=config["timings"]["absoluteThresholdSeconds"],
         print_default=artifact["print"]["default"],

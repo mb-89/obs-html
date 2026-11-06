@@ -2,6 +2,7 @@
     const api = factory();
     if (typeof module === "object" && module.exports) module.exports = api;
     root.ObsHtmlAttachmentReplacement = api;
+    (root.obsHtmlTrustedExtensions ||= []).push(api);
 })(typeof globalThis === "undefined" ? this : globalThis, () => {
     "use strict";
 

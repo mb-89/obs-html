@@ -74,9 +74,10 @@ def test_canaries_find_what_a_scripts_only_sandbox_limits(shared_sandboxed) -> N
     limits = frame.locator("html").evaluate("() => globalThis.obsCapabilities.limits")
     assert [entry["key"] for entry in limits] == ["history", "storage", "clipboard"]
     assert all(entry["refused"] and entry["reason"] and entry["remedy"] for entry in limits)
-    # The frame hides its sandbox flags, so the canaries that read them cannot decide.
+    # The frame hides its sandbox flags, so the canaries that read them cannot decide; answers stays
+    # silent outside obs-html serve (canaries/answers.js).
     results = frame.locator("html").evaluate("() => globalThis.obsCapabilities.results")
-    assert [entry["key"] for entry in results if not entry["decided"]] == ["printing", "downloads"]
+    assert [entry["key"] for entry in results if not entry["decided"]] == ["printing", "downloads", "answers"]
     assert errors == []
 
 
@@ -237,7 +238,7 @@ def test_each_canary_says_what_it_observed(shared_sandboxed) -> None:
     frame, errors = shared_sandboxed
     results = frame.locator("html").evaluate("() => globalThis.obsCapabilities.results")
     assert [entry["key"] for entry in results] == [
-        "history", "storage", "printing", "downloads", "clipboard"]
+        "history", "storage", "printing", "downloads", "clipboard", "answers"]
     assert all(entry["observation"] for entry in results)
     observed = {entry["key"]: entry["observation"] for entry in results}
     assert observed["history"].startswith("it threw SecurityError:")

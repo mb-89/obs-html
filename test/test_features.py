@@ -85,6 +85,7 @@ CASES = {
     "printing": ([plain()], []),
     "downloads": ([plain()], []),
     "clipboard": ([plain()], []),
+    "answers": ([plain()], []),
     "popups": ([with_context_note(), with_non_document_note(), with_guided_card()], [plain()]),
     "plotting": ([with_figure("plot", PLOT), with_figure("equations", EQUATIONS)],
                  [plain(), with_figure("image", IMAGE)]),

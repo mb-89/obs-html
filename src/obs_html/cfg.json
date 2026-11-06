@@ -2,7 +2,8 @@
   "$schema": "./cfg.schema.json",
   "schemaVersion": 1,
   "execution": {
-    "renderedCheckTimeoutSeconds": 120
+    "renderedCheckTimeoutSeconds": 120,
+    "serveAnswersMaxBytes": 1048576
   },
   "timings": {
     "relativeThreshold": 0.5,

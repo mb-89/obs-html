@@ -140,6 +140,8 @@ FEATURES: tuple[Feature, ...] = (
                 Part("source-archive", "a source archive (obs-document --embed-source): Download source ZIP "
                      "and Attach source ZIP to PDF, with the PDF library", _source_archive, ("archive.js",)),)),
     Feature("clipboard", "always: the Comments bar offers Copy comments", _always),
+    Feature("answers", "always: the page hands a reader's answers to a sink (obsArtifact.sendAnswers; "
+            "spec/capabilities/answers.md)", _always, ("answers.js",)),
     Feature("popups", "a guided card, a note a link opens as context, or a trusted runtime",
             _floating_window, ("guided-card.js",)),
     Feature("plotting", "a figure of a kind that needs the plotting library (figures.py, FIGURE_KINDS): "
