@@ -378,8 +378,8 @@ input error that names the lockfile and the install command.
   side, right or left, the first axis taking the other side, and each authored y expression's
   axis), **Swap x and y**, and **Family** (a third movable variable by a number of steps spread
   over its range, or by values in its unit; None removes it). Every choice, and the zoom, is
-  session-only view state ([[artifact-ui#What counts as a change]]), kept per figure anchor
-  while the artifact is open.
+  a choice in a figure's options menu as [[artifact-ui#What counts as a change]] classifies
+  it, kept per figure anchor while the artifact is open.
 - Print and PDF show the reader's current view of an equation figure, not its initial plot;
   where that view differs from the initial plot, the caption ends with the note *View changed
   by the reader.*
