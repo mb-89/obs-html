@@ -87,6 +87,19 @@ def _settings(tmp_path: Path, conjunctions: list[str]) -> Path:
     return settings
 
 
+@pytest.mark.parametrize("between", [" as well as ", " as well\nas "])
+def test_a_conjunction_may_be_a_phrase(tmp_path, between) -> None:
+    """A phrase joins references as the interim's did: its words apart by single spaces, a soft
+    line break reading as one."""
+    document = _document()
+    see = next(node for node in document["chapters"][1]["content"] if "See " in json.dumps(node))
+    next(child for child in see["children"] if child.get("text") == " plus ")["text"] = between
+
+    two = _notes(document, load_config(_settings(tmp_path, ["as well as"])))["two"]
+    assert _paragraph(two, "See") == (
+        f"See Figures {_link('a', '2.1')}{between}{_link('b', '2.2')} and {_link('c', 'Figure 2.3')}.")
+
+
 def test_more_than_64_conjunctions_are_refused(tmp_path) -> None:
     settings = _settings(tmp_path, [f"word{index}" for index in range(65)])
 
