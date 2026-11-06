@@ -70,11 +70,11 @@ def test_ten_notices_of_one_severity_give_one_icon_with_pill_ten(tmp_path: Path,
     assert errors == []
 
 
-def test_icon_opens_its_list_an_entry_expands_and_escape_closes(tmp_path: Path, reader_browser) -> None:
+def test_icon_opens_its_list_an_entry_expands_and_escape_closes(tmp_path: Path, full_chromium_browser) -> None:
     from playwright.sync_api import expect
 
     errors: list[str] = []
-    page = open_artifact(tmp_path, reader_browser, errors)
+    page = open_artifact(tmp_path, full_chromium_browser, errors)
     post(page, [
         {"id": "e1", "severity": "error", "title": "Broken figure", "details": "The figure failed."},
         {"id": "w1", "severity": "warning", "title": "Disk almost full",

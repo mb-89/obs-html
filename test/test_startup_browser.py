@@ -1,7 +1,8 @@
 """Startup budget: obs's spec artifact shows its first chapter within a second of opening.
 
 The spec is opened as a reader sees it in Claude's preview, in the null-origin frame
-(test/preview.py), with the browser the other browser tests use. The test waits on the
+(test/preview.py), on full Chromium (conftest.py, full_chromium_browser), not the headless
+shell the bulk of the browser tests use. The test waits on the
 artifact's obs-html-ready event (preview.open_preview) and on its "obs-startup first chapter
 painted" mark, never on a poll. It reads three times from the frame's own clock, which starts
 when the frame starts, so load on the machine before the page opens cannot count: first paint,
@@ -67,9 +68,9 @@ READ = """async ([firstChapterMark, readyMark, samples]) => {
 
 
 def test_the_spec_artifact_shows_its_first_chapter_within_a_second(
-        tmp_path: Path, reader_browser, parity_artifacts: dict[str, str], record_property) -> None:
+        tmp_path: Path, full_chromium_browser, parity_artifacts: dict[str, str], record_property) -> None:
     errors: list[str] = []
-    _page, frame = open_preview(tmp_path, reader_browser, errors, parity_artifacts["adapter"], "null-origin")
+    _page, frame = open_preview(tmp_path, full_chromium_browser, errors, parity_artifacts["adapter"], "null-origin")
     measured = frame.evaluate(READ, [FIRST_CHAPTER_MARK, READY_MARK, REFERENCE_SAMPLES])
     assert not errors, f"test/test_startup_browser.py: the spec artifact raised errors while opening: {errors}"
 
