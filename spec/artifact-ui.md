@@ -289,6 +289,16 @@ failures have their form in [[input-model#Chapter content]].
   When the manifest enables figure numbering, a bold generated number (for example
   `Figure 2.4:`) precedes the first caption paragraph and block-id references to the figure
   link to its anchor, scrolling it below the reader's top controls.
+
+  The adapter numbers every captioned figure of the contents chapters before it renders any
+  note, so a reference shows the number of a figure further on. A block-id reference (the
+  core's wikilink with a `figure` target) renders as a link to `#<note-slug>/block-<name>`:
+  labelled, with its label; unlabelled, with the manifest's `label` and the figure's number
+  (`Figure 2.4`), and an unlabelled reference to a figure without a number is an input error
+  that names the Document node and the remedy. Adjacent unlabelled references merge as obs's
+  input-model ("Figure captions and references") says, with the manifest's `labelPlural` and the
+  conjunctions in `cfg.json` (`artifact.figureReferences.conjunctions`):
+  `Figures 2.4 and 2.5`, `Figures 2.4–2.6`.
 - Use the expand affordance as the common artifact-level figure control. Remove persistent
   custom inspection/reset/zoom button rows from the normal reading view; keep necessary
   pan, zoom, reset and subplot selection available within the enlarged view and existing

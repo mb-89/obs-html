@@ -2929,7 +2929,16 @@
     }
   ],
   "semanticResources": [],
-  "diagnostics": [],
+  "diagnostics": [
+    {
+      "level": "warning",
+      "message": "parent.md:7: image without caption. Use a figure fence with kind: image, source: shared.png and a caption; see input-model#Figure captions and references."
+    },
+    {
+      "level": "warning",
+      "message": "child.md:10: image without caption. Use a figure fence with kind: image, source: shared.png and a caption; see input-model#Figure captions and references."
+    }
+  ],
   "capabilities": [
     "attachments",
     "bases",

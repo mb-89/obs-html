@@ -78,6 +78,15 @@ def test_the_chapter_text_shows_the_drawing_s_text_with_link_labels_and_no_style
     assert html_text(_chapter_html(LINKED)).splitlines()[1:] == ["See target or missing."]
 
 
+def test_a_block_link_inside_a_figure_links_the_figure_s_anchor() -> None:
+    block = {**_link("target", "target", "[[target#^plan]]"), "attrs": {
+        "target": "target", "chapter": "target", "heading": "^plan", "label": "plan", "figure": "plan",
+        "svg": "[[target#^plan]]"}}
+    svg = SVG.replace("[[target]]", "[[target#^plan]]")
+
+    assert '<a href="#target/block-plan" class="internal-link">plan</a>' in _chapter_html(_document(_figure(svg, block)))
+
+
 def test_a_figure_without_links_stays_an_image() -> None:
     html = _chapter_html(_document(_figure(SVG.replace("[[target]] or [[missing]]", ""))))
 
