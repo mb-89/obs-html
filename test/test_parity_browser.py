@@ -553,11 +553,7 @@ PRINTED_FORMS: dict[str, tuple[str, str]] = {
 }
 # A printed line that differs in content: pattern -> why. Each is a rendering difference; the print
 # path itself copies the stored chapter unchanged.
-PRINTED_LINES: dict[str, str] = {
-    r".*note and the flag \(.*(Command Fences|command-fences#Authorization)": (
-        "a wikilink to a heading of another chapter, [[command-fences#Authorization]], is labelled "
-        "with that chapter's title by this adapter and with the raw target by the reference"),
-}
+PRINTED_LINES: dict[str, str] = {}
 
 
 @pytest.mark.parametrize("chapter_format", ["html", "text"])
