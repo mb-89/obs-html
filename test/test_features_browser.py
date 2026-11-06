@@ -46,7 +46,8 @@ def test_a_host_that_hides_its_sandbox_flags_raises_nothing_at_load_for_them(tmp
     assert not set(UNDECIDED) & set(notices), f"undecided canaries warned at load: {notices}"
     undecided = frame.locator("html").evaluate("() => globalThis.obsCapabilities.results"
                                                 ".filter((entry) => !entry.decided).map(({key}) => key)")
-    assert sorted(undecided) == sorted(UNDECIDED)
+    # So is answers, which stays silent outside obs-html serve (canaries/answers.js).
+    assert sorted(undecided) == sorted((*UNDECIDED, "answers"))
     # A blocked download cannot be observed even on use: no notice, and the help names the remedy.
     assert frame.locator("html").evaluate("() => globalThis.obsCapabilities.hint('downloads')") == (
         "If this does not work here: Open the HTML file directly in a browser to download.")

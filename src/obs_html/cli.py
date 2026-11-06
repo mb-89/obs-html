@@ -18,6 +18,7 @@ from obs_html.config import load_config, with_vault_settings
 from obs_html.errors import InputError, Parser, diagnostics, in_vault, vault_naming
 from obs_html.exposure import check_artifact
 from obs_html.figure_svg import document_figures, figure_svg
+from obs_html import serve
 from obs_html.render import render
 from obs_html.source_archive import attach, embedded
 from obs_html.artifact_data import chapter_html, html_text, same_artifact_content
@@ -101,6 +102,10 @@ PDF operations:
   stdout. It fails (exit 2) on any console error, an error status or no status within
   execution.renderedCheckTimeoutSeconds.
 
+Serving answers:
+  obs-html serve ARTIFACT [--port N] [--wait] [--timeout S] serves a built artifact on 127.0.0.1
+  and takes its reader's answers; obs-html serve --help is its reference.
+
 Timings:
   --timings prints "Timing: STAGE SECONDS s" for each stage the call ran, then its total.
   The stages: {', '.join(STAGES)}. It warns on stderr about a stage slower than its baseline
@@ -119,6 +124,7 @@ Examples:
   obs-html --print-chapter artifact.html intro --chapter-format text
   obs-html document.json --export-figures figures
   obs-html --build-own-spec obs-html-specification.html
+  obs-html serve artifact.html --wait --timeout 3600
 
 Own specification:
   --build-own-spec DESTINATION builds the adapter's specification, which the package ships, into
@@ -177,6 +183,9 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    argv = sys.argv[1:] if argv is None else list(argv)
+    if argv[:1] == ["serve"]:
+        return serve.main(argv[1:])
     parser = build_parser()
     options = parser.parse_args(argv)
     started = perf_counter()

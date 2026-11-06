@@ -153,6 +153,22 @@ as the adapter rendered them from its Document.
 CHAPTER; a title that two chapters share lists their ids. Like `--extract-comments`, it renders
 nothing, so it refuses DOCUMENT and the rendering options.
 
+## Serving answers
+
+`obs-html serve ARTIFACT` serves a built artifact and the files beside it on `127.0.0.1` and takes
+the reader's answers from its page ([[capabilities/answers|answers]]). With `--wait` it is the
+command an agent runs and waits on: it exits with the answers on stdout once the reader sends them,
+so the agent continues without being told.
+
+````cmd
+uv run obs-html serve --help
+````
+
+The server is a plain local web server, so the page works in any browser, VS Code's built-in
+browser too, and Claude Code and Copilot take the same path. It is a subcommand rather than an
+option, as the other operations are, because it runs until answers arrive instead of returning a
+result. Through the core, `obs-document --serve` reaches it after the build.
+
 ## PowerShell callers
 
 The CLI writes diagnostics, such as warnings, to stderr; uv adds progress lines there,

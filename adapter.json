@@ -6,6 +6,12 @@
     "obs-html"
   ],
   "contractVersion": 1,
+  "serve": [
+    "uv",
+    "run",
+    "obs-html",
+    "serve"
+  ],
   "capabilities": [
     "artifact-presentation",
     "attachments",

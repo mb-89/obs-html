@@ -139,8 +139,10 @@ def options(parser) -> set[str]:
 
 
 def adapter_options() -> set[str]:
+    """The options of obs-html and of its serve subcommand, each from its own parser."""
+    from obs_html import serve
     from obs_html.cli import build_parser
-    return options(build_parser())
+    return options(build_parser()) | options(serve.build_parser())
 
 
 def core_options() -> set[str]:
@@ -212,7 +214,8 @@ def compare(listed: set[str], offered: set[str], section: str, source: str) -> N
 def test_every_adapter_cli_option_has_a_row() -> None:
     listed = set(keys("CLI options")) | {option for _, cli, rest in named("CLI options") if cli == "obs-html"
                                           for option in re.findall(r"--[\w-]+", rest)}
-    compare(listed, adapter_options(), "CLI options", "adapters/html/src/obs_html/cli.py build_parser")
+    compare(listed, adapter_options(), "CLI options",
+            "adapters/html/src/obs_html/cli.py build_parser or adapters/html/src/obs_html/serve.py build_parser")
 
 
 def test_every_option_a_row_names_is_one_the_integrated_cli_offers() -> None:
