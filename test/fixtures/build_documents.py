@@ -693,8 +693,9 @@ def features(root: Path) -> None:
     both views by the reading script and the covered-control sweep (test_parity_browser.py). It is
     archived (--embed-source) for the source-archive part; a note outside the reading order,
     opened as context, needs popups; the plot figure needs plotting, the equation figure
-    equations and the decision figure pugh. Its chapters also hold what those checks read in obs's spec: prose with links,
-    marks, an image, a callout and nested headings; a paged table of notes outside the contents;
+    equations and the decision figure pugh; the prose chapter asks for a bless, which needs
+    answers and bless. Its chapters also hold what those checks read in obs's spec: prose with
+    links, marks, an image, a callout and nested headings; a paged table of notes outside the contents;
     a figure reference across chapters; a register and a property editor. As in obs's spec, the
     chapters the reading script walks are nested three deep, with headings. Each chapter's
     interactive content is followed by text, as in a real document. test_features.py fails where
@@ -729,7 +730,7 @@ def features(root: Path) -> None:
     (root / "logo.png").write_bytes(base64.b64decode(
         "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="))
     (root / "prose.md").write_text(
-        "# Prose\n\nSee [[figures#Plot|the plot]], [the site](https://example.org/) and "
+        "---\nobs: {bless: pending}\n---\n# Prose\n\nSee [[figures#Plot|the plot]], [the site](https://example.org/) and "
         "![a logo](logo.png). `x < y` #mark/risk/limit\n\n"
         "Open question. #mark/question/scope_question\n\n"
         "> [!warning] Check the limits\n> The callout's body links [[tables]].\n\n"

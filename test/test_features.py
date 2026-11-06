@@ -180,7 +180,7 @@ def test_a_newly_registered_feature_or_part_must_appear_in_the_feature_fixture(f
     part = Part("added-part", "a condition the feature fixture does not meet", never, ())
     registry = (*FEATURES, added, dataclasses.replace(FEATURES[0], parts=(part,)))
     assert missing_from_the_feature_fixture(feature_artifact, registry) == [
-        "added", f"{FEATURES[0].key}/added-part"]
+        *missing_from_the_feature_fixture(feature_artifact), "added", f"{FEATURES[0].key}/added-part"]
 
 
 @pytest.mark.parametrize("feature", FEATURES, ids=lambda feature: feature.key)

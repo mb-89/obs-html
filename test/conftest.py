@@ -57,9 +57,12 @@ def core_root() -> Path:
 
 @pytest.fixture(scope="session")
 def document_validator(core_root: Path) -> Draft202012Validator:
+    # Every core schema, by its file name, which the Document schema's references name
+    # (figure.schema.json, answers.schema.json).
     schemas = core_root / "src" / "obs"
-    figure = json.loads((schemas / "figure.schema.json").read_text(encoding="utf-8"))
-    registry = Registry().with_resource("figure.schema.json", Resource.from_contents(figure))
+    registry = Registry().with_resources(
+        (path.name, Resource.from_contents(json.loads(path.read_text(encoding="utf-8"))))
+        for path in schemas.glob("*.schema.json"))
     schema = json.loads((schemas / "document.schema.json").read_text(encoding="utf-8"))
     return Draft202012Validator(schema, registry=registry)
 

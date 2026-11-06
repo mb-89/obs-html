@@ -907,6 +907,41 @@
       "title": "Prose",
       "content": [
         {
+          "type": "markdown-frontmatter",
+          "attrs": {
+            "metadata": {
+              "obs": {
+                "bless": "pending"
+              }
+            }
+          },
+          "children": [
+            {
+              "type": "field",
+              "attrs": {
+                "name": "obs.bless"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "pending"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "profiles",
+          "attrs": {
+            "profile": {
+              "bless": "pending"
+            }
+          },
+          "children": []
+        },
+        {
           "type": "chapter-inclusion",
           "attrs": {
             "id": "prose"
@@ -1224,7 +1259,14 @@
         }
       ],
       "children": [],
-      "metadata": {}
+      "metadata": {
+        "obs": {
+          "bless": "pending"
+        }
+      },
+      "bless": {
+        "version": "56978d1af12859f54c6a84129e41a70b308dae02f9cbf1eda2414cd8c0c79777"
+      }
     },
     {
       "id": "references",
@@ -4117,8 +4159,27 @@
       "id": "prose",
       "type": "note",
       "path": "prose.md",
-      "fields": {},
-      "fieldNodes": []
+      "fields": {
+        "obs": {
+          "bless": "pending"
+        }
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "obs.bless"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "pending"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "references",
@@ -4380,6 +4441,7 @@
     "markdown",
     "markdown-frontmatter",
     "marks",
+    "profiles",
     "property-editors",
     "pugh-decisions",
     "references",
@@ -4515,7 +4577,7 @@
       },
       {
         "path": "prose.md",
-        "data": "IyBQcm9zZQoKU2VlIFtbZmlndXJlcyNQbG90fHRoZSBwbG90XV0sIFt0aGUgc2l0ZV0oaHR0cHM6Ly9leGFtcGxlLm9yZy8pIGFuZCAhW2EgbG9nb10obG9nby5wbmcpLiBgeCA8IHlgICNtYXJrL3Jpc2svbGltaXQKCk9wZW4gcXVlc3Rpb24uICNtYXJrL3F1ZXN0aW9uL3Njb3BlX3F1ZXN0aW9uCgo+IFshd2FybmluZ10gQ2hlY2sgdGhlIGxpbWl0cwo+IFRoZSBjYWxsb3V0J3MgYm9keSBsaW5rcyBbW3RhYmxlc11dLgoKIyMgTGlzdHMKCjEuIG9uZQoyLiB0d28KCi0gYQotIGIKCiMjIENvZGUKCmBgYHRleHQKcGxhaW4gY29kZQpgYGAKClBhcmFncmFwaCAxIG9mIHRoZSBjbG9zaW5nIHRleHQsIHdoaWNoIHJlYWRzIG9uIGFmdGVyIHRoZSBjb250ZW50IGFib3ZlIGl0LiBQYXJhZ3JhcGggMSBvZiB0aGUgY2xvc2luZyB0ZXh0LCB3aGljaCByZWFkcyBvbiBhZnRlciB0aGUgY29udGVudCBhYm92ZSBpdC4gUGFyYWdyYXBoIDEgb2YgdGhlIGNsb3NpbmcgdGV4dCwgd2hpY2ggcmVhZHMgb24gYWZ0ZXIgdGhlIGNvbnRlbnQgYWJvdmUgaXQuIAoKUGFyYWdyYXBoIDIgb2YgdGhlIGNsb3NpbmcgdGV4dCwgd2hpY2ggcmVhZHMgb24gYWZ0ZXIgdGhlIGNvbnRlbnQgYWJvdmUgaXQuIFBhcmFncmFwaCAyIG9mIHRoZSBjbG9zaW5nIHRleHQsIHdoaWNoIHJlYWRzIG9uIGFmdGVyIHRoZSBjb250ZW50IGFib3ZlIGl0LiBQYXJhZ3JhcGggMiBvZiB0aGUgY2xvc2luZyB0ZXh0LCB3aGljaCByZWFkcyBvbiBhZnRlciB0aGUgY29udGVudCBhYm92ZSBpdC4gCg=="
+        "data": "LS0tCm9iczoge2JsZXNzOiBwZW5kaW5nfQotLS0KIyBQcm9zZQoKU2VlIFtbZmlndXJlcyNQbG90fHRoZSBwbG90XV0sIFt0aGUgc2l0ZV0oaHR0cHM6Ly9leGFtcGxlLm9yZy8pIGFuZCAhW2EgbG9nb10obG9nby5wbmcpLiBgeCA8IHlgICNtYXJrL3Jpc2svbGltaXQKCk9wZW4gcXVlc3Rpb24uICNtYXJrL3F1ZXN0aW9uL3Njb3BlX3F1ZXN0aW9uCgo+IFshd2FybmluZ10gQ2hlY2sgdGhlIGxpbWl0cwo+IFRoZSBjYWxsb3V0J3MgYm9keSBsaW5rcyBbW3RhYmxlc11dLgoKIyMgTGlzdHMKCjEuIG9uZQoyLiB0d28KCi0gYQotIGIKCiMjIENvZGUKCmBgYHRleHQKcGxhaW4gY29kZQpgYGAKClBhcmFncmFwaCAxIG9mIHRoZSBjbG9zaW5nIHRleHQsIHdoaWNoIHJlYWRzIG9uIGFmdGVyIHRoZSBjb250ZW50IGFib3ZlIGl0LiBQYXJhZ3JhcGggMSBvZiB0aGUgY2xvc2luZyB0ZXh0LCB3aGljaCByZWFkcyBvbiBhZnRlciB0aGUgY29udGVudCBhYm92ZSBpdC4gUGFyYWdyYXBoIDEgb2YgdGhlIGNsb3NpbmcgdGV4dCwgd2hpY2ggcmVhZHMgb24gYWZ0ZXIgdGhlIGNvbnRlbnQgYWJvdmUgaXQuIAoKUGFyYWdyYXBoIDIgb2YgdGhlIGNsb3NpbmcgdGV4dCwgd2hpY2ggcmVhZHMgb24gYWZ0ZXIgdGhlIGNvbnRlbnQgYWJvdmUgaXQuIFBhcmFncmFwaCAyIG9mIHRoZSBjbG9zaW5nIHRleHQsIHdoaWNoIHJlYWRzIG9uIGFmdGVyIHRoZSBjb250ZW50IGFib3ZlIGl0LiBQYXJhZ3JhcGggMiBvZiB0aGUgY2xvc2luZyB0ZXh0LCB3aGljaCByZWFkcyBvbiBhZnRlciB0aGUgY29udGVudCBhYm92ZSBpdC4gCg=="
       },
       {
         "path": "references.md",
