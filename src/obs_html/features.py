@@ -210,8 +210,8 @@ FEATURES: tuple[Feature, ...] = (
             elements=("pugh-engine-script",)),
     Feature("sankey", "a figure of a kind drawn by the Sankey script (figures.py, FIGURE_KINDS): a Sankey "
             "figure", _figures_need("sankey"), ("sankey-figure.js",), host=False),
-    Feature("tables", "a note with a Base table: the data table, the Bases schema and the YAML library "
-            "its definition editor reads", _tables,
+    Feature("tables", "a note with a Base table: the reader's table code, the data table, the Bases schema "
+            "and the YAML library its definition editor reads", _tables, ("tables.js",),
             elements=("data-table-script", "base-schema", "yaml-script"), host=False),
     Feature("options-menu", "a Base table or a figure: their one options menu (options-menu.js)",
             _options_menu, ("options-menu.js",), host=False),

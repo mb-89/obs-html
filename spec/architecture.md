@@ -89,6 +89,14 @@ figure kind's own script (the Sankey drawing, the decision engine) ships only wi
 runtime that calls into a feature's script does so only where the feature's content is on the
 page, so a script left out leaves no call behind.
 
+The reader's own Base-table code (a note's tables, their saved presentation and their rows in
+search) is the tables feature's script, `tables.js`. The reader's core (`artifact.js`) reaches it
+through one hook: it calls `globalThis.obsTables.attach(core)` once, where `core` holds what the
+tables read of the reader (its records, notes and helpers, and getters for the active filter and
+the visible chapters, which change as the reader filters), and uses only the object `attach`
+returns: `definition`, `states`, `render`, `searchHits` and `shown`. Without the feature the hook
+is absent, no note has a table, and each call the core makes into it is guarded.
+
 The Markdown parser adapts each `base` fence into a declarative table definition attached to
 its ordinary chapter; the runtime has no Appendix or named-register knowledge.
 

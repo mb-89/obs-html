@@ -40,6 +40,18 @@ def test_a_document_without_a_feature_ships_none_of_it(name: str) -> None:
         assert f'id="canary-{feature.key}"' not in html, (feature.key, name)
 
 
+def test_the_reader_reaches_table_code_only_through_the_tables_feature() -> None:
+    """The reader's Base-table code is the tables feature's script (tables.js): a Document without a
+    Base table carries none of it, and one with a table carries it once, attached by the reader's
+    core (architecture.md, Rendering and runtime)."""
+    without, with_table = (render(source, load_config()) for source in (plain(), with_guided_card()))
+    for name in ("renderChapterTables", "tableSearchHits", "savedPresentations", "richMetadata"):
+        assert name not in without, name
+        assert with_table.count(f"const {name} = ") == 1, name
+    assert "globalThis.obsTables = " not in without
+    assert with_table.count("globalThis.obsTables = ") == 1
+
+
 @pytest.mark.parametrize("name", DOCUMENTS)
 def test_an_artifact_without_some_features_opens_without_errors(name: str, tmp_path, reader_browser) -> None:
     build, drawn = DOCUMENTS[name]

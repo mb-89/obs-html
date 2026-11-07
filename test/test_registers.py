@@ -143,7 +143,8 @@ def test_the_adapter_shows_the_core_rows_and_evaluates_no_selection(tmp_path: Pa
 
 
 def test_no_members_evaluation_remains_in_the_adapter() -> None:
-    runtime = (ROOT / "src" / "obs_html" / "artifact.js").read_text(encoding="utf-8")
+    runtime = "".join((ROOT / "src" / "obs_html" / name).read_text(encoding="utf-8")
+                      for name in ("artifact.js", "tables.js"))
     assert "definition.obs?.members" not in runtime
     assert "Missing Bases member note" not in runtime
 
