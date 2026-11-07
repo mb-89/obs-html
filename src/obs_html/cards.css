@@ -1,0 +1,128 @@
+/* Record cards (cards.js): the cards feature's rules (features.py, cards), which follow base.css
+   inside the artifact styles, before the style module (architecture.md, Rendering and runtime). */
+/* A card group extends within the reader (the chapter scroll's width, 100cqw, which a docked bar
+   narrows), clear of the chapter controls, as a figure does (figures.css, .obs-figure). */
+.record-cards {
+    --record-cards-max-width: min(72rem, calc(100cqw - 2 * max(1.5rem, var(--chapter-clearance-end))));
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 28rem), 1fr));
+    gap: 1.5rem;
+    align-items: start;
+    margin-inline: calc((100% - var(--record-cards-max-width)) / 2);
+    width: var(--record-cards-max-width);
+}
+
+/* Cards stand in the prose column, one below the other: on paper, and in review mode, whose one
+   review gutter left of that column holds every item's controls, so no two share a line. */
+.paged-mode .record-cards,
+.print-book .record-cards,
+.review-mode .record-cards {
+    grid-template-columns: minmax(0, 1fr);
+    margin-inline: 0;
+    width: 100%;
+}
+
+.record-cards > .content-card {
+    margin-inline: 0;
+    margin-block: 1rem;
+}
+
+.record-card {
+    padding-inline: 0.5rem;
+}
+
+.record-metrics {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) max-content;
+    gap: 0.35rem 0.5rem;
+}
+
+.record-metrics--pills {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 0.35rem;
+}
+
+.record-metrics--lines {
+    display: grid;
+    grid-template-columns: minmax(0, max-content) max-content;
+    column-gap: 0.5em;
+    row-gap: 0.65em;
+}
+
+.record-metrics--lines .record-metric {
+    line-height: inherit;
+    margin: 0;
+}
+
+.record-metrics--lines .record-metric-value {
+    text-align: start;
+    white-space: nowrap;
+}
+
+.record-metric {
+    display: grid;
+    grid-template-columns: subgrid;
+    grid-column: 1 / -1;
+    align-items: baseline;
+    line-height: 1.25;
+    max-width: 100%;
+}
+
+.record-metric-value {
+    grid-column: 2;
+    grid-row: 1;
+    text-align: end;
+}
+
+.record-metric > .record-metric-label {
+    grid-column: 1;
+    grid-row: 1;
+    min-width: 0;
+}
+
+.record-metrics--pills .record-metric {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.35rem;
+    grid-column: auto;
+    grid-row: auto;
+    width: max-content;
+    max-width: 100%;
+    padding: 0.2rem 0.5rem;
+    border: var(--border-width) solid var(--color-border);
+    border-radius: 999px;
+    background: var(--color-surface-raised);
+    line-height: 1.2;
+}
+
+.record-metrics--pills .record-metric-value,
+.record-metrics--pills .record-metric > span:last-child {
+    grid-column: auto;
+    grid-row: auto;
+    text-align: start;
+}
+
+.record-metric strong {
+    font-size: 1.2rem;
+}
+
+.record-metrics--pills .record-metric strong {
+    font-size: 1rem;
+}
+
+.record-metric-value[href] {
+    text-decoration-color: var(--color-accent);
+    text-underline-offset: 0.15em;
+}
+
+.record-metric--neutral .record-metric-value { color: var(--color-neutral); }
+
+.record-metric--positive .record-metric-value { color: var(--color-positive); }
+
+.record-metric--negative .record-metric-value { color: var(--color-negative); }
+
+.record-metric--warning .record-metric-value { color: var(--color-warning); }
+
+.record-metric-value a { color: inherit; }

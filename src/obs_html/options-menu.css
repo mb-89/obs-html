@@ -1,0 +1,33 @@
+/* The options menu of tables and figures (options-menu.js): the options-menu feature's rules
+   (features.py, options-menu), which follow base.css inside the artifact styles, before the style
+   module (architecture.md, Rendering and runtime). */
+.options-menu {
+    background: var(--color-surface-raised);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-small);
+    box-shadow: 0 0.35rem 1rem var(--color-shadow);
+    gap: 0.45rem;
+    padding: 0.6rem;
+    position: fixed;
+    inset: auto;
+    margin: 0;
+    width: min(24rem, calc(100vw - 3rem));
+    max-height: min(32rem, 70vh, var(--options-menu-available-height, 70vh));
+    overflow-y: auto;
+    z-index: 5;
+    cursor: default;
+    font-weight: normal;
+}
+
+.options-menu[hidden] {
+    display: none;
+}
+
+.options-menu:popover-open {
+    display: grid;
+}
+
+.options-menu .filter-pill[aria-expanded="true"] {
+    background: var(--color-accent-soft);
+    border-color: var(--color-accent);
+}

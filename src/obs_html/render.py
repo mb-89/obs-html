@@ -832,7 +832,7 @@ def render(document: dict[str, object], config: Config,
     if archive is not None:
         model = source_archive.share(model, archive)
     return prepare_artifact_scripts(assets.resolve_markup(
-        _shell(model, list(context.unknown.values()), style.stylesheet, assets, config, trusted_runtime,
+        _shell(model, list(context.unknown.values()), style.overlay, assets, config, trusted_runtime,
                snippets=_css_snippets(document), archive=archive)))
 
 
@@ -1407,10 +1407,12 @@ def _note_target(href: str, context: Context) -> str | None:
     return chapter if chapter in context.chapters else None
 
 
-def _shell(model: dict[str, object], limits: list[dict[str, str]], stylesheet: str, assets: SemanticAssets,
+def _shell(model: dict[str, object], limits: list[dict[str, str]], overlay: str, assets: SemanticAssets,
            config: Config, trusted_runtime: tuple[str, str] | None, snippets: str = "",
            archive: bytes | None = None) -> str:
     """The artifact page; ``limits`` are the Document's limited functions (capabilities.js warns of each).
+    ``overlay`` is the style module's stylesheet, which follows base.css and the included features'
+    shares of it (features.py, Feature.base_styles).
     ``snippets`` are the author's style elements, which follow every packaged style; ``archive`` is
     the source ZIP (source_archive.py)."""
     package = files("obs_html")
@@ -1426,6 +1428,8 @@ def _shell(model: dict[str, object], limits: list[dict[str, str]], stylesheet: s
     parts = [part for feature in features for part in feature.shipped(model, trusted_runtime is not None)]
     feature_code = "".join(f"{read(name)}\n" for feature in features for name in feature.code)
     feature_code += "".join(f"{read(name)}\n" for part in parts for name in part.code)
+    stylesheet = read("base.css") + "".join(
+        f"\n{read(name)}" for feature in features for name in feature.base_styles) + "\n" + overlay
     feature_styles = "".join(f'\n  <style id="feature-styles-{feature.key}">\n{read(name)}  </style>'
                              for feature in features for name in feature.styles)
     pdf_library = ""

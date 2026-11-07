@@ -52,6 +52,16 @@ def test_the_reader_reaches_table_code_only_through_the_tables_feature() -> None
     assert with_table.count("globalThis.obsTables = ") == 1
 
 
+def test_a_document_without_tables_cards_bless_or_popups_carries_none_of_their_styles() -> None:
+    """The structural styles a feature alone uses ship with it (features.py, Feature.base_styles):
+    a plain Document's styles hold no rule of a Base table, a record card, the bless controls, a
+    guided card or the options menu."""
+    styles = render(plain(), load_config()).split('<style id="artifact-styles">', 1)[1].split("</style>", 1)[0]
+    for selector in (".data-table-footer", ".record-metric", ".bless-pill", ".guided-card-window",
+                     ".options-menu[hidden]", ".tab-badge-flag"):
+        assert selector not in styles, selector
+
+
 @pytest.mark.parametrize("name", DOCUMENTS)
 def test_an_artifact_without_some_features_opens_without_errors(name: str, tmp_path, reader_browser) -> None:
     build, drawn = DOCUMENTS[name]

@@ -65,7 +65,8 @@ The renderer emits the nested table of contents and ordered chapter data once;
 client-side navigation shows exactly one chapter and manages previous/next controls, URL
 fragments, browser history, scroll reset, and docked-bar state.
 
-One embedded central stylesheet owns the component rules described in [[artifact-ui]].
+One embedded central stylesheet owns the component rules described in [[artifact-ui]]: `base.css`,
+followed by the shares of it that the artifact's features ship.
 The [[semantic-assets]] index owns named presentation values and their inheritance;
 stylesheet variables and DOM are derived views of that owner.
 
@@ -96,6 +97,13 @@ tables read of the reader (its records, notes and helpers, and getters for the a
 the visible chapters, which change as the reader filters), and uses only the object `attach`
 returns: `definition`, `states`, `render`, `searchHits` and `shown`. Without the feature the hook
 is absent, no note has a table, and each call the core makes into it is guarded.
+
+A feature whose rules only its own elements match ships them as its share of the structural styles
+(`Feature.base_styles`, for example `tables.css`). These follow `base.css` inside the artifact
+styles, in registry order and before the style module, so a style module overrides them as it
+overrides `base.css`. Moving a rule there moves it after the rules of `base.css` that followed it;
+a rule whose order against such a rule decides an element's style (the same property, equal
+specificity, an element both match) stays in `base.css`.
 
 The Markdown parser adapts each `base` fence into a declarative table definition attached to
 its ordinary chapter; the runtime has no Appendix or named-register knowledge.

@@ -194,7 +194,7 @@ globalThis.obsBless = (() => {
     else {
       const verdict = verdicts.get(active);
       // The state first; each detail after it is a part of its own, which the pill drops whole where
-      // the band has no room for it (base.css, the pill), so "Picked B · Close" reads "Picked B".
+      // the band has no room for it (bless.css, the pill), so "Picked B · Close" reads "Picked B".
       const [state, ...details] = stateParts(active);
       pill.replaceChildren(element("span", {className: "bless-pill-state", textContent: state}),
         ...details.map(detail => element("span", {className: "bless-pill-detail", textContent: ` · ${detail}`})));

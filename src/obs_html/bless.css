@@ -1,0 +1,181 @@
+/* Bless controls (bless.js): the bless feature's rules (features.py, bless), which follow base.css
+   inside the artifact styles, before the style module (architecture.md, Rendering and runtime). */
+/* Bless verdicts (bless.js): the pill, the verdict keys and Send lead the band's end, left of the
+   notice icons; the keys are the band's squares. The one-line comment entry opens under them.
+   Short of space, the crumbs shrink first: the band's end keeps its width and the path takes what
+   it leaves. Then the pill truncates, to 4.6rem, and then it is a square of the band's size that
+   shows only its state colour, its label its tooltip and accessible name. Only then do the
+   squares shrink. */
+.top-band:has(.bless-controls:not([hidden]) .bless-send:not([hidden])) { --top-band-send: 1; }
+
+.top-band:has(.bless-controls:not([hidden]) .bless-pill:not([hidden])) {
+    --top-band-bless: 5;
+    --top-band-gap: 0.3rem;
+}
+
+.top-band:has(.bless-controls:not([hidden]) .bless-pill:not([hidden])) > .top-band-end {
+    flex: 0 1 auto;
+    min-width: 0;
+}
+
+.top-band-end > .bless-controls {
+    align-items: center;
+    display: flex;
+    flex: 0 1 auto;
+    gap: var(--top-band-gap);
+    height: var(--top-control-size);
+    min-width: 0;
+    order: -1;
+    position: relative;
+    width: auto;
+}
+
+.bless-controls[hidden],
+.bless-controls [hidden] { display: none; }
+
+/* The pill shows its label while the band holds its other squares at full size, the pill
+   truncated to 4.6rem and the crumbs' least width: --bless-pill-room, the band's width less
+   (n - 1) * (full size + gap) + 4.6rem + the crumbs for its n squares (--top-band-squares, which
+   counts the pill), is positive. Below that it is a square of the band's size that shows only its
+   state colour. Each size steps between the two at that point: clamp() of the room, amplified. */
+.bless-pill {
+    --bless-pill-room: calc(100cqw - (var(--top-band-squares) - 1) * (var(--top-control-full) + var(--top-band-gap))
+        - 4.6rem - var(--top-band-crumbs));
+    --bless-pill-step: calc(var(--bless-pill-room) * 1000);
+    background: var(--color-warning-soft);
+    border: var(--border-width) solid var(--color-warning);
+    border-radius: clamp(var(--radius-small), var(--bless-pill-step), 999px);
+    box-sizing: border-box;
+    color: var(--color-text);
+    flex: 0 1 auto;
+    font: clamp(0rem, var(--bless-pill-step), 0.72rem)/1 var(--font-interface);
+    max-width: 11rem;
+    min-height: clamp(0rem, -1 * var(--bless-pill-step), var(--top-control-size));
+    min-width: max(var(--top-control-size), clamp(0rem, var(--bless-pill-step), 4.6rem));
+    overflow: hidden;
+    padding: clamp(0rem, var(--bless-pill-step), 0.3rem) clamp(0rem, var(--bless-pill-step), 0.55rem);
+}
+
+/* The state, then each detail ("· Close", "· sent") as a part of its own: a detail that does not
+   fit wraps onto a second line the pill's one-line height hides, so it drops whole; the state
+   truncates once it alone does not fit. */
+.bless-pill:not([hidden]) {
+    align-content: flex-start;
+    display: inline-flex;
+    flex-wrap: wrap;
+    max-height: max(calc(1lh + 2 * clamp(0rem, var(--bless-pill-step), 0.3rem) + 2 * var(--border-width)),
+        clamp(0rem, -1 * var(--bless-pill-step), var(--top-control-size)));
+}
+
+.bless-pill-state,
+.bless-pill-detail {
+    white-space: pre;
+}
+
+.bless-pill-state {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.bless-pill-detail {
+    flex: none;
+}
+
+/* The verdicts' semantic colours are the review's (artifact-ui.md, Bless verdicts): Bless and every
+   accepted state its acceptance colour, Decline its rejection colour; Ask keeps its own. */
+.bless-pill[data-bless-state="bless"],
+.bless-pill[data-bless-state="recorded"] {
+    background: var(--color-success-soft);
+    border-color: var(--color-success);
+}
+
+.bless-pill[data-bless-state="decline"] {
+    background: var(--color-failure-soft);
+    border-color: var(--color-failure);
+}
+
+.bless-keys {
+    display: flex;
+    gap: 0.2rem;
+}
+
+/* The keys and Send are the band's squares: the pill gives way, they do not. */
+.bless-keys,
+.bless-send {
+    flex: none;
+}
+
+.bless-key,
+.bless-send {
+    box-sizing: border-box;
+    color: var(--color-text);
+    font-size: 1rem;
+    height: var(--top-control-size);
+    width: var(--top-control-size);
+}
+
+.bless-key[aria-pressed="true"] {
+    background: var(--color-accent-soft);
+    border-color: var(--color-accent);
+}
+
+/* Pressed, Bless and Decline are the review's pressed accept and reject keys (.review-action). */
+.bless-key[data-bless-key="bless"][aria-pressed="true"] {
+    background: var(--color-success);
+    border-color: var(--color-success);
+    color: var(--color-surface);
+}
+
+.bless-key[data-bless-key="decline"][aria-pressed="true"] {
+    background: var(--color-failure);
+    border-color: var(--color-failure);
+    color: var(--color-surface);
+}
+
+.bless-send {
+    background: var(--color-accent-soft);
+    border: var(--border-width) solid var(--color-accent);
+    border-radius: var(--radius-small);
+    cursor: pointer;
+    font: 600 0.62rem/1.1 var(--font-interface);
+    padding: 0;
+}
+
+.bless-send:disabled {
+    background: var(--color-surface-raised);
+    border-color: var(--color-border);
+    color: var(--color-text-muted);
+    cursor: default;
+}
+
+.bless-entry {
+    align-items: center;
+    background: var(--color-surface);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-medium);
+    box-shadow: 0 0.6rem 2rem var(--color-shadow);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-top: 0.4rem;
+    padding: 0.35rem;
+    position: absolute;
+    right: 0;
+    top: 100%;
+    width: min(24rem, calc(100vw - 2rem));
+}
+
+.bless-picks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+}
+
+.bless-comment {
+    flex: 1 1 10rem;
+    font: 0.85rem var(--font-interface);
+    min-width: 0;
+    padding: 0.3rem 0.4rem;
+}

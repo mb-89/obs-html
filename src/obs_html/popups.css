@@ -1,0 +1,93 @@
+/* Guided cards and their window (guided-card.js): the popups feature's rules (features.py,
+   popups), which follow base.css inside the artifact styles, before the style module
+   (architecture.md, Rendering and runtime). */
+.guided-card {
+    position: fixed;
+    inset: auto 1rem 1rem auto;
+    z-index: 110;
+    display: grid;
+    gap: 0.6rem;
+    box-sizing: border-box;
+    inline-size: min(28rem, calc(100vw - 2rem));
+    max-block-size: calc(100vh - 2rem);
+    overflow: auto;
+    padding: 1rem;
+    background: var(--color-surface);
+    border: var(--border-width) solid var(--color-accent);
+    border-radius: var(--radius-medium);
+    box-shadow: 0 0.5rem 1.5rem var(--color-shadow);
+    color: var(--color-text);
+    font: 0.95rem/1.45 var(--font-interface);
+    overflow-wrap: anywhere;
+}
+
+.guided-card-window {
+    display: grid;
+    align-content: start;
+    gap: 0.6rem;
+    margin: 0;
+    padding: 1rem;
+    overflow: auto;
+    background: var(--color-surface);
+    color: var(--color-text);
+    font: 0.95rem/1.45 var(--font-interface);
+    overflow-wrap: anywhere;
+}
+
+.guided-card-header { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+
+.guided-card-use { flex: 1; color: var(--color-text-muted); font-size: 0.85rem; font-weight: 650; }
+
+.guided-card-title { margin: 0; font-size: 1.05rem; color: var(--color-accent); }
+
+.guided-card-message:empty, .guided-card-error:empty { display: none; }
+
+.guided-card p { margin: 0; }
+
+.guided-card-window p { margin: 0; }
+
+.guided-card-content { display: grid; gap: 0.6rem; min-inline-size: 0; }
+
+.guided-card-subject { font-weight: 650; }
+
+.guided-card-instructions { white-space: pre-line; }
+
+.guided-card-instructions :is(p, ul, ol) { margin-block: 0 0.4rem; white-space: normal; }
+
+.guided-card-form { display: grid; gap: 0.5rem; }
+
+.guided-card-form textarea {
+    box-sizing: border-box;
+    inline-size: 100%;
+    font: inherit;
+    color: inherit;
+    background: var(--color-surface-raised);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-small);
+    padding: 0.4rem;
+    resize: vertical;
+}
+
+.guided-card-drop {
+    display: grid;
+    gap: 0.4rem;
+    justify-items: start;
+    padding: 0.75rem;
+    border: 2px dashed var(--color-border);
+    border-radius: var(--radius-medium);
+}
+
+.guided-card-drop[data-dragging], .guided-card-drop[data-staged] {
+    border-color: var(--color-accent);
+    background: var(--color-accent-soft);
+}
+
+.guided-card-error { color: var(--color-warning); }
+
+.guided-card-actions { display: flex; gap: 0.5rem; justify-content: flex-end; }
+
+.guided-card-submit { border-color: var(--color-accent); font-weight: 650; }
+
+@media print {
+    .guided-card { display: none !important; }
+}

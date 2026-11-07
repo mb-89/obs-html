@@ -178,7 +178,7 @@ def test_every_feature_has_cases_and_its_canary_and_code_exist() -> None:
         assert not SOURCE.joinpath(f"canaries/{feature.key}.js").is_file() or feature.host, \
             f"{feature.key}: canaries/{feature.key}.js ships with no feature that needs the host"
         assert feature.condition, f"{feature.key}: its condition names what puts it in the artifact"
-        for name in feature.code:
+        for name in (*feature.code, *feature.styles, *feature.base_styles):
             assert SOURCE.joinpath(name).is_file(), f"{feature.key}: missing {name}"
         for part in feature.parts:
             assert part.condition, f"{feature.key}/{part.key}: its condition names what ships the part"
@@ -221,7 +221,8 @@ def test_a_newly_registered_feature_or_part_must_appear_in_the_feature_fixture(f
 def test_the_inclusion_condition_decides_whether_code_elements_and_canary_ship(feature) -> None:
     included, excluded = CASES[feature.key]
     canary = SOURCE.joinpath(feature.canary).read_text(encoding="utf-8").strip() if feature.canary else None
-    code = [SOURCE.joinpath(name).read_text(encoding="utf-8").strip() for name in feature.code]
+    code = [SOURCE.joinpath(name).read_text(encoding="utf-8").strip()
+            for name in (*feature.code, *feature.styles, *feature.base_styles)]
     elements = [f'id="{element}"' for element in feature.elements]
     for source in included:
         html, title = render(source, CONFIG), source["manifest"]["title"]
@@ -235,6 +236,20 @@ def test_the_inclusion_condition_decides_whether_code_elements_and_canary_ship(f
             f"{feature.key}: {title} does not meet '{feature.condition}' but ships its canary")
         assert not any(part in html for part in code), f"{feature.key}: code shipped in {title}"
         assert not any(element in html for element in elements), f"{feature.key}: elements shipped in {title}"
+
+
+def test_the_structural_styles_keep_base_css_order_then_the_features_then_the_style_module(
+        feature_artifact: str) -> None:
+    """A feature's share of the structural styles follows base.css in registry order and comes
+    before the style module, so its rules keep the place in the cascade they had in base.css
+    (architecture.md, Rendering and runtime)."""
+    styles = feature_artifact.split('<style id="artifact-styles">', 1)[1].split("</style>", 1)[0]
+    parts = [SOURCE.joinpath("base.css").read_text(encoding="utf-8"),
+             *(SOURCE.joinpath(name).read_text(encoding="utf-8") for feature in FEATURES
+               for name in feature.base_styles),
+             SOURCE.joinpath("styles", "generic", "style.css").read_text(encoding="utf-8")]
+    assert len(parts) > 2
+    assert styles.strip() == "\n".join(parts).strip()
 
 
 def test_no_source_calls_a_browser_dialog_and_no_dialogs_canary_ships() -> None:

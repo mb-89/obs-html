@@ -432,7 +432,7 @@ def test_the_band_of_a_nested_bless_chapter_fits_at_360_px(phone_browser, tmp_pa
     assert errors == []
 
 
-# What the pill shows: its parts on its one visible line (base.css, the pill), and its label.
+# What the pill shows: its parts on its one visible line (bless.css, the pill), and its label.
 PILL = """() => { const pill = document.querySelector('[data-bless-pill]'), box = pill.getBoundingClientRect();
     return {label: pill.title, shown: [...pill.children].filter(part => {
         const line = part.getBoundingClientRect();

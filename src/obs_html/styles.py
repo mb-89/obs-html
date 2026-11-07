@@ -12,7 +12,8 @@ from obs_html.errors import InputError
 @dataclass(frozen=True)
 class Style:
     directory: Path
-    stylesheet: str
+    overlay: str
+    """The module's style.css, which follows the structural styles (render.py, _shell)."""
     asset_index: Path | None
 
 
@@ -42,10 +43,6 @@ def load_style(directory: Path | None = None) -> Style:
                          "Remove it; a Document chooses its paper and margin in its manifest's obsHtml.print")
     return Style(
         directory=root,
-        stylesheet=(
-            files("obs_html").joinpath("base.css").read_text(encoding="utf-8")
-            + "\n"
-            + overlay
-        ),
+        overlay=overlay,
         asset_index=asset_index if asset_index.is_file() else None,
     )

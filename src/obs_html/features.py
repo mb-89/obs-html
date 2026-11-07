@@ -79,6 +79,10 @@ class Feature:
     parts: tuple[Part, ...] = ()
     styles: tuple[str, ...] = ()
     """Package stylesheets that ship with the feature, after the packaged styles."""
+    base_styles: tuple[str, ...] = ()
+    """Package stylesheets of the feature's share of the structural styles: they follow base.css inside
+    the artifact styles, in registry order and before the style module, so each rule keeps the place in
+    the cascade it had in base.css (architecture.md, Rendering and runtime)."""
     elements: tuple[str, ...] = ()
     """Ids of the page elements (render.py, _shell) the renderer writes only with the feature."""
     host: bool = True
@@ -193,12 +197,12 @@ FEATURES: tuple[Feature, ...] = (
     Feature("answers", "a chapter that asks for a bless: the page hands a reader's answers to a sink "
             "(obsArtifact.sendAnswers; spec/capabilities/answers.md)", _bless, ("answers.js",)),
     Feature("bless", "a chapter that asks for a bless: the top band's verdict pill and keys, and Send "
-            "(spec/capabilities/bless.md)", _bless, ("bless.js",)),
+            "(spec/capabilities/bless.md)", _bless, ("bless.js",), base_styles=("bless.css",)),
     Feature("screens", "an artifact that opens in screens (obsHtml.layout, or a deck whose chapters all ask "
             "for a bless): the band's title and position (artifact-ui.md, Screens)", _screens, ("screens.js",),
             styles=("screens.css",)),
     Feature("popups", "a guided card, a note a link opens as context, or a trusted runtime",
-            _floating_window, ("guided-card.js",)),
+            _floating_window, ("guided-card.js",), base_styles=("popups.css",)),
     Feature("plotting", "a figure of a kind that needs the plotting library (figures.py, FIGURE_KINDS): "
             "a stored-data plot or an equation figure", _figures_need("plotting"),
             elements=("plotly-script",)),
@@ -207,18 +211,19 @@ FEATURES: tuple[Feature, ...] = (
             elements=("maths-script",)),
     Feature("pugh", "a figure of a kind that needs the decision engine (figures.py, FIGURE_KINDS): "
             "a decision figure", _figures_need("pugh"), ("pugh-figure.js",),
-            elements=("pugh-engine-script",)),
+            elements=("pugh-engine-script",), base_styles=("pugh.css",)),
     Feature("sankey", "a figure of a kind drawn by the Sankey script (figures.py, FIGURE_KINDS): a Sankey "
             "figure", _figures_need("sankey"), ("sankey-figure.js",), host=False),
     Feature("tables", "a note with a Base table: the reader's table code, the data table, the Bases schema "
             "and the YAML library its definition editor reads", _tables, ("tables.js",),
-            elements=("data-table-script", "base-schema", "yaml-script"), host=False),
+            elements=("data-table-script", "base-schema", "yaml-script"), host=False,
+            base_styles=("tables.css",)),
     Feature("options-menu", "a Base table or a figure: their one options menu (options-menu.js)",
-            _options_menu, ("options-menu.js",), host=False),
+            _options_menu, ("options-menu.js",), host=False, base_styles=("options-menu.css",)),
     Feature("figures", "a figure: its frame's styles and script", _figures,
             elements=("figure-styles", "figure-script"), host=False),
     Feature("cards", "record cards, or a quantity note that counts by a query", _cards,
-            elements=("cards-script",), host=False),
+            elements=("cards-script",), host=False, base_styles=("cards.css",)),
     Feature("property-editor", "a property editor", _marked("data-property-editor"),
             elements=("property-editor-script",), host=False),
 )
