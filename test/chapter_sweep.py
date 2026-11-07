@@ -4,23 +4,25 @@ Reader: a test that checks every chapter of an artifact opens and settles, and w
 an artifact's screenshots before and after a change that should not change what it shows.
 
 ``sweep`` starts this file as a child process, which launches its own headless shell
-(test/conftest.py, ``headless_shell``) and opens the artifact twice: without and with
-``prefers-reduced-motion: reduce`` (MOTIONS), each in a browser context of its own. For each chapter of
+(test/conftest.py, ``headless_shell``) and opens the artifact at each viewport (VIEWPORTS: a
+desktop and a phone) without and with ``prefers-reduced-motion: reduce`` (MOTIONS), each pair in
+a browser context of its own. For each chapter of
 ``obsArtifact.navigationChapters()`` it calls ``activateChapter``, awaits ``whenChapterReady()``
 and scrolls the chapter scroller (``[data-chapter-scroll]``) one viewport at a time, waiting two
 animation frames per step. Each console error and uncaught page error is reported. The child
 prints one JSON line per step, so where the page's main thread locks and no Playwright call
-returns, the parent's hard timeout ends the child's process tree and names the chapter and step
-it was on. A hang in one artifact therefore cannot outlast its timeout or touch another test's
+returns, the parent's hard timeout ends the child's process tree and names the chapter, step,
+viewport and motion preference it was on. A hang in one artifact therefore cannot outlast its timeout or touch another test's
 browser. obs quality.md, Testing boundaries, owns why the sweep does not lease the pool's pages.
 
-With ``screenshots``, each step is saved as ``<folder>/<motion>/<NN>-<chapter>-<step>.png``;
+With ``screenshots``, each step is saved as ``<folder>/<viewport>/<motion>/<NN>-<chapter>-<step>.png``;
 ``compare`` counts the pixels that differ between two such folders. From the adapter's folder:
 
     uv run python test/chapter_sweep.py <artifact.html>... --screenshots <folder> [--compare <before>]
 """
 import argparse
 import dataclasses
+import functools
 import json
 import os
 import signal
@@ -30,6 +32,12 @@ from pathlib import Path
 
 # The emulated motion preferences the sweep opens an artifact with: none, and reduced motion.
 MOTIONS = ("no-preference", "reduce")
+# The viewports the sweep opens an artifact at, by name: each one's size and whether it is a phone,
+# whose context is the phone pool's (test/conftest.py, PHONE_CONTEXT). The phone is an iPhone 13's.
+VIEWPORTS = {
+    "desktop": ({"width": 1280, "height": 720}, False),
+    "phone": ({"width": 390, "height": 844}, True),
+}
 # How the child marks its output lines from anything else on its stdout.
 LINE = "chapter-sweep "
 # Resolves once the artifact has started, at once if it has; rejects on a failed startup.
@@ -57,26 +65,28 @@ SCROLL = """async (step) => {
 @dataclasses.dataclass
 class Swept:
     """What one sweep of an artifact saw: the chapters it finished and the errors the page reported,
-    by motion preference, and, where it did not finish, why and the step it was on."""
+    by (viewport, motion preference), and, where it did not finish, why and the step it was on."""
     artifact: Path
-    chapters: dict[str, list[str]]
-    errors: list[tuple[str, str]]
+    chapters: dict[tuple[str, str], list[str]]
+    errors: list[tuple[str, str, str]]
     failure: str | None
 
     def problems(self) -> list[str]:
-        """Each thing that fails the sweep, as a message naming the artifact and the motion preference."""
+        """Each thing that fails the sweep, as a message naming the artifact, the viewport and the
+        motion preference."""
         where = f"test/chapter_sweep.py: {self.artifact.name}"
         found = [f"{where}: {self.failure}"] if self.failure else []
-        return found + [f"{where} (prefers-reduced-motion: {motion}): console error: {error}"
-                        for motion, error in self.errors]
+        return found + [f"{where} ({viewport}, prefers-reduced-motion: {motion}): console error: {error}"
+                        for viewport, motion, error in self.errors]
 
 
 def sweep(artifact: Path, timeout: float, motions=MOTIONS, screenshots: Path | None = None,
-          viewport: tuple[int, int] = (1280, 720)) -> Swept:
-    """Sweep ``artifact`` with each of ``motions`` in one child process (``child``); a child still
-    running after ``timeout`` seconds is ended with every process it started."""
-    command = [sys.executable, str(Path(__file__).resolve()), "--child", str(artifact),
-               "--viewport", f"{viewport[0]}x{viewport[1]}"]
+          viewports=tuple(VIEWPORTS)) -> Swept:
+    """Sweep ``artifact`` at each of ``viewports`` with each of ``motions``, all in one child
+    process (``child``); a child still running after ``timeout`` seconds is ended with every
+    process it started."""
+    command = [sys.executable, str(Path(__file__).resolve()), "--child", str(artifact)]
+    command += [argument for viewport in viewports for argument in ("--viewport", viewport)]
     command += [argument for motion in motions for argument in ("--motion", motion)]
     if screenshots:
         command += ["--screenshots", str(screenshots)]
@@ -92,12 +102,13 @@ def sweep(artifact: Path, timeout: float, motions=MOTIONS, screenshots: Path | N
         output, error_output = process.communicate()
         timed_out = True
     lines = [json.loads(line[len(LINE):]) for line in output.splitlines() if line.startswith(LINE)]
-    chapters = {motion: [line["done"] for line in lines if line.get("motion") == motion and "done" in line]
-                for motion in motions}
-    errors = [(line["motion"], line["error"]) for line in lines if "error" in line]
+    chapters = {(viewport, motion): [line["done"] for line in lines if "done" in line
+                                     and (line["viewport"], line["motion"]) == (viewport, motion)]
+                for viewport in viewports for motion in motions}
+    errors = [(line["viewport"], line["motion"], line["error"]) for line in lines if "error" in line]
     at = next((line for line in reversed(lines) if "at" in line), None)
-    place = (f"chapter {at['at']!r} (prefers-reduced-motion: {at['motion']}), {at['doing']}" if at
-             else "opening the artifact")
+    place = (f"chapter {at['at']!r} ({at['viewport']}, prefers-reduced-motion: {at['motion']}), {at['doing']}"
+             if at else "opening the artifact")
     failure = None
     if timed_out:
         failure = (f"did not finish within {timeout:g} s; the page stopped answering at {place}. A loop or "
@@ -124,9 +135,9 @@ def _say(**fields) -> None:
     print(LINE + json.dumps(fields), flush=True)
 
 
-def child(artifact: Path, motions: list[str], viewport: tuple[int, int], screenshots: Path | None) -> None:
-    """The child's sweep: one headless shell, a page per motion preference, every chapter, a line
-    per step (``_say``)."""
+def child(artifact: Path, motions: list[str], viewports: list[str], screenshots: Path | None) -> None:
+    """The child's sweep: one headless shell, a page per (viewport, motion preference), every
+    chapter, a line per step (``_say``)."""
     from playwright.sync_api import sync_playwright
 
     import conftest
@@ -134,30 +145,37 @@ def child(artifact: Path, motions: list[str], viewport: tuple[int, int], screens
     with sync_playwright() as playwright:
         browser = conftest.launcher(playwright, conftest.HEADLESS_SHELL_ENGINE,
                                     conftest.headless_shell(conftest.suite.playwright_browsers()))()
-        for motion in motions:
-            page = browser.new_context(reduced_motion=motion,
-                                       viewport={"width": viewport[0], "height": viewport[1]}).new_page()
-            page.on("console", lambda message, motion=motion: message.type == "error"
-                    and _say(motion=motion, error=message.text))
-            page.on("pageerror", lambda error, motion=motion: _say(motion=motion, error=str(error)))
-            page.goto(artifact.resolve().as_uri())
-            page.evaluate(READY)
-            slugs = [chapter["slug"] for chapter in page.evaluate("obsArtifact.navigationChapters()")]
-            for number, slug in enumerate(slugs, 1):
-                _say(motion=motion, at=slug, doing="opening it")
-                steps = page.evaluate(OPEN, slug)
-                for step in range(steps):
-                    _say(motion=motion, at=slug, doing=f"scrolling to step {step + 1} of {steps}")
-                    page.evaluate(SCROLL, step)
-                    if screenshots:
-                        folder = screenshots / motion
-                        folder.mkdir(parents=True, exist_ok=True)
-                        page.screenshot(path=folder / f"{number:02d}-{slug}-{step}.png", animations="disabled",
-                                        caret="hide")
-                _say(motion=motion, done=slug)
-            page.context.close()
+        for name in viewports:
+            size, phone = VIEWPORTS[name]
+            context = conftest.PHONE_CONTEXT if phone else {}
+            for motion in motions:
+                _sweep_page(browser.new_context(reduced_motion=motion, viewport=size, **context).new_page(),
+                            artifact, name, motion, screenshots)
         _say(finished=True)
         browser.close()
+
+
+def _sweep_page(page, artifact: Path, viewport: str, motion: str, screenshots: Path | None) -> None:
+    """Open ``artifact`` in ``page`` and open and scroll each of its chapters, saying each step."""
+    say = functools.partial(_say, viewport=viewport, motion=motion)
+    page.on("console", lambda message: message.type == "error" and say(error=message.text))
+    page.on("pageerror", lambda error: say(error=str(error)))
+    page.goto(artifact.resolve().as_uri())
+    page.evaluate(READY)
+    slugs = [chapter["slug"] for chapter in page.evaluate("obsArtifact.navigationChapters()")]
+    for number, slug in enumerate(slugs, 1):
+        say(at=slug, doing="opening it")
+        steps = page.evaluate(OPEN, slug)
+        for step in range(steps):
+            say(at=slug, doing=f"scrolling to step {step + 1} of {steps}")
+            page.evaluate(SCROLL, step)
+            if screenshots:
+                folder = screenshots / viewport / motion
+                folder.mkdir(parents=True, exist_ok=True)
+                page.screenshot(path=folder / f"{number:02d}-{slug}-{step}.png", animations="disabled",
+                                caret="hide")
+        say(done=slug)
+    page.context.close()
 
 
 def compare(before: Path, after: Path) -> dict[str, int | None]:
@@ -186,24 +204,26 @@ def main(arguments: list[str]) -> int:
     parser.add_argument("--child", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--motion", choices=MOTIONS, action="append",
                         help="the motion preference to sweep with; both where none is named")
-    parser.add_argument("--viewport", default="1280x720", help="the page's width and height, as WIDTHxHEIGHT")
+    parser.add_argument("--viewport", choices=VIEWPORTS, action="append",
+                        help="the viewport to sweep at; each where none is named")
     parser.add_argument("--timeout", type=float, default=120, help="seconds one artifact's sweep may take")
     parser.add_argument("--screenshots", type=Path, help="save each step's screenshot below this folder")
     parser.add_argument("--compare", type=Path, help="count differing pixels against this earlier --screenshots folder")
     options = parser.parse_args(arguments)
-    viewport = tuple(int(each) for each in options.viewport.split("x"))
+    viewports = options.viewport or list(VIEWPORTS)
     motions = options.motion or list(MOTIONS)
     if options.child:
-        child(options.artifacts[0], motions, viewport, options.screenshots)
+        child(options.artifacts[0], motions, viewports, options.screenshots)
         return 0
     if options.compare and not options.screenshots:
         parser.error("--compare needs --screenshots")
     problems = []
     for artifact in options.artifacts:
         folder = options.screenshots / artifact.stem if options.screenshots else None
-        swept = sweep(artifact, options.timeout, motions, folder, viewport)
+        swept = sweep(artifact, options.timeout, motions, folder, viewports)
         problems += swept.problems()
-        print(f"{artifact.name}: " + ", ".join(f"{motion} {len(done)} chapters" for motion, done in swept.chapters.items())
+        print(f"{artifact.name}: " + ", ".join(f"{viewport} {motion} {len(done)} chapters"
+                                                for (viewport, motion), done in swept.chapters.items())
               + (", failed" if swept.problems() else ""))
     if options.compare:
         counts = compare(options.compare, options.screenshots)

@@ -1,4 +1,5 @@
-"""Every chapter of every fixture Document opens and scrolls, with and without reduced motion.
+"""Every chapter of every fixture Document opens and scrolls, on a desktop and a phone, with and
+without reduced motion.
 
 Reader: whoever changes the reader runtime, its motion rules, or the chapter sweep
 (test/chapter_sweep.py, which owns how a sweep runs).
@@ -13,7 +14,7 @@ import json
 import pytest
 
 from artifacts import artifact_html
-from chapter_sweep import MOTIONS, compare, sweep
+from chapter_sweep import compare, sweep
 from conftest import ROOT
 
 DOCUMENTS = sorted((ROOT / "test" / "fixtures" / "documents").glob("*.json"))
@@ -31,12 +32,12 @@ def sweep_timeout(request) -> float:
     # Each sweep runs on a worker of its own (test/conftest.py), not after the module's others.
     pytest.param(path, id=path.stem, marks=pytest.mark.xdist_group(f"chapter-sweep-{path.stem}"))
     for path in DOCUMENTS])
-def test_every_chapter_opens_and_scrolls_with_and_without_reduced_motion(document, tmp_path, request):
+def test_every_chapter_opens_and_scrolls_on_desktop_and_phone_with_and_without_reduced_motion(document, tmp_path, request):
     artifact = tmp_path / f"{document.stem}.html"
     artifact.write_text(artifact_html(json.loads(document.read_text(encoding="utf-8"))), encoding="utf-8")
     swept = sweep(artifact, sweep_timeout(request))
     assert swept.problems() == [], "\n".join(swept.problems())
-    assert all(swept.chapters[motion] for motion in MOTIONS), f"test/chapter_sweep.py: {document.name} showed no chapter"
+    assert all(swept.chapters.values()), f"test/chapter_sweep.py: {document.name} showed no chapter: {swept.chapters}"
 
 
 # A page that locks its main thread once its one chapter is opened.
@@ -50,10 +51,10 @@ globalThis.obsArtifact = {navigationChapters: () => [{slug: "locked"}],
 def test_a_page_that_locks_fails_its_sweep_naming_the_chapter(tmp_path):
     artifact = tmp_path / "locking.html"
     artifact.write_text(LOCKING, encoding="utf-8")
-    swept = sweep(artifact, 3, motions=("reduce",))
-    assert swept.chapters == {"reduce": []}
-    assert swept.failure.startswith(
-        "did not finish within 3 s; the page stopped answering at chapter 'locked' (prefers-reduced-motion: reduce), opening it")
+    swept = sweep(artifact, 3, motions=("reduce",), viewports=("phone",))
+    assert swept.chapters == {("phone", "reduce"): []}
+    assert swept.failure.startswith("did not finish within 3 s; the page stopped answering at chapter 'locked' "
+                                    "(phone, prefers-reduced-motion: reduce), opening it")
 
 
 def test_compare_counts_the_differing_pixels(tmp_path):
