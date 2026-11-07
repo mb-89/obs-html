@@ -3,17 +3,18 @@
 Reader: a test that checks every chapter of an artifact opens and settles, and whoever compares
 an artifact's screenshots before and after a change that should not change what it shows.
 
-``sweep`` starts this file as a child process, which launches its own headless shell
-(test/conftest.py, ``headless_shell``) and opens the artifact at each viewport (VIEWPORTS: a
-desktop and a phone) without and with ``prefers-reduced-motion: reduce`` (MOTIONS), each pair in
-a browser context of its own. For each chapter of
+A ``Sweeper`` starts this file as a child process, which launches its own headless shell
+(test/conftest.py, ``headless_shell``) and sweeps the artifacts it is sent one after another,
+keeping its browser. The child opens
+an artifact at each viewport (VIEWPORTS: a desktop and a phone) without and with
+``prefers-reduced-motion: reduce`` (MOTIONS), each pair in a browser context of its own. For each chapter of
 ``obsArtifact.navigationChapters()`` it calls ``activateChapter``, awaits ``whenChapterReady()``
 and scrolls the chapter scroller (``[data-chapter-scroll]``) one viewport at a time, waiting two
 animation frames per step. Each console error and uncaught page error is reported. The child
 prints one JSON line per step, so where the page's main thread locks and no Playwright call
 returns, the parent's hard timeout ends the child's process tree and names the chapter, step,
-viewport and motion preference it was on. A hang in one artifact therefore cannot outlast its timeout or touch another test's
-browser. obs quality.md, Testing boundaries, owns why the sweep does not lease the pool's pages.
+viewport and motion preference it was on; the next sweep starts a fresh child. A hang in one
+artifact therefore cannot outlast its timeout or touch another test's browser. obs quality.md, Testing boundaries, owns why the sweep does not lease the pool's pages.
 
 With ``screenshots``, each step is saved as ``<folder>/<viewport>/<motion>/<NN>-<chapter>-<step>.png``;
 ``compare`` counts the pixels that differ between two such folders. From the adapter's folder:
@@ -28,6 +29,7 @@ import os
 import signal
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 # The emulated motion preferences the sweep opens an artifact with: none, and reduced motion.
@@ -85,44 +87,101 @@ class Swept:
                         for viewport, motion, error in self.errors]
 
 
-def sweep(artifact: Path, timeout: float, motions=MOTIONS, screenshots: Path | None = None,
-          viewports=tuple(VIEWPORTS)) -> Swept:
-    """Sweep ``artifact`` at each of ``viewports`` with each of ``motions``, all in one child
-    process (``child``); a child still running after ``timeout`` seconds is ended with every
-    process it started."""
-    command = [sys.executable, str(Path(__file__).resolve()), "--child", str(artifact)]
-    command += [argument for viewport in viewports for argument in ("--viewport", viewport)]
-    command += [argument for motion in motions for argument in ("--motion", motion)]
-    if screenshots:
-        command += ["--screenshots", str(screenshots)]
-    options = ({"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP} if os.name == "nt"
-               else {"start_new_session": True})
-    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
-                               encoding="utf-8", **options)
-    try:
-        output, error_output = process.communicate(timeout=timeout)
-        timed_out = False
-    except subprocess.TimeoutExpired:
+class Sweeper:
+    """A child process that sweeps artifacts one after another, launched at its first sweep and
+    kept for the next: each sweep after the first starts no process and no browser.
+
+    A sweep still running after its ``timeout`` ends the child with every process it started,
+    and the next sweep starts a fresh child; so does a sweep the child could not finish."""
+
+    def __init__(self):
+        self._process = None
+        self._lines = None
+
+    def sweep(self, artifact: Path, timeout: float, motions=MOTIONS, screenshots: Path | None = None,
+              viewports=tuple(VIEWPORTS)) -> Swept:
+        """Sweep ``artifact`` at each of ``viewports`` with each of ``motions``, in the child."""
+        import queue
+        import time
+
+        if self._process is None:
+            self._start()
+        job = {"artifact": str(Path(artifact).resolve()), "motions": list(motions), "viewports": list(viewports),
+               "screenshots": str(screenshots) if screenshots else None}
+        self._process.stdin.write(json.dumps(job) + "\n")
+        self._process.stdin.flush()
+        lines, timed_out, ended = [], False, False
+        deadline = time.monotonic() + timeout
+        while True:
+            try:
+                line = self._lines.get(timeout=max(0.0, deadline - time.monotonic()))
+            except queue.Empty:
+                timed_out = True
+                break
+            if line is None:
+                ended = True
+                break
+            lines.append(line)
+            if "finished" in line:
+                break
+        returncode, error_output = None, ""
+        if timed_out or ended:
+            returncode, error_output = self._stop()
+        chapters = {(viewport, motion): [line["done"] for line in lines if "done" in line
+                                         and (line["viewport"], line["motion"]) == (viewport, motion)]
+                    for viewport in viewports for motion in motions}
+        errors = [(line["viewport"], line["motion"], line["error"]) for line in lines if "error" in line]
+        at = next((line for line in reversed(lines) if "at" in line), None)
+        place = (f"chapter {at['at']!r} ({at['viewport']}, prefers-reduced-motion: {at['motion']}), {at['doing']}"
+                 if at else "opening the artifact")
+        failure = None
+        if timed_out:
+            failure = (f"did not finish within {timeout:g} s; the page stopped answering at {place}. A loop or "
+                       "wait on the page's main thread never ended there. Remedy: open that chapter with the same "
+                       "motion preference and pause the page in DevTools (CDP Debugger.pause) to see the stack")
+        elif ended:
+            failure = (f"the sweep stopped at {place} (exit code {returncode}): "
+                       f"{error_output.strip().splitlines()[-1] if error_output.strip() else 'no message'}")
+        return Swept(Path(artifact), chapters, errors, failure)
+
+    def close(self) -> None:
+        """End the child, if one runs; it closes its browser as its input ends."""
+        if self._process is not None:
+            self._process.stdin.close()
+            try:
+                self._process.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                pass
+            self._stop()
+
+    def _start(self) -> None:
+        import queue
+        import threading
+
+        options = ({"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP} if os.name == "nt"
+                   else {"start_new_session": True})
+        self._errors = tempfile.TemporaryFile("w+", encoding="utf-8")
+        self._process = subprocess.Popen([sys.executable, str(Path(__file__).resolve()), "--child"],
+                                         stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=self._errors,
+                                         text=True, encoding="utf-8", **options)
+        self._lines = queue.Queue()
+
+        def read(stdout, lines):
+            for line in stdout:
+                if line.startswith(LINE):
+                    lines.put(json.loads(line[len(LINE):]))
+            lines.put(None)
+        threading.Thread(target=read, args=(self._process.stdout, self._lines), daemon=True).start()
+
+    def _stop(self) -> tuple[int | None, str]:
+        """End the child's process tree; its exit code and what it wrote to its standard error."""
+        process, self._process = self._process, None
         _end_tree(process)
-        output, error_output = process.communicate()
-        timed_out = True
-    lines = [json.loads(line[len(LINE):]) for line in output.splitlines() if line.startswith(LINE)]
-    chapters = {(viewport, motion): [line["done"] for line in lines if "done" in line
-                                     and (line["viewport"], line["motion"]) == (viewport, motion)]
-                for viewport in viewports for motion in motions}
-    errors = [(line["viewport"], line["motion"], line["error"]) for line in lines if "error" in line]
-    at = next((line for line in reversed(lines) if "at" in line), None)
-    place = (f"chapter {at['at']!r} ({at['viewport']}, prefers-reduced-motion: {at['motion']}), {at['doing']}"
-             if at else "opening the artifact")
-    failure = None
-    if timed_out:
-        failure = (f"did not finish within {timeout:g} s; the page stopped answering at {place}. A loop or "
-                   "wait on the page's main thread never ended there. Remedy: open that chapter with the same "
-                   "motion preference and pause the page in DevTools (CDP Debugger.pause) to see the stack")
-    elif process.returncode != 0 or not any("finished" in line for line in lines):
-        failure = (f"the sweep stopped at {place} (exit code {process.returncode}): "
-                   f"{error_output.strip().splitlines()[-1] if error_output.strip() else 'no message'}")
-    return Swept(Path(artifact), chapters, errors, failure)
+        returncode = process.wait()
+        self._errors.seek(0)
+        error_output = self._errors.read()
+        self._errors.close()
+        return returncode, error_output
 
 
 def _end_tree(process: subprocess.Popen) -> None:
@@ -140,9 +199,9 @@ def _say(**fields) -> None:
     print(LINE + json.dumps(fields), flush=True)
 
 
-def child(artifact: Path, motions: list[str], viewports: list[str], screenshots: Path | None) -> None:
-    """The child's sweep: one headless shell, a page per (viewport, motion preference), every
-    chapter, a line per step (``_say``)."""
+def child() -> None:
+    """The child's sweeps: one headless shell; for each job read from standard input (Sweeper),
+    a page per (viewport, motion preference), every chapter, a line per step (``_say``)."""
     from playwright.sync_api import sync_playwright
 
     import conftest
@@ -150,13 +209,16 @@ def child(artifact: Path, motions: list[str], viewports: list[str], screenshots:
     with sync_playwright() as playwright:
         browser = conftest.launcher(playwright, conftest.HEADLESS_SHELL_ENGINE,
                                     conftest.headless_shell(conftest.suite.playwright_browsers()))()
-        for name in viewports:
-            size, phone = VIEWPORTS[name]
-            context = {**conftest.PHONE_CONTEXT, "device_scale_factor": PHONE_SCALE} if phone else {}
-            for motion in motions:
-                _sweep_page(browser.new_context(reduced_motion=motion, viewport=size, **context).new_page(),
-                            artifact, name, motion, screenshots)
-        _say(finished=True)
+        for line in sys.stdin:
+            job = json.loads(line)
+            screenshots = Path(job["screenshots"]) if job["screenshots"] else None
+            for name in job["viewports"]:
+                size, phone = VIEWPORTS[name]
+                context = {**conftest.PHONE_CONTEXT, "device_scale_factor": PHONE_SCALE} if phone else {}
+                for motion in job["motions"]:
+                    _sweep_page(browser.new_context(reduced_motion=motion, viewport=size, **context).new_page(),
+                                Path(job["artifact"]), name, motion, screenshots)
+            _say(finished=True)
         browser.close()
 
 
@@ -205,7 +267,7 @@ def compare(before: Path, after: Path) -> dict[str, int | None]:
 
 def main(arguments: list[str]) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    parser.add_argument("artifacts", nargs="+", type=Path)
+    parser.add_argument("artifacts", nargs="*", type=Path)
     parser.add_argument("--child", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--motion", choices=MOTIONS, action="append",
                         help="the motion preference to sweep with; both where none is named")
@@ -218,18 +280,24 @@ def main(arguments: list[str]) -> int:
     viewports = options.viewport or list(VIEWPORTS)
     motions = options.motion or list(MOTIONS)
     if options.child:
-        child(options.artifacts[0], motions, viewports, options.screenshots)
+        child()
         return 0
+    if not options.artifacts:
+        parser.error("name at least one artifact")
     if options.compare and not options.screenshots:
         parser.error("--compare needs --screenshots")
     problems = []
-    for artifact in options.artifacts:
-        folder = options.screenshots / artifact.stem if options.screenshots else None
-        swept = sweep(artifact, options.timeout, motions, folder, viewports)
-        problems += swept.problems()
-        print(f"{artifact.name}: " + ", ".join(f"{viewport} {motion} {len(done)} chapters"
-                                                for (viewport, motion), done in swept.chapters.items())
-              + (", failed" if swept.problems() else ""))
+    sweeper = Sweeper()
+    try:
+        for artifact in options.artifacts:
+            folder = options.screenshots / artifact.stem if options.screenshots else None
+            swept = sweeper.sweep(artifact, options.timeout, motions, folder, viewports)
+            problems += swept.problems()
+            print(f"{artifact.name}: " + ", ".join(f"{viewport} {motion} {len(done)} chapters"
+                                                    for (viewport, motion), done in swept.chapters.items())
+                  + (", failed" if swept.problems() else ""))
+    finally:
+        sweeper.close()
     if options.compare:
         counts = compare(options.compare, options.screenshots)
         differing = {name: count for name, count in counts.items() if count != 0}

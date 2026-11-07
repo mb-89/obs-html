@@ -4,8 +4,8 @@ without reduced motion.
 Reader: whoever changes the reader runtime, its motion rules, or the chapter sweep
 (test/chapter_sweep.py, which owns how a sweep runs).
 
-Each fixture artifact is swept at each viewport in a process of its own, with a hard timeout a little under the
-test's own, so a page whose main thread locks fails its test and names the chapter it was on.
+Each fixture artifact is swept at each viewport by the test process's sweep child, with a hard
+timeout a little under the test's own, so a page whose main thread locks fails its test and names the chapter it was on.
 Under reduced motion, a figure chapter of figures.json and of document.json once locked the
 page: artifact-ui.md, Accessibility, owns the reduced-motion rule.
 """
@@ -14,7 +14,7 @@ import json
 import pytest
 
 from artifacts import artifact_html
-from chapter_sweep import VIEWPORTS, compare, sweep
+from chapter_sweep import VIEWPORTS, Sweeper, compare
 from conftest import ROOT
 
 DOCUMENTS = sorted((ROOT / "test" / "fixtures" / "documents").glob("*.json"))
@@ -27,18 +27,27 @@ def sweep_timeout(request) -> float:
     return request.node.get_closest_marker("timeout").args[0] - GRACE
 
 
+@pytest.fixture(scope="session")
+def sweeper():
+    """The test process's sweep child (test/chapter_sweep.py, Sweeper), kept from one sweep to the next."""
+    kept = Sweeper()
+    yield kept
+    kept.close()
+
+
 @pytest.mark.browser
 @pytest.mark.parametrize("document, viewport", [
-    # Each artifact's sweep at each viewport is a test of its own, in a child of its own, on a
-    # worker of its own (test/conftest.py), not after the module's others.
+    # Each artifact's sweep at each viewport is a test of its own, in a group of its own
+    # (test/conftest.py), not after the module's others.
     pytest.param(path, viewport, id=f"{path.stem}-{viewport}",
                  marks=pytest.mark.xdist_group(f"chapter-sweep-{path.stem}-{viewport}"))
     for path in DOCUMENTS for viewport in VIEWPORTS])
 def test_every_chapter_opens_and_scrolls_on_desktop_and_phone_with_and_without_reduced_motion(document, viewport,
-                                                                                              tmp_path, request):
+                                                                                              tmp_path, request,
+                                                                                              sweeper):
     artifact = tmp_path / f"{document.stem}.html"
     artifact.write_text(artifact_html(json.loads(document.read_text(encoding="utf-8"))), encoding="utf-8")
-    swept = sweep(artifact, sweep_timeout(request), viewports=(viewport,))
+    swept = sweeper.sweep(artifact, sweep_timeout(request), viewports=(viewport,))
     assert swept.problems() == [], "\n".join(swept.problems())
     assert all(swept.chapters.values()), f"test/chapter_sweep.py: {document.name} showed no chapter: {swept.chapters}"
 
@@ -48,18 +57,6 @@ LOCKING = """<!doctype html><html data-artifact-status="ready"><body><div data-c
 globalThis.obsArtifact = {navigationChapters: () => [{slug: "locked"}],
                           activateChapter: () => { for (;;) {} }, whenChapterReady: async () => {}};
 </script></body></html>"""
-
-
-@pytest.mark.browser
-def test_a_page_that_locks_fails_its_sweep_naming_the_chapter(tmp_path):
-    artifact = tmp_path / "locking.html"
-    artifact.write_text(LOCKING, encoding="utf-8")
-    swept = sweep(artifact, 3, motions=("reduce",), viewports=("phone",))
-    assert swept.chapters == {("phone", "reduce"): []}
-    assert swept.failure.startswith("did not finish within 3 s; the page stopped answering at chapter 'locked' "
-                                    "(phone, prefers-reduced-motion: reduce), opening it")
-
-
 # A page with no chapter that reports, as a console error, the viewport and device scale it was opened at.
 REPORTING = """<!doctype html><html data-artifact-status="ready"><head><meta name="viewport" content="width=device-width">
 </head><body><script>
@@ -69,10 +66,27 @@ console.error(`${innerWidth} px at device scale ${devicePixelRatio}`);
 
 
 @pytest.mark.browser
-def test_each_viewport_is_swept_by_a_child_of_its_own_and_the_phone_at_device_scale_1(tmp_path):
+def test_a_page_that_locks_fails_its_sweep_naming_the_chapter_and_the_next_sweep_runs_in_a_fresh_child(tmp_path):
+    locking, reporting = tmp_path / "locking.html", tmp_path / "reporting.html"
+    locking.write_text(LOCKING, encoding="utf-8")
+    reporting.write_text(REPORTING, encoding="utf-8")
+    kept = Sweeper()
+    try:
+        swept = kept.sweep(locking, 3, motions=("reduce",), viewports=("phone",))
+        after = kept.sweep(reporting, 20, motions=("reduce",), viewports=("desktop",))
+    finally:
+        kept.close()
+    assert swept.chapters == {("phone", "reduce"): []}
+    assert swept.failure.startswith("did not finish within 3 s; the page stopped answering at chapter 'locked' "
+                                    "(phone, prefers-reduced-motion: reduce), opening it")
+    assert (after.failure, after.errors) == (None, [("desktop", "reduce", "1280 px at device scale 1")])
+
+
+@pytest.mark.browser
+def test_each_viewport_is_swept_at_its_width_and_the_phone_at_device_scale_1(tmp_path, sweeper):
     artifact = tmp_path / "reporting.html"
     artifact.write_text(REPORTING, encoding="utf-8")
-    swept = {viewport: sweep(artifact, 20, motions=("reduce",), viewports=(viewport,)) for viewport in VIEWPORTS}
+    swept = {viewport: sweeper.sweep(artifact, 20, motions=("reduce",), viewports=(viewport,)) for viewport in VIEWPORTS}
     assert {viewport: result.errors for viewport, result in swept.items()} == {
         "desktop": [("desktop", "reduce", "1280 px at device scale 1")],
         "phone": [("phone", "reduce", "390 px at device scale 1")]}
