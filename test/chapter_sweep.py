@@ -33,11 +33,16 @@ from pathlib import Path
 # The emulated motion preferences the sweep opens an artifact with: none, and reduced motion.
 MOTIONS = ("no-preference", "reduce")
 # The viewports the sweep opens an artifact at, by name: each one's size and whether it is a phone,
-# whose context is the phone pool's (test/conftest.py, PHONE_CONTEXT). The phone is an iPhone 13's.
+# whose context is the phone pool's (test/conftest.py, PHONE_CONTEXT) at device scale 1
+# (PHONE_SCALE). The phone is an iPhone 13's.
 VIEWPORTS = {
     "desktop": ({"width": 1280, "height": 720}, False),
     "phone": ({"width": 390, "height": 844}, True),
 }
+# The sweep's phone draws at device scale 1, not the phone pool's 3: it looks for a page that
+# stops answering and for console errors, not at pixels a person reads, and three times the
+# scale draws nine times the pixels on every scroll step.
+PHONE_SCALE = 1
 # How the child marks its output lines from anything else on its stdout.
 LINE = "chapter-sweep "
 # Resolves once the artifact has started, at once if it has; rejects on a failed startup.
@@ -147,7 +152,7 @@ def child(artifact: Path, motions: list[str], viewports: list[str], screenshots:
                                     conftest.headless_shell(conftest.suite.playwright_browsers()))()
         for name in viewports:
             size, phone = VIEWPORTS[name]
-            context = conftest.PHONE_CONTEXT if phone else {}
+            context = {**conftest.PHONE_CONTEXT, "device_scale_factor": PHONE_SCALE} if phone else {}
             for motion in motions:
                 _sweep_page(browser.new_context(reduced_motion=motion, viewport=size, **context).new_page(),
                             artifact, name, motion, screenshots)
