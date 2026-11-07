@@ -315,6 +315,10 @@ failures have their form in [[input-model#Chapter content]].
   Plot legends can be repositioned by dragging their frame, without interfering with trace
   toggling or plot panning; provide a keyboard-accessible equivalent. Legend position is
   view-local and survives expand/close in the session; print retains the authored default.
+
+  A legend laid out past its plot's edge, by a drag, a relayout or a resize, is moved back
+  inside on the next frame. The correction leaves alone a legend whose box and plot box read as
+  they did when it last moved it, so a box its own move did not change cannot loop the page.
 - Figures are centered on the available reader viewport and may extend equally to either
   side of the prose column, within the reader and clear of the chapter controls, which a
   figure's own controls never lie under. Plot coordinate areas should occupy
@@ -2144,8 +2148,9 @@ anchors. Home remains in the retained navigation sequence even with no matches.
   before the next frame then reads as its start value.
 
   An interactive graph's legend correction measured the legend that way and relaid the graph
-  after every relayout, which locked the page. The adapter's chapter sweep
-  (`test/chapter_sweep.py`) opens and scrolls every chapter of every fixture artifact with and
-  without the preference.
+  after every relayout, which locked the page; the correction now converges, as
+  [[artifact-ui#Interactive engineering figures]] says.
+  The adapter's chapter sweep (`test/chapter_sweep.py`) opens and scrolls every chapter of every
+  fixture artifact with and without the preference, on a desktop and on a phone.
 
 See [[input-model]] and [[architecture]].

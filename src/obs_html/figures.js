@@ -403,15 +403,25 @@
           });
         });
       }
+      // The legend correction converges (artifact-ui.md, Interactive engineering figures): it
+      // runs on the next frame, at most once per frame, and leaves alone a legend whose box and
+      // plot box are the ones it last corrected, so a box its own relayout did not move cannot
+      // loop the page.
+      let legendFrame = 0, corrected = "";
       function keepLegendReachable() {
+        legendFrame = 0;
         const legend = chart.querySelector("g.legend");
-        if (!legend) return;
+        if (!legend || !chart.isConnected) return;
         const box = legend.getBoundingClientRect(), bounds = chart.getBoundingClientRect();
         const dx = box.width > bounds.width || box.left < bounds.left ? bounds.left - box.left :
           box.right > bounds.right ? bounds.right - box.right : 0;
         const dy = box.height > bounds.height || box.top < bounds.top ? bounds.top - box.top :
           box.bottom > bounds.bottom ? bounds.bottom - box.bottom : 0;
-        if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
+        if (Math.abs(dx) < 1 && Math.abs(dy) < 1) { corrected = ""; return; }
+        const measured = JSON.stringify([box.left, box.top, box.width, box.height,
+          bounds.left, bounds.top, bounds.width, bounds.height]);
+        if (measured === corrected) return;
+        corrected = measured;
         const layout = chart._fullLayout;
         Plotly.relayout(chart, {
           "legend.x": layout.legend.x + dx / layout._size.w,
@@ -420,7 +430,7 @@
       }
       chart.on("plotly_afterplot", () => {
         legendKeyboard();
-        keepLegendReachable();
+        legendFrame ||= requestAnimationFrame(keepLegendReachable);
       });
       legendKeyboard();
       const observer = new ResizeObserver(() => {
