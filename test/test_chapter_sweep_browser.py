@@ -1,0 +1,70 @@
+"""Every chapter of every fixture Document opens and scrolls, with and without reduced motion.
+
+Reader: whoever changes the reader runtime, its motion rules, or the chapter sweep
+(test/chapter_sweep.py, which owns how a sweep runs).
+
+Each fixture artifact is swept in a process of its own, with a hard timeout a little under the
+test's own, so a page whose main thread locks fails its test and names the chapter it was on.
+Under reduced motion, a figure chapter of figures.json and of document.json once locked the
+page: artifact-ui.md, Accessibility, owns the reduced-motion rule.
+"""
+import json
+
+import pytest
+
+from artifacts import artifact_html
+from chapter_sweep import MOTIONS, compare, sweep
+from conftest import ROOT
+
+DOCUMENTS = sorted((ROOT / "test" / "fixtures" / "documents").glob("*.json"))
+# Seconds the test keeps for itself past the sweep's hard timeout: to build the artifact and to
+# report a sweep that timed out before pytest-timeout stops the test.
+GRACE = 6
+
+
+def sweep_timeout(request) -> float:
+    return request.node.get_closest_marker("timeout").args[0] - GRACE
+
+
+@pytest.mark.browser
+@pytest.mark.parametrize("document", [
+    # Each sweep runs on a worker of its own (test/conftest.py), not after the module's others.
+    pytest.param(path, id=path.stem, marks=pytest.mark.xdist_group(f"chapter-sweep-{path.stem}"))
+    for path in DOCUMENTS])
+def test_every_chapter_opens_and_scrolls_with_and_without_reduced_motion(document, tmp_path, request):
+    artifact = tmp_path / f"{document.stem}.html"
+    artifact.write_text(artifact_html(json.loads(document.read_text(encoding="utf-8"))), encoding="utf-8")
+    swept = sweep(artifact, sweep_timeout(request))
+    assert swept.problems() == [], "\n".join(swept.problems())
+    assert all(swept.chapters[motion] for motion in MOTIONS), f"test/chapter_sweep.py: {document.name} showed no chapter"
+
+
+# A page that locks its main thread once its one chapter is opened.
+LOCKING = """<!doctype html><html data-artifact-status="ready"><body><div data-chapter-scroll></div><script>
+globalThis.obsArtifact = {navigationChapters: () => [{slug: "locked"}],
+                          activateChapter: () => { for (;;) {} }, whenChapterReady: async () => {}};
+</script></body></html>"""
+
+
+@pytest.mark.browser
+def test_a_page_that_locks_fails_its_sweep_naming_the_chapter(tmp_path):
+    artifact = tmp_path / "locking.html"
+    artifact.write_text(LOCKING, encoding="utf-8")
+    swept = sweep(artifact, 3, motions=("reduce",))
+    assert swept.chapters == {"reduce": []}
+    assert swept.failure.startswith(
+        "did not finish within 3 s; the page stopped answering at chapter 'locked' (prefers-reduced-motion: reduce), opening it")
+
+
+def test_compare_counts_the_differing_pixels(tmp_path):
+    from PIL import Image
+
+    for name, colour in (("before", "white"), ("after", "white")):
+        (tmp_path / name).mkdir()
+        Image.new("RGB", (4, 3), colour).save(tmp_path / name / "same.png")
+        image = Image.new("RGB", (4, 3), "white")
+        if name == "after":
+            image.putpixel((1, 1), (0, 0, 0))
+        image.save(tmp_path / name / "one.png")
+    Image.new("RGB", (1, 1)).save(tmp_path / "after" / "new.png")
+    assert compare(tmp_path / "before", tmp_path / "after") == {"new.png": None, "one.png": 1, "same.png": 0}
