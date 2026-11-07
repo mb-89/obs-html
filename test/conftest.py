@@ -196,6 +196,7 @@ def pytest_collection_modifyitems(config, items):
     for item in rest:
         item.add_marker(pytest.mark.xdist_group(item.nodeid.split("::")[0]))
     items[:] = own + rest
+    suite.keep_shard(config, items, bounds)
     suite.heaviest_first(ROOT, items)
 
 
