@@ -278,6 +278,11 @@ CONTEXT_MEDIA = {"media": "null", "color_scheme": "light", "reduced_motion": "no
                  "forced_colors": "none", "contrast": "no-preference"}
 
 
+# How long a released page may take to answer each step that makes it blank again: an answering
+# page takes milliseconds, so a page past it is locked or lost, and is closed instead of reused.
+RELEASE_TIMEOUT_MS = 2_000
+
+
 class PagePool:
     """The test process's open pages, each in a browser context of its own, leased to one test at a time.
 
@@ -294,7 +299,8 @@ class PagePool:
     sees what a new context shows, media emulation included (CONTEXT_MEDIA). Session storage,
     which lives in the tab, is cleared for the origins the page shows when the test ends; neither
     the artifact nor a test keeps any in an origin it navigates away from. A page the test
-    closed or changed another page setting on (PAGE_SETTINGS) is closed with its context instead.
+    closed or changed another page setting on (PAGE_SETTINGS) is closed with its context instead,
+    as is a page that does not answer while it is made blank (``release``).
     """
 
     def __init__(self, engine: str, launch, context: dict | None = None):
@@ -397,21 +403,37 @@ class PagePool:
             self._changed.add(page)
 
     def release(self, page) -> None:
+        """Make the test's page blank again for the next lease; a page that does not answer in
+        RELEASE_TIMEOUT_MS, or fails otherwise, is closed with its context, never waited on, and
+        the next lease opens a new one."""
+        from playwright.sync_api import Error as PlaywrightError
+
         if page not in self._listeners:  # The pool abandoned its browser.
             return
         listeners = self._listeners.pop(page)
         context = page.context
         if not context.browser.is_connected():
-            for each in (self._changed, self._emulated):
-                each.discard(page)
-            self._origins.pop(page, None)
+            self._forget(page)
             return
         if page.is_closed() or page in self._changed:
-            self._changed.discard(page)
-            self._emulated.discard(page)
-            self._origins.pop(page)
+            self._forget(page)
             context.close()
             return
+        try:
+            self._reset(page, context, listeners)
+        except PlaywrightError:
+            self._forget(page)
+            context.close()
+            return
+        self._idle.append(page)
+
+    def _forget(self, page) -> None:
+        for each in (self._changed, self._emulated):
+            each.discard(page)
+        self._origins.pop(page, None)
+
+    def _reset(self, page, context, listeners) -> None:
+        """Make a released page show what a new context shows (the class's docstring)."""
         for event, handler in listeners:
             page.remove_listener(event, handler)
         for other in context.pages:
@@ -423,8 +445,9 @@ class PagePool:
         # A tab's session storage outlives navigations, and clearing an origin's data leaves it, so
         # it is cleared from the frames the page shows (an opaque origin has none and throws).
         for frame in page.frames:
-            frame.evaluate("() => { try { sessionStorage.clear(); } catch (error) {} }")
-        page.goto("about:blank")
+            frame.wait_for_function("() => { try { sessionStorage.clear(); } catch (error) {} return true; }",
+                                    timeout=RELEASE_TIMEOUT_MS)
+        page.goto("about:blank", timeout=RELEASE_TIMEOUT_MS)
         shown = self._origins[page] - {""}
         if shown:
             session = context.new_cdp_session(page)
@@ -434,7 +457,6 @@ class PagePool:
         self._origins[page].clear()
         context.clear_cookies()
         page.mouse.move(0, 0)
-        self._idle.append(page)
 
     def close(self) -> None:
         browser, self._browser = self._browser, None
