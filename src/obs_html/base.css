@@ -2443,11 +2443,14 @@ math {
         animation: none;
     }
 
+    /* No transition at all, not a near-zero one: a duration on every element would transition
+       every property of it (transition-property defaults to all), an SVG transform attribute
+       too, whose box then reads as its start value until a frame runs (artifact-ui.md). */
     *,
     *::before,
     *::after {
         scroll-behavior: auto !important;
-        transition-duration: 0.01ms !important;
+        transition: none !important;
     }
 }
 

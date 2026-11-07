@@ -2135,6 +2135,17 @@ anchors. Home remains in the retained navigation sequence even with no matches.
 - All controls are keyboard reachable with visible focus styling.
 - The menu reports expanded state, docked bars are landmarks, and the active table-of-
   contents item is identified with `aria-current`.
-- Reduced-motion preferences disable nonessential transitions.
+- Reduced-motion preferences disable nonessential transitions. Under
+  `prefers-reduced-motion: reduce` no element transitions and scrolling jumps instead of gliding;
+  the pending treatment and the attention cue stay still, as their own rules above say.
+
+  A transition is switched off, not shortened to a near-zero duration: a duration set on every
+  element transitions every property it has, an SVG transform attribute too, and a box measured
+  before the next frame then reads as its start value.
+
+  An interactive graph's legend correction measured the legend that way and relaid the graph
+  after every relayout, which locked the page. The adapter's chapter sweep
+  (`test/chapter_sweep.py`) opens and scrolls every chapter of every fixture artifact with and
+  without the preference.
 
 See [[input-model]] and [[architecture]].
