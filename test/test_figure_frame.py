@@ -153,3 +153,66 @@ def test_an_equation_figure_is_framed_with_its_live_body_and_spec() -> None:
 
     assert inner.startswith('<div class="figure-live" aria-label="Interactive figure"></div>')
     assert json.loads(unescape(spec)) == {"kind": "equations", "alt": "The equations figure, see Gallery.", **body}
+
+
+PLOT = ".obs-figure[data-figure-kind='plot'] .js-plotly-plot"
+# The plot's legend box and its chart's box, as [left, top, right, bottom] each.
+LEGEND_AND_CHART = f"""() => {{
+    const chart = document.querySelector("{PLOT}");
+    const box = element => {{ const r = element.getBoundingClientRect(); return [r.left, r.top, r.right, r.bottom]; }};
+    return [box(chart.querySelector("g.legend")), box(chart)];
+}}"""
+LEGEND_INSIDE = f"""() => {{
+    const chart = document.querySelector("{PLOT}");
+    const legend = chart.querySelector("g.legend").getBoundingClientRect(), bounds = chart.getBoundingClientRect();
+    return legend.left >= bounds.left - 1 && legend.right <= bounds.right + 1
+        && legend.top >= bounds.top - 1 && legend.bottom <= bounds.bottom + 1;
+}}"""
+
+
+@pytest.mark.browser
+def test_a_legend_laid_out_past_the_plot_is_moved_back_inside_again_after_a_resize(
+    figures_artifact, reader_browser,
+) -> None:
+    page, errors = _open(reader_browser, figures_artifact)
+    page.locator(PLOT).scroll_into_view_if_needed()
+
+    page.evaluate(f"Plotly.relayout(document.querySelector(\"{PLOT}\"), {{'legend.x': 3, 'legend.y': 1}})")
+    page.wait_for_function(LEGEND_INSIDE, timeout=3000)
+    page.set_viewport_size({"width": 900, "height": 900})
+    page.wait_for_function(f"document.querySelector(\"{PLOT}\")._fullLayout.width < 900")
+    page.evaluate(f"Plotly.relayout(document.querySelector(\"{PLOT}\"), {{'legend.x': -2, 'legend.y': 1}})")
+    page.wait_for_function(LEGEND_INSIDE, timeout=3000)
+
+    assert errors == [], page.evaluate(LEGEND_AND_CHART)
+
+
+# Resolves, with the afterplot count so far, after a few timer turns and frames.
+FRAMES_LATER = """() => new Promise(resolve => setTimeout(() => requestAnimationFrame(() =>
+    requestAnimationFrame(() => setTimeout(() => resolve(globalThis.legendRelayouts), 100))), 100))"""
+
+
+@pytest.mark.browser
+def test_a_legend_whose_box_never_moves_leaves_the_page_answering(figures_artifact, reader_browser) -> None:
+    page, errors = _open(reader_browser, figures_artifact)
+    page.locator(PLOT).scroll_into_view_if_needed()
+    # The legend's box reads the same, out of the chart's bounds, whatever the correction does:
+    # every relayout re-runs the correction, which must notice that it changed nothing.
+    page.evaluate(f"""() => {{
+        const chart = document.querySelector("{PLOT}");
+        const bounds = chart.getBoundingClientRect();
+        SVGGElement.prototype.getBoundingClientRect = function () {{
+            return new DOMRect(bounds.left - 400, bounds.top - 300, 100, 60);
+        }};
+        globalThis.legendRelayouts = 0;
+        chart.on("plotly_afterplot", () => globalThis.legendRelayouts++);
+        setTimeout(() => Plotly.relayout(chart, {{"legend.x": 0.5}}));
+    }}""")
+
+    # A page whose main thread locks never answers: the test then runs past its tier's timeout
+    # (test/bounds.py), which fails it and ends the pool's browser (test/conftest.py, PagePool).
+    settled = page.evaluate(FRAMES_LATER)
+    page.evaluate(FRAMES_LATER)
+
+    assert settled <= 3 and page.evaluate("legendRelayouts") == settled, settled
+    assert errors == []
