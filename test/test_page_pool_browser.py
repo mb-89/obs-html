@@ -161,16 +161,18 @@ import conftest
 @pytest.hookimpl(tryfirst=True)
 def pytest_timeout_set_timer(item, settings):
     item.user_properties.append(("launched", sorted(pool.engine for pool in conftest.POOLS if pool.launched())))
+    item.user_properties.append(("warm pages", [len(pool._idle) for pool in conftest.POOLS if pool.launched()]))
 """
 
 # A test that needs no browser, then the first test of the process that needs the shell's pages:
-# its pool's browser is up before its timeout starts, and no other pool's is.
+# its pool's browser is up, with one page drawn, before its timeout starts, and no other pool's is.
 FIRST_LEASE = """def test_needs_no_browser(request):
     assert dict(request.node.user_properties)["launched"] == []
 
 
 def test_first_to_need_the_shell(reader_browser, request):
     assert dict(request.node.user_properties)["launched"] == ["chromium-headless-shell"]
+    assert dict(request.node.user_properties)["warm pages"] == [1]
 """
 
 

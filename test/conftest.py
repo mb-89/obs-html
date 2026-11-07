@@ -338,9 +338,15 @@ class PagePool:
         return self._browser is not None and self._browser.is_connected()
 
     def warm(self) -> None:
-        """Launch the pool's browser where it is not up: a first launch, or one after its browser died."""
+        """Launch the pool's browser where it is not up: a first launch, or one after its browser
+        died. It draws one page, which the next lease takes: a cold browser's first page starts its
+        renderer and readies its fonts and graphics, which on a fresh CI runner took seconds."""
         if not self.launched():
             self._relaunch()
+            page = self._open()
+            page.set_content("<!doctype html><p>Warm.</p>")
+            page.evaluate("() => document.body.getBoundingClientRect().height")
+            self._idle.append(page)
 
     def _ready_page(self, viewport: dict | None):
         self.warm()
