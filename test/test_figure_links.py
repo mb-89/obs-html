@@ -83,7 +83,7 @@ def test_the_chapter_text_shows_the_drawing_s_text_with_link_labels_and_no_style
 
 def test_a_block_link_inside_a_figure_links_the_figure_s_anchor() -> None:
     block = {**_link("target", "target", "[[target#^plan]]"), "attrs": {
-        "target": "target", "chapter": "target", "heading": "^plan", "label": "plan", "figure": "plan",
+        "target": "target", "chapter": "target", "heading": "^plan", "label": "plan", "block": "plan",
         "svg": "[[target#^plan]]"}}
     svg = SVG.replace("[[target]]", "[[target#^plan]]")
 

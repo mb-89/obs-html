@@ -21,6 +21,8 @@ from obs_html.config import load_config
 from obs_html.errors import InputError
 from obs_html.render import render
 
+from documents import chapter, document as build, heading, paragraph
+
 
 FIXTURE = ROOT / "test" / "fixtures" / "documents" / "figure-references.json"
 
@@ -173,3 +175,23 @@ def test_every_number_and_reference_reads_as_expected() -> None:
     for slug, expected in EXPECTED_TEXT.items():
         assert number.findall(ours[slug]) == expected["numbers"], slug
         assert _text(ours[slug]) == expected["text"], slug
+
+
+def test_a_block_link_to_another_block_links_its_anchor_with_its_label() -> None:
+    """A block link whose block no figure carries: a paragraph's, a heading's (artifact-ui.md, Figures)."""
+    def link(block: str) -> dict:
+        return {"type": "wikilinks", "attrs": {"target": "", "chapter": "one", "heading": f"^{block}",
+                                               "label": f"^{block}", "block": block}, "children": []}
+    pinned = {**paragraph("A pinned paragraph."), "id": "pinned"}
+    details = {**heading(2, "Details"), "id": "details"}
+    other = {**paragraph("An unlinked paragraph."), "id": "paragraph-00000000"}
+    document = build("Blocks", chapter("one", "One", details, pinned, other,
+                                       paragraph("See ", link("pinned"), " and ", link("details"), ".")))
+    html = next(note["html"] for note in decode_artifact_data(render(document, load_config()))["notes"]
+                if note["slug"] == "one")
+
+    assert ('See <a class="internal-link" href="#one/block-pinned">^pinned</a> and '
+            '<a class="internal-link" href="#one/block-details">^details</a>.') in html
+    assert '<p data-node-id="pinned" id="one--block-pinned">A pinned paragraph.</p>' in html
+    assert re.search(r'<h2 [^>]*data-node-id="details"><span id="one--block-details"></span>Details</h2>', html), html
+    assert "one--block-paragraph-00000000" not in html

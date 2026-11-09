@@ -111,7 +111,7 @@
                 "chapter": "two",
                 "heading": "^b",
                 "label": "Two > ^b",
-                "figure": "b"
+                "block": "b"
               },
               "children": []
             },
@@ -368,7 +368,7 @@
                 "chapter": "two",
                 "heading": "^d",
                 "label": "^d",
-                "figure": "d"
+                "block": "d"
               },
               "children": []
             },
@@ -398,7 +398,7 @@
                 "chapter": "two",
                 "heading": "^d",
                 "label": "^d",
-                "figure": "d"
+                "block": "d"
               },
               "children": []
             },
@@ -415,7 +415,7 @@
                 "chapter": "two",
                 "heading": "^e",
                 "label": "^e",
-                "figure": "e"
+                "block": "e"
               },
               "children": []
             },
@@ -445,7 +445,7 @@
                 "chapter": "two",
                 "heading": "^d",
                 "label": "^d",
-                "figure": "d"
+                "block": "d"
               },
               "children": []
             },
@@ -462,7 +462,7 @@
                 "chapter": "two",
                 "heading": "^e",
                 "label": "^e",
-                "figure": "e"
+                "block": "e"
               },
               "children": []
             },
@@ -479,7 +479,7 @@
                 "chapter": "two",
                 "heading": "^f",
                 "label": "^f",
-                "figure": "f"
+                "block": "f"
               },
               "children": []
             },
@@ -509,7 +509,7 @@
                 "chapter": "two",
                 "heading": "^a",
                 "label": "^a",
-                "figure": "a"
+                "block": "a"
               },
               "children": []
             },
@@ -526,7 +526,7 @@
                 "chapter": "two",
                 "heading": "^b",
                 "label": "^b",
-                "figure": "b"
+                "block": "b"
               },
               "children": []
             },
@@ -543,7 +543,7 @@
                 "chapter": "two",
                 "heading": "^c",
                 "label": "^c",
-                "figure": "c"
+                "block": "c"
               },
               "children": []
             },
@@ -560,7 +560,7 @@
                 "chapter": "two",
                 "heading": "^e",
                 "label": "^e",
-                "figure": "e"
+                "block": "e"
               },
               "children": []
             },
@@ -577,7 +577,7 @@
                 "chapter": "two",
                 "heading": "^b",
                 "label": "the second",
-                "figure": "b"
+                "block": "b"
               },
               "children": []
             },
@@ -594,7 +594,7 @@
                 "chapter": "two",
                 "heading": "^c",
                 "label": "^c",
-                "figure": "c"
+                "block": "c"
               },
               "children": []
             },
@@ -624,7 +624,7 @@
                 "chapter": "two",
                 "heading": "^a",
                 "label": "^a",
-                "figure": "a"
+                "block": "a"
               },
               "children": []
             },
@@ -641,7 +641,7 @@
                 "chapter": "two",
                 "heading": "^b",
                 "label": "^b",
-                "figure": "b"
+                "block": "b"
               },
               "children": []
             },
@@ -671,7 +671,7 @@
                 "chapter": "two",
                 "heading": "^a",
                 "label": "^a",
-                "figure": "a"
+                "block": "a"
               },
               "children": []
             },
@@ -688,7 +688,7 @@
                 "chapter": "two",
                 "heading": "^b",
                 "label": "^b",
-                "figure": "b"
+                "block": "b"
               },
               "children": []
             },
@@ -705,7 +705,7 @@
                 "chapter": "two",
                 "heading": "^c",
                 "label": "^c",
-                "figure": "c"
+                "block": "c"
               },
               "children": []
             },
@@ -735,7 +735,7 @@
                 "chapter": "two",
                 "heading": "^a",
                 "label": "the first",
-                "figure": "a"
+                "block": "a"
               },
               "children": []
             },
@@ -765,7 +765,7 @@
                 "chapter": "two",
                 "heading": "^d",
                 "label": "^d",
-                "figure": "d"
+                "block": "d"
               },
               "children": []
             },
@@ -781,7 +781,7 @@
                 "chapter": "two",
                 "heading": "^e",
                 "label": "^e",
-                "figure": "e"
+                "block": "e"
               },
               "children": []
             },

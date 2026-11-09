@@ -345,10 +345,14 @@ failures have their form in [[input-model#Chapter content]].
   The adapter numbers every captioned figure of the contents chapters before it renders any
   note, so a reference shows the number of a figure further on.
 
-  A block-id reference (the core's wikilink with a `figure` target) renders as a link to `#<note-slug>/block-<name>`:
+  A block-id reference to a figure (the core's wikilink whose `block` a figure carries) renders as a link to `#<note-slug>/block-<name>`:
   labelled, with its label; unlabelled, with the manifest's `label` and the figure's number
   (`Figure 2.4`), and an unlabelled reference to a figure without a number is an input error
   that names the Document node and the remedy.
+
+  A block link to any other block (a paragraph, a list item, a heading) renders as a link to
+  `#<note-slug>/block-<name>` with its label, and that block's element carries the anchor
+  `<note-slug>--block-<name>`.
 
   Adjacent unlabelled references merge as obs's
   input-model ("Figure captions and references") says, with the manifest's `labelPlural` and the

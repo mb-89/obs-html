@@ -97,6 +97,8 @@ class Context:
     """Each chapter's figure numbers in document order, "" for a figure without one (_number_figures)."""
     figure_blocks: dict[tuple[str, str], str] = field(default_factory=dict)
     """The number of each figure with a block id, by chapter and block id, "" for none."""
+    block_targets: set[tuple[str, str]] = field(default_factory=set)
+    """The chapter and block id of each block link's target (_block_targets)."""
     conjunctions: tuple[str, ...] = ()
     """The words that may separate merged figure references (cfg.json artifact.figureReferences)."""
     bordered_tags: tuple[str, ...] = ()
@@ -159,8 +161,10 @@ def _wikilink(node: dict[str, object], context: Context) -> str:
     if chapter is None:
         return (f'<span class="unresolved" title="{escape(attrs["target"], quote=True)}">'
                 f'{escape(attrs["label"])}</span>')
-    if "figure" in attrs:
-        return _figure_reference(node, context)
+    if "block" in attrs:
+        if (chapter, attrs["block"]) in context.figure_blocks:
+            return _figure_reference(node, context)
+        return f'<a class="internal-link" href="{_link_href(attrs, context)}">{escape(attrs["label"])}</a>'
     label = "" if attrs["label"] == attrs["target"] else attrs["label"]  # Unaliased: the note's title.
     return _internal_link(chapter, attrs["heading"], label, context)
 
@@ -177,13 +181,13 @@ def _internal_link(chapter: str, heading: str, label: str, context: Context) -> 
 
 
 def _link_href(attrs: dict[str, object], context: Context) -> str | None:
-    """The href of a wikilink: its figure's for a block link, else its chapter's at its heading;
+    """The href of a wikilink: its block's for a block link, else its chapter's at its heading;
     None for a missing note."""
     chapter = attrs["chapter"]
     if chapter is None:
         return None
-    if "figure" in attrs:
-        return f"#{chapter}/block-{escape(attrs['figure'], quote=True)}"
+    if "block" in attrs:
+        return f"#{chapter}/block-{escape(attrs['block'], quote=True)}"
     return _internal_href(chapter, attrs["heading"], context)
 
 
@@ -597,7 +601,7 @@ def _figure_reference(node: dict[str, object], context: Context, number_only: bo
     """A block link to a figure: its label as written or, unlabelled, the figure's label and
     number (obs input-model, Figure captions and references); ``number_only`` in a merged group."""
     attrs = node["attrs"]
-    chapter, block = attrs["chapter"], attrs["figure"]
+    chapter, block = attrs["chapter"], attrs["block"]
     number = context.figure_blocks.get((chapter, block), "")
     text = attrs["label"]
     if _unlabelled(attrs, context):
@@ -625,9 +629,9 @@ def _unlabelled(attrs: dict[str, object], context: Context) -> bool:
 def _numbered_reference(node: dict[str, object], context: Context) -> str:
     """The number of an unlabelled reference to a numbered figure, else ""."""
     attrs = node["attrs"]
-    if node["type"] != "wikilinks" or "figure" not in attrs or attrs["chapter"] is None or not _unlabelled(attrs, context):
+    if node["type"] != "wikilinks" or "block" not in attrs or attrs["chapter"] is None or not _unlabelled(attrs, context):
         return ""
-    return context.figure_blocks.get((attrs["chapter"], attrs["figure"]), "")
+    return context.figure_blocks.get((attrs["chapter"], attrs["block"]), "")
 
 
 def _merged_references(nodes: list[dict[str, object]], context: Context) -> str:
@@ -910,6 +914,7 @@ def _model(document: dict[str, object], config: Config, context: Context) -> dic
     context.figures = profile["figures"]
     context.conjunctions = tuple(config.artifact["figureReferences"]["conjunctions"])
     _number_figures(document["chapters"], context)
+    context.block_targets = set(_block_targets(document))
     settings = config.artifact
     context.bordered_tags = tuple(settings["borderedTags"])
     title = manifest["title"]
@@ -1169,7 +1174,7 @@ def _nodes(nodes: list[dict[str, object]], context: Context, key: str = "childre
 
 def _node(node: dict[str, object], context: Context) -> str:
     kind = node["type"]
-    return _identified(node, (CAPABILITIES.get(kind) or STRUCTURAL_NODES.get(kind) or _unknown)(node, context))
+    return _identified(node, (CAPABILITIES.get(kind) or STRUCTURAL_NODES.get(kind) or _unknown)(node, context), context)
 
 
 REVIEW_ELEMENTS = {"paragraph": "p", "list-item": "li", "table-row": "tr", "code": "pre", "command-fences": "pre",
@@ -1179,14 +1184,36 @@ REVIEW_ELEMENTS = {"paragraph": "p", "list-item": "li", "table-row": "tr", "code
 comment on it targets, such as a heading's (input-model#Comments and the core model)."""
 
 
-def _identified(node: dict[str, object], html: str) -> str:
+def _identified(node: dict[str, object], html: str, context: Context) -> str:
     """``html`` with the block's core id on its review element, ``data-node-id``; the Comments bar
-    targets the block by it (input-model#Comments and the core model)."""
+    targets the block by it (input-model#Comments and the core model). A block other than a figure
+    that a block link targets also carries its anchor, on an empty span where the element has an
+    id already, as a heading does (artifact-ui, Figures)."""
     tag = REVIEW_ELEMENTS.get(node["type"])
     if tag is None or "id" not in node:
         return html
-    return re.sub(rf"<{tag}(?=[\s>])[^>]*", lambda start: f'{start.group(0)} data-node-id="{escape(node["id"], quote=True)}"',
-                  html, count=1)
+    chapter = context.chapter or HOME
+    anchor = (escape(f"{chapter}--block-{node['id']}", quote=True)
+              if node["type"] != "figures" and (chapter, node["id"]) in context.block_targets else "")
+
+    def identify(start: re.Match[str]) -> str:
+        tagged = f'{start.group(0)} data-node-id="{escape(node["id"], quote=True)}"'
+        if not anchor:
+            return tagged
+        return f'{tagged}><span id="{anchor}"></span' if re.search(r'\sid="', start.group(0)) else f'{tagged} id="{anchor}"'
+    return re.sub(rf"<{tag}(?=[\s>])[^>]*", identify, html, count=1)
+
+
+def _block_targets(value: object) -> Iterator[tuple[str, str]]:
+    """The chapter and block id of every resolved block link in ``value``, a Document or part of one."""
+    if isinstance(value, list):
+        for item in value:
+            yield from _block_targets(item)
+    elif isinstance(value, dict):
+        if value.get("type") == "wikilinks" and "block" in value.get("attrs", {}) and value["attrs"]["chapter"]:
+            yield value["attrs"]["chapter"], value["attrs"]["block"]
+        for item in value.values():
+            yield from _block_targets(item)
 
 
 def _phrasing(nodes: list[dict[str, object]], context: Context) -> str:
@@ -1201,7 +1228,7 @@ def _phrasing(nodes: list[dict[str, object]], context: Context) -> str:
 def _list(node: dict[str, object], context: Context) -> str:
     tag = "ol" if node["attrs"].get("ordered") else "ul"
     if node["attrs"]["tight"]:
-        items = "".join(_child(context, index, lambda: _identified(item, f"<li>{_tight_item(item, context)}</li>\n")
+        items = "".join(_child(context, index, lambda: _identified(item, f"<li>{_tight_item(item, context)}</li>\n", context)
                                        if item["type"] == "list-item" else _node(item, context))
                         for index, item in enumerate(node["children"]))
         return f"<{tag}>\n{items}</{tag}>\n"
