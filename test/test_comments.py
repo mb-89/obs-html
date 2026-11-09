@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from core_calls import chapter_targets, import_comments, unresolved_targets, validate_overlays, with_comments
+from core_calls import import_comments, unresolved_targets, validate_overlays, with_comments
 from obs_html.artifact_data import decode_artifact_data
 from obs_html.comments import OWNER, extract_comments
 from obs_html.config import load_config
@@ -167,11 +167,12 @@ def test_every_native_thread_fixture_maps_onto_core_targets_the_core_accepts(doc
          str(Path(__file__).parent / "fixtures" / "comment-threads.json")],
         capture_output=True, text=True, check=True)
     mapped = json.loads(result.stdout)
-    assert len(mapped) == 8
+    assert len(mapped) == 9
     validate_overlays([{"version": 1, "principal": "alice", "comments": core["comments"],
-                        "decisions": core["decisions"]} for core in mapped.values()],
+                        "decisions": core["decisions"], "states": core["states"]} for core in mapped.values()],
                       Path("manifest.comments.alice.json"))
     entries = [entry for core in mapped.values() for entry in [*core["comments"], *core["decisions"]]]
     targets = [entry["target"] for entry in entries if "target" in entry]
     targets += [item for entry in entries for item in entry.get("batch", {}).get("items", [])]
-    assert unresolved_targets(targets, chapter_targets(document)) == []
+    assert {"abstract": True, "node": "paragraph-8254a15d"} in targets
+    assert unresolved_targets(targets, document) == []

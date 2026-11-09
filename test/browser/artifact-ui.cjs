@@ -1242,7 +1242,7 @@ async function verifyComments() {
         id: "selected-unicode",
         author: "Reviewer Ω",
         text: "First line.\n<Second line> & safe.",
-        status: "open",
+        state: "open",
         target: {
             chapter: "beta", node: betaId, quote: "Quoted “text”\nacross lines.", prefix: "Before ",
             suffix: " after", start: 17, end: 42,
@@ -1258,12 +1258,12 @@ async function verifyComments() {
             id: "nested-reply",
             author: "Reply author",
             text: "Nested reply.",
-            status: "resolved",
+            state: "resolved",
             replies: [thread({
                 id: "deep-reply",
                 author: "Third author",
                 text: "Deep reply.",
-                status: "open",
+                state: "open",
             })],
         })],
     }));
@@ -1364,9 +1364,9 @@ async function verifyCommentExportOnly() {
     annotation.text = "First line.\n<Second line> & safe.";
     annotation.replies.push(thread({
         id: "reply-1", author: "Reply author", text: "Nested reply.",
-        status: "resolved", created: "2026-11-09T10:01:00Z", replies: [thread({
+        state: "resolved", created: "2026-11-09T10:01:00Z", replies: [thread({
             id: "reply-2", author: "Third author", text: "Deep reply.",
-            status: "open", created: "2026-11-09T10:02:00Z",
+            state: "open", created: "2026-11-09T10:02:00Z",
         })],
     }));
     const [parentId, childId] = [paragraph.dataset.nodeId, firstNodeId("child")];
@@ -1383,7 +1383,7 @@ async function verifyCommentExportOnly() {
     };
     context.obsComments.data.annotations.push(thread({
         id: "inactive-batch", target: inactiveTarget, batch,
-        author: "Batch author", text: "Batch feedback.", status: "open",
+        author: "Batch author", text: "Batch feedback.", state: "open",
     }));
     click(paragraph.querySelector(".review-action--comment"));
     const whole = context.obsComments.data.annotations.at(-1);
@@ -1429,7 +1429,7 @@ async function verifyCommentExportOnly() {
         id: "unresolved", target: {
             chapter: "parent", quote: "Missing quote.", prefix: "", suffix: "",
             start: 999999, end: 1000013,
-        }, author: "Legacy reviewer", text: "Unresolved feedback.", status: "open",
+        }, author: "Legacy reviewer", text: "Unresolved feedback.", state: "open",
     }));
     const originalDirty = document.querySelector("[data-review-save-guidance]").dataset.dirty;
     const originalIsland = document.querySelector("[data-comment-island]").textContent;

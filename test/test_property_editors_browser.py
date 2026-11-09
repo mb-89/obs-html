@@ -79,7 +79,7 @@ def test_native_property_edits_survive_actual_reviewed_download_and_reopen(tmp_p
     page.evaluate("""() => {
         const created = '2026-11-09T10:00:00Z';
         obsComments.data.annotations.push({id:'kept-comment', author:'Reader', created, mediaType:'text/plain',
-          text:'Keep this comment', status:'open', replies:[], target:{chapter:'one',quote:'Source text.',start:0,end:12}});
+          text:'Keep this comment', state:'open', replies:[], target:{chapter:'one',quote:'Source text.',start:0,end:12}});
         obsComments.data.decisions.push({id:'kept-decision', reviewer:'Reader', created,
           target:{chapter:'one'}, state:'accepted'});
     }""")

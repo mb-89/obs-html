@@ -13,7 +13,7 @@ import pytest
 
 from artifacts import artifact_html
 from conftest import FIXTURE, ROOT
-from core_calls import chapter_targets
+from core_calls import unresolved_targets
 
 pytestmark = pytest.mark.browser
 DOCUMENTS = sorted((ROOT / "test" / "fixtures" / "documents").glob("*.json"))
@@ -56,10 +56,13 @@ def test_every_review_item_of_a_fixture_is_a_block_of_its_chapter(path, tmp_path
     artifact.write_text(artifact_html(document), encoding="utf-8")
     page, errors = _open(reader_browser, artifact)
     items = page.evaluate("obsComments.reviewItems()")
-    # The home page shows the manifest abstract, whose blocks have ids but no chapter of the core's.
-    targets = chapter_targets({"records": document["records"], "chapters": [
-        *document["chapters"], {"id": HOME, "content": document["manifest"].get("abstract", []), "children": []}]})
-    assert [item for item in items if item["id"] not in targets.get(item["chapter"], set())] == []
+    # Each item's decision target, through the one mapping: the home page's items are the abstract's.
+    targets = page.evaluate("""(items) => obsCommentModel.toCore({files: [], annotations: [], states: [],
+        decisions: items.map((item, index) => ({id: `d${index}`, reviewer: "R", created: "2026-11-09T10:00:00Z",
+            target: {chapter: item.chapter, node: item.id}, state: "accepted"}))}).decisions.map((d) => d.target)""",
+                            items)
+    assert unresolved_targets(targets, document) == []
+    assert sum(item["chapter"] == HOME for item in items) == sum("abstract" in target for target in targets)
     assert len({(item["chapter"], item["id"]) for item in items}) == len(items) == REVIEW_ITEMS[path.stem]
     assert errors == []
 
@@ -75,7 +78,7 @@ def _reviewed(document: dict) -> dict:
         {"id": "d1", "reviewer": "Alice", "created": "2026-11-09T10:01:00Z", "target": PARAGRAPH, "state": "accepted"},
         {"id": "d2", "reviewer": "Bob", "created": "2026-11-09T10:02:00Z", "target": PARAGRAPH, "state": "rejected"},
         {"id": "d3", "reviewer": "Bob", "created": "2026-11-09T10:03:00Z", "target": ROW, "state": "accepted"},
-    ]}
+    ], "states": []}
     return document
 
 
@@ -138,4 +141,36 @@ def test_a_selection_across_blocks_targets_the_block_it_starts_in(tmp_path, read
     assert shown["target"]["node"] == shown["heading"] == "section-36539243"
     assert (shown["target"]["start"], shown["target"]["quote"]) == (0, shown["selected"])
     assert shown["selected"] in shown["marked"]
+    assert errors == []
+
+
+RESOLVE_AS_BOB = """async () => {
+    await obsArtifact.activateChapter("intro");
+    await obsArtifact.whenChapterReady();
+    obsArtifact.openBar("comments", "right");
+    const author = document.querySelector("[data-comment-author]");
+    author.value = "Bob";
+    author.dispatchEvent(new Event("change"));
+    const card = (id) => document.querySelector(`[data-comment-list] [data-comment-id="${id}"] > .comment-card`);
+    const readOnly = (id) => card(id).querySelector(".comment-text-editor").readOnly;
+    const editable = {c1: readOnly("c1"), c2: readOnly("c2")};
+    const button = () => [...card("c1").querySelectorAll("button")].find((item) => /Resolve|Reopen/.test(item.textContent));
+    const before = button().textContent;
+    button().click();
+    const after = button().textContent;
+    return {editable, before, after, island: JSON.parse(document.querySelector("[data-comment-island]").textContent)};
+}"""
+
+
+def test_a_readers_resolve_of_anothers_comment_is_their_own_state_entry_and_only_own_bodies_edit(
+        tmp_path, reader_browser) -> None:
+    document = _reviewed(json.loads(FIXTURE.read_text(encoding="utf-8")))
+    page, errors = _open(reader_browser, _artifact(tmp_path, document))
+    shown = page.evaluate(RESOLVE_AS_BOB)
+    assert shown["editable"] == {"c1": True, "c2": False}
+    assert (shown["before"], shown["after"]) == ("Resolve", "Reopen")
+    island = shown["island"]
+    assert island["comments"] == document["comments"]["comments"]
+    assert [(state["author"], state["target"], state["state"]) for state in island["states"]] == \
+        [("Bob", "c1", "resolved")]
     assert errors == []

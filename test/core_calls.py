@@ -14,14 +14,14 @@ from pathlib import Path
 _CALL = """
 import json, sys
 from pathlib import Path
-from obs.comments import apply_comments, unresolved, validate_overlay
+from obs.comments import apply_comments, document_targets, unresolved, validate_overlay
 from obs.node_ids import assign_ids, chapter_targets
 request = json.load(sys.stdin)
 if request["call"] == "targets":
     result = {chapter: sorted(ids) for chapter, ids in chapter_targets(request["document"]).items()}
 elif request["call"] == "unresolved":
-    nodes = {chapter: set(ids) for chapter, ids in request["targets"].items()}
-    result = [target for target in request["list"] if unresolved(target, nodes)]
+    targets = document_targets(request["document"])
+    result = [target for target in request["list"] if unresolved(target, *targets)]
 elif request["call"] == "ids":
     result = request["document"]
     assign_ids(result)
@@ -49,9 +49,9 @@ def chapter_targets(document: dict) -> dict[str, set[str]]:
     return {chapter: set(ids) for chapter, ids in _call(call="targets", document=document).items()}
 
 
-def unresolved_targets(targets: list[dict], nodes: dict[str, set[str]]) -> list[dict]:
-    """The targets ``obs.comments.unresolved`` finds no node for."""
-    return _call(call="unresolved", list=targets, targets={chapter: sorted(ids) for chapter, ids in nodes.items()})
+def unresolved_targets(targets: list[dict], document: dict) -> list[dict]:
+    """The targets ``obs.comments.unresolved`` finds no node for in the Document, its abstract's or a chapter's."""
+    return _call(call="unresolved", list=targets, document=document)
 
 
 def with_ids(document: dict) -> dict:

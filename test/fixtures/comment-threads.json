@@ -1,5 +1,5 @@
 {
- "$comment": "Native comment threads of the HTML adapter's Comments bar (spec/input-model.md, Comments and the core model), one per comment fixture the adapter had before its comments went through the core: each is named after the test it came from and now targets the block ids of test/fixtures/documents/document.json. test/comment-model.test.js maps each to the core's format and back; test/test_comments.py checks the core's schema accepts the first map.",
+ "$comment": "Native comment threads of the HTML adapter's Comments bar (spec/input-model.md, Comments and the core model), one per comment fixture the adapter had before its comments went through the core, each named after the test it came from, and home-and-states, the home page's abstract and a state entry; each targets the block ids of test/fixtures/documents/document.json. test/comment-model.test.js maps each to the core's format and back; test/test_comments.py checks the core's schema accepts the first map.",
  "fixtures": {
   "test_comments.py::test_extract_comments_preserves_scoped_batch_association": {
    "annotations": [
@@ -9,7 +9,6 @@
      "created": "2026-11-09T10:00:00Z",
      "mediaType": "text/plain",
      "text": "One reason",
-     "status": "open",
      "target": {
       "chapter": "intro"
      },
@@ -26,13 +25,15 @@
        }
       ]
      },
-     "replies": []
+     "replies": [],
+     "state": "open"
     }
    ],
    "decisions": [],
    "files": [
     "manifest.comments.alice.json"
-   ]
+   ],
+   "states": []
   },
   "test_comments.py::test_extract_comments_lists_anonymized_candidates_deterministically": {
    "annotations": [
@@ -42,7 +43,6 @@
      "created": "2026-11-09T10:00:00Z",
      "mediaType": "text/plain",
      "text": "Clarify this.",
-     "status": "open",
      "target": {
       "chapter": "intro",
       "node": "paragraph-957766ff",
@@ -57,16 +57,18 @@
        "created": "2026-11-09T10:01:00Z",
        "mediaType": "text/plain",
        "text": "Agreed.",
-       "status": "open",
-       "replies": []
+       "replies": [],
+       "state": "open"
       }
-     ]
+     ],
+     "state": "open"
     }
    ],
    "decisions": [],
    "files": [
     "manifest.comments.alice.json"
-   ]
+   ],
+   "states": []
   },
   "test_comments.py::test_extract_comments_supports_recursive_comment_replies": {
    "annotations": [
@@ -76,7 +78,6 @@
      "created": "2026-11-09T10:00:00Z",
      "mediaType": "text/plain",
      "text": "Clarify this.",
-     "status": "open",
      "target": {
       "chapter": "intro",
       "node": "paragraph-957766ff",
@@ -91,17 +92,19 @@
        "created": "2026-11-09T10:01:00Z",
        "mediaType": "text/plain",
        "text": "I will.",
-       "status": "resolved",
        "modified": "2026-11-09T10:02:00Z",
-       "replies": []
+       "replies": [],
+       "state": "resolved"
       }
-     ]
+     ],
+     "state": "open"
     }
    ],
    "decisions": [],
    "files": [
     "manifest.comments.alice.json"
-   ]
+   ],
+   "states": []
   },
   "test_comments.py::test_extract_comments_accepts_an_empty_editable_draft": {
    "annotations": [
@@ -111,19 +114,20 @@
      "created": "2026-11-09T10:00:00Z",
      "mediaType": "text/plain",
      "text": "",
-     "status": "open",
      "target": {
       "chapter": "intro",
       "node": "paragraph-957766ff",
       "quote": "Review me"
      },
-     "replies": []
+     "replies": [],
+     "state": "open"
     }
    ],
    "decisions": [],
    "files": [
     "manifest.comments.alice.json"
-   ]
+   ],
+   "states": []
   },
   "test_comments.py::test_extract_comments_validates_review_decisions": {
    "annotations": [],
@@ -141,7 +145,8 @@
    ],
    "files": [
     "manifest.comments.alice.json"
-   ]
+   ],
+   "states": []
   },
   "test_comments.py::test_extract_comments_accepts_row_reviews_and_detail_selection_targets": {
    "annotations": [
@@ -151,7 +156,6 @@
      "created": "2026-11-09T10:00:00Z",
      "mediaType": "text/plain",
      "text": "Detail comment",
-     "status": "open",
      "target": {
       "chapter": "appendix",
       "node": "registers-904ef37f:alpha",
@@ -160,7 +164,8 @@
       "start": 0,
       "end": 5
      },
-     "replies": []
+     "replies": [],
+     "state": "open"
     }
    ],
    "decisions": [
@@ -177,7 +182,8 @@
    ],
    "files": [
     "manifest.comments.alice.json"
-   ]
+   ],
+   "states": []
   },
   "test_comments.py::test_generated_artifact_comment_island_round_trips_to_extractor": {
    "annotations": [
@@ -187,17 +193,18 @@
      "created": "2026-11-09T10:00:00Z",
      "mediaType": "text/plain",
      "text": "Looks good.",
-     "status": "resolved",
      "target": {
       "chapter": "intro"
      },
-     "replies": []
+     "replies": [],
+     "state": "resolved"
     }
    ],
    "decisions": [],
    "files": [
     "manifest.comments.alice.json"
-   ]
+   ],
+   "states": []
   },
   "browser/artifact-ui.cjs::verifyPages (selected-unicode)": {
    "annotations": [
@@ -207,7 +214,6 @@
      "created": "2026-11-09T10:00:00Z",
      "mediaType": "text/plain",
      "text": "First line.\n<Second line> & safe.",
-     "status": "open",
      "target": {
       "chapter": "appendix",
       "node": "paragraph-9d91235b",
@@ -237,7 +243,6 @@
        "created": "2026-11-09T10:01:00Z",
        "mediaType": "text/plain",
        "text": "Nested reply.",
-       "status": "resolved",
        "replies": [
         {
          "id": "deep-reply",
@@ -245,12 +250,14 @@
          "created": "2026-11-09T10:02:00Z",
          "mediaType": "text/plain",
          "text": "Deep reply.",
-         "status": "open",
-         "replies": []
+         "replies": [],
+         "state": "open"
         }
-       ]
+       ],
+       "state": "resolved"
       }
-     ]
+     ],
+     "state": "open"
     }
    ],
    "decisions": [
@@ -277,6 +284,59 @@
    ],
    "files": [
     "manifest.comments.alice.json"
+   ],
+   "states": []
+  },
+  "home-and-states": {
+   "annotations": [
+    {
+     "id": "h1",
+     "author": "Alice",
+     "created": "2026-11-09T10:00:00Z",
+     "mediaType": "text/plain",
+     "text": "Sharpen the abstract.",
+     "state": "open",
+     "target": {
+      "chapter": "home",
+      "node": "paragraph-8254a15d"
+     },
+     "replies": [
+      {
+       "id": "h2",
+       "author": "Bob",
+       "created": "2026-11-09T10:05:00Z",
+       "mediaType": "text/plain",
+       "text": "Done.",
+       "state": "open",
+       "replies": []
+      }
+     ]
+    }
+   ],
+   "decisions": [
+    {
+     "id": "d1",
+     "reviewer": "Bob",
+     "created": "2026-11-09T10:06:00Z",
+     "target": {
+      "chapter": "home",
+      "node": "paragraph-8254a15d"
+     },
+     "state": "accepted"
+    }
+   ],
+   "states": [
+    {
+     "id": "s1",
+     "author": "Bob",
+     "created": "2026-11-09T10:07:00Z",
+     "target": "h1",
+     "state": "resolved"
+    }
+   ],
+   "files": [
+    "manifest.comments.alice.json",
+    "manifest.comments.bob.json"
    ]
   }
  }

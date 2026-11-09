@@ -131,6 +131,7 @@
         globalThis.obsStorage.write(authorKey, authorInput.value, "reviewer");
     });
     authorInput.addEventListener("change", () => {
+        renderComments();
         syncReviewFields();
         updateReviewSummary();
         updateReviewMode();
@@ -150,8 +151,11 @@
     const currentAuthor = () => authorInput.value.trim() || "Reviewer";
     const newComment = (fields) => ({
         id: freshId("comment"), author: currentAuthor(), created: now(), mediaType: "text/plain",
-        text: "", status: "open", ...fields, replies: [],
+        text: "", state: "open", ...fields, replies: [],
     });
+    // A comment's state is the core's (obs.comments.comment_state); only its author edits its body.
+    const stateOf = (node) => commentModel.commentState(node, data.states);
+    const ownComment = (node) => node.author === currentAuthor();
 
     const walk = (nodes, visit) => {
         nodes.forEach((node) => {
@@ -182,7 +186,7 @@
         const ids = [];
         walk([annotation], (node) => {
             authors.push(node.author);
-            statuses.push(node.status);
+            statuses.push(stateOf(node));
             texts.push(node.text);
             ids.push(node.id);
         });
@@ -267,13 +271,14 @@
         targetButton.addEventListener("click", () => navigateTo(annotation));
         addField(fields, "Target", targetButton);
         addField(fields, "Author", node.author);
-        addField(fields, "Status", node.status);
+        addField(fields, "Status", stateOf(node));
 
         const editor = document.createElement("textarea");
         editor.className = "comment-text-editor";
         editor.rows = Math.max(2, node.text.split("\n").length);
         editor.value = node.text;
         editor.setAttribute("aria-label", "Comment text");
+        editor.readOnly = !ownComment(node);
         editor.addEventListener("input", () => {
             node.text = editor.value;
             node.modified = now();
@@ -301,10 +306,11 @@
 
         const resolve = document.createElement("button");
         resolve.type = "button";
-        resolve.textContent = node.status === "open" ? "Resolve" : "Reopen";
+        resolve.textContent = stateOf(node) === "open" ? "Resolve" : "Reopen";
+        // Any resolve or reopen, of the reader's own comment too, is the reader's own state entry.
         resolve.addEventListener("click", () => {
-            node.status = node.status === "open" ? "resolved" : "open";
-            node.modified = now();
+            data.states.push({id: freshId("state"), author: currentAuthor(), created: now(), target: node.id,
+                state: stateOf(node) === "open" ? "resolved" : "open"});
             persist();
             renderComments();
             repaintHighlights();
@@ -320,6 +326,9 @@
                 return;
             }
             found.nodes.splice(found.nodes.indexOf(found.node), 1);
+            const removed = new Set();
+            walk([found.node], (deleted) => removed.add(deleted.id));
+            data.states = data.states.filter((entry) => !removed.has(entry.target));
             persist();
             renderComments();
             updateReviewMode();
@@ -557,7 +566,7 @@
                     `### ${parentId ? `Reply ${node.id} to ${parentId} (depth ${depth})`
                         : `Root comment ${node.id}`}`,
                     `- Author: ${node.author}`,
-                    `- Status: ${node.status}`,
+                    `- Status: ${stateOf(node)}`,
                     "- Text:",
                     "",
                     markdownFence(node.text),
@@ -971,7 +980,7 @@
     };
 
     const hasOpenComment = (node) =>
-        node.status === "open" || node.replies.some(hasOpenComment);
+        stateOf(node) === "open" || node.replies.some(hasOpenComment);
 
     const setHoveredAnnotation = (annotation) => {
         chapterBody.classList.toggle("comment-highlight-hover", Boolean(annotation));
@@ -1120,13 +1129,18 @@
     // Returned copies merge by immutable id, like the core's union: a known id with the same payload
     // is one entry, one with another payload rejects the file; a reviewer's later decision on a
     // target replaces the earlier one.
-    const merged = (current, imported) => {
-        const comments = new Map(current.comments.map((comment) => [comment.id, comment]));
-        imported.comments.forEach((comment) => {
-            const known = comments.get(comment.id);
-            if (known && stable(known) !== stable(comment)) throw new Error(`The comment ${comment.id} differs.`);
-            comments.set(comment.id, comment);
+    const byId = (current, imported, kind) => {
+        const entries = new Map(current.map((entry) => [entry.id, entry]));
+        imported.forEach((entry) => {
+            const known = entries.get(entry.id);
+            if (known && stable(known) !== stable(entry)) throw new Error(`The ${kind} ${entry.id} differs.`);
+            entries.set(entry.id, entry);
         });
+        return [...entries.values()];
+    };
+    const merged = (current, imported) => {
+        const comments = byId(current.comments, imported.comments, "comment");
+        const states = byId(current.states, imported.states, "state entry");
         const decisions = new Map(current.decisions.map((decision) => [decision.id, decision]));
         imported.decisions.forEach((decision) => {
             const known = decisions.get(decision.id);
@@ -1137,7 +1151,7 @@
             if (earlier) decisions.delete(earlier.id);
             decisions.set(decision.id, decision);
         });
-        return {...current, comments: [...comments.values()], decisions: [...decisions.values()]};
+        return {...current, comments, decisions: [...decisions.values()], states};
     };
 
     const importFiles = async (files) => {

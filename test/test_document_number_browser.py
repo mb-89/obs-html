@@ -69,7 +69,7 @@ def test_the_document_number_shows_in_the_running_footer_and_the_copied_comments
         new MutationObserver(() => {
             if (announcer.textContent !== "Copying comments…") resolve([announcer.textContent, globalThis.copiedText]);
         }).observe(announcer, {childList: true, characterData: true, subtree: true});
-        globalThis.obsComments.data.annotations.push({id: "c1", author: "Ada", text: "Check.", status: "open",
+        globalThis.obsComments.data.annotations.push({id: "c1", author: "Ada", text: "Check.", state: "open",
             target: {chapter: "one", quote: "Text", start: 0, end: 4}, replies: []});
         document.querySelector("[data-comment-copy]").click();
     })""")

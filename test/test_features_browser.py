@@ -115,7 +115,7 @@ def test_a_refused_copy_shows_the_reason_inline_and_warns_once(tmp_path, reader_
     assert frame.locator("html").evaluate("() => globalThis.obsCapabilities.undecided('clipboard')")
     expect(frame.locator('[data-notice="capability-clipboard"]')).to_have_count(0)
     frame.locator("html").evaluate("""() => globalThis.obsComments.data.annotations.push({
-        id: "one", author: "Reader", text: "A comment.", status: "open", replies: [],
+        id: "one", author: "Reader", text: "A comment.", state: "open", replies: [],
         target: {chapter: "one", quote: "Text.", prefix: "", suffix: "", start: 0, end: 5}})""")
     announcer = frame.locator("[data-comment-announcer]")
     # The first copy observes the refusal; the second knows it and does not try.
@@ -139,7 +139,7 @@ def test_download_changed_html_help_names_the_remedy_where_downloads_are_undecid
     # A new comment changes the HTML; the changed-HTML entry then holds Download changed HTML.
     frame.locator("html").evaluate("""() => {
         globalThis.obsComments.data.annotations.push({
-            id: "one", author: "Reader", text: "A comment.", status: "open", replies: [],
+            id: "one", author: "Reader", text: "A comment.", state: "open", replies: [],
             target: {chapter: "one", quote: "Text.", prefix: "", suffix: "", start: 0, end: 5}});
         document.dispatchEvent(new CustomEvent("obs-canonical-property-change"));
     }""")

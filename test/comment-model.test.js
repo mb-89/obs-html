@@ -4,7 +4,7 @@
 // and the core model): every native thread fixture (test/fixtures/comment-threads.json) maps to the
 // core's format and back unchanged, and the browser's review state holds the core's shared cases
 // (test/fixtures/review-state-conformance.json at the repository root), which test/test_comments.py
-// there runs against obs.comments.review_state.
+// there runs against obs.comments.review_state and obs.comments.comment_state.
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
@@ -35,3 +35,19 @@ for (const {target, reviewer, expected} of conformance.cases) {
     assert.equal(model.reviewState(conformance.decisions, target, reviewer), expected,
         `${JSON.stringify(target)} ${reviewer ?? "aggregate"}`);
 }
+const comments = new Map(conformance.comments.map((comment) => [comment.id, comment]));
+for (const {comment, expected} of conformance.commentCases) {
+    assert.equal(model.commentState(comments.get(comment), conformance.states), expected, comment);
+}
+
+// The home page's chapter key is the core's abstract, in every target a comment or decision carries.
+const home = {annotations: [{id: "h", author: "A", created: "2026-11-09T10:00:00Z", mediaType: "text/plain",
+    text: "", state: "open", target: {chapter: "home", node: "paragraph-1", quote: "x"},
+    batch: {scope: "document", items: [{chapter: "home"}, {chapter: "one", node: "list-1"}]}, replies: []}],
+decisions: [{id: "d", reviewer: "A", created: "2026-11-09T10:00:00Z", target: {chapter: "home", node: "p"},
+    state: "accepted"}], states: [], files: []};
+const mapped = model.toCore(home);
+assert.deepEqual(mapped.comments[0].target, {abstract: true, node: "paragraph-1", quote: "x"});
+assert.deepEqual(mapped.comments[0].batch.items, [{abstract: true}, {chapter: "one", node: "list-1"}]);
+assert.deepEqual(mapped.decisions[0].target, {abstract: true, node: "p"});
+assert.deepEqual(model.fromCore(mapped), home);
