@@ -45,7 +45,7 @@ const home = {annotations: [{id: "h", author: "A", created: "2026-11-09T10:00:00
     text: "", state: "open", target: {chapter: "home", node: "paragraph-1", quote: "x"},
     batch: {scope: "document", items: [{chapter: "home"}, {chapter: "one", node: "list-1"}]}, replies: []}],
 decisions: [{id: "d", reviewer: "A", created: "2026-11-09T10:00:00Z", target: {chapter: "home", node: "p"},
-    state: "accepted"}], states: [], files: []};
+    state: "accepted"}], states: [], files: [], names: []};
 const mapped = model.toCore(home);
 assert.deepEqual(mapped.comments[0].target, {abstract: true, node: "paragraph-1", quote: "x"});
 assert.deepEqual(mapped.comments[0].batch.items, [{abstract: true}, {chapter: "one", node: "list-1"}]);

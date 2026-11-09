@@ -1839,8 +1839,9 @@ separate from artifact presentation.
   The reader's own comment's text is directly editable and persists without a separate Edit
   command; another author's is read-only ([[input-model#Comments and the core model]]).
 
-  Every card has Reply,
-  Resolve/Reopen, and Delete commands.
+  Every card has Reply and
+  Resolve/Reopen commands; only the reader's own comment has Delete, since another author's
+  comment stays in its author's file ([[input-model#Comments and the core model]]).
 
   Reply immediately creates a blank child card and
   focuses its editable text value; there is no intermediate reply editor or submit command.

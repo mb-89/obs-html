@@ -143,12 +143,16 @@
         .replaceAll("<", "\\u003c")
         .replaceAll(">", "\\u003e");
 
+    const currentAuthor = () => authorInput.value.trim() || "Reviewer";
+    // The island the reader saves: the core's format, under the reader's name, which the core's
+    // import holds the reader's entries to.
+    const exported = () => commentModel.toCore({...data, names: [currentAuthor()]});
+
     const persist = () => {
-        island.textContent = escapeJson(commentModel.toCore(data));
+        island.textContent = escapeJson(exported());
         updateSaveGuidance();
     };
 
-    const currentAuthor = () => authorInput.value.trim() || "Reviewer";
     const newComment = (fields) => ({
         id: freshId("comment"), author: currentAuthor(), created: now(), mediaType: "text/plain",
         text: "", state: "open", ...fields, replies: [],
@@ -317,6 +321,7 @@
         });
         actions.append(resolve);
 
+        // Only the author deletes a comment: another's stays in its author's file, like its body.
         const remove = document.createElement("button");
         remove.type = "button";
         remove.textContent = "Delete";
@@ -334,7 +339,7 @@
             updateReviewMode();
             repaintHighlights();
         });
-        actions.append(remove);
+        if (ownComment(node)) actions.append(remove);
         addField(fields, "Actions", actions);
 
         card.append(fields);
@@ -1035,7 +1040,7 @@
         const active = clone.querySelector("[data-active-chapter]");
         if (active) active.hidden = false;
         const clonedIsland = clone.querySelector("[data-comment-island]");
-        clonedIsland.textContent = escapeJson(commentModel.toCore(data));
+        clonedIsland.textContent = escapeJson(exported());
         const artifactIsland = clone.querySelector("[data-artifact-data]");
         const model = globalThis.obsArtifact?.serializeModel?.() || artifactIsland.textContent;
         globalThis.obsRunningHeader.snapshot(clone, JSON.parse(model).document.metadataHtml);

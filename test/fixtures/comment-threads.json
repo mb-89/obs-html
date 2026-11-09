@@ -1,5 +1,5 @@
 {
- "$comment": "Native comment threads of the HTML adapter's Comments bar (spec/input-model.md, Comments and the core model), one per comment fixture the adapter had before its comments went through the core, each named after the test it came from, and home-and-states, the home page's abstract and a state entry; each targets the block ids of test/fixtures/documents/document.json. test/comment-model.test.js maps each to the core's format and back; test/test_comments.py checks the core's schema accepts the first map.",
+ "$comment": "Native comment threads of the HTML adapter's Comments bar (spec/input-model.md, Comments and the core model), one per comment fixture the adapter had before its comments went through the core, each named after the test it came from, and home-and-states, the home page's abstract and a state entry, each with the names of the reader who saved it, the names its entries are under; each targets the block ids of test/fixtures/documents/document.json. test/comment-model.test.js maps each to the core's format and back; test/test_comments.py checks the core's schema accepts the first map.",
  "fixtures": {
   "test_comments.py::test_extract_comments_preserves_scoped_batch_association": {
    "annotations": [
@@ -32,6 +32,9 @@
    "decisions": [],
    "files": [
     "manifest.comments.alice.json"
+   ],
+   "names": [
+    "Alice"
    ],
    "states": []
   },
@@ -67,6 +70,10 @@
    "decisions": [],
    "files": [
     "manifest.comments.alice.json"
+   ],
+   "names": [
+    "Alice",
+    "Bob"
    ],
    "states": []
   },
@@ -104,6 +111,10 @@
    "files": [
     "manifest.comments.alice.json"
    ],
+   "names": [
+    "Alice",
+    "Bob"
+   ],
    "states": []
   },
   "test_comments.py::test_extract_comments_accepts_an_empty_editable_draft": {
@@ -127,6 +138,9 @@
    "files": [
     "manifest.comments.alice.json"
    ],
+   "names": [
+    "Reviewer"
+   ],
    "states": []
   },
   "test_comments.py::test_extract_comments_validates_review_decisions": {
@@ -145,6 +159,9 @@
    ],
    "files": [
     "manifest.comments.alice.json"
+   ],
+   "names": [
+    "Alice"
    ],
    "states": []
   },
@@ -183,6 +200,9 @@
    "files": [
     "manifest.comments.alice.json"
    ],
+   "names": [
+    "Alice"
+   ],
    "states": []
   },
   "test_comments.py::test_generated_artifact_comment_island_round_trips_to_extractor": {
@@ -203,6 +223,9 @@
    "decisions": [],
    "files": [
     "manifest.comments.alice.json"
+   ],
+   "names": [
+    "Reviewer"
    ],
    "states": []
   },
@@ -285,6 +308,11 @@
    "files": [
     "manifest.comments.alice.json"
    ],
+   "names": [
+    "Reply author",
+    "Reviewer \u03a9",
+    "Third author"
+   ],
    "states": []
   },
   "home-and-states": {
@@ -324,6 +352,10 @@
      },
      "state": "accepted"
     }
+   ],
+   "names": [
+    "Alice",
+    "Bob"
    ],
    "states": [
     {

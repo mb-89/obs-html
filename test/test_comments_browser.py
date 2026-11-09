@@ -57,7 +57,7 @@ def test_every_review_item_of_a_fixture_is_a_block_of_its_chapter(path, tmp_path
     page, errors = _open(reader_browser, artifact)
     items = page.evaluate("obsComments.reviewItems()")
     # Each item's decision target, through the one mapping: the home page's items are the abstract's.
-    targets = page.evaluate("""(items) => obsCommentModel.toCore({files: [], annotations: [], states: [],
+    targets = page.evaluate("""(items) => obsCommentModel.toCore({files: [], names: [], annotations: [], states: [],
         decisions: items.map((item, index) => ({id: `d${index}`, reviewer: "R", created: "2026-11-09T10:00:00Z",
             target: {chapter: item.chapter, node: item.id}, state: "accepted"}))}).decisions.map((d) => d.target)""",
                             items)
@@ -104,7 +104,7 @@ def test_the_bar_shows_the_resolved_model_and_a_reviewed_copy_shows_the_same_sta
     page, errors = _open(reader_browser, artifact)
     shown = page.evaluate(STATES)
     assert (shown["paragraph"], shown["row"], shown["threads"]) == ("rejected", "accepted", ["c1", "c2"])
-    assert shown["island"] == document["comments"]
+    assert shown["island"] == {**document["comments"], "names": ["Reviewer"]}
     copy_path = tmp_path / "reviewed.html"
     copy_path.write_text(page.evaluate("obsComments.reviewedHtml()"), encoding="utf-8")
     reopened, reopened_errors = _open(reader_browser, copy_path)
@@ -154,20 +154,26 @@ RESOLVE_AS_BOB = """async () => {
     const card = (id) => document.querySelector(`[data-comment-list] [data-comment-id="${id}"] > .comment-card`);
     const readOnly = (id) => card(id).querySelector(".comment-text-editor").readOnly;
     const editable = {c1: readOnly("c1"), c2: readOnly("c2")};
+    const deletes = (id) => [...card(id).querySelectorAll("button")].some((item) => item.textContent === "Delete");
+    const deletable = {c1: deletes("c1"), c2: deletes("c2")};
     const button = () => [...card("c1").querySelectorAll("button")].find((item) => /Resolve|Reopen/.test(item.textContent));
     const before = button().textContent;
     button().click();
     const after = button().textContent;
-    return {editable, before, after, island: JSON.parse(document.querySelector("[data-comment-island]").textContent)};
+    return {editable, deletable, before, after, island: JSON.parse(document.querySelector("[data-comment-island]").textContent)};
 }"""
 
 
 def test_a_readers_resolve_of_anothers_comment_is_their_own_state_entry_and_only_own_bodies_edit(
         tmp_path, reader_browser) -> None:
+    """Only the reader's own comment edits and deletes; the island the reader saves carries the reader's
+    name as its names."""
     document = _reviewed(json.loads(FIXTURE.read_text(encoding="utf-8")))
     page, errors = _open(reader_browser, _artifact(tmp_path, document))
     shown = page.evaluate(RESOLVE_AS_BOB)
     assert shown["editable"] == {"c1": True, "c2": False}
+    assert shown["deletable"] == {"c1": False, "c2": True}
+    assert shown["island"]["names"] == ["Bob"]
     assert (shown["before"], shown["after"]) == ("Resolve", "Reopen")
     island = shown["island"]
     assert island["comments"] == document["comments"]["comments"]

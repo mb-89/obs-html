@@ -144,8 +144,10 @@ def test_extraction_exports_the_islands_comments_in_the_cores_format(tmp_path: P
 
 def test_core_overlay_to_artifact_to_overlay_keeps_every_field(tmp_path: Path, document) -> None:
     """R3 at the build's seam: the overlay a principal wrote, through the Document, the island and the
-    export, is the overlay the core's import writes back."""
-    written = {"version": 1, "principal": "alice", "comments": [ROOT, REPLY, BATCH], "decisions": [DECISION]}
+    export, is the overlay the core's import writes back. The build's island names no reader; the
+    Comments bar adds the reader's names when it saves, as here."""
+    written = {"version": 1, "principal": "alice", "names": ["Alice", "Bob"], "comments": [ROOT, REPLY, BATCH],
+               "decisions": [DECISION]}
     vault, returned = tmp_path / "vault", tmp_path / "returned"
     for folder in (vault, returned):
         folder.mkdir()
@@ -156,6 +158,8 @@ def test_core_overlay_to_artifact_to_overlay_keeps_every_field(tmp_path: Path, d
     artifact = tmp_path / "reviewed.html"
     artifact.write_text(render(document, load_config()), encoding="utf-8")
     extract_comments(artifact, tmp_path / "returned.json")
+    saved = json.loads((tmp_path / "returned.json").read_text(encoding="utf-8"))
+    (tmp_path / "returned.json").write_text(json.dumps({**saved, "names": ["Alice", "Bob"]}), encoding="utf-8")
     import_comments(returned / "manifest.md", tmp_path / "returned.json", "alice", tmp_path / "document.json")
     assert json.loads((returned / "manifest.comments.alice.json").read_text(encoding="utf-8")) == written
 
@@ -183,7 +187,7 @@ def test_every_native_thread_fixture_maps_onto_core_targets_the_core_accepts(doc
         capture_output=True, text=True, check=True)
     mapped = json.loads(result.stdout)
     assert len(mapped) == 9
-    validate_overlays([{"version": 1, "principal": "alice", "comments": core["comments"],
+    validate_overlays([{"version": 1, "principal": "alice", "names": core["names"], "comments": core["comments"],
                         "decisions": core["decisions"], "states": core["states"]} for core in mapped.values()],
                       Path("manifest.comments.alice.json"))
     entries = [entry for core in mapped.values() for entry in [*core["comments"], *core["decisions"]]]

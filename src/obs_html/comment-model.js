@@ -1,9 +1,10 @@
 // The one mapping between the core's comments (obs input-model, Comments and reviews) and the threads
 // the Comments bar shows (spec/input-model.md, Comments and the core model). A thread is a root
-// comment with its replies nested by inReplyTo, its body as text and mediaType; a decision and a
-// state entry are the core's as they are, and a target the core's, but for the abstract's, which on
-// the home page is the home page's chapter key. The review state (reviewState) and a comment's state
-// (commentState) mirror their owners, obs.comments.review_state and obs.comments.comment_state.
+// comment with its replies nested by inReplyTo, its body as text and mediaType; a decision, a
+// state entry and the reader's names are the core's as they are, and a target the core's, but for
+// the abstract's, which on the home page is the home page's chapter key. The review state
+// (reviewState) and a comment's state (commentState) mirror their owners,
+// obs.comments.review_state and obs.comments.comment_state.
 (() => {
     "use strict";
 
@@ -56,7 +57,7 @@
                 !threads.has(entry.target) || !["open", "resolved"].includes(entry.state))) {
             fail("the comment island holds an invalid state entry");
         }
-        return {files: [...(model.files || [])], annotations,
+        return {files: [...(model.files || [])], names: [...(model.names || [])], annotations,
             decisions: model.decisions.map((decision) => mapTargets(decision, fromTarget)),
             states: states.map((entry) => ({...entry}))};
     };
@@ -69,7 +70,8 @@
             replies.forEach((reply) => flatten(reply, node.id));
         };
         data.annotations.forEach((annotation) => flatten(annotation));
-        return {version: VERSION, files: [...data.files], comments: comments.sort(order),
+        return {version: VERSION, files: [...data.files], ...(data.names.length ? {names: [...data.names]} : {}),
+            comments: comments.sort(order),
             decisions: data.decisions.map((decision) => mapTargets(decision, toTarget)).sort(order),
             states: data.states.map((entry) => ({...entry})).sort(order)};
     };
