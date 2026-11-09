@@ -18,7 +18,7 @@ from obs_html.render import render
 from obs_html.artifact_data import decode_artifact_data
 
 from conftest import ROOT
-from documents import card_document, chapter, document as build, node, paragraph, text
+from documents import card_document, chapter, document as build, node, paragraph, text, without_node_ids
 
 
 CONFIG = load_config()
@@ -151,7 +151,7 @@ def test_a_core_built_card_body_renders_its_base_table_and_its_nested_card() -> 
     assert {"bases", "cards-metrics", "wikilinks"} <= set(document["capabilities"])
     overview = next(note for note in decode_artifact_data(render(document, CONFIG))["notes"]
                     if note["slug"] == "overview")
-    html = overview["html"]
+    html = without_node_ids(overview["html"])
     assert ('<header class="content-card-title">Outer</header><p>Points as a table:</p>\n'
             '<div class="data-table-placeholder" data-base-table="overview-base-1"></div>\n'
             '<div class="record-cards" data-record-cards><section class="content-card record-card" '

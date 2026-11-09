@@ -22,9 +22,8 @@
         return;
     }
 
-    const usedIds = new Set();
+    const commentModel = globalThis.obsCommentModel;
     const reviewItemsCache = new Map();
-    let nextId = 1;
     let activeFilter = globalThis.obsQuery.compile("");
     let activeReviewFilter = globalThis.obsQuery.compile("");
     let savedSnapshot = null;
@@ -103,156 +102,10 @@
         event.returnValue = "";
     });
 
-    const freshId = () => {
-        let candidate;
-        do {
-            candidate = `comment-${nextId}`;
-            nextId += 1;
-        } while (usedIds.has(candidate));
-        usedIds.add(candidate);
-        return candidate;
-    };
-
-    const claimId = (value) => {
-        const candidate = typeof value === "string" && value.trim() ? value.trim() : "";
-        if (candidate && !usedIds.has(candidate)) {
-            usedIds.add(candidate);
-            return candidate;
-        }
-        return freshId();
-    };
-
-    const normalizeNode = (value) => {
-        if (!value || typeof value !== "object" ||
-                typeof value.author !== "string" || typeof value.text !== "string" ||
-                !["open", "resolved"].includes(value.status) ||
-                !Array.isArray(value.replies)) {
-            throw new Error("The reviewed HTML contains an invalid comment.");
-        }
-        return {
-            id: claimId(value.id),
-            author: value.author.trim(),
-            text: value.text,
-            status: value.status,
-            replies: value.replies.map(normalizeNode),
-        };
-    };
-
-    const normalizeAnnotation = (value) => {
-        if (!value || typeof value !== "object" || !value.target ||
-                typeof value.target.chapter !== "string") {
-            throw new Error("The reviewed HTML contains an invalid annotation target.");
-        }
-        const node = normalizeNode(value);
-        const scope = {};
-        if (value.target.table !== undefined || value.target.row !== undefined ||
-                value.target.detail !== undefined || value.target.column !== undefined) {
-            if (typeof value.target.table !== "string" || !value.target.table ||
-                typeof value.target.row !== "string" || !value.target.row ||
-                typeof value.target.detail !== "boolean") {
-                throw new Error("The reviewed HTML contains an invalid table comment target.");
-            }
-            Object.assign(scope, {
-                table: value.target.table, row: value.target.row, detail: value.target.detail,
-            });
-            if (value.target.column !== undefined) {
-                if (!value.target.detail || typeof value.target.column !== "string" ||
-                        !value.target.column.trim()) {
-                    throw new Error("The reviewed HTML contains an invalid detail column target.");
-                }
-                scope.column = value.target.column;
-            }
-        }
-        const anchor = {};
-        if (value.target.item !== undefined) {
-            if (typeof value.target.item !== "string" || !value.target.item) {
-                throw new Error("The reviewed HTML contains an invalid review-item anchor.");
-            }
-            anchor.item = value.target.item;
-        }
-        if (value.target.section !== undefined) {
-            if (typeof value.target.section !== "string") {
-                throw new Error("The reviewed HTML contains an invalid section anchor.");
-            }
-            anchor.section = value.target.section;
-        }
-        if (value.target.wholeItem !== undefined) {
-            if (typeof value.target.wholeItem !== "boolean") {
-                throw new Error("The reviewed HTML contains an invalid whole-item anchor.");
-            }
-            anchor.wholeItem = value.target.wholeItem;
-        }
-        return {
-            ...node,
-            ...(value.batch === undefined ? {} : {batch: normalizeBatch(value.batch)}),
-            target: {
-                chapter: value.target.chapter,
-                quote: typeof value.target.quote === "string" ? value.target.quote : "",
-                prefix: typeof value.target.prefix === "string" ? value.target.prefix : "",
-                suffix: typeof value.target.suffix === "string" ? value.target.suffix : "",
-                start: Number.isInteger(value.target.start) ? value.target.start : null,
-                end: Number.isInteger(value.target.end) ? value.target.end : null,
-                ...anchor,
-                ...scope,
-            },
-        };
-    };
-
-    const normalizeReview = (value) => {
-        if (!value || typeof value !== "object" ||
-                typeof value.chapter !== "string" || !value.chapter ||
-                typeof value.item !== "string" || !/^(item-\d+|row-[^:]+:.+)$/.test(value.item) ||
-                typeof value.reviewer !== "string" || !value.reviewer.trim() ||
-                !["accepted", "rejected"].includes(value.state)) {
-            throw new Error("The reviewed HTML contains an invalid review decision.");
-        }
-        return {
-            chapter: value.chapter,
-            item: value.item,
-            reviewer: value.reviewer.trim(),
-            state: value.state,
-        };
-    };
-
-    const normalizeBatch = (value) => {
-        if (!value || !["section", "chapter", "document"].includes(value.scope) ||
-                !Array.isArray(value.items) || !value.items.length) {
-            throw new Error("The reviewed HTML contains an invalid batch association.");
-        }
-        const seen = new Set();
-        const items = value.items.map((item) => {
-            const identity = normalizeReview({...item, reviewer: "Reviewer", state: "rejected"});
-            const key = JSON.stringify([identity.chapter, identity.item]);
-            if (seen.has(key)) throw new Error("The reviewed HTML contains duplicate batch items.");
-            seen.add(key);
-            return {chapter: identity.chapter, item: identity.item};
-        });
-        return {scope: value.scope, items};
-    };
-
-    const parseData = (value) => {
-        if (!value || typeof value !== "object" || value.version !== 2 ||
-            !Array.isArray(value.annotations)) {
-            throw new Error("The reviewed HTML has an invalid comment island.");
-        }
-        if (value.reviews !== undefined && !Array.isArray(value.reviews)) {
-            throw new Error("The reviewed HTML has invalid review decisions.");
-        }
-        if (value.reviewers !== undefined && !Array.isArray(value.reviewers)) {
-            throw new Error("The reviewed HTML has invalid reviewers.");
-        }
-        const reviewers = (value.reviewers || []).map((reviewer) => {
-            if (typeof reviewer !== "string" || !reviewer.trim()) {
-                throw new Error("The reviewed HTML contains an invalid reviewer.");
-            }
-            return reviewer.trim();
-        });
-        return {
-            annotations: value.annotations.map(normalizeAnnotation),
-            reviewers: [...new Set(reviewers)],
-            reviews: (value.reviews || []).map(normalizeReview),
-        };
-    };
+    // Ids are immutable and unique across every principal's overlay file (obs input-model, Overlay files).
+    const freshId = (kind) => `${kind}-${globalThis.crypto?.randomUUID?.() ||
+        `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`}`;
+    const now = () => new Date().toISOString();
 
     const reportFailure = (message) => {
         announcer.textContent = message;
@@ -262,13 +115,15 @@
     };
     let data;
     try {
-        const parsed = JSON.parse(island.textContent || "{}");
-        data = {version: 2, ...parseData(parsed)};
+        data = commentModel.fromCore(JSON.parse(island.textContent || "{}"));
     } catch (error) {
         reportFailure(`Comments could not be loaded: ${error.message}. The original review data was preserved.`);
         [addButton, saveButton, loadButton, copyButton].forEach((button) => { button.disabled = true; });
         return;
     }
+    const artifactData = JSON.parse(document.querySelector("[data-artifact-data]").textContent);
+    const rowRecords = artifactData.rowRecords || {};
+    const recordRows = Object.fromEntries(Object.entries(rowRecords).map(([key, record]) => [record, key]));
 
     const authorKey = "obs-html-reviewer";
     authorInput.value = globalThis.obsStorage.read(authorKey, "reviewer") || "";
@@ -288,16 +143,15 @@
         .replaceAll(">", "\\u003e");
 
     const persist = () => {
-        island.textContent = escapeJson(data);
+        island.textContent = escapeJson(commentModel.toCore(data));
         updateSaveGuidance();
     };
 
     const currentAuthor = () => authorInput.value.trim() || "Reviewer";
-
-    const registerReviewer = (reviewer = currentAuthor()) => {
-        if (!data.reviewers.includes(reviewer)) data.reviewers.push(reviewer);
-        return reviewer;
-    };
+    const newComment = (fields) => ({
+        id: freshId("comment"), author: currentAuthor(), created: now(), mediaType: "text/plain",
+        text: "", status: "open", ...fields, replies: [],
+    });
 
     const walk = (nodes, visit) => {
         nodes.forEach((node) => {
@@ -364,17 +218,25 @@
         return content;
     };
 
+    // A keyed row's node is `<table id>:<record id>` (obs input-model, Keyed rows); the build gives
+    // each data table its node id and each runtime row key its record (spec/input-model.md,
+    // Comments and the core model).
+    const keyedRow = (target) => {
+        const [table, record] = (target.node || "").split(":");
+        return record === undefined ? null : {table, key: recordRows[record]};
+    };
+    const tableElement = (node) => [...chapterBody.querySelectorAll("[data-data-table], [data-review-table]")]
+        .find((element) => element.dataset.nodeId === node);
+
     const navigateTo = async (annotation) => {
         const opened = await globalThis.obsArtifact?.activateChapter(annotation.target.chapter);
         if (opened === false) return;
-        if (annotation.target.table) {
-            const table = [...chapterBody.querySelectorAll("[data-data-table]")].find(
-                (element) => element.dataset.dataTable === annotation.target.table,
-            );
-            table?.dispatchEvent(new CustomEvent("obs-table-reveal-row", {
+        const keyed = keyedRow(annotation.target);
+        if (keyed) {
+            tableElement(keyed.table)?.dispatchEvent(new CustomEvent("obs-table-reveal-row", {
                 detail: {
-                    key: annotation.target.row, details: annotation.target.detail,
-                    column: annotation.target.column,
+                    key: keyed.key, details: annotation.target.field !== undefined,
+                    column: annotation.target.field,
                 },
             }));
         }
@@ -414,6 +276,7 @@
         editor.setAttribute("aria-label", "Comment text");
         editor.addEventListener("input", () => {
             node.text = editor.value;
+            node.modified = now();
             persist();
         });
         addField(fields, "Text", editor);
@@ -424,14 +287,9 @@
         reply.type = "button";
         reply.textContent = "Reply";
         reply.addEventListener("click", () => {
-            const id = freshId();
-            node.replies.push({
-                id,
-                author: registerReviewer(),
-                text: "",
-                status: "open",
-                replies: [],
-            });
+            const created = newComment({});
+            const {id} = created;
+            node.replies.push(created);
             persist();
             renderComments();
             updateReviewMode();
@@ -446,6 +304,7 @@
         resolve.textContent = node.status === "open" ? "Resolve" : "Reopen";
         resolve.addEventListener("click", () => {
             node.status = node.status === "open" ? "resolved" : "open";
+            node.modified = now();
             persist();
             renderComments();
             repaintHighlights();
@@ -500,34 +359,31 @@
         }
     });
 
+    // The keyed row, and the record field of its detail panel, an element is in; {} outside one.
     const tableScope = (element) => {
         const row = element?.closest("tr[data-row-key], tr[data-detail-owner]");
-        const table = row?.closest("[data-data-table]");
-        if (!table) return {};
+        const table = row?.closest("[data-data-table], [data-review-table]");
+        const record = rowRecords[row?.dataset.rowKey || row?.dataset.detailOwner];
+        if (!table?.dataset.nodeId || record === undefined) return {};
         const panel = element.closest("[data-detail-column]");
         return {
-            table: table.dataset.dataTable,
-            row: row.dataset.rowKey || row.dataset.detailOwner,
-            detail: Boolean(row.dataset.detailOwner),
-            ...(row.dataset.detailOwner && panel && row.contains(panel)
-                ? {column: panel.dataset.detailColumn} : {}),
+            node: `${table.dataset.nodeId}:${record}`,
+            ...(row.dataset.detailOwner && panel && row.contains(panel) ? {field: panel.dataset.detailColumn} : {}),
         };
     };
+    // The element whose text a target's positions count in: its node's, or the chapter's.
     const targetRoot = (target) => {
-        if (!target.table) return chapterBody;
-        const table = [...chapterBody.querySelectorAll("[data-data-table]")].find(
-            (element) => element.dataset.dataTable === target.table,
-        );
-        const row = table && [...table.querySelectorAll(
-            target.detail ? "[data-detail-owner]" : "[data-row-key]",
-        )].find((element) =>
-            (target.detail ? element.dataset.detailOwner : element.dataset.rowKey) === target.row &&
-            element.closest("[data-data-table]") === table,
-        );
-        if (!row || target.column === undefined) return row;
+        if (target.node === undefined) return chapterBody;
+        const keyed = keyedRow(target);
+        if (!keyed) return chapterBody.querySelector(`[data-node-id="${CSS.escape(target.node)}"]`);
+        const table = tableElement(keyed.table);
+        const rows = table ? [...table.querySelectorAll(target.field === undefined ? "[data-row-key]" : "[data-detail-owner]")]
+            .filter((element) => element.closest("[data-data-table], [data-review-table]") === table) : [];
+        const row = rows.find((element) =>
+            (target.field === undefined ? element.dataset.rowKey : element.dataset.detailOwner) === keyed.key);
+        if (!row || target.field === undefined) return row;
         return [...row.querySelectorAll("[data-detail-column]")].find(panel =>
-            panel.dataset.detailColumn === target.column &&
-            panel.closest("[data-detail-owner]") === row);
+            panel.dataset.detailColumn === target.field && panel.closest("[data-detail-owner]") === row);
     };
     const canonicalText = (node) => {
         const copy = node.cloneNode(true);
@@ -535,6 +391,20 @@
         return copy.textContent || "";
     };
     const rangeText = (range) => canonicalText(range.cloneContents());
+    const marked = (chapter, root, range) => {
+        const before = range.cloneRange();
+        before.selectNodeContents(root);
+        before.setEnd(range.startContainer, range.startOffset);
+        const start = rangeText(before).length;
+        const quote = rangeText(range);
+        const complete = canonicalText(root);
+        return {
+            chapter, quote,
+            prefix: complete.slice(Math.max(0, start - 40), start),
+            suffix: complete.slice(start + quote.length, start + quote.length + 40),
+            start, end: start + quote.length,
+        };
+    };
     const selectedTarget = () => {
         const selection = globalThis.getSelection();
         if (!selection || selection.rangeCount !== 1 || selection.isCollapsed) {
@@ -544,58 +414,24 @@
         if (!chapterBody.contains(range.commonAncestorContainer)) {
             return null;
         }
-        const quote = rangeText(range);
-        if (!quote.trim()) {
+        if (!rangeText(range).trim()) {
             return null;
         }
-        const scope = tableScope(range.startContainer.parentElement);
+        // A selection inside one item targets the item, one across items the chapter.
+        const table = tableScope(range.startContainer.parentElement);
+        const item = reviewItemForRange(range);
+        const scope = table.node ? table : item && !keyedRow({node: item}) ? {node: item} : {};
         const scopeRoot = targetRoot(scope);
         if (!scopeRoot?.contains(range.endContainer)) return null;
-        const before = range.cloneRange();
-        before.selectNodeContents(scopeRoot);
-        before.setEnd(range.startContainer, range.startOffset);
-        const start = rangeText(before).length;
-        const complete = canonicalText(scopeRoot);
-        const startNode = range.startContainer.nodeType === Node.ELEMENT_NODE
-            ? range.startContainer : range.startContainer.parentElement;
-        const section = sectionForElement(startNode);
-        return {
-            chapter: activeChapter?.dataset.chapter || "",
-            quote,
-            prefix: complete.slice(Math.max(0, start - 40), start),
-            suffix: complete.slice(start + quote.length, start + quote.length + 40),
-            start,
-            end: start + quote.length,
-            ...(reviewItemForRange(range) ? {item: reviewItemForRange(range)} : {}),
-            ...(section ? {section} : {}),
-            ...scope,
-        };
+        return {...marked(activeChapter?.dataset.chapter || "", scopeRoot, range), ...scope};
     };
 
     const targetForElement = (element) => {
         const scope = tableScope(element);
-        const scopeRoot = targetRoot(scope);
+        const node = scope.node ? scope : element.dataset.reviewItem ? {node: element.dataset.reviewItem} : {};
         const range = document.createRange();
         range.selectNodeContents(element);
-        const before = range.cloneRange();
-        before.selectNodeContents(scopeRoot);
-        before.setEnd(range.startContainer, range.startOffset);
-        const start = rangeText(before).length;
-        const quote = rangeText(range);
-        const complete = canonicalText(scopeRoot);
-        const section = sectionForElement(element);
-        return {
-            chapter: activeChapter?.dataset.chapter || "",
-            quote,
-            prefix: complete.slice(Math.max(0, start - 40), start),
-            suffix: complete.slice(start + quote.length, start + quote.length + 40),
-            start,
-            end: start + quote.length,
-            ...(element.dataset.reviewItem ? {item: element.dataset.reviewItem} : {}),
-            ...(section ? {section} : {}),
-            wholeItem: true,
-            ...scope,
-        };
+        return {...marked(activeChapter?.dataset.chapter || "", targetRoot(node) || chapterBody, range), ...node};
     };
 
     const sectionForElement = (element) => {
@@ -641,28 +477,29 @@
     };
 
     const tableColumnLabel = (target) => {
-        if (target.chapter !== activeChapter?.dataset.chapter ||
-                !target.table || !target.column) return "";
-        const table = [...chapterBody.querySelectorAll("[data-data-table]")].find(
-            (element) => element.dataset.dataTable === target.table,
-        );
-        return [...(table?.querySelectorAll("[data-column-key]") || [])]
-            .find((element) => element.dataset.columnKey === target.column)?.textContent.trim() || "";
+        const keyed = keyedRow(target);
+        if (target.chapter !== activeChapter?.dataset.chapter || !keyed || !target.field) return "";
+        return [...(tableElement(keyed.table)?.querySelectorAll("[data-column-key]") || [])]
+            .find((element) => element.dataset.columnKey === target.field)?.textContent.trim() || "";
     };
 
     const anchorDescription = (target) => {
-        if (target.table) {
-            const anchor = `table key "${target.table}", row identity "${target.row}"`;
-            if (!target.detail) return anchor;
-            const column = target.column
-                ? `, subject column "${target.column}"${tableColumnLabel(target)
-                    ? ` (${tableColumnLabel(target)})` : ""}`
-                : ", subject column unavailable";
-            return `${anchor}, expanded detail${column}`;
+        if (keyedRow(target)) {
+            const anchor = `keyed row "${target.node}"`;
+            if (target.field === undefined) return anchor;
+            const label = tableColumnLabel(target);
+            return `${anchor}, expanded detail, subject column "${target.field}"${label ? ` (${label})` : ""}`;
         }
         const position = Number.isInteger(target.start) && Number.isInteger(target.end)
             ? `text positions ${target.start}-${target.end}` : "text positions unavailable";
-        return `${target.item ? `review item "${target.item}"` : "paragraph anchor"}, ${position}`;
+        return `${target.node ? `review item "${target.node}"` : "chapter anchor"}, ${position}`;
+    };
+
+    // Whether a target marks its whole item, which the item's text in the open chapter shows.
+    const wholeItem = (target) => {
+        if (target.chapter !== activeChapter?.dataset.chapter || target.node === undefined) return false;
+        const root = targetRoot(target);
+        return Boolean(root) && target.start === 0 && target.end === canonicalText(root).length;
     };
 
     const formatComments = () => {
@@ -683,10 +520,10 @@
             const target = annotation.target;
             const record = chapterRecord(target.chapter);
             const page = pageForTarget(target);
-            const section = target.section || (() => {
+            const section = (() => {
                 if (target.chapter !== activeChapter?.dataset.chapter) return "";
-                const root = target.table ? targetRoot(target) : null;
-                const range = target.table ? null : rangeForTarget(target);
+                const root = target.node === undefined ? null : targetRoot(target);
+                const range = root ? null : rangeForTarget(target);
                 const node = root || range?.startContainer;
                 const element = node?.nodeType === Node.ELEMENT_NODE ? node : node?.parentElement;
                 return sectionForElement(element);
@@ -699,16 +536,16 @@
                 `- Section: ${section || "unavailable"}`,
                 `- Page: ${page || "unavailable (target is not on a currently rendered page)"}`,
                 `- Anchor: ${anchorDescription(target)}`,
-                `- Marked context${target.wholeItem ? " (whole-item context)" : ""}:`,
+                `- Marked context${wholeItem(target) ? " (whole-item context)" : ""}:`,
                 "",
-                markdownFence(target.quote),
+                markdownFence(target.quote || ""),
             );
             if (annotation.batch) {
                 lines.push(
                     `- Batch scope: full ${annotation.batch.scope}`,
                     "- Affected review items:",
                     ...annotation.batch.items.map((item) =>
-                        `  - ${item.chapter} ${item.item}`),
+                        `  - ${item.chapter} ${item.node}`),
                 );
             }
             const appendNode = (node, parentId, depth) => {
@@ -774,16 +611,9 @@
     };
 
     const createAnnotation = (target, batch) => {
-        const id = freshId();
-        data.annotations.push({
-            id,
-            target,
-            ...(batch ? {batch} : {}),
-            author: registerReviewer(),
-            text: "",
-            status: "open",
-            replies: [],
-        });
+        const annotation = newComment({target, ...(batch ? {batch} : {})});
+        const {id} = annotation;
+        data.annotations.push(annotation);
         persist();
         renderComments();
         updateReviewMode();
@@ -863,92 +693,74 @@
             return !element.closest("li, figure");
         });
 
-    const reviewId = (element, index) => {
+    // An item's review id is its block's core id (data-node-id), or its keyed row's; an element
+    // without one, such as a data table's status paragraph, is no item.
+    const reviewId = (element) => {
         const table = element.closest("[data-data-table], [data-review-table]");
-        return element.matches("tr[data-row-key]") && table
-            ? `row-${encodeURIComponent(table.dataset.dataTable || table.dataset.reviewTable)}:${encodeURIComponent(element.dataset.rowKey)}`
-            : `item-${index + 1}`;
+        if (!element.matches("tr[data-row-key]") || !table) return element.dataset.nodeId || null;
+        const record = rowRecords[element.dataset.rowKey];
+        return table.dataset.nodeId && record !== undefined ? `${table.dataset.nodeId}:${record}` : null;
     };
-    const identifiedReviewElements = (root) => {
-        let ordinaryIndex = 0;
-        return reviewElements(root).map((element) => {
-            const id = reviewId(element, ordinaryIndex);
-            if (id.startsWith("item-")) ordinaryIndex += 1;
-            return {element, id};
-        });
-    };
+    const identifiedReviewElements = (root) => reviewElements(root)
+        .map((element) => ({element, id: reviewId(element)})).filter((item) => item.id !== null);
     const reviewItems = () => chapterBody.dataset.generatedView
         ? []
-        : identifiedReviewElements(chapterBody).map(({element, id}) => ({
-        element, id,
-    }));
+        : identifiedReviewElements(chapterBody);
 
-    const reviewDecision = (chapter, item, reviewer) => data.reviews.find((decision) =>
-        decision.chapter === chapter && decision.item === item && decision.reviewer === reviewer
-    );
+    const itemTarget = (chapter, item) => ({chapter, node: item});
+    const reviewDecision = (chapter, item, reviewer) => data.decisions.find((decision) =>
+        decision.reviewer === reviewer && commentModel.sameTarget(decision.target, itemTarget(chapter, item)));
 
-    const aggregateState = (chapter, item) => {
-        const reviewers = new Set([
-            ...data.reviewers,
-            ...data.reviews.map((decision) => decision.reviewer),
-        ]);
-        if (!reviewers.size) return "waiting";
-        const states = [...reviewers].map((reviewer) =>
-            reviewDecision(chapter, item, reviewer)?.state || "waiting"
-        );
-        if (states.includes("rejected")) return "rejected";
-        if (states.includes("accepted")) return "accepted";
-        return "waiting";
-    };
-
-    const reviewerState = (chapter, item) => reviewDecision(
-        chapter,
-        item,
-        currentAuthor(),
-    )?.state || "waiting";
+    const aggregateState = (chapter, item) => commentModel.reviewState(data.decisions, itemTarget(chapter, item));
+    const reviewerState = (chapter, item) =>
+        commentModel.reviewState(data.decisions, itemTarget(chapter, item), currentAuthor());
 
     const refreshReviewFilter = () => {
         if (activeReviewFilter.fields.includes("review")) globalThis.obsFilter?.refresh();
     };
-
-    const rangesIntersect = (first, second) =>
-        first.chapter === second.chapter && first.table === second.table &&
-        first.row === second.row && (first.table && !first.detail ||
-            first.detail === second.detail && first.column === second.column &&
-            first.start < second.end && first.end > second.start);
 
     const nodeCount = (node) => 1 + node.replies.reduce(
         (total, reply) => total + nodeCount(reply),
         0,
     );
 
-    const commentCount = (target) => data.annotations.reduce((total, annotation) =>
-        total + (!annotation.batch && rangesIntersect(target, annotation.target) ? nodeCount(annotation) : 0),
-        0,
-    );
-
+    // A comment intersects an item when it targets the item, or a block inside it, or marks
+    // chapter text that overlaps the item's.
     const commentCountForItem = (element, chapter, item) => {
         const associated = data.annotations.reduce((total, annotation) =>
             total + (annotation.batch?.items.some((identity) =>
-                identity.chapter === chapter && identity.item === item) ? nodeCount(annotation) : 0), 0);
-        const scope = tableScope(element);
-        if (scope.table) return associated + commentCount({chapter, ...scope});
-        return associated + (data.annotations.length ? commentCount(targetForElement(element)) : 0);
+                identity.chapter === chapter && identity.node === item) ? nodeCount(annotation) : 0), 0);
+        const inChapter = data.annotations.filter((annotation) =>
+            !annotation.batch && annotation.target.chapter === chapter);
+        let extent = null;
+        return associated + inChapter.reduce((total, annotation) => {
+            const target = annotation.target;
+            let intersects = false;
+            if (target.node !== undefined) {
+                intersects = target.node === item || (!keyedRow(target) &&
+                    Boolean(element.querySelector(`[data-node-id="${CSS.escape(target.node)}"]`)));
+            } else if (Number.isInteger(target.start) && Number.isInteger(target.end)) {
+                const range = document.createRange();
+                range.selectNodeContents(element);
+                extent ||= marked(chapter, chapterBody, range);
+                intersects = target.start < extent.end && target.end > extent.start;
+            }
+            return total + (intersects ? nodeCount(annotation) : 0);
+        }, 0);
     };
 
+    const decide = (chapter, item, reviewer, state) => ({
+        id: freshId("decision"), reviewer, created: now(), target: itemTarget(chapter, item), state,
+    });
+
+    // Changing a decision replaces the reviewer's own one; deciding the same again withdraws it
+    // (obs input-model, Review semantics).
     const setReviewDecision = (chapter, item, requestedState, target) => {
-        const reviewer = registerReviewer();
-        const index = data.reviews.findIndex((decision) =>
-            decision.chapter === chapter && decision.item === item && decision.reviewer === reviewer
-        );
-        const removing = index >= 0 && data.reviews[index].state === requestedState;
-        if (removing) {
-            data.reviews.splice(index, 1);
-        } else {
-            const decision = {chapter, item, reviewer, state: requestedState};
-            if (index < 0) data.reviews.push(decision);
-            else data.reviews[index] = decision;
-        }
+        const reviewer = currentAuthor();
+        const known = reviewDecision(chapter, item, reviewer);
+        const removing = known?.state === requestedState;
+        if (known) data.decisions.splice(data.decisions.indexOf(known), 1);
+        if (!removing) data.decisions.push(decide(chapter, item, reviewer, requestedState));
         persist();
         syncReviewFields();
         updateReviewSummary();
@@ -1016,9 +828,9 @@
         const affected = candidates.filter((candidate) =>
             reviewerState(candidate.chapter, candidate.id) === "waiting");
         if (!affected.length) return;
-        const reviewer = registerReviewer();
-        const items = affected.map((candidate) => ({chapter: candidate.chapter, item: candidate.id}));
-        items.forEach((identity) => data.reviews.push({...identity, reviewer, state}));
+        const reviewer = currentAuthor();
+        const items = affected.map((candidate) => itemTarget(candidate.chapter, candidate.id));
+        affected.forEach((candidate) => data.decisions.push(decide(candidate.chapter, candidate.id, reviewer, state)));
         persist();
         syncReviewFields();
         updateReviewSummary();
@@ -1208,8 +1020,7 @@
         const active = clone.querySelector("[data-active-chapter]");
         if (active) active.hidden = false;
         const clonedIsland = clone.querySelector("[data-comment-island]");
-        const reviewedData = {...data, reviewers: [...new Set([...data.reviewers, currentAuthor()])]};
-        clonedIsland.textContent = escapeJson(reviewedData);
+        clonedIsland.textContent = escapeJson(commentModel.toCore(data));
         const artifactIsland = clone.querySelector("[data-artifact-data]");
         const model = globalThis.obsArtifact?.serializeModel?.() || artifactIsland.textContent;
         globalThis.obsRunningHeader.snapshot(clone, JSON.parse(model).document.metadataHtml);
@@ -1295,28 +1106,37 @@
         }
     };
 
-    const signatureNode = (node) => ({
-        author: node.author,
-        text: node.text,
-        status: node.status,
-        replies: node.replies.map(signatureNode),
-    });
+    // A value as text that does not depend on its keys' order.
+    const stable = (value) => JSON.stringify(value, (_key, item) => item && typeof item === "object" &&
+        !Array.isArray(item) ? Object.fromEntries(Object.entries(item).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)))
+        : item);
 
-    const signature = (annotation) => {
-        const target = {...annotation.target};
-        delete target.item;
-        delete target.section;
-        delete target.wholeItem;
-        return JSON.stringify({
-            target,
-            ...(annotation.batch ? {batch: annotation.batch} : {}),
-            ...signatureNode(annotation),
+    // Returned copies merge by immutable id, like the core's union: a known id with the same payload
+    // is one entry, one with another payload rejects the file; a reviewer's later decision on a
+    // target replaces the earlier one.
+    const merged = (current, imported) => {
+        const comments = new Map(current.comments.map((comment) => [comment.id, comment]));
+        imported.comments.forEach((comment) => {
+            const known = comments.get(comment.id);
+            if (known && stable(known) !== stable(comment)) throw new Error(`The comment ${comment.id} differs.`);
+            comments.set(comment.id, comment);
         });
+        const decisions = new Map(current.decisions.map((decision) => [decision.id, decision]));
+        imported.decisions.forEach((decision) => {
+            const known = decisions.get(decision.id);
+            if (known && stable(known) !== stable(decision)) throw new Error(`The decision ${decision.id} differs.`);
+            const earlier = [...decisions.values()].find((candidate) => candidate.id !== decision.id &&
+                candidate.reviewer === decision.reviewer && commentModel.sameTarget(candidate.target, decision.target));
+            if (earlier && Date.parse(earlier.created) > Date.parse(decision.created)) return;
+            if (earlier) decisions.delete(earlier.id);
+            decisions.set(decision.id, decision);
+        });
+        return {...current, comments: [...comments.values()], decisions: [...decisions.values()]};
     };
 
     const importFiles = async (files) => {
-        const signatures = new Set(data.annotations.map(signature));
-        let added = 0;
+        let core = commentModel.toCore(data);
+        const before = core.comments.length;
         let rejected = 0;
         for (const file of files) {
             try {
@@ -1325,34 +1145,14 @@
                 if (islands.length !== 1) {
                     throw new Error("Expected one comment island.");
                 }
-                const imported = parseData(JSON.parse(islands[0].textContent || "{}"));
-                imported.reviewers.forEach((reviewer) => {
-                    if (!data.reviewers.includes(reviewer)) data.reviewers.push(reviewer);
-                });
-                imported.reviews.forEach((review) => {
-                    if (!data.reviewers.includes(review.reviewer)) {
-                        data.reviewers.push(review.reviewer);
-                    }
-                    const index = data.reviews.findIndex((candidate) =>
-                        candidate.chapter === review.chapter &&
-                        candidate.item === review.item &&
-                        candidate.reviewer === review.reviewer
-                    );
-                    if (index < 0) data.reviews.push(review);
-                    else data.reviews[index] = review;
-                });
-                imported.annotations.forEach((annotation) => {
-                    const key = signature(annotation);
-                    if (!signatures.has(key)) {
-                        signatures.add(key);
-                        data.annotations.push(annotation);
-                        added += 1;
-                    }
-                });
+                const imported = commentModel.toCore(commentModel.fromCore(JSON.parse(islands[0].textContent || "{}")));
+                core = commentModel.toCore(commentModel.fromCore(merged(core, imported)));
             } catch (_error) {
                 rejected += 1;
             }
         }
+        const added = core.comments.length - before;
+        Object.assign(data, commentModel.fromCore(core));
         persist();
         renderComments();
         syncReviewFields();
@@ -1496,6 +1296,7 @@
     globalThis.obsComments = {
         data,
         importFiles,
+        reviewItems: () => allReviewItems().map(({chapter, id}) => ({chapter, id})),
         reviewedHtml,
         saveReviewedCopy,
     };

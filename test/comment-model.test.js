@@ -1,0 +1,37 @@
+"use strict";
+
+// The HTML adapter's one comment mapping (src/obs_html/comment-model.js; spec/input-model.md, Comments
+// and the core model): every native thread fixture (test/fixtures/comment-threads.json) maps to the
+// core's format and back unchanged, and the browser's review state holds the core's shared cases
+// (test/fixtures/review-state-conformance.json at the repository root), which test/test_comments.py
+// there runs against obs.comments.review_state.
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
+const vm = require("node:vm");
+
+const root = path.resolve(__dirname, "..");
+vm.runInThisContext(fs.readFileSync(path.join(root, "src", "obs_html", "comment-model.js"), "utf8"));
+const model = globalThis.obsCommentModel;
+const read = (...parts) => JSON.parse(fs.readFileSync(path.join(...parts), "utf8"));
+
+const {fixtures} = read(root, "test", "fixtures", "comment-threads.json");
+for (const [name, native] of Object.entries(fixtures)) {
+    const core = model.toCore(native);
+    assert.equal(core.version, 1, name);
+    assert.ok(core.comments.every((comment) => comment.replies === undefined && typeof comment.body.text === "string"),
+        `${name}: the core's comments are flat, each with a body`);
+    assert.deepEqual(model.fromCore(core), native, `${name}: native, then core, then native`);
+    assert.deepEqual(model.toCore(model.fromCore(core)), core, `${name}: core, then native, then core`);
+}
+
+const reply = {id: "r", author: "A", created: "2026-11-09T10:00:00Z", body: {mediaType: "text/plain", text: ""},
+    state: "open", inReplyTo: "missing"};
+assert.throws(() => model.fromCore({version: 1, files: [], comments: [reply], decisions: []}), /answers/);
+assert.throws(() => model.fromCore({version: 2, annotations: []}), /version 1/);
+
+const conformance = read(root, "..", "..", "test", "fixtures", "review-state-conformance.json");
+for (const {target, reviewer, expected} of conformance.cases) {
+    assert.equal(model.reviewState(conformance.decisions, target, reviewer), expected,
+        `${JSON.stringify(target)} ${reviewer ?? "aggregate"}`);
+}

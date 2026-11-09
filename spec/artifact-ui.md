@@ -1612,8 +1612,9 @@ separate from artifact presentation.
   every other bar. No comment surface is open initially.
 - The Comments bar has two sections separated by a rule. The first contains the locally
   remembered reviewer name plus Download HTML and Load reviewed HTML commands. Load
-  accepts one or more returned HTML artifacts, validates their comment islands, merges unique
-  comments and per-reviewer decisions, and assigns collision-free local comment identifiers.
+  accepts one or more returned HTML artifacts and merges their comments and decisions by id
+  ([[input-model#Comments and the core model]]); a file whose island cannot be mapped, or that
+  holds a known id with a different payload, is rejected and changes nothing.
 
   At ordinary bar widths, Save and Load share a compact row in the left half;
   `Copy comments to clipboard` occupies the right half alongside Save. Wrap
@@ -1622,7 +1623,7 @@ separate from artifact presentation.
   Copy exports the current complete comment conversation, not just visible/filter
   matches, as readable text suitable for pasting into a discussion. Each root
   comment includes document identity, chapter/section, marked quote or whole-item
-  context, stable paragraph/item identity or table/row/subject-column identity,
+  context, the item's core id or the keyed row and subject column,
   author and replies in context.
 
   Include the current artifact page when reliably resolved; a page is a supplemental locator,
@@ -1671,8 +1672,8 @@ separate from artifact presentation.
 
   Ctrl+Shift-click applies to still-waiting items throughout the artifact, including
   inactive chapters. Scope follows canonical structure, not
-  screen pages or current visibility. Waiting means undecided for the named reviewer;
-  preserve that reviewer's existing decisions and all other reviewers' decisions.
+  screen pages or current visibility. What waiting means, and whose decisions a batch
+  changes, is obs's input model's (Comments and reviews, Review semantics).
   Repeating a batch action never toggles completed items back to waiting.
 
   A batch rejection with affected items opens one comment editor labelled with its
@@ -1694,12 +1695,8 @@ separate from artifact presentation.
   vault notes merely available to table queries. Section boundaries derive from the
   unfiltered chapter structure before pagination or disclosure.
 
-  Decisions belong
-  to the named reviewer, so merged copies preserve independent reviewer state.
-
-  The displayed
-  gutter stripe uses the aggregate precedence rejected, then accepted, then waiting: a
-  rejection wins, otherwise any acceptance overrides undecided reviewers.
+  The displayed gutter stripe shows the item's aggregate state across reviewers (obs's input
+  model, Review semantics).
 
   Rejecting an item
   immediately creates and focuses a whole-item comment card so the
@@ -1717,8 +1714,9 @@ separate from artifact presentation.
 
   Expanded details inherit their owning row's checkmark, with no independent paragraph checks.
 
-  Normal text-selection comments are supported inside details; their anchors record the table,
-  row, and detail-local text offsets so collapse/re-expansion does not invalidate them.
+  Normal text-selection comments are supported inside details; their anchors record the keyed
+  row, the detail's record field and detail-local text offsets so collapse/re-expansion does not
+  invalidate them.
 - The Comment control creates a blank whole-item comment card.
 
   Its badge counts every root

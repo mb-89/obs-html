@@ -21,6 +21,6 @@ def test_the_cover_and_history_presentation_is_here() -> None:
 def test_the_reviewed_copy_runtime_is_here_with_its_owner_links() -> None:
     section = _section("Reviewed copy")
 
-    for adapter in ("`obs-comments`", "File System Access", "Comment extraction",
+    for adapter in ("`obs-comments`", "File System Access", "Comments and the core model",
                     "[[artifact-ui#What counts as a change]] owns whether reader state marks"):
         assert adapter in section

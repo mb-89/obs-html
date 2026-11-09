@@ -17,7 +17,7 @@ from obs_html.render import render
 from obs_html.artifact_data import decode_artifact_data
 
 from conftest import PIXEL
-from documents import chapter, document as build, node, paragraph, text
+from documents import chapter, document as build, node, paragraph, text, without_node_ids
 
 
 CONFIG = load_config()
@@ -168,8 +168,8 @@ def test_a_core_built_callout_body_renders_its_list_wikilink_nested_callout_and_
     nodes, and the Document names callouts, not extensions."""
     document = json.loads((ROOT / "test" / "fixtures" / "documents" / "callouts.json").read_text(encoding="utf-8"))
     assert "callouts" in document["capabilities"] and "extensions" not in document["capabilities"]
-    html = next(note for note in decode_artifact_data(render(document, CONFIG))["notes"]
-                if note["slug"] == "guide")["html"]
+    html = without_node_ids(next(note for note in decode_artifact_data(render(document, CONFIG))["notes"]
+                                 if note["slug"] == "guide")["html"])
     assert html.endswith(
         '<aside class="content-card content-callout content-callout--warning" data-callout="warning" '
         'aria-label="Warning">\n<header class="content-card-title">Check the limits</header>\n'

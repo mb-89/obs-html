@@ -15,6 +15,10 @@ const click = (element) => element.dispatchEvent(new window.Event("click", {
     bubbles: true, cancelable: true,
 }));
 const tables = () => [...body.querySelectorAll(".data-table-shell")];
+// A chapter's first block id: the core id its review items carry (spec/input-model.md, Comments and the core model).
+const firstNodeId = (slug) => /data-node-id="([^"]+)"/.exec(
+    context.obsArtifact.records.find((record) => record.slug === slug).html)[1];
+const thread = (fields) => ({created: "2026-11-09T10:00:00Z", mediaType: "text/plain", replies: [], ...fields});
 const navigate = (slug) => context.obsArtifact.activateChapter(slug);
 // Artifact-ui.md "Floating window": a link to a note outside the contents shows it as context; the page stays.
 const followToContext = (link, slug) => {
@@ -1151,7 +1155,7 @@ async function verifyComments() {
     navigate("glossary");
     context.obsArtifact.openBar("comments", "right");
     let row = body.querySelector('tr[data-row-key="glossary:bluf"]');
-    assert.ok(row.dataset.reviewItem.startsWith("row-"));
+    assert.match(row.dataset.reviewItem, /^bases-[0-9a-f]+(-\d+)?:[a-z]/, "a Base row is its keyed row");
     const reviewId = row.dataset.reviewItem;
     assert.equal(row.querySelectorAll("[data-review-gutter]").length, 1);
     assert.equal(row.firstElementChild.querySelectorAll("[data-review-gutter]").length, 1);
@@ -1188,9 +1192,8 @@ async function verifyComments() {
     assert.equal(add.disabled, false);
     click(add);
     const annotation = context.obsComments.data.annotations.at(-1);
-    assert.equal(annotation.target.table, row.closest("[data-data-table]").dataset.dataTable);
-    assert.equal(annotation.target.row, "glossary:bluf");
-    assert.equal(annotation.target.detail, true);
+    assert.equal(annotation.target.node, reviewId);
+    assert.equal(typeof annotation.target.field, "string");
     assert.ok(annotation.target.end > annotation.target.start);
     assert.equal(row.dataset.reviewState, "accepted");
     assert.equal(row.querySelector(".review-action--comment").dataset.count, "1");
@@ -1226,7 +1229,7 @@ async function verifyComments() {
     click(row.querySelector("[data-table-detail-toggle]"));
     assert.equal(staticRenderCalls, 0, "cached review identities remain reusable after a definition edit");
     const reviewed = await context.obsComments.reviewedHtml();
-    assert.ok(reviewed.includes('"detail":true'));
+    assert.ok(reviewed.includes('"field":'));
     assert.equal(reviewed.includes('class="paged-reader chapter-body"'), false);
     assert.equal(reviewed.includes('class="print-book chapter-body"'), false);
     const copyButton = document.querySelector("[data-comment-copy]");
@@ -1234,36 +1237,36 @@ async function verifyComments() {
     assert.equal(copyButton.textContent.trim(), "Copy comments to clipboard");
     const originalDirty = document.querySelector("[data-review-save-guidance]").dataset.dirty;
     const originalIsland = document.querySelector("[data-comment-island]").textContent;
-    context.obsComments.data.annotations.push({
+    const [alphaId, betaId] = [firstNodeId("alpha"), firstNodeId("beta")];
+    context.obsComments.data.annotations.push(thread({
         id: "selected-unicode",
         author: "Reviewer Ω",
         text: "First line.\n<Second line> & safe.",
         status: "open",
         target: {
-            chapter: "beta", quote: "Quoted “text”\nacross lines.", prefix: "Before ",
-            suffix: " after", start: 17, end: 42, item: "item-3", section: "Background",
+            chapter: "beta", node: betaId, quote: "Quoted “text”\nacross lines.", prefix: "Before ",
+            suffix: " after", start: 17, end: 42,
         },
         batch: {
             scope: "section",
             items: [
-                {chapter: "alpha", item: "item-2"},
-                {chapter: "beta", item: "item-4"},
+                {chapter: "alpha", node: alphaId},
+                {chapter: "beta", node: betaId},
             ],
         },
-        replies: [{
+        replies: [thread({
             id: "nested-reply",
             author: "Reply author",
             text: "Nested reply.",
             status: "resolved",
-            replies: [{
+            replies: [thread({
                 id: "deep-reply",
                 author: "Third author",
                 text: "Deep reply.",
                 status: "open",
-                replies: [],
-            }],
-        }],
-    });
+            })],
+        })],
+    }));
     document.querySelector("[data-comment-filter-input]").value = "no matching comment";
     document.querySelector("[data-comment-filter-input]").dispatchEvent(new window.Event("input"));
     assert.equal(document.querySelectorAll("[data-comment-list] .comment-node").length, 0);
@@ -1279,7 +1282,7 @@ async function verifyComments() {
     assert.ok(clipboardText.includes("beta"));
     assert.ok(clipboardText.includes("Page: unavailable"));
     assert.doesNotMatch(clipboardText, /Page: \d+/);
-    assert.ok(clipboardText.includes("item-3"));
+    assert.ok(clipboardText.includes(`review item "${betaId}"`));
     assert.ok(clipboardText.includes("17-42"));
     assert.ok(clipboardText.includes("Quoted “text”\nacross lines."));
     assert.ok(clipboardText.includes("Reviewer Ω"));
@@ -1287,8 +1290,8 @@ async function verifyComments() {
     assert.ok(clipboardText.includes("Nested reply."));
     assert.ok(clipboardText.includes("Deep reply."));
     assert.ok(clipboardText.includes("Batch scope: full section"));
-    assert.ok(clipboardText.includes("alpha item-2"));
-    assert.ok(clipboardText.includes("beta item-4"));
+    assert.ok(clipboardText.includes(`alpha ${alphaId}`));
+    assert.ok(clipboardText.includes(`beta ${betaId}`));
     assert.equal(document.querySelector("[data-comment-announcer]").textContent,
         "Comments copied to clipboard.");
     assert.equal(document.querySelector("[data-review-save-guidance]").dataset.dirty, originalDirty);
@@ -1327,6 +1330,11 @@ async function verifyComments() {
 }
 async function verifyCommentExportOnly() {
     navigate("parent");
+    // The synthetic detail table below stands in for a register: the build maps its row key to a record.
+    const artifactIsland = document.querySelector("[data-artifact-data]");
+    const artifactJson = JSON.parse(artifactIsland.textContent);
+    artifactJson.rowRecords = {...artifactJson.rowRecords, "record-1": "record-1"};
+    artifactIsland.textContent = JSON.stringify(artifactJson);
     const storage = new Map();
     context.localStorage = {
         getItem: (key) => storage.get(key) || null,
@@ -1354,37 +1362,36 @@ async function verifyCommentExportOnly() {
     const annotation = context.obsComments.data.annotations[0];
     annotation.author = "Reviewer Ω";
     annotation.text = "First line.\n<Second line> & safe.";
-    annotation.replies.push({
+    annotation.replies.push(thread({
         id: "reply-1", author: "Reply author", text: "Nested reply.",
-        status: "resolved", replies: [{
+        status: "resolved", created: "2026-11-09T10:01:00Z", replies: [thread({
             id: "reply-2", author: "Third author", text: "Deep reply.",
-            status: "open", replies: [],
-        }],
-    });
+            status: "open", created: "2026-11-09T10:02:00Z",
+        })],
+    }));
+    const [parentId, childId] = [paragraph.dataset.nodeId, firstNodeId("child")];
     const batch = {
         scope: "section",
         items: [
-            {chapter: "parent", item: "item-2"},
-            {chapter: "child", item: "item-4"},
+            {chapter: "parent", node: parentId},
+            {chapter: "child", node: childId},
         ],
     };
     const inactiveTarget = {
-        chapter: "child", quote: "Inactive Unicode “quote”.", prefix: "", suffix: "",
-        start: 5, end: 29, item: "item-3", section: "Background",
+        chapter: "child", node: childId, quote: "Inactive Unicode “quote”.", prefix: "", suffix: "",
+        start: 5, end: 29,
     };
-    context.obsComments.data.annotations.push({
+    context.obsComments.data.annotations.push(thread({
         id: "inactive-batch", target: inactiveTarget, batch,
         author: "Batch author", text: "Batch feedback.", status: "open",
-        replies: [],
-    });
+    }));
     click(paragraph.querySelector(".review-action--comment"));
     const whole = context.obsComments.data.annotations.at(-1);
-    assert.equal(whole.target.wholeItem, true);
-    assert.equal(whole.target.item, paragraph.dataset.reviewItem);
-    assert.equal(whole.target.section, "Context");
+    assert.equal(whole.target.node, paragraph.dataset.nodeId);
+    assert.equal(whole.target.start, 0);
     whole.text = "Whole item feedback with ``` and ```` fences.";
     const table = document.createElement("div");
-    table.innerHTML = '<div data-data-table="shared-table"><table><thead><tr>' +
+    table.innerHTML = '<div data-data-table="shared-table" data-node-id="registers-shared"><table><thead><tr>' +
         '<th data-column-key="explanation">Current column label</th></tr></thead>' +
         '<tbody><tr data-row-key="record-1"><td>Row</td></tr>' +
         '<tr data-detail-owner="record-1"><td><div data-detail-column="explanation">' +
@@ -1410,22 +1417,20 @@ async function verifyCommentExportOnly() {
     document.dispatchEvent(new window.Event("selectionchange"));
     click(document.querySelector("[data-comment-add]"));
     const detail = context.obsComments.data.annotations.at(-1);
-    assert.equal(detail.target.table, "shared-table");
-    assert.equal(detail.target.row, "record-1");
-    assert.equal(detail.target.column, "explanation");
-    assert.equal(detail.target.detail, true);
+    assert.equal(detail.target.node, "registers-shared:record-1");
+    assert.equal(detail.target.field, "explanation");
     const inactiveTable = JSON.parse(JSON.stringify(detail));
     inactiveTable.id = "inactive-table";
     inactiveTable.target.chapter = "child";
     const staleDetail = JSON.parse(JSON.stringify(detail));
     staleDetail.id = "stale-detail";
     staleDetail.target.quote = "A stored quote no longer matching this detail.";
-    context.obsComments.data.annotations.push(inactiveTable, staleDetail, {
+    context.obsComments.data.annotations.push(inactiveTable, staleDetail, thread({
         id: "unresolved", target: {
             chapter: "parent", quote: "Missing quote.", prefix: "", suffix: "",
             start: 999999, end: 1000013,
-        }, author: "Legacy reviewer", text: "Unresolved feedback.", status: "open", replies: [],
-    });
+        }, author: "Legacy reviewer", text: "Unresolved feedback.", status: "open",
+    }));
     const originalDirty = document.querySelector("[data-review-save-guidance]").dataset.dirty;
     const originalIsland = document.querySelector("[data-comment-island]").textContent;
     const originalData = JSON.stringify(context.obsComments.data);
@@ -1456,11 +1461,12 @@ async function verifyCommentExportOnly() {
     assert.ok(clipboardText.includes("Inactive Unicode “quote”."));
     assert.ok(clipboardText.includes("Page: unavailable"));
     assert.ok(clipboardText.includes("Batch scope: full section"));
-    assert.ok(clipboardText.includes("parent item-2"));
-    assert.ok(clipboardText.includes("child item-4"));
+    assert.ok(clipboardText.includes(`parent ${parentId}`));
+    assert.ok(clipboardText.includes(`child ${childId}`));
     assert.ok(clipboardText.includes("whole-item context"));
+    assert.ok(clipboardText.includes("- Section: Context"));
     assert.ok(clipboardText.includes("Expanded detail quote Ω."));
-    assert.ok(clipboardText.includes('table key "shared-table", row identity "record-1"'));
+    assert.ok(clipboardText.includes('keyed row "registers-shared:record-1"'));
     assert.ok(clipboardText.includes('subject column "explanation" (Current column label)'));
     assert.ok(clipboardText.includes("- Page: 8\n"));
     assert.ok(clipboardText.includes("Unresolved feedback."));
@@ -1509,32 +1515,33 @@ async function verifyCommentExportOnly() {
     const saved = await context.obsComments.reviewedHtml();
     const reopened = parseHTML(saved).document;
     const savedData = JSON.parse(reopened.querySelector("[data-comment-island]").textContent);
-    assert.deepEqual(savedData.annotations, JSON.parse(originalData).annotations);
+    // The island holds the core's order, by time; the threads are the same.
+    const byId = (list) => JSON.parse(JSON.stringify(list)).sort((first, second) => (first.id < second.id ? -1 : 1));
+    assert.deepEqual(byId(context.obsCommentModel.fromCore(savedData).annotations),
+        byId(JSON.parse(originalData).annotations));
     assert.equal(reopened.querySelector("[data-comment-copy]").textContent, "Copy comments to clipboard");
     context.DOMParser = window.DOMParser;
     await context.obsComments.importFiles([{text: async () => saved}]);
     assert.equal(context.obsComments.data.annotations.length, annotationCount);
-    const legacy = JSON.parse(JSON.stringify(savedData));
-    legacy.annotations.forEach(({target}) => {
-        delete target.item;
-        delete target.section;
-        delete target.wholeItem;
-    });
-    const legacyReturned = parseHTML(saved).document;
-    legacyReturned.querySelector("[data-comment-island]").textContent = JSON.stringify(legacy);
-    await context.obsComments.importFiles([{text: async () => legacyReturned.documentElement.outerHTML}]);
+    const returnedWith = async (island) => {
+        const returned = parseHTML(saved).document;
+        returned.querySelector("[data-comment-island]").textContent = JSON.stringify(island);
+        await context.obsComments.importFiles([{text: async () => returned.documentElement.outerHTML}]);
+    };
+    // A copy saved before comments went through the core targets items by position: it is rejected.
+    await returnedWith({version: 2, annotations: [], reviews: [{chapter: "parent", item: "item-1",
+        reviewer: "Reviewer", state: "accepted"}]});
     assert.equal(context.obsComments.data.annotations.length, annotationCount);
-    const imported = JSON.parse(JSON.stringify(savedData));
-    imported.annotations = [imported.annotations.find((entry) => entry.target.wholeItem)];
-    imported.annotations[0].text = "Imported whole item feedback.";
-    const returned = parseHTML(saved).document;
-    returned.querySelector("[data-comment-island]").textContent = JSON.stringify(imported);
-    await context.obsComments.importFiles([{text: async () => returned.documentElement.outerHTML}]);
+    assert.match(document.querySelector("[data-comment-announcer]").textContent, /1 files rejected/);
+    const wholeComment = savedData.comments.find((comment) => comment.id === whole.id);
+    // A known id with another payload is rejected; a new id is merged.
+    await returnedWith({...savedData, comments: [{...wholeComment, body: {mediaType: "text/plain", text: "Changed."}}]});
+    assert.match(document.querySelector("[data-comment-announcer]").textContent, /1 files rejected/);
+    await returnedWith({...savedData, comments: [...savedData.comments, {...wholeComment, id: "imported-whole",
+        created: "2026-12-01T10:00:00Z", body: {mediaType: "text/plain", text: "Imported whole item feedback."}}]});
     const merged = context.obsComments.data.annotations.at(-1);
     assert.equal(merged.text, "Imported whole item feedback.");
-    assert.equal(merged.target.wholeItem, true);
-    assert.equal(merged.target.section, "Context");
-    assert.equal(merged.target.item, whole.target.item);
+    assert.equal(merged.target.node, whole.target.node);
     console.log("PASS: all comments/context, nested replies, batch/table identities, clipboard states, unchanged review state, and save/import compatibility.");
 }
 await verifyPages();

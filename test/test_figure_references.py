@@ -15,6 +15,7 @@ from pathlib import Path
 import pytest
 
 from conftest import ROOT
+from documents import without_node_ids
 from obs_html.artifact_data import decode_artifact_data
 from obs_html.config import load_config
 from obs_html.errors import InputError
@@ -30,7 +31,7 @@ def _document() -> dict:
 
 def _notes(document: dict, config=None) -> dict[str, str]:
     data = decode_artifact_data(render(document, config or load_config()))
-    return {note["slug"]: note["html"] for note in data["notes"]}
+    return {note["slug"]: without_node_ids(note["html"]) for note in data["notes"]}
 
 
 def _paragraph(html: str, start: str) -> str:

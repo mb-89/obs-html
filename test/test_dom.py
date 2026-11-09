@@ -9,6 +9,7 @@ import pytest
 
 from conftest import ROOT
 from documents import chapter, document, heading, node, paragraph
+from core_calls import with_ids
 from obs_html.config import load_config
 from obs_html.render import render
 
@@ -41,12 +42,14 @@ def run_artifact_dom_contract(artifact: Path, mode: str, *runtimes: Path, argume
 
 
 def test_comment_export_dom_contract(tmp_path: Path) -> None:
-    artifact = write_artifact(tmp_path / "artifact.html", document(
+    source = document(
         "Comments",
         chapter("parent", "Parent", heading(1, "Parent"), heading(2, "Context"),
                 paragraph("Quote Ω on the first line.\nSecond line.")),
         chapter("child", "Child", heading(1, "Child"), paragraph("Inactive paragraph.")),
-    ))
+    )
+    # Review items are its blocks, by the core's ids.
+    artifact = write_artifact(tmp_path / "artifact.html", with_ids(source))
     package = files("obs_html")
     run_artifact_dom_contract(artifact, "--comments-only", package / "bars" / "comments.js",
                             package / "bars" / "settings.js", package / "storage.js")

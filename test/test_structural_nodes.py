@@ -12,7 +12,7 @@ import pytest
 
 from artifacts import artifact_html
 from conftest import CORE_ROOT, ROOT
-from documents import chapter, document as build, paragraph, text
+from documents import chapter, document as build, paragraph, text, without_node_ids
 from obs_html.artifact_data import decode_artifact_data
 from obs_html.config import load_config
 from obs_html.errors import InputError
@@ -28,7 +28,8 @@ STRUCTURAL = json.loads((ROOT / "test" / "fixtures" / "documents" / "structural.
 
 
 def _notes(document: dict) -> dict:
-    return {note["slug"]: note for note in decode_artifact_data(render(document, CONFIG))["notes"]}
+    return {note["slug"]: {**note, "html": without_node_ids(note["html"])}
+            for note in decode_artifact_data(render(document, CONFIG))["notes"]}
 
 
 def _word(kind: str) -> str:

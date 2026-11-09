@@ -15,7 +15,7 @@ const vm = require("node:vm");
 const NAME = "test/browser/artifact-harness.cjs";
 const STARTUP_SCRIPTS = ["reader-startup-script", "running-header-script", "artifact-bootstrap-script"];
 const RUNTIME_SCRIPTS = ["query-script", "yaml-script", "base-script", "data-table-script",
-    "assets-script", "notices-script", "canonical-transaction-script", "artifact-script", "pages-script"];
+    "assets-script", "notices-script", "canonical-transaction-script", "artifact-script", "pages-script", "comment-model-script"];
 // The runtime scripts a feature owns (obs_html/features.py, elements), which ship only with it.
 const FEATURE_SCRIPTS = new Set(["yaml-script", "data-table-script"]);
 

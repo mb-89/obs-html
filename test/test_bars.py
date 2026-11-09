@@ -157,7 +157,8 @@ def test_comments_is_a_discovered_review_bar() -> None:
     assert 'openBar("filter", "right")' in comments.script
     assert "obs-filter-change" in comments.script
     assert "data-review-gutter" in comments.script
-    assert "reviewers" in comments.script
+    assert "reviewers" not in comments.script  # Decisions name their reviewer; no list of reviewers is kept.
+    assert "commentModel.reviewState" in comments.script
     assert "data-comment-island" in comments.script
     assert "CSS.highlights" in comments.script
     assert "showSaveFilePicker" in comments.script

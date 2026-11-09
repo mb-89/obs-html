@@ -39,7 +39,7 @@ def test_installed_command_renders_through_the_adapter_contract(tmp_path) -> Non
         for index, item in enumerate(fixture["diagnostics"]))
     assert completed.stdout == f"Generated {destination.resolve()}.\n"
     notes = decode_artifact_data(destination.read_text(encoding="utf-8"))["notes"]
-    assert any('<pre class="command-output"><code>derived' in note["html"] for note in notes)
+    assert any('<code>derived' in note["html"] and 'class="command-output"' in note["html"] for note in notes)
     assert not (tmp_path / "produced.txt").exists()  # Silent producers run in the core, before conversion.
 
 
@@ -204,16 +204,22 @@ def test_trusted_runtime_bundles_are_validated(tmp_path, monkeypatch, capsys, bu
     _input_error(capsys, "obs-html", "--trusted-runtime-bundle")
 
 
-def test_extract_comments_reads_a_returned_artifact(tmp_path, capsys) -> None:
+def test_extract_comments_reads_a_returned_artifact_and_writes_its_overlay(tmp_path, capsys) -> None:
     artifact = tmp_path / "reviewed.html"
-    island = {"version": 2, "annotations": [
-        {"id": "c1", "target": {"chapter": "intro"}, "text": "Tighten this.", "author": "Ada"}]}
+    comment = {"id": "c1", "author": "Ada", "created": "2026-11-09T10:00:00Z", "state": "open",
+               "body": {"mediaType": "text/plain", "text": "Tighten this."}, "target": {"chapter": "intro"}}
+    island = {"version": 1, "files": [], "comments": [comment], "decisions": []}
     artifact.write_text('<!doctype html><script id="obs-comments" type="application/json">'
                       f"{json.dumps(island)}</script>", encoding="utf-8")
-    _run("--extract-comments", artifact)
+    overlay = tmp_path / "manifest.comments.ada.json"
+    _run("--extract-comments", artifact, "--overlay", overlay)
     assert "Tighten this." in capsys.readouterr().out
+    assert json.loads(overlay.read_text(encoding="utf-8"))["comments"] == [comment]
     with pytest.raises(SystemExit):
         _run(FIXTURE, "--extract-comments", artifact)
+    with pytest.raises(SystemExit):
+        _run(FIXTURE, "out.html", "--overlay", overlay)
+    _input_error(capsys, "obs-html", "--overlay")
 
 
 def test_print_chapter_prints_the_stored_html_by_id(fixture_artifact, capsys) -> None:

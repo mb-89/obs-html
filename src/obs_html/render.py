@@ -36,6 +36,7 @@ from obs_html.declared_style import DeclaredStyles, GitFetcher, user_cache
 from obs_html.styles import load_style
 from obs_html import source_archive
 from obs_html.bless_record import record_html
+from obs_html.comments import island_model
 from obs_html.timings import stage
 
 
@@ -426,7 +427,7 @@ def _base(node: dict[str, object], context: Context) -> str:
             raise InputError(_note_source(context), f"base.views[{index}].obs.members", "is in a Base fence, "
                              "but obs-html shows members only in a register, whose rows the obs core selects",
                              "Move the Base into a .base file and embed it with ![[<file>.base]]")
-    return _data_table(definition, None, context, _note_source(context))
+    return _data_table(definition, None, context, _note_source(context), node)
 
 
 def _register(node: dict[str, object], context: Context) -> str:
@@ -444,7 +445,7 @@ def _register(node: dict[str, object], context: Context) -> str:
     definition, view = attrs["base"], attrs["view"]
     if view is not None:
         definition, rows = {**definition, "views": [definition["views"][view]]}, [rows[view]]
-    return _data_table(definition, rows, context, attrs["target"])
+    return _data_table(definition, rows, context, attrs["target"], node)
 
 
 def _row_keys(records: list[dict[str, object]]) -> dict[str, str]:
@@ -476,7 +477,9 @@ def _slug_source(slug: str, context: Context) -> str:
 
 
 def _data_table(definition: dict[str, object], rows: list[list[str]] | None, context: Context,
-                source: str) -> str:
+                source: str, node: dict[str, object]) -> str:
+    """A table placeholder the runtime fills; its rows are review items keyed by ``node``'s id
+    (input-model#Comments and the core model)."""
     context.assets.normalize_definition(definition, source)
     key = f"{context.chapter or HOME}-base-{len(context.tables) + 1}"
     places = [("filters", definition.get("filters")),
@@ -491,7 +494,8 @@ def _data_table(definition: dict[str, object], rows: list[list[str]] | None, con
                 f"note[\"name with spaces\"]) or one of {', '.join(FILE_PROPERTIES)}, and LITERAL is quoted "
                 "text, a number, true, false or null; combined with and, or and not",
                 "Rewrite the filter in this subset")
-    context.tables.append({"key": key, "definition": definition, **({"rows": rows} if rows is not None else {})})
+    context.tables.append({"key": key, "definition": definition, **({"rows": rows} if rows is not None else {}),
+                           **({"node": node["id"]} if "id" in node else {})})
     return f'<div class="data-table-placeholder" data-base-table="{escape(key, quote=True)}"></div>\n'
 
 
@@ -833,7 +837,7 @@ def render(document: dict[str, object], config: Config,
         model = source_archive.share(model, archive)
     return prepare_artifact_scripts(assets.resolve_markup(
         _shell(model, list(context.unknown.values()), style.overlay, assets, config, trusted_runtime,
-               snippets=_css_snippets(document), archive=archive)))
+               snippets=_css_snippets(document), archive=archive, comments=island_model(document))))
 
 
 def _css_snippets(document: dict[str, object]) -> str:
@@ -952,6 +956,7 @@ def _model(document: dict[str, object], config: Config, context: Context) -> dic
         "query": profile["query"],
         "filterPresets": settings["filterPresets"],
         "toc": [HOME, *_listed(document["chapters"])],
+        "rowRecords": {key: record for record, key in context.row_keys.items()},
         "notes": [{key: value for key, value in note.items() if key != "record"} for note in notes],
     }
 
@@ -1164,7 +1169,22 @@ def _nodes(nodes: list[dict[str, object]], context: Context, key: str = "childre
 
 def _node(node: dict[str, object], context: Context) -> str:
     kind = node["type"]
-    return (CAPABILITIES.get(kind) or STRUCTURAL_NODES.get(kind) or _unknown)(node, context)
+    return _identified(node, (CAPABILITIES.get(kind) or STRUCTURAL_NODES.get(kind) or _unknown)(node, context))
+
+
+REVIEW_ELEMENTS = {"paragraph": "p", "list-item": "li", "table-row": "tr", "code": "pre", "command-fences": "pre",
+                   "figures": "figure"}
+"""The element each block type's review item is (input-model#Comments and the core model)."""
+
+
+def _identified(node: dict[str, object], html: str) -> str:
+    """``html`` with the block's core id on its review element, ``data-node-id``; the Comments bar
+    targets the block by it (input-model#Comments and the core model)."""
+    tag = REVIEW_ELEMENTS.get(node["type"])
+    if tag is None or "id" not in node:
+        return html
+    return re.sub(rf"<{tag}(?=[\s>])[^>]*", lambda start: f'{start.group(0)} data-node-id="{escape(node["id"], quote=True)}"',
+                  html, count=1)
 
 
 def _phrasing(nodes: list[dict[str, object]], context: Context) -> str:
@@ -1179,7 +1199,7 @@ def _phrasing(nodes: list[dict[str, object]], context: Context) -> str:
 def _list(node: dict[str, object], context: Context) -> str:
     tag = "ol" if node["attrs"].get("ordered") else "ul"
     if node["attrs"]["tight"]:
-        items = "".join(_child(context, index, lambda: f"<li>{_tight_item(item, context)}</li>\n"
+        items = "".join(_child(context, index, lambda: _identified(item, f"<li>{_tight_item(item, context)}</li>\n")
                                        if item["type"] == "list-item" else _node(item, context))
                         for index, item in enumerate(node["children"]))
         return f"<{tag}>\n{items}</{tag}>\n"
@@ -1409,12 +1429,12 @@ def _note_target(href: str, context: Context) -> str | None:
 
 def _shell(model: dict[str, object], limits: list[dict[str, str]], overlay: str, assets: SemanticAssets,
            config: Config, trusted_runtime: tuple[str, str] | None, snippets: str = "",
-           archive: bytes | None = None) -> str:
+           archive: bytes | None = None, *, comments: dict[str, object]) -> str:
     """The artifact page; ``limits`` are the Document's limited functions (capabilities.js warns of each).
     ``overlay`` is the style module's stylesheet, which follows base.css and the included features'
     shares of it (features.py, Feature.base_styles).
     ``snippets`` are the author's style elements, which follow every packaged style; ``archive`` is
-    the source ZIP (source_archive.py)."""
+    the source ZIP (source_archive.py); ``comments`` the core's comments the island holds (comments.py)."""
     package = files("obs_html")
 
     def read(*parts: str) -> str:
@@ -1562,7 +1582,7 @@ def _shell(model: dict[str, object], limits: list[dict[str, str]], overlay: str,
 
   {encode_artifact_data(model, config.artifact["dataCompression"])}
   {source_archive.island(archive) if archive is not None else ""}
-  <script id="obs-comments" type="application/json" data-comment-island>{_empty_comment_island()}</script>
+  <script id="obs-comments" type="application/json" data-comment-island>{_json_island(comments)}</script>
   <script id="document-limits" type="application/json">{_json_island(limits)}</script>
   <script id="capabilities-script">
 {read("capabilities.js")}
@@ -1603,6 +1623,9 @@ def _shell(model: dict[str, object], limits: list[dict[str, str]], overlay: str,
 
 {read("storage.js")}
   </script>
+  <script id="comment-model-script">
+{read("comment-model.js")}
+  </script>
   <script id="bar-scripts">
 {bar_scripts}
   </script>
@@ -1621,11 +1644,6 @@ def _case_folding() -> str:
 
 def _json_island(value: object) -> str:
     return json.dumps(value, ensure_ascii=True, separators=(",", ":")).replace("</", "<\\/")
-
-
-def _empty_comment_island() -> str:
-    return json.dumps({"version": 2, "annotations": [], "reviewers": [], "reviews": []},
-                      ensure_ascii=True, separators=(",", ":"))
 
 
 def _bar(bar: BarDefinition) -> str:

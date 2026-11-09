@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 from conftest import FIXTURE
+from documents import without_node_ids
 from obs_html import cli, exposure
 from obs_html.artifact_data import decode_artifact_data, encode_artifact_data
 from obs_html.errors import InputError
@@ -22,7 +23,7 @@ def _with_command(tmp_path: Path, attrs: dict[str, object]) -> Path:
 
 def _command_output(destination: Path) -> str:
     notes = decode_artifact_data(destination.read_text(encoding="utf-8"))["notes"]
-    return "".join(note["html"] for note in notes if "command-output" in note["html"])
+    return without_node_ids("".join(note["html"] for note in notes if "command-output" in note["html"]))
 
 
 def test_a_command_node_renders_the_output_the_core_captured_without_running_it(tmp_path) -> None:

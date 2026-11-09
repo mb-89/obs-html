@@ -77,15 +77,16 @@ def test_native_property_edits_survive_actual_reviewed_download_and_reopen(tmp_p
         obsArtifact.records.find(note => note.slug === 'one'))""")
     assert not page.evaluate("Boolean(window.editExecuted)")
     page.evaluate("""() => {
-        obsComments.data.reviewers.push('Reader');
-        obsComments.data.annotations.push({id:'kept-comment', author:'Reader', text:'Keep this comment',
-          status:'open', replies:[], target:{chapter:'one',quote:'Source text.',start:0,end:12}});
-        obsComments.data.reviews.push({chapter:'one',item:'item-1',reviewer:'Reader',state:'accepted'});
+        const created = '2026-11-09T10:00:00Z';
+        obsComments.data.annotations.push({id:'kept-comment', author:'Reader', created, mediaType:'text/plain',
+          text:'Keep this comment', status:'open', replies:[], target:{chapter:'one',quote:'Source text.',start:0,end:12}});
+        obsComments.data.decisions.push({id:'kept-decision', reviewer:'Reader', created,
+          target:{chapter:'one'}, state:'accepted'});
     }""")
     open_chapter(save("reviewed.html"), "one")
     expect(page.locator("[data-active-chapter] [data-property-editor]")).to_have_value(malicious)
     assert page.evaluate("obsComments.data.annotations[0].text") == "Keep this comment"
-    assert page.evaluate("obsComments.data.reviews[0].state") == "accepted"
+    assert page.evaluate("obsComments.data.decisions[0].state") == "accepted"
     assert not page.evaluate("Boolean(window.editExecuted)")
     page.evaluate("obsArtifact.activateChapter('two')")
     editor = page.locator("[data-active-chapter] [data-property-editor]")
@@ -100,7 +101,7 @@ def test_native_property_edits_survive_actual_reviewed_download_and_reopen(tmp_p
     open_chapter(save("reviewed-no-new-edits.html"), "two")
     expect(page.locator("[data-active-chapter] [data-property-editor]")).to_have_value("")
     assert page.evaluate(f"({explanation})('one')") == malicious
-    assert page.evaluate("obsComments.data.reviews[0].state") == "accepted"
+    assert page.evaluate("obsComments.data.decisions[0].state") == "accepted"
     assert errors == []
 
 

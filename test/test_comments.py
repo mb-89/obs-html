@@ -1,298 +1,192 @@
+"""Comments through the core's model: the island the build writes, the core ids review items carry,
+and the import of a returned copy (spec/input-model.md, Comments and the core model)."""
+import copy
 import json
+import re
 from pathlib import Path
 
 import pytest
 
-from obs_html.comments import extract_comments
-from obs_html.errors import InputError
+from core_calls import chapter_targets, unresolved_targets, validate_overlay, with_comments
+from obs_html.artifact_data import decode_artifact_data
+from obs_html.comments import OWNER, extract_comments
 from obs_html.config import load_config
+from obs_html.errors import InputError
 from obs_html.render import render
 
+ISLAND = re.compile(r'<script id="obs-comments" type="application/json" data-comment-island>(.*?)</script>', re.S)
+EMPTY = {"version": 1, "files": [], "comments": [], "decisions": []}
+PARAGRAPH = {"chapter": "intro", "node": "paragraph-957766ff"}
+ROOT = {"id": "c1", "author": "Alice", "created": "2026-11-09T10:00:00Z", "state": "open",
+        "body": {"mediaType": "text/plain", "text": "Clarify this."},
+        "target": {**PARAGRAPH, "quote": "Selected", "prefix": "", "suffix": " text", "start": 0, "end": 8}}
+REPLY = {"id": "c2", "author": "Bob", "created": "2026-11-09T11:00:00Z", "state": "resolved",
+         "body": {"mediaType": "text/plain", "text": "Agreed."}, "inReplyTo": "c1"}
+BATCH = {"id": "c3", "author": "Alice", "created": "2026-11-09T12:00:00Z", "state": "open",
+         "body": {"mediaType": "text/plain", "text": "Rework the list."}, "target": {"chapter": "intro"},
+         "batch": {"scope": "chapter", "items": [{"chapter": "intro", "node": "list-item-7692c3ad"},
+                                                 {"chapter": "intro", "node": "bases-cc30b281:alpha"}]}}
+DECISION = {"id": "d1", "reviewer": "Alice", "created": "2026-11-09T10:05:00Z", "target": PARAGRAPH,
+            "state": "accepted"}
 
-def write_artifact(path: Path, island: object) -> None:
-    path.write_text(
-        '<!doctype html><script id="obs-comments" type="application/json">'
-        f"{json.dumps(island)}"
-        "</script><script>throw new Error('must not execute')</script>",
-        encoding="utf-8",
-    )
+
+def model(*comments: dict, decisions: tuple[dict, ...] = ()) -> dict:
+    return {"version": 1, "files": ["manifest.comments.alice.json"], "comments": list(comments),
+            "decisions": list(decisions)}
 
 
-def _refused(artifact: Path, field: str) -> None:
-    """Extraction fails naming the reviewed HTML and the JSON path in its comment island."""
+def island(html: str) -> object:
+    return json.loads(ISLAND.search(html).group(1))
+
+
+def write_artifact(path: Path, value: object) -> Path:
+    path.write_text('<!doctype html><script id="obs-comments" type="application/json" data-comment-island>'
+                    f"{json.dumps(value)}</script><script>throw new Error('must not execute')</script>",
+                    encoding="utf-8")
+    return path
+
+
+def _refused(artifact: Path, field: str, overlay: Path | None = None) -> InputError:
+    """Extraction fails naming the reviewed HTML, the JSON path in its comment island and the owner."""
     with pytest.raises(InputError) as failure:
-        extract_comments(artifact)
+        extract_comments(artifact, overlay)
     assert (failure.value.source, failure.value.field) == (str(artifact), f"script#obs-comments{field}")
+    assert OWNER in failure.value.remedy
+    return failure.value
 
 
-def test_extract_comments_preserves_scoped_batch_association(tmp_path: Path) -> None:
-    artifact = tmp_path / "reviewed.html"
-    annotation = {
-        "id": "c1", "target": {"chapter": "one"}, "text": "One reason", "author": "Alice",
-        "batch": {"scope": "document", "items": [
-            {"chapter": "one", "item": "item-1"},
-            {"chapter": "two", "item": "row-table:key"},
-        ]},
-    }
-    write_artifact(artifact, {"version": 2, "annotations": [annotation]})
-    extracted = extract_comments(artifact)
-    assert "[Full document]" in extracted
-    assert "one item-1" in extracted
-    assert "two row-table:key" in extracted
-    assert extracted.count("One reason") == 1
+def test_the_island_is_the_documents_resolved_comments_and_empty_without_them(document) -> None:
+    assert island(render(document, load_config())) == EMPTY
+    document["comments"] = model(ROOT, REPLY, BATCH, decisions=(DECISION,))
+    assert island(render(document, load_config())) == document["comments"]
 
 
-@pytest.mark.parametrize("batch, field", [
-    (None, "scope"), ({}, "scope"), ({"scope": [], "items": []}, "scope"),
-    ({"scope": "other", "items": []}, "scope"),
-    ({"scope": "section", "items": []}, "items"), ({"scope": "chapter", "items": [None]}, "items[0]"),
-    ({"scope": "chapter", "items": [{"chapter": "", "item": "item-1"}]}, "items[0].chapter"),
-    ({"scope": "chapter", "items": [{"chapter": "one", "item": "bad"}]}, "items[0].item"),
-    ({"scope": "section", "items": [{"chapter": "one", "item": "item-1"}] * 2}, "items[1]"),
-])
-def test_extract_comments_rejects_malformed_batch(tmp_path: Path, batch, field) -> None:
-    artifact = tmp_path / "reviewed.html"
-    write_artifact(artifact, {"version": 2, "annotations": [{
-        "id": "c1", "target": {"chapter": "one"}, "text": "", "batch": batch,
-    }]})
-    _refused(artifact, f".annotations[0].batch.{field}")
+def test_every_review_element_carries_its_blocks_core_id(document) -> None:
+    data = decode_artifact_data(render(document, load_config()))
+    notes = {note["slug"]: note for note in data["notes"]}
+    intro, appendix = notes["intro"], notes["appendix"]
+    for element in ('id="mark-intro-risk-limit" data-node-id="paragraph-957766ff">', '<li data-node-id="list-item-7692c3ad">',
+                    '<pre class="command-output" data-node-id="command-fences-576af4dd">'):
+        assert element in intro["html"]
+    assert 'data-node-id="figures-009c9499"' in appendix["html"]
+    assert 'data-node-id="paragraph-043c8ce6"' in appendix["html"]  # A card body's paragraph.
+    assert [table["node"] for table in intro["tables"]] == ["bases-cc30b281"]
+    assert data["rowRecords"]["note:alpha"] == "alpha"
+    assert data["rowRecords"]["intro"] == "chapter-intro"
 
 
-def test_extract_comments_lists_anonymized_candidates_deterministically(tmp_path: Path) -> None:
-    artifact = tmp_path / "reviewed.html"
-    write_artifact(
-        artifact,
-        {
-            "version": 2,
-            "annotations": [
-                {
-                    "id": "c1",
-                    "target": {"chapter": "one", "quote": "Selected text", "start": 3, "end": 16},
-                    "status": "open",
-                    "author": "Alice",
-                    "text": "Clarify this.",
-                    "replies": [
-                        {"id": "c2", "author": "Bob", "text": "Agreed.", "status": "open", "replies": []}
-                    ],
-                }
-            ],
-        },
-    )
-
+def test_extract_comments_lists_anonymized_threads_deterministically(tmp_path: Path) -> None:
+    artifact = write_artifact(tmp_path / "reviewed.html", model(ROOT, REPLY, decisions=(DECISION,)))
     first = extract_comments(artifact)
-    second = extract_comments(artifact)
-
-    assert first == second
+    assert first == extract_comments(artifact)
     assert first == (
         "comment candidates: 1\n"
-        "--- c1 [open] chapter one\n"
-        "quote: Selected text\n"
+        "--- c1 [open] chapter intro node paragraph-957766ff\n"
+        "quote: Selected\n"
         "reviewer-1: Clarify this.\n"
-        "  reviewer-2 [open]: Agreed.\n"
+        "  reviewer-2 [resolved]: Agreed.\n"
     )
-    assert "Alice" not in first
-    assert "throw new Error" not in first
+    assert "Alice" not in first and "throw new Error" not in first
 
 
-def test_extract_comments_rejects_multiple_islands(tmp_path: Path) -> None:
+def test_extract_comments_keeps_a_batch_scope_and_its_items(tmp_path: Path) -> None:
+    extracted = extract_comments(write_artifact(tmp_path / "reviewed.html", model(BATCH)))
+    assert "[Full chapter]" in extracted
+    assert "item: intro list-item-7692c3ad\nitem: intro bases-cc30b281:alpha\n" in extracted
+
+
+def test_an_island_of_the_retired_version_2_is_refused_at_its_version(tmp_path: Path) -> None:
+    artifact = write_artifact(tmp_path / "reviewed.html", {"version": 2, "annotations": [], "reviews": [
+        {"chapter": "intro", "item": "item-1", "reviewer": "Alice", "state": "accepted"}]})
+    _refused(artifact, ".version")
+
+
+@pytest.mark.parametrize("change, field", [
+    (lambda value: value["comments"][0].update(state="done"), ".comments[0].state"),
+    (lambda value: value["comments"][0].pop("created"), ".comments[0].created"),
+    (lambda value: value["decisions"][0]["target"].update(node="item 1"), ".decisions[0].target.node"),
+    (lambda value: value["comments"][1].update(target=PARAGRAPH), ".comments[1]"),
+])
+def test_an_island_the_cores_schema_refuses_names_its_field(tmp_path: Path, change, field) -> None:
+    value = model(copy.deepcopy(ROOT), copy.deepcopy(REPLY), decisions=(copy.deepcopy(DECISION),))
+    change(value)
+    _refused(write_artifact(tmp_path / "reviewed.html", value), field)
+
+
+def test_extract_comments_requires_exactly_one_island(tmp_path: Path) -> None:
     artifact = tmp_path / "reviewed.html"
-    island = '<script id="obs-comments" type="application/json">{"version":2,"annotations":[]}</script>'
-    artifact.write_text(island + island, encoding="utf-8")
-
+    one = f'<script id="obs-comments" type="application/json">{json.dumps(EMPTY)}</script>'
+    artifact.write_text(one + one, encoding="utf-8")
     _refused(artifact, "")
 
 
-def test_extract_comments_rejects_invalid_replies(tmp_path: Path) -> None:
+def test_the_overlay_holds_what_no_other_principals_file_holds(tmp_path: Path) -> None:
+    (tmp_path / "manifest.comments.bob.json").write_text(json.dumps(
+        {"version": 1, "principal": "bob", "comments": [REPLY], "decisions": []}), encoding="utf-8")
+    artifact = write_artifact(tmp_path / "reviewed.html", model(ROOT, REPLY, BATCH, decisions=(DECISION,)))
+    overlay = tmp_path / "manifest.comments.alice.json"
+    extract_comments(artifact, overlay)
+    assert json.loads(overlay.read_text(encoding="utf-8")) == {
+        "version": 1, "principal": "alice", "comments": [ROOT, BATCH], "decisions": [DECISION]}
+
+
+def test_a_changed_copy_of_another_principals_entry_is_refused(tmp_path: Path) -> None:
+    (tmp_path / "manifest.comments.bob.json").write_text(json.dumps(
+        {"version": 1, "principal": "bob", "comments": [REPLY], "decisions": []}), encoding="utf-8")
+    artifact = write_artifact(tmp_path / "reviewed.html", model(ROOT, {**REPLY, "state": "open"}))
+    overlay = tmp_path / "manifest.comments.alice.json"
+    failure = _refused(artifact, ".comments[1]", overlay)
+    assert "manifest.comments.bob.json" in failure.problem
+    assert not overlay.exists()
+
+
+def test_an_overlay_file_name_without_a_principal_is_refused(tmp_path: Path) -> None:
+    artifact = write_artifact(tmp_path / "reviewed.html", model(ROOT))
+    with pytest.raises(InputError) as failure:
+        extract_comments(artifact, tmp_path / "manifest.comments.Alice Smith.json")
+    assert (failure.value.field, "input-model#Comments and reviews" in failure.value.remedy) == ("principal", True)
+
+
+def test_core_overlay_to_artifact_to_overlay_keeps_every_field(tmp_path: Path, document) -> None:
+    """R3 at the build's seam: the overlay a principal wrote, through the Document and the island,
+    is the overlay the import writes back."""
+    written = {"version": 1, "principal": "alice", "comments": [ROOT, REPLY, BATCH], "decisions": [DECISION]}
+    vault, returned = tmp_path / "vault", tmp_path / "returned"
+    vault.mkdir()
+    returned.mkdir()
+    (vault / "manifest.comments.alice.json").write_text(json.dumps(written), encoding="utf-8")
+    document = with_comments(document, vault / "manifest.md")
     artifact = tmp_path / "reviewed.html"
-    write_artifact(
-        artifact,
-        {
-            "version": 2,
-            "annotations": [
-                {
-                    "id": "c1",
-                    "target": {"chapter": "one"},
-                    "author": "Reviewer",
-                    "text": "Review this.",
-                    "replies": {},
-                }
-            ],
-        },
-    )
-
-    _refused(artifact, ".annotations[0].replies")
+    artifact.write_text(render(document, load_config()), encoding="utf-8")
+    extract_comments(artifact, returned / "manifest.comments.alice.json")
+    assert json.loads((returned / "manifest.comments.alice.json").read_text(encoding="utf-8")) == written
 
 
-def test_generated_artifact_comment_island_round_trips_to_extractor(tmp_path: Path, document) -> None:
-    generated = render(document, load_config())
-    reviewed_island = {
-        "version": 2,
-        "annotations": [
-            {
-                "id": "c1",
-                "target": {"chapter": "one"},
-                "status": "resolved",
-                "author": "Reviewer",
-                "text": "Looks good.",
-                "replies": [],
-            }
-        ],
-    }
-    reviewed = tmp_path / "reviewed.html"
-    reviewed.write_text(
-        generated.replace(
-            '{"version":2,"annotations":[],"reviewers":[],"reviews":[]}',
-            json.dumps(reviewed_island, separators=(",", ":")),
-            1,
-        ),
-        encoding="utf-8",
-    )
-
-    assert extract_comments(reviewed) == (
-        "comment candidates: 1\n"
-        "--- c1 [resolved] chapter one\n"
-        "reviewer-1: Looks good.\n"
-    )
+MAPPED = """
+const fs = require("node:fs"), vm = require("node:vm");
+vm.runInThisContext(fs.readFileSync(process.argv[1], "utf8"));
+const {fixtures} = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
+console.log(JSON.stringify(Object.fromEntries(Object.entries(fixtures).map(
+    ([name, native]) => [name, globalThis.obsCommentModel.toCore(native)]))));
+"""
 
 
-def test_extract_comments_supports_recursive_comment_replies(tmp_path: Path) -> None:
-    artifact = tmp_path / "reviewed.html"
-    write_artifact(
-        artifact,
-        {
-            "version": 2,
-            "annotations": [
-                {
-                    "id": "c1",
-                    "target": {"chapter": "one", "quote": "Review me"},
-                    "author": "Alice",
-                    "text": "Clarify this.",
-                    "status": "open",
-                    "replies": [
-                        {
-                            "id": "c2",
-                            "author": "Bob",
-                            "text": "I will.",
-                            "status": "resolved",
-                            "replies": [],
-                        }
-                    ],
-                }
-            ],
-        },
-    )
+@pytest.mark.dom
+def test_every_native_thread_fixture_maps_onto_core_targets_the_core_accepts(document) -> None:
+    """The browser's mapping (comment-model.js) of each native fixture is an overlay the core's schema
+    accepts, and each target is a block of the fixture Document (test/fixtures/comment-threads.json)."""
+    import shutil
+    import subprocess
+    from importlib.resources import files
 
-    assert extract_comments(artifact) == (
-        "comment candidates: 1\n"
-        "--- c1 [open] chapter one\n"
-        "quote: Review me\n"
-        "reviewer-1: Clarify this.\n"
-        "  reviewer-2 [resolved]: I will.\n"
-    )
-
-
-def test_extract_comments_accepts_an_empty_editable_draft(tmp_path: Path) -> None:
-    artifact = tmp_path / "reviewed.html"
-    write_artifact(
-        artifact,
-        {
-            "version": 2,
-            "annotations": [
-                {
-                    "id": "draft",
-                    "target": {"chapter": "one", "quote": "Review me"},
-                    "author": "Reviewer",
-                    "text": "",
-                    "status": "open",
-                    "replies": [],
-                }
-            ],
-        },
-    )
-
-    assert "reviewer-1: \n" in extract_comments(artifact)
-
-
-def test_extract_comments_validates_review_decisions(tmp_path: Path) -> None:
-    artifact = tmp_path / "reviewed.html"
-    write_artifact(
-        artifact,
-        {
-            "version": 2,
-            "annotations": [],
-            "reviewers": ["Alice", "Bob"],
-            "reviews": [
-                {
-                    "chapter": "one",
-                    "item": "item-1",
-                    "reviewer": "Alice",
-                    "state": "accepted",
-                }
-            ],
-        },
-    )
-
-    assert extract_comments(artifact) == "comment candidates: 0\n"
-
-
-def test_extract_comments_accepts_row_reviews_and_detail_selection_targets(tmp_path: Path) -> None:
-    artifact = tmp_path / "reviewed.html"
-    write_artifact(artifact, {
-        "version": 2,
-        "reviews": [{
-            "chapter": "glossary", "item": "row-glossary%3Abase1:glossary%3Aterm",
-            "reviewer": "Alice", "state": "accepted",
-        }],
-        "annotations": [{
-            "id": "c1", "author": "Alice", "text": "Detail comment", "status": "open",
-            "replies": [],
-            "target": {
-                "chapter": "glossary", "table": "glossary:base1", "row": "glossary:term",
-                "detail": True, "start": 0, "end": 5, "quote": "Words",
-                "column": "roles.requirement",
-            },
-        }],
-    })
-    assert "Detail comment" in extract_comments(artifact)
-
-
-@pytest.mark.parametrize("scope, field", [
-    ({"table": "t", "detail": True}, "row"),
-    ({"table": "t", "row": "r", "detail": "yes"}, "detail"),
-    ({"row": "r", "detail": True}, "table"),
-    ({"column": "subject"}, "table"),
-    ({"table": "t", "row": "r", "detail": False, "column": "subject"}, "column"),
-    ({"table": "t", "row": "r", "detail": True, "column": ""}, "column"),
-    ({"table": "t", "row": "r", "detail": True, "column": 1}, "column"),
-])
-def test_extract_comments_rejects_invalid_table_selection_scopes(tmp_path: Path, scope, field) -> None:
-    artifact = tmp_path / "reviewed.html"
-    write_artifact(artifact, {
-        "version": 2,
-        "annotations": [{
-            "id": "c1", "text": "", "replies": [],
-            "target": {"chapter": "one", **scope},
-        }],
-    })
-    _refused(artifact, f".annotations[0].target.{field}")
-
-
-def test_extract_comments_rejects_duplicate_review_decisions(tmp_path: Path) -> None:
-    artifact = tmp_path / "reviewed.html"
-    decision = {
-        "chapter": "one",
-        "item": "item-1",
-        "reviewer": "Alice",
-        "state": "accepted",
-    }
-    write_artifact(
-        artifact,
-        {
-            "version": 2,
-            "annotations": [],
-            "reviewers": ["Alice"],
-            "reviews": [decision, decision],
-        },
-    )
-
-    _refused(artifact, ".reviews[1]")
+    result = subprocess.run(
+        [shutil.which("node"), "-e", MAPPED, str(files("obs_html") / "comment-model.js"),
+         str(Path(__file__).parent / "fixtures" / "comment-threads.json")],
+        capture_output=True, text=True, check=True)
+    nodes = chapter_targets(document)
+    for name, core in json.loads(result.stdout).items():
+        validate_overlay({"version": 1, "principal": "alice", "comments": core["comments"],
+                          "decisions": core["decisions"]}, Path("manifest.comments.alice.json"))
+        targets = [entry["target"] for entry in [*core["comments"], *core["decisions"]] if "target" in entry]
+        targets += [item for entry in core["comments"] for item in entry.get("batch", {}).get("items", [])]
+        assert unresolved_targets(targets, nodes) == [], name

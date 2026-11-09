@@ -82,7 +82,9 @@ Figures:
 
 Comments:
   --extract-comments HTML reads the comment JSON island of a returned, reviewed artifact
-  without executing its scripts and prints deterministic comment candidates to stdout.
+  without executing its scripts and prints deterministic comment candidates to stdout. With
+  --overlay FILE it also writes the overlay file of the principal FILE names, next to its
+  manifest: <manifest stem>.comments.<principal>.json.
 
 Printing a chapter:
   --print-chapter HTML CHAPTER prints one chapter of a built artifact to stdout, as the
@@ -163,6 +165,8 @@ def build_parser() -> argparse.ArgumentParser:
                         help="Write each figure of DOCUMENT as a byte-stable SVG into FOLDER.")
     parser.add_argument("--extract-comments", type=Path, metavar="HTML",
                         help="Print comment candidates from a returned, reviewed artifact.")
+    parser.add_argument("--overlay", type=Path, metavar="FILE",
+                        help="With --extract-comments, write the returned comments into this overlay file.")
     parser.add_argument("--print-chapter", nargs=2, metavar=("HTML", "CHAPTER"),
                         help="Print one chapter of a built artifact by id or title.")
     parser.add_argument("--chapter-format", choices=("html", "text"),
@@ -195,6 +199,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         if options.source_artifact and not options.attach_source_to_pdf:
             raise InputError(PROG, "--source-artifact", "is only used with --attach-source-to-pdf",
                              "Add --attach-source-to-pdf PDF, or drop --source-artifact")
+        if options.overlay and not options.extract_comments:
+            raise InputError(PROG, "--overlay", "is only used with --extract-comments",
+                             "Add --extract-comments HTML, or drop --overlay")
         if options.chapter_format and not options.print_chapter:
             raise InputError(PROG, "--chapter-format", "is only used with --print-chapter",
                              "Add --print-chapter HTML CHAPTER, or drop --chapter-format")
@@ -416,7 +423,7 @@ def _extract(options: argparse.Namespace) -> None:
     _alone("--extract-comments", options, "document", "destination", "check", "style",
            "trusted_runtime_bundle", "embed_attachments", "vault_root", "export_pdf", "check_rendered", "output",
            "export_figures")
-    print(extract_comments(options.extract_comments.resolve()), end="")
+    print(extract_comments(options.extract_comments.resolve(), options.overlay and options.overlay.resolve()), end="")
 
 
 def _print_chapter(options: argparse.Namespace) -> None:

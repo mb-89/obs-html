@@ -630,7 +630,7 @@ def test_a_printed_spec_chapter_is_the_stored_chapter(spec_html: str, tmp_path: 
     stored = next(note["html"] for note in decode_artifact_data(spec_html)["notes"] if note["slug"] == PRINTED_CHAPTER)
     if chapter_format == "html":
         assert printed == stored
-        assert '<pre class="command-output"><code>' in printed
+        assert re.search(r'<pre class="command-output"[^>]*><code>', printed)
     else:
         assert not re.search(r"</?(p|h\d|pre|code|a)[ >]", printed), printed[:400]
         assert printed.count("\n") > 10

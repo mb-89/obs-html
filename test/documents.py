@@ -1,6 +1,8 @@
 """Build small contract-valid Documents for runtime tests, as the core would emit them."""
 from __future__ import annotations
 
+import re
+
 from obs_html.render import STRUCTURAL
 
 
@@ -96,3 +98,9 @@ def document(title: str, *chapters: dict, metadata: dict | None = None,
         stack.extend(current["children"])
     result["capabilities"] = sorted(used)
     return result
+
+
+def without_node_ids(html: str) -> str:
+    """``html`` without the core ids review elements carry (``data-node-id``), for a test of what
+    else a block renders; test/test_comments.py tests the ids."""
+    return re.sub(r' data-node-id="[^"]*"', "", html)

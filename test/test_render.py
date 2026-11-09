@@ -48,7 +48,7 @@ def test_front_pages_follow_the_profile_order(document) -> None:
     assert '<span class="cover-organization">Example org</span>' in home["html"]
     assert '<p class="cover-type">Specification</p>' in home["html"]
     assert "<dt>Authors</dt><dd>Ada, Lin</dd>" in home["html"]
-    assert "<p>A short &lt;abstract&gt;.</p>" in home["html"]
+    assert '<p data-node-id="paragraph-8254a15d">A short &lt;abstract&gt;.</p>' in home["html"]
     assert "obsHtml" not in model["document"]["metadata"]
 
 
@@ -116,13 +116,13 @@ def test_chapters_become_notes_in_reading_order_with_depth(document) -> None:
 def test_headings_carry_anchors_and_untitled_chapters_stay_as_authored(document) -> None:
     notes = _notes(document)
     assert '<h3 id="guide-usage--details">Details</h3>' in notes["guide-usage"]["html"]
-    assert notes["appendix"]["html"].startswith("<p>")  # As the interim: the reader names it.
+    assert notes["appendix"]["html"].startswith('<p data-node-id="')  # As the interim: the reader names it.
 
 
 def test_structural_nodes_render_escaped(document) -> None:
     html = "".join(note["html"] for note in _model(document)["notes"])
     assert "<code>x &lt; y</code>" in html
-    assert "<ol>\n<li>one</li>\n<li>two</li>\n</ol>" in html
+    assert '<ol>\n<li data-node-id="list-item-7692c3ad">one</li>\n<li data-node-id="list-item-3fc4ccfe">two</li>\n</ol>' in html
     assert '<a href="https://example.org/?a=1&amp;b=2">the site</a>' in html
     assert f'<img src="data:image/png;base64,{PIXEL}" alt="a logo">' in html
 
@@ -377,7 +377,8 @@ def test_fenced_code_renders_as_a_block_and_inline_code_breaks_between_words(doc
 
 def test_lists_of_single_paragraph_items_render_tight(document) -> None:
     html = _notes(document)["intro"]["html"]
-    assert "<ol>\n<li>one</li>\n<li>two</li>\n</ol>" in html
+    assert '<ol>\n<li data-node-id="list-item-7692c3ad">one</li>\n<li data-node-id="list-item-3fc4ccfe">two</li>\n</ol>' \
+        in html
 
 
 def test_a_loose_list_renders_its_paragraphs_even_with_one_paragraph_per_item(document) -> None:
@@ -385,7 +386,8 @@ def test_a_loose_list_renders_its_paragraphs_even_with_one_paragraph_per_item(do
     listing = next(node for node in intro["content"] if node["type"] == "list")
     listing["attrs"]["tight"] = False
     html = _notes(document)["intro"]["html"]
-    assert "<ol>\n<li><p>one</p>\n</li>\n<li><p>two</p>\n</li>\n</ol>" in html
+    assert ('<ol>\n<li data-node-id="list-item-7692c3ad"><p data-node-id="paragraph-7692c3ad">one</p>\n</li>\n'
+            '<li data-node-id="list-item-3fc4ccfe"><p data-node-id="paragraph-3fc4ccfe">two</p>\n</li>\n</ol>') in html
 
 
 def test_unaliased_wikilinks_show_the_chapter_title(document) -> None:

@@ -611,8 +611,11 @@
                         document.addEventListener("obs-artifact-filter", refreshRows);
                     }
                 }
+                // The table's core node id keys its rows' review items (bars/comments.js).
+                if (table.node) rendered.element.dataset.nodeId = table.node;
                 if (staticView) {
                     const plainTable = rendered.element.querySelector("table");
+                    if (table.node) plainTable.dataset.nodeId = table.node;
                     plainTable.querySelectorAll(".data-table-detail-panel[hidden]").forEach(panel => panel.remove());
                     if (definition.wide) plainTable.dataset.tableWide = "true";
                     if (!definition.screenPageBreaks) plainTable.dataset.screenPageBreaks = "false";

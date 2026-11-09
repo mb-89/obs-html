@@ -1,0 +1,283 @@
+{
+ "$comment": "Native comment threads of the HTML adapter's Comments bar (spec/input-model.md, Comments and the core model), one per comment fixture the adapter had before its comments went through the core: each is named after the test it came from and now targets the block ids of test/fixtures/documents/document.json. test/comment-model.test.js maps each to the core's format and back; test/test_comments.py checks the core's schema accepts the first map.",
+ "fixtures": {
+  "test_comments.py::test_extract_comments_preserves_scoped_batch_association": {
+   "annotations": [
+    {
+     "id": "c1",
+     "author": "Alice",
+     "created": "2026-11-09T10:00:00Z",
+     "mediaType": "text/plain",
+     "text": "One reason",
+     "status": "open",
+     "target": {
+      "chapter": "intro"
+     },
+     "batch": {
+      "scope": "document",
+      "items": [
+       {
+        "chapter": "intro",
+        "node": "list-item-7692c3ad"
+       },
+       {
+        "chapter": "intro",
+        "node": "bases-cc30b281:alpha"
+       }
+      ]
+     },
+     "replies": []
+    }
+   ],
+   "decisions": [],
+   "files": [
+    "manifest.comments.alice.json"
+   ]
+  },
+  "test_comments.py::test_extract_comments_lists_anonymized_candidates_deterministically": {
+   "annotations": [
+    {
+     "id": "c1",
+     "author": "Alice",
+     "created": "2026-11-09T10:00:00Z",
+     "mediaType": "text/plain",
+     "text": "Clarify this.",
+     "status": "open",
+     "target": {
+      "chapter": "intro",
+      "node": "paragraph-957766ff",
+      "quote": "Selected text",
+      "start": 3,
+      "end": 16
+     },
+     "replies": [
+      {
+       "id": "c2",
+       "author": "Bob",
+       "created": "2026-11-09T10:01:00Z",
+       "mediaType": "text/plain",
+       "text": "Agreed.",
+       "status": "open",
+       "replies": []
+      }
+     ]
+    }
+   ],
+   "decisions": [],
+   "files": [
+    "manifest.comments.alice.json"
+   ]
+  },
+  "test_comments.py::test_extract_comments_supports_recursive_comment_replies": {
+   "annotations": [
+    {
+     "id": "c1",
+     "author": "Alice",
+     "created": "2026-11-09T10:00:00Z",
+     "mediaType": "text/plain",
+     "text": "Clarify this.",
+     "status": "open",
+     "target": {
+      "chapter": "intro",
+      "node": "paragraph-957766ff",
+      "quote": "Review me",
+      "prefix": "",
+      "suffix": ""
+     },
+     "replies": [
+      {
+       "id": "c2",
+       "author": "Bob",
+       "created": "2026-11-09T10:01:00Z",
+       "mediaType": "text/plain",
+       "text": "I will.",
+       "status": "resolved",
+       "modified": "2026-11-09T10:02:00Z",
+       "replies": []
+      }
+     ]
+    }
+   ],
+   "decisions": [],
+   "files": [
+    "manifest.comments.alice.json"
+   ]
+  },
+  "test_comments.py::test_extract_comments_accepts_an_empty_editable_draft": {
+   "annotations": [
+    {
+     "id": "draft",
+     "author": "Reviewer",
+     "created": "2026-11-09T10:00:00Z",
+     "mediaType": "text/plain",
+     "text": "",
+     "status": "open",
+     "target": {
+      "chapter": "intro",
+      "node": "paragraph-957766ff",
+      "quote": "Review me"
+     },
+     "replies": []
+    }
+   ],
+   "decisions": [],
+   "files": [
+    "manifest.comments.alice.json"
+   ]
+  },
+  "test_comments.py::test_extract_comments_validates_review_decisions": {
+   "annotations": [],
+   "decisions": [
+    {
+     "id": "d1",
+     "reviewer": "Alice",
+     "created": "2026-11-09T10:00:00Z",
+     "target": {
+      "chapter": "intro",
+      "node": "paragraph-957766ff"
+     },
+     "state": "accepted"
+    }
+   ],
+   "files": [
+    "manifest.comments.alice.json"
+   ]
+  },
+  "test_comments.py::test_extract_comments_accepts_row_reviews_and_detail_selection_targets": {
+   "annotations": [
+    {
+     "id": "c1",
+     "author": "Alice",
+     "created": "2026-11-09T10:00:00Z",
+     "mediaType": "text/plain",
+     "text": "Detail comment",
+     "status": "open",
+     "target": {
+      "chapter": "appendix",
+      "node": "registers-904ef37f:alpha",
+      "field": "roles.requirement",
+      "quote": "Words",
+      "start": 0,
+      "end": 5
+     },
+     "replies": []
+    }
+   ],
+   "decisions": [
+    {
+     "id": "d1",
+     "reviewer": "Alice",
+     "created": "2026-11-09T10:01:00Z",
+     "target": {
+      "chapter": "appendix",
+      "node": "registers-904ef37f:alpha"
+     },
+     "state": "accepted"
+    }
+   ],
+   "files": [
+    "manifest.comments.alice.json"
+   ]
+  },
+  "test_comments.py::test_generated_artifact_comment_island_round_trips_to_extractor": {
+   "annotations": [
+    {
+     "id": "c1",
+     "author": "Reviewer",
+     "created": "2026-11-09T10:00:00Z",
+     "mediaType": "text/plain",
+     "text": "Looks good.",
+     "status": "resolved",
+     "target": {
+      "chapter": "intro"
+     },
+     "replies": []
+    }
+   ],
+   "decisions": [],
+   "files": [
+    "manifest.comments.alice.json"
+   ]
+  },
+  "browser/artifact-ui.cjs::verifyPages (selected-unicode)": {
+   "annotations": [
+    {
+     "id": "selected-unicode",
+     "author": "Reviewer Ω",
+     "created": "2026-11-09T10:00:00Z",
+     "mediaType": "text/plain",
+     "text": "First line.\n<Second line> & safe.",
+     "status": "open",
+     "target": {
+      "chapter": "appendix",
+      "node": "paragraph-9d91235b",
+      "quote": "Quoted “text”\nacross lines.",
+      "prefix": "Before ",
+      "suffix": " after",
+      "start": 17,
+      "end": 42
+     },
+     "batch": {
+      "scope": "section",
+      "items": [
+       {
+        "chapter": "intro",
+        "node": "paragraph-957766ff"
+       },
+       {
+        "chapter": "appendix",
+        "node": "figures-009c9499"
+       }
+      ]
+     },
+     "replies": [
+      {
+       "id": "nested-reply",
+       "author": "Reply author",
+       "created": "2026-11-09T10:01:00Z",
+       "mediaType": "text/plain",
+       "text": "Nested reply.",
+       "status": "resolved",
+       "replies": [
+        {
+         "id": "deep-reply",
+         "author": "Third author",
+         "created": "2026-11-09T10:02:00Z",
+         "mediaType": "text/plain",
+         "text": "Deep reply.",
+         "status": "open",
+         "replies": []
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "decisions": [
+    {
+     "id": "d1",
+     "reviewer": "Reviewer Ω",
+     "created": "2026-11-09T10:03:00Z",
+     "target": {
+      "chapter": "appendix",
+      "node": "paragraph-9d91235b"
+     },
+     "state": "rejected"
+    },
+    {
+     "id": "d2",
+     "reviewer": "Reply author",
+     "created": "2026-11-09T10:04:00Z",
+     "target": {
+      "chapter": "appendix",
+      "node": "paragraph-9d91235b"
+     },
+     "state": "accepted"
+    }
+   ],
+   "files": [
+    "manifest.comments.alice.json"
+   ]
+  }
+ }
+}

@@ -927,8 +927,8 @@ confirmation follow [[artifact-ui#What counts as a change]].
 
 The artifact-level comparison also covers the current embedded source archive, when present,
 through its existing archive owner rather than a second serialized payload.
-Importing reviewed copies marks it dirty only when the merged comments,
-reviewers, or decisions change.
+Importing reviewed copies marks it dirty only when the merged comments
+or decisions change.
 
 A successful File System Access write establishes the new clean baseline; opening the save picker, cancelling it, or a
 failed write does not. A browser's standard download API
@@ -941,56 +941,65 @@ The Comments bar persistently explains how to save and that leaving with dirty o
 unconfirmed changes risks losing them.
 
 - A reviewed copy is a generated standalone HTML artifact whose one `obs-comments` JSON island
-  contains versioned annotations and per-reviewer block decisions created through the
-  Comments bar.
-
-  New comment targets may additionally retain their canonical review-item identifier,
-  section label, and whether the context was the whole item. These optional descriptive
-  fields survive save/reopen and import without changing version 2 or the canonical text
-  and table anchors.
-
-  They are descriptive, not part of merge identity: their absence in legacy copies does not
-  duplicate an otherwise identical comment. Legacy targets remain valid;
-  clipboard export explicitly artifacts
-  unavailable context rather than inventing missing identities or page numbers.
-- Review checklist items are derived in document order from rendered list items, table data
-  rows, standalone code blocks, figures, and paragraphs that are not inside
-  one of those units.
-
-  A paragraph or code block inside another review unit does not create a
-  duplicate item.
-
-  Markdown images remain part of their containing paragraph; standalone media
-  may use a figure item.
-
-  Visual line wrapping never creates another item.
+  holds its comments and review decisions in the core's format, created through the Comments
+  bar; [Comments and the core model](#comments-and-the-core-model) says how.
 - Rendered headings may receive exact-text comments but are not checklist items and carry no
   Accept or Reject decision.
-- Ordinary review item identifiers are chapter-local deterministic ordinals; generated table
-  rows use their table/row keys so reordering does not change review identity.
-  Like text anchors, they are not re-anchored across regenerated artifacts.
-- Reviewer identities are stored with the reviewed copy even when that reviewer has not made a
-  decision. Missing decisions are waiting. An item's displayed state is aggregated across known
-  reviewers with precedence rejected, then accepted, then waiting: any rejection wins, otherwise
-  any acceptance overrides missing decisions.
 - The named reviewer's state is derived across every chapter and exposed to the browser query
-  model as the `review` field. Aggregate worst state remains a display property of each item;
+  model as the `review` field. The aggregate state remains a display property of each item;
   neither derived state is persisted as a second copy of reviewer decisions.
 - Batch decisions use the same per-reviewer item decisions as individual actions, never
-  a parallel acceptance state store. A batch rejection may have one scoped annotation
-  associated with the exact affected stable item identities. Preserve those associations
-  safely in reviewed-copy serialization, merge and extraction; existing annotations
-  remain compatible.
+  a parallel acceptance state store. A batch rejection has one scoped comment, whose
+  `batch` keeps the scope and the exact affected items. The gesture and waiting-only scope
+  are owned by [[artifact-ui]].
 
-  The gesture and waiting-only scope are owned by [[artifact-ui]]. Version 2 annotations
-  optionally carry `batch: {scope, items}`. `scope` is
-  `section`, `chapter`, or `document`; `items` is a nonempty, duplicate-free array
-  of `{chapter, item}` review identities. This is an annotation association, not a
-  second decision store. Extraction retains the scope and exact identities.
-- Comment extraction accepts the returned HTML as untrusted data, requires exactly one valid
-  island, and never executes or imports the artifact's scripts, markup, or comments.
-- Extraction produces a deterministic text list for human or agent triage. It does not edit
-  the returned copy, source Markdown, or project configuration.
+### Comments and the core model
+
+obs's input model owns the comment and decision format, the review semantics and the block
+ids (Comments and reviews, Block node ids). This adapter owns only the mapping between them and
+its page, and this section says it once.
+
+**Where the core ends.** The core hands the adapter the Document's `comments`, the resolved
+union of every overlay file. Its fields, ids, times, targets, replies and batches, and what a
+decision means for an item's state, are the core's. The adapter adds no field and keeps no
+second schema.
+
+**Export.** The build writes the Document's `comments` into the `obs-comments` island
+unchanged; a Document without comments gets an empty model of the same version. The page's
+Comments bar maps it, in `comment-model.js`, onto the threads it shows: a root comment and its
+replies, nested by `inReplyTo`, and the decisions as they are. Saving the reviewed copy maps
+the threads back and writes the island in the core's format.
+
+**Review items are blocks.** A review item is a Document block, and its review id is the
+block's core id, which the rendered element carries as `data-node-id`.
+
+- Items are derived in document order from rendered list items, table data rows,
+  standalone code blocks and command outputs, figures, and paragraphs that are not inside one
+  of those units; a paragraph or code block inside another unit is no second item.
+- Markdown images remain part of their containing paragraph; standalone media may use a
+  figure item. Visual line wrapping never creates another item.
+- A row of a register or Base table is the keyed row `<table id>:<record id>`; the table's
+  node id and the record id come from the build.
+- An element without a core id is no item: the hidden status paragraph of a data table is the
+  adapter's own, not Document content.
+
+A decision and a whole-item comment target `{chapter, node}`; a text selection inside one item
+targets that item with positions in the item's text, and a selection across items targets
+the chapter with positions in the chapter's text. Nothing targets a chapter and a quote in
+place of a node.
+
+**Import.** `obs-html --extract-comments HTML` reads the island as untrusted data, never runs
+the artifact, and prints a deterministic text list of its threads for triage.
+
+With `--overlay FILE` it also writes the overlay file of the principal the file name names
+(obs's input model, Overlay files): every comment and decision of the island that no other
+overlay file of the manifest holds with the same payload. The core's comment schema checks it
+before it is written.
+
+An island the core's schema refuses, an entry another principal's file holds with a
+different payload, and an island of the retired version 2 are input errors naming the
+reviewed HTML, the island's field path and this section. Version 2 targets items by
+position (`item-N`), which no Document can resolve once the text above them changes.
 
 ## Output-format statements of obs's input model
 
