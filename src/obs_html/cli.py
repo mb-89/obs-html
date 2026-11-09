@@ -84,9 +84,9 @@ Comments:
   --extract-comments HTML reads the comment JSON island of a returned, reviewed artifact
   without executing its scripts and prints deterministic comment candidates to stdout. With
   --comments-output FILE it also writes the comments in the core's format, one file per author,
-  <FILE's stem>.<author>.json beside FILE, and prints one line per file,
-  import: obs-document --source MANIFEST --import-comments FILE --principal NAME, in the order
-  to run them; each writes that author's entries into the principal's overlay file.
+  <FILE's stem>.<author>.json beside FILE, and prints the one call that imports them all,
+  import: obs-document --source MANIFEST --import-comments FILE --principal NAME ..., one pair
+  per file; it writes each author's entries into that principal's overlay file.
 
 Printing a chapter:
   --print-chapter HTML CHAPTER prints one chapter of a built artifact to stdout, as the

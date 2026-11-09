@@ -1016,11 +1016,10 @@ lower-cased, each run of characters other than `a`–`z` and `0`–`9` replaced 
 `comments.schema.json`). An empty author, an author with no such form, and two authors with
 one form are input errors naming the island's field path of the entry and this section.
 
-After the list the export prints one line per file,
-`import: obs-document --source MANIFEST --import-comments <file> --principal <author>`, in an
-order the core accepts: each file after the files whose comments its replies and state entries
-name, otherwise in the order the authors first appear among the comments, decisions and state
-entries. A reader whose principal is another name passes that name instead.
+After the list the export prints the one core call that imports every file, a line
+`import: obs-document --source MANIFEST` followed by `--import-comments <file> --principal
+<author>` per file, in the order the authors first appear among the comments, decisions and
+state entries. A reader whose principal is another name passes that name instead.
 
 An island the core's schema refuses, and one of the retired version 2, are input errors naming
 the reviewed HTML, the island's field path and this section. Version 2 targets items by

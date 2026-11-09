@@ -135,7 +135,14 @@ def test_extract_comments_requires_exactly_one_island(tmp_path: Path) -> None:
     _refused(artifact, "")
 
 
-IMPORT = re.compile(r"^import: obs-document --source MANIFEST --import-comments (\S+) --principal (\S+)$", re.M)
+IMPORT = re.compile(r"^import: obs-document --source MANIFEST((?: --import-comments \S+ --principal \S+)+)$", re.M)
+
+
+def _pairs(printed: str) -> list[tuple[str, str]]:
+    """The file and principal pairs of the one import call the export printed, in its order."""
+    calls = IMPORT.findall(printed)
+    assert len(calls) <= 1, printed
+    return re.findall(r" --import-comments (\S+) --principal (\S+)", calls[0]) if calls else []
 
 
 def _vaults(tmp_path: Path, *names: str) -> list[Path]:
@@ -149,11 +156,11 @@ def _vaults(tmp_path: Path, *names: str) -> list[Path]:
 
 
 def _import_printed(printed: str, vault: Path, tmp_path: Path) -> list[tuple[str, str]]:
-    """Run each import line the export printed, in its order, through the core's CLI; none is refused."""
-    lines = IMPORT.findall(printed)
-    for file, principal in lines:
-        import_comments(vault / "manifest.md", Path(file), principal, tmp_path / "document.json")
-    return lines
+    """Run the import call the export printed through the core's CLI; it refuses nothing."""
+    pairs = _pairs(printed)
+    import_comments(vault / "manifest.md", [(Path(file), principal) for file, principal in pairs],
+                    tmp_path / "document.json")
+    return pairs
 
 
 def test_extraction_exports_one_file_per_author_in_the_cores_format(tmp_path: Path) -> None:
@@ -166,15 +173,15 @@ def test_extraction_exports_one_file_per_author_in_the_cores_format(tmp_path: Pa
     assert json.loads((tmp_path / "returned.bob.json").read_text(encoding="utf-8")) == {
         "version": 1, "files": ["manifest.comments.alice.json"], "names": ["Bob"], "comments": [REPLY],
         "decisions": []}
-    assert IMPORT.findall(printed) == [(str(tmp_path / "returned.alice.json"), "alice"),
-                                       (str(tmp_path / "returned.bob.json"), "bob")]
+    assert _pairs(printed) == [(str(tmp_path / "returned.alice.json"), "alice"),
+                               (str(tmp_path / "returned.bob.json"), "bob")]
 
 
 def test_a_single_authors_copy_is_one_file_of_that_author_and_an_empty_copy_none(tmp_path: Path) -> None:
     printed = extract_comments(write_artifact(tmp_path / "reviewed.html", model(ROOT)), tmp_path / "returned.json")
     assert sorted(path.name for path in tmp_path.glob("returned*")) == ["returned.alice.json"]
-    assert IMPORT.findall(printed) == [(str(tmp_path / "returned.alice.json"), "alice")]
-    assert IMPORT.findall(extract_comments(write_artifact(tmp_path / "empty.html", EMPTY), tmp_path / "e.json")) == []
+    assert _pairs(printed) == [(str(tmp_path / "returned.alice.json"), "alice")]
+    assert "import:" not in extract_comments(write_artifact(tmp_path / "empty.html", EMPTY), tmp_path / "e.json")
     assert not list(tmp_path.glob("e.*"))
 
 
@@ -196,16 +203,18 @@ def test_an_author_without_a_file_name_of_its_own_is_refused_at_its_entry(tmp_pa
 
 def test_a_copy_two_readers_worked_on_imports_as_two_principals_into_both_readers_entries(
         tmp_path: Path, document) -> None:
-    """R3: a copy Bob reviewed after Alice, none of it imported yet, exports to a file per reader. The
-    printed imports, through the core's CLI in their order, refuse nothing, and their union is what
-    both readers did. Bob's first comment precedes Alice's, yet his file imports after hers, as his
-    reply and his resolve name her comment."""
+    """R3: a copy Alice and Bob worked on in turn, none of it imported yet, exports to a file per reader.
+    The printed import, through the core's CLI, refuses nothing, and its union is what both readers
+    did, though each reader's entries name the other's: Bob replies to and resolves Alice's comment,
+    and Alice replies to Bob's."""
     early = {"id": "c0", "author": "Bob", "created": "2026-11-09T09:00:00Z", "state": "open",
              "body": {"mediaType": "text/plain", "text": "Name the source."}, "target": PARAGRAPH}
     resolve = {"id": "s1", "author": "Bob", "created": "2026-11-09T11:05:00Z", "target": "c1", "state": "resolved"}
     reopen = {"id": "s2", "author": "Alice", "created": "2026-11-09T11:10:00Z", "target": "c1", "state": "open"}
+    answer = {"id": "c4", "author": "Alice", "created": "2026-11-09T11:20:00Z", "state": "open",
+              "body": {"mediaType": "text/plain", "text": "The figure's caption."}, "inReplyTo": "c0"}
     did, returned = _vaults(tmp_path, "did", "returned")
-    for principal, name, comments, decisions, states in (("alice", "Alice", [ROOT], [DECISION], [reopen]),
+    for principal, name, comments, decisions, states in (("alice", "Alice", [ROOT, answer], [DECISION], [reopen]),
                                                          ("bob", "Bob", [early, REPLY], [], [resolve])):
         (did / f"manifest.comments.{principal}.json").write_text(json.dumps(
             {"version": 1, "principal": principal, "names": [name], "comments": comments, "decisions": decisions,
@@ -213,7 +222,7 @@ def test_a_copy_two_readers_worked_on_imports_as_two_principals_into_both_reader
     both = with_comments(copy.deepcopy(document), did / "manifest.md")["comments"]
     artifact = write_artifact(tmp_path / "reviewed.html", {**both, "names": ["Bob"]})
     printed = extract_comments(artifact, tmp_path / "returned.json")
-    assert [principal for _, principal in _import_printed(printed, returned, tmp_path)] == ["alice", "bob"]
+    assert [principal for _, principal in _import_printed(printed, returned, tmp_path)] == ["bob", "alice"]
     assert with_comments(copy.deepcopy(document), returned / "manifest.md")["comments"] == both
     for principal in ("alice", "bob"):
         assert (json.loads((returned / f"manifest.comments.{principal}.json").read_text(encoding="utf-8"))

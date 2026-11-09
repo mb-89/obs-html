@@ -31,8 +31,7 @@ VERSION = SCHEMA["properties"]["version"]["const"]
 PRINCIPAL = re.compile(SCHEMA["$defs"]["principal"]["pattern"])
 """The core's principal pattern, which an author's file-name form must match."""
 KINDS = {"comments": "author", "decisions": "reviewer", "states": "author"}
-"""Each kind of entry and the field that names its author; a reply's inReplyTo and a state entry's
-target name a comment."""
+"""Each kind of entry and the field that names its author."""
 
 
 def island_model(document: dict[str, Any]) -> dict[str, Any]:
@@ -101,13 +100,13 @@ def read_island(artifact_path: Path) -> dict[str, Any]:
 
 def extract_comments(artifact_path: Path, output: Path | None = None) -> str:
     """The returned copy's threads as a deterministic text list; with ``output``, also write its
-    entries in the core's format, one file per author beside ``output``, and list the
-    ``obs-document --import-comments`` call of each in an order the core accepts."""
+    entries in the core's format, one file per author beside ``output``, and the one
+    ``obs-document`` call that imports them all."""
     model = read_island(artifact_path)
     text = _format_candidates(model)
     if output is None:
         return text
-    lines = []
+    pairs = []
     for author, form in _authors(artifact_path, model):
         path = output.with_name(f"{output.stem}.{form}.json")
         split: dict[str, Any] = {"version": model["version"], "files": model["files"], "names": [author]}
@@ -116,8 +115,8 @@ def extract_comments(artifact_path: Path, output: Path | None = None) -> str:
             if entries or kind != "states":
                 split[kind] = entries
         path.write_text(json.dumps(split, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-        lines.append(f"import: obs-document --source MANIFEST --import-comments {path} --principal {form}\n")
-    return text + "".join(lines)
+        pairs.append(f" --import-comments {path} --principal {form}")
+    return text + (f"import: obs-document --source MANIFEST{''.join(pairs)}\n" if pairs else "")
 
 
 def file_name_form(author: str) -> str:
@@ -128,11 +127,8 @@ def file_name_form(author: str) -> str:
 
 
 def _authors(source: Path, model: dict[str, Any]) -> list[tuple[str, str]]:
-    """Each author of the copy's entries with its file-name form, each after the authors whose
-    comments its replies and state entries name, otherwise in the order they first appear."""
-    by_comment = {comment["id"]: comment["author"] for comment in model["comments"]}
+    """Each author of the copy's entries with its file-name form, in the order they first appear."""
     forms: dict[str, str] = {}
-    needs: dict[str, set[str]] = {}
     for kind, name in KINDS.items():
         for index, entry in enumerate(model.get(kind, [])):
             author = entry[name]
@@ -147,13 +143,7 @@ def _authors(source: Path, model: dict[str, Any]) -> list[tuple[str, str]]:
                                  "by letters or digits, a name no other reader's differs from only in case "
                                  "or punctuation")
                 forms[author] = form
-            named = {"comments": entry.get("inReplyTo"), "states": entry.get("target")}.get(kind)
-            needs.setdefault(author, set()).update({by_comment.get(named)} - {author, None})
-    ordered: list[str] = []
-    while len(ordered) < len(forms):
-        waiting = [author for author in forms if author not in ordered]
-        ordered.append(next((author for author in waiting if needs[author] <= set(ordered)), waiting[0]))
-    return [(author, forms[author]) for author in ordered]
+    return list(forms.items())
 
 
 def _format_candidates(model: dict[str, Any]) -> str:
