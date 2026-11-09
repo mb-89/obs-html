@@ -1,7 +1,8 @@
 // The one mapping between the core's comments (obs input-model, Comments and reviews) and the threads
 // the Comments bar shows (spec/input-model.md, Comments and the core model). A thread is a root
 // comment with its replies nested by inReplyTo, its body as text and mediaType, its state as status;
-// a decision is the core's decision as it is, and a target the core's target.
+// a decision is the core's decision as it is, and a target the core's target. The review state
+// (reviewState) mirrors its owner, obs.comments.review_state.
 (() => {
     "use strict";
 
@@ -57,8 +58,9 @@
             decisions: data.decisions.map((decision) => ({...decision})).sort(order)};
     };
 
-    // A target's review state: the reviewer's decision on it, or without one the aggregate, as
-    // obs.comments.review_state computes it; the shared conformance fixture holds the two together.
+    // A target's review state: the reviewer's decision on it, or without one the aggregate. Its owner
+    // is obs.comments.review_state; this mirrors it, and the shared fixture
+    // test/fixtures/review-state-conformance.json holds the two together.
     const reviewState = (decisions, target, reviewer) => {
         const states = new Set(decisions.filter((decision) => sameTarget(decision.target, target) &&
             (reviewer === undefined || reviewer === null || decision.reviewer === reviewer))

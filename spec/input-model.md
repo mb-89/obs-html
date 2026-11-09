@@ -990,16 +990,13 @@ run on past it where the selection does; one in a keyed row stays in the row, or
 record `field`. Nothing targets a chapter and a quote in place of a node.
 
 **Import.** `obs-html --extract-comments HTML` reads the island as untrusted data, never runs
-the artifact, and prints a deterministic text list of its threads for triage.
+the artifact, and prints a deterministic text list of its threads for triage. With
+`--comments-output FILE` it also writes the island's comments to FILE in the core's format;
+the core writes them into a principal's overlay file (obs's input model, Comments and reviews,
+Adapter contract). The adapter names no overlay file.
 
-With `--overlay FILE` it also writes the overlay file of the principal the file name names
-(obs's input model, Overlay files): every comment and decision of the island that no other
-overlay file of the manifest holds with the same payload. The core's comment schema checks it
-before it is written.
-
-An island the core's schema refuses, an entry another principal's file holds with a
-different payload, and an island of the retired version 2 are input errors naming the
-reviewed HTML, the island's field path and this section. Version 2 targets items by
+An island the core's schema refuses, and one of the retired version 2, are input errors naming
+the reviewed HTML, the island's field path and this section. Version 2 targets items by
 position (`item-N`), which no Document can resolve once the text above them changes.
 
 ## Output-format statements of obs's input model

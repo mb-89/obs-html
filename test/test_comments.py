@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from core_calls import chapter_targets, unresolved_targets, validate_overlays, with_comments
+from core_calls import chapter_targets, import_comments, unresolved_targets, validate_overlays, with_comments
 from obs_html.artifact_data import decode_artifact_data
 from obs_html.comments import OWNER, extract_comments
 from obs_html.config import load_config
@@ -120,45 +120,28 @@ def test_extract_comments_requires_exactly_one_island(tmp_path: Path) -> None:
     _refused(artifact, "")
 
 
-def test_the_overlay_holds_what_no_other_principals_file_holds(tmp_path: Path) -> None:
-    (tmp_path / "manifest.comments.bob.json").write_text(json.dumps(
-        {"version": 1, "principal": "bob", "comments": [REPLY], "decisions": []}), encoding="utf-8")
-    artifact = write_artifact(tmp_path / "reviewed.html", model(ROOT, REPLY, BATCH, decisions=(DECISION,)))
-    overlay = tmp_path / "manifest.comments.alice.json"
-    extract_comments(artifact, overlay)
-    assert json.loads(overlay.read_text(encoding="utf-8")) == {
-        "version": 1, "principal": "alice", "comments": [ROOT, BATCH], "decisions": [DECISION]}
-
-
-def test_a_changed_copy_of_another_principals_entry_is_refused(tmp_path: Path) -> None:
-    (tmp_path / "manifest.comments.bob.json").write_text(json.dumps(
-        {"version": 1, "principal": "bob", "comments": [REPLY], "decisions": []}), encoding="utf-8")
-    artifact = write_artifact(tmp_path / "reviewed.html", model(ROOT, {**REPLY, "state": "open"}))
-    overlay = tmp_path / "manifest.comments.alice.json"
-    failure = _refused(artifact, ".comments[1]", overlay)
-    assert "manifest.comments.bob.json" in failure.problem
-    assert not overlay.exists()
-
-
-def test_an_overlay_file_name_without_a_principal_is_refused(tmp_path: Path) -> None:
-    artifact = write_artifact(tmp_path / "reviewed.html", model(ROOT))
-    with pytest.raises(InputError) as failure:
-        extract_comments(artifact, tmp_path / "manifest.comments.Alice Smith.json")
-    assert (failure.value.field, "input-model#Comments and reviews" in failure.value.remedy) == ("principal", True)
+def test_extraction_exports_the_islands_comments_in_the_cores_format(tmp_path: Path) -> None:
+    island_value = model(ROOT, REPLY, BATCH, decisions=(DECISION,))
+    output = tmp_path / "returned.json"
+    extract_comments(write_artifact(tmp_path / "reviewed.html", island_value), output)
+    assert json.loads(output.read_text(encoding="utf-8")) == island_value
 
 
 def test_core_overlay_to_artifact_to_overlay_keeps_every_field(tmp_path: Path, document) -> None:
-    """R3 at the build's seam: the overlay a principal wrote, through the Document and the island,
-    is the overlay the import writes back."""
+    """R3 at the build's seam: the overlay a principal wrote, through the Document, the island and the
+    export, is the overlay the core's import writes back."""
     written = {"version": 1, "principal": "alice", "comments": [ROOT, REPLY, BATCH], "decisions": [DECISION]}
     vault, returned = tmp_path / "vault", tmp_path / "returned"
-    vault.mkdir()
-    returned.mkdir()
+    for folder in (vault, returned):
+        folder.mkdir()
+        (folder / "manifest.md").write_text("- [[intro]]\n", encoding="utf-8")
+        (folder / "intro.md").write_text("# Intro\n\nText.\n", encoding="utf-8")
     (vault / "manifest.comments.alice.json").write_text(json.dumps(written), encoding="utf-8")
     document = with_comments(document, vault / "manifest.md")
     artifact = tmp_path / "reviewed.html"
     artifact.write_text(render(document, load_config()), encoding="utf-8")
-    extract_comments(artifact, returned / "manifest.comments.alice.json")
+    extract_comments(artifact, tmp_path / "returned.json")
+    import_comments(returned / "manifest.md", tmp_path / "returned.json", "alice", tmp_path / "document.json")
     assert json.loads((returned / "manifest.comments.alice.json").read_text(encoding="utf-8")) == written
 
 
