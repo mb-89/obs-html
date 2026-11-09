@@ -91,7 +91,8 @@
               "children": [],
               "text": "Gallery"
             }
-          ]
+          ],
+          "id": "section-2540be02"
         },
         {
           "type": "figures",
@@ -138,7 +139,8 @@
               },
               "children": []
             }
-          ]
+          ],
+          "id": "image-figure"
         },
         {
           "type": "figures",
@@ -196,7 +198,8 @@
               },
               "children": []
             }
-          ]
+          ],
+          "id": "svg-figure"
         },
         {
           "type": "figures",
@@ -276,7 +279,8 @@
               },
               "children": []
             }
-          ]
+          ],
+          "id": "sankey-figure"
         },
         {
           "type": "figures",
@@ -398,7 +402,8 @@
               },
               "children": []
             }
-          ]
+          ],
+          "id": "plot-figure"
         },
         {
           "type": "figures",
@@ -445,7 +450,8 @@
               },
               "children": []
             }
-          ]
+          ],
+          "id": "mermaid-figure"
         },
         {
           "type": "figures",
@@ -492,7 +498,8 @@
               },
               "children": []
             }
-          ]
+          ],
+          "id": "plantuml-figure"
         },
         {
           "type": "figures",
@@ -677,7 +684,8 @@
               },
               "children": []
             }
-          ]
+          ],
+          "id": "equations-figure"
         },
         {
           "type": "figures",
@@ -829,7 +837,8 @@
               },
               "children": []
             }
-          ]
+          ],
+          "id": "pugh-figure"
         }
       ],
       "children": [],

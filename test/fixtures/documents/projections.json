@@ -41,7 +41,8 @@
               "children": [],
               "text": "Registers"
             }
-          ]
+          ],
+          "id": "section-21b88cfa"
         },
         {
           "type": "paragraph",
@@ -61,7 +62,8 @@
               },
               "children": []
             }
-          ]
+          ],
+          "id": "paragraph-d7c1ef44"
         },
         {
           "type": "bases",
@@ -86,7 +88,8 @@
               }
             }
           },
-          "children": []
+          "children": [],
+          "id": "bases-734b0df2"
         },
         {
           "type": "bases",
@@ -111,7 +114,8 @@
               }
             }
           },
-          "children": []
+          "children": [],
+          "id": "bases-bf868d89"
         },
         {
           "type": "bases",
@@ -136,7 +140,8 @@
               }
             }
           },
-          "children": []
+          "children": [],
+          "id": "bases-59457d53"
         },
         {
           "type": "bases",
@@ -161,7 +166,8 @@
               }
             }
           },
-          "children": []
+          "children": [],
+          "id": "bases-9cb184be"
         },
         {
           "type": "bases",
@@ -186,7 +192,8 @@
               }
             }
           },
-          "children": []
+          "children": [],
+          "id": "bases-78489b2f"
         },
         {
           "type": "bases",
@@ -208,7 +215,8 @@
               ]
             }
           },
-          "children": []
+          "children": [],
+          "id": "bases-894b5333"
         },
         {
           "type": "bases",
@@ -233,7 +241,8 @@
               }
             }
           },
-          "children": []
+          "children": [],
+          "id": "bases-4fa6325b"
         }
       ],
       "children": [],
@@ -291,7 +300,8 @@
               "children": [],
               "text": "Marked"
             }
-          ]
+          ],
+          "id": "section-33d88860"
         },
         {
           "type": "paragraph",
@@ -311,7 +321,8 @@
               },
               "children": []
             }
-          ]
+          ],
+          "id": "paragraph-4cbdae38"
         }
       ],
       "children": [],
@@ -429,7 +440,8 @@
               "children": [],
               "text": "Datum"
             }
-          ]
+          ],
+          "id": "section-479d477d"
         }
       ],
       "children": [],
@@ -595,7 +607,8 @@
               "children": [],
               "text": "Slugged"
             }
-          ]
+          ],
+          "id": "section-918bd25e"
         }
       ],
       "children": [],

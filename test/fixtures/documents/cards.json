@@ -41,7 +41,8 @@
               "children": [],
               "text": "Overview"
             }
-          ]
+          ],
+          "id": "section-c899916c"
         },
         {
           "type": "cards-metrics",
@@ -175,7 +176,8 @@
                       "children": [],
                       "text": "Points as a table:"
                     }
-                  ]
+                  ],
+                  "id": "paragraph-1177b061"
                 },
                 {
                   "type": "bases",
@@ -194,7 +196,8 @@
                       ]
                     }
                   },
-                  "children": []
+                  "children": [],
+                  "id": "bases-fac6e489"
                 },
                 {
                   "type": "cards-metrics",
@@ -269,13 +272,17 @@
                               "children": [],
                               "text": "."
                             }
-                          ]
+                          ],
+                          "id": "paragraph-fe299093"
                         }
-                      ]
+                      ],
+                      "id": "document-599f69d9"
                     }
-                  ]
+                  ],
+                  "id": "cards-metrics-94b0eff6"
                 }
-              ]
+              ],
+              "id": "document-6bc7bc66"
             },
             {
               "type": "document",
@@ -315,7 +322,8 @@
                   ]
                 ]
               },
-              "children": []
+              "children": [],
+              "id": "document-f0d8ae98"
             },
             {
               "type": "document",
@@ -330,9 +338,11 @@
                 ],
                 "labels": []
               },
-              "children": []
+              "children": [],
+              "id": "document-d9e50217"
             }
-          ]
+          ],
+          "id": "cards-metrics-3a69fd59"
         },
         {
           "type": "figures",
@@ -439,7 +449,8 @@
               },
               "children": []
             }
-          ]
+          ],
+          "id": "points"
         }
       ],
       "children": [],
@@ -473,7 +484,8 @@
               "children": [],
               "text": "Target"
             }
-          ]
+          ],
+          "id": "section-22aec5c6"
         },
         {
           "type": "paragraph",
@@ -485,7 +497,8 @@
               "children": [],
               "text": "Target text."
             }
-          ]
+          ],
+          "id": "paragraph-528b4101"
         },
         {
           "type": "bases",
@@ -504,7 +517,8 @@
               ]
             }
           },
-          "children": []
+          "children": [],
+          "id": "bases-fac6e489"
         }
       ],
       "children": [],
@@ -593,7 +607,8 @@
               "children": [],
               "text": "Point a"
             }
-          ]
+          ],
+          "id": "section-ba45859f"
         }
       ],
       "children": [],
@@ -718,7 +733,8 @@
               "children": [],
               "text": "Point b"
             }
-          ]
+          ],
+          "id": "section-6ee5b360"
         }
       ],
       "children": [],
@@ -815,7 +831,8 @@
               "children": [],
               "text": "Point c"
             }
-          ]
+          ],
+          "id": "section-c4248db2"
         }
       ],
       "children": [],

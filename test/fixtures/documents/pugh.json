@@ -67,7 +67,8 @@
               "children": [],
               "text": "Decisions"
             }
-          ]
+          ],
+          "id": "section-a89708c5"
         },
         {
           "type": "figures",
@@ -203,7 +204,8 @@
               },
               "children": []
             }
-          ]
+          ],
+          "id": "option"
         },
         {
           "type": "figures",
@@ -387,7 +389,8 @@
               },
               "children": []
             }
-          ]
+          ],
+          "id": "wide"
         }
       ],
       "children": [],

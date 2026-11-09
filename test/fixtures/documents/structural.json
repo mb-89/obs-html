@@ -130,7 +130,8 @@
               "children": [],
               "text": "Formatting"
             }
-          ]
+          ],
+          "id": "section-6af44aea"
         },
         {
           "type": "paragraph",
@@ -276,7 +277,8 @@
               "children": [],
               "text": " math."
             }
-          ]
+          ],
+          "id": "paragraph-99618950"
         },
         {
           "type": "math",
@@ -284,7 +286,8 @@
             "display": true
           },
           "children": [],
-          "text": "E = mc^2"
+          "text": "E = mc^2",
+          "id": "math-2820951a"
         },
         {
           "type": "quote",
@@ -318,9 +321,11 @@
                   "children": [],
                   "text": "."
                 }
-              ]
+              ],
+              "id": "paragraph-b3c18038"
             }
-          ]
+          ],
+          "id": "quote-b3c18038"
         },
         {
           "type": "table",
@@ -375,7 +380,8 @@
                     }
                   ]
                 }
-              ]
+              ],
+              "id": "table-row-199b7b93"
             },
             {
               "type": "table-row",
@@ -432,14 +438,17 @@
                     }
                   ]
                 }
-              ]
+              ],
+              "id": "table-row-e0210ac7"
             }
-          ]
+          ],
+          "id": "table-a2813b85"
         },
         {
           "type": "rule",
           "attrs": {},
-          "children": []
+          "children": [],
+          "id": "rule-e3b0c442"
         },
         {
           "type": "paragraph",
@@ -485,7 +494,8 @@
               "children": [],
               "text": "line."
             }
-          ]
+          ],
+          "id": "paragraph-7ab83b07"
         },
         {
           "type": "callouts",
@@ -511,9 +521,11 @@
                   "children": [],
                   "text": "Untitled note body."
                 }
-              ]
+              ],
+              "id": "paragraph-a3b69525"
             }
-          ]
+          ],
+          "id": "callouts-d2acd584"
         }
       ],
       "children": [],

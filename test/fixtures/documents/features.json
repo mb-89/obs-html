@@ -107,7 +107,8 @@
               "children": [],
               "text": "Overview"
             }
-          ]
+          ],
+          "id": "section-c899916c"
         },
         {
           "type": "paragraph",
@@ -183,7 +184,8 @@
               "children": [],
               "text": " outside the reading order."
             }
-          ]
+          ],
+          "id": "paragraph-4b8c420c"
         }
       ],
       "children": [],
@@ -217,7 +219,8 @@
               "children": [],
               "text": "Figures"
             }
-          ]
+          ],
+          "id": "section-454e29f0"
         },
         {
           "type": "section",
@@ -231,7 +234,8 @@
               "children": [],
               "text": "Image"
             }
-          ]
+          ],
+          "id": "section-23ba1d34"
         },
         {
           "type": "figures",
@@ -262,7 +266,8 @@
               },
               "children": []
             }
-          ]
+          ],
+          "id": "image-figure"
         },
         {
           "type": "section",
@@ -276,7 +281,8 @@
               "children": [],
               "text": "Plot"
             }
-          ]
+          ],
+          "id": "section-0d36a956"
         },
         {
           "type": "figures",
@@ -382,7 +388,8 @@
               },
               "children": []
             }
-          ]
+          ],
+          "id": "plot-figure"
         },
         {
           "type": "section",
@@ -396,7 +403,8 @@
               "children": [],
               "text": "Flow"
             }
-          ]
+          ],
+          "id": "section-72311ebb"
         },
         {
           "type": "figures",
@@ -457,7 +465,8 @@
               },
               "children": []
             }
-          ]
+          ],
+          "id": "sankey-figure"
         },
         {
           "type": "paragraph",
@@ -469,7 +478,8 @@
               "children": [],
               "text": "Paragraph 1 of the closing text, which reads on after the content above it. Paragraph 1 of the closing text, which reads on after the content above it. Paragraph 1 of the closing text, which reads on after the content above it."
             }
-          ]
+          ],
+          "id": "paragraph-da81c4ff"
         },
         {
           "type": "paragraph",
@@ -481,7 +491,8 @@
               "children": [],
               "text": "Paragraph 2 of the closing text, which reads on after the content above it. Paragraph 2 of the closing text, which reads on after the content above it. Paragraph 2 of the closing text, which reads on after the content above it."
             }
-          ]
+          ],
+          "id": "paragraph-abfab280"
         }
       ],
       "children": [
@@ -513,7 +524,8 @@
                   "children": [],
                   "text": "Equations"
                 }
-              ]
+              ],
+              "id": "section-3f6e0259"
             },
             {
               "type": "paragraph",
@@ -542,7 +554,8 @@
                   "children": [],
                   "text": "."
                 }
-              ]
+              ],
+              "id": "paragraph-035ff8aa"
             },
             {
               "type": "section",
@@ -556,7 +569,8 @@
                   "children": [],
                   "text": "Parabola"
                 }
-              ]
+              ],
+              "id": "section-c8187279"
             },
             {
               "type": "figures",
@@ -725,7 +739,8 @@
                   },
                   "children": []
                 }
-              ]
+              ],
+              "id": "equations-figure"
             },
             {
               "type": "paragraph",
@@ -737,7 +752,8 @@
                   "children": [],
                   "text": "Paragraph 1 of the closing text, which reads on after the content above it. Paragraph 1 of the closing text, which reads on after the content above it. Paragraph 1 of the closing text, which reads on after the content above it."
                 }
-              ]
+              ],
+              "id": "paragraph-da81c4ff"
             },
             {
               "type": "paragraph",
@@ -749,7 +765,8 @@
                   "children": [],
                   "text": "Paragraph 2 of the closing text, which reads on after the content above it. Paragraph 2 of the closing text, which reads on after the content above it. Paragraph 2 of the closing text, which reads on after the content above it."
                 }
-              ]
+              ],
+              "id": "paragraph-abfab280"
             }
           ],
           "children": [
@@ -781,7 +798,8 @@
                       "children": [],
                       "text": "Tables"
                     }
-                  ]
+                  ],
+                  "id": "section-3bb4f6d2"
                 },
                 {
                   "type": "bases",
@@ -813,7 +831,8 @@
                       ]
                     }
                   },
-                  "children": []
+                  "children": [],
+                  "id": "bases-af86ec64"
                 },
                 {
                   "type": "paragraph",
@@ -825,7 +844,8 @@
                       "children": [],
                       "text": "Paragraph 1 of the closing text, which reads on after the content above it. Paragraph 1 of the closing text, which reads on after the content above it. Paragraph 1 of the closing text, which reads on after the content above it."
                     }
-                  ]
+                  ],
+                  "id": "paragraph-da81c4ff"
                 },
                 {
                   "type": "paragraph",
@@ -837,7 +857,8 @@
                       "children": [],
                       "text": "Paragraph 2 of the closing text, which reads on after the content above it. Paragraph 2 of the closing text, which reads on after the content above it. Paragraph 2 of the closing text, which reads on after the content above it."
                     }
-                  ]
+                  ],
+                  "id": "paragraph-abfab280"
                 }
               ],
               "children": [],
@@ -912,7 +933,8 @@
               "children": [],
               "text": "Prose"
             }
-          ]
+          ],
+          "id": "section-d41854a6"
         },
         {
           "type": "paragraph",
@@ -988,7 +1010,8 @@
               },
               "children": []
             }
-          ]
+          ],
+          "id": "paragraph-87427aa9"
         },
         {
           "type": "paragraph",
@@ -1008,7 +1031,8 @@
               },
               "children": []
             }
-          ]
+          ],
+          "id": "paragraph-c44a6c11"
         },
         {
           "type": "callouts",
@@ -1050,9 +1074,11 @@
                   "children": [],
                   "text": "."
                 }
-              ]
+              ],
+              "id": "paragraph-fefbf36d"
             }
-          ]
+          ],
+          "id": "callouts-9d164cc6"
         },
         {
           "type": "section",
@@ -1066,7 +1092,8 @@
               "children": [],
               "text": "Lists"
             }
-          ]
+          ],
+          "id": "section-1c88b392"
         },
         {
           "type": "list",
@@ -1089,9 +1116,11 @@
                       "children": [],
                       "text": "one"
                     }
-                  ]
+                  ],
+                  "id": "paragraph-7692c3ad"
                 }
-              ]
+              ],
+              "id": "list-item-7692c3ad"
             },
             {
               "type": "list-item",
@@ -1107,11 +1136,14 @@
                       "children": [],
                       "text": "two"
                     }
-                  ]
+                  ],
+                  "id": "paragraph-3fc4ccfe"
                 }
-              ]
+              ],
+              "id": "list-item-3fc4ccfe"
             }
-          ]
+          ],
+          "id": "list-08664fcc"
         },
         {
           "type": "list",
@@ -1134,9 +1166,11 @@
                       "children": [],
                       "text": "a"
                     }
-                  ]
+                  ],
+                  "id": "paragraph-ca978112"
                 }
-              ]
+              ],
+              "id": "list-item-ca978112"
             },
             {
               "type": "list-item",
@@ -1152,11 +1186,14 @@
                       "children": [],
                       "text": "b"
                     }
-                  ]
+                  ],
+                  "id": "paragraph-3e23e816"
                 }
-              ]
+              ],
+              "id": "list-item-3e23e816"
             }
-          ]
+          ],
+          "id": "list-b2ed1404"
         },
         {
           "type": "section",
@@ -1170,7 +1207,8 @@
               "children": [],
               "text": "Code"
             }
-          ]
+          ],
+          "id": "section-6370509d"
         },
         {
           "type": "code",
@@ -1178,7 +1216,8 @@
             "language": "text"
           },
           "children": [],
-          "text": "plain code\n"
+          "text": "plain code\n",
+          "id": "code-cb6483c0"
         },
         {
           "type": "section",
@@ -1192,7 +1231,8 @@
               "children": [],
               "text": "Decision"
             }
-          ]
+          ],
+          "id": "section-e858fed6"
         },
         {
           "type": "figures",
@@ -1328,7 +1368,8 @@
               },
               "children": []
             }
-          ]
+          ],
+          "id": "decision-figure"
         },
         {
           "type": "paragraph",
@@ -1340,7 +1381,8 @@
               "children": [],
               "text": "Paragraph 1 of the closing text, which reads on after the content above it. Paragraph 1 of the closing text, which reads on after the content above it. Paragraph 1 of the closing text, which reads on after the content above it."
             }
-          ]
+          ],
+          "id": "paragraph-da81c4ff"
         },
         {
           "type": "paragraph",
@@ -1352,7 +1394,8 @@
               "children": [],
               "text": "Paragraph 2 of the closing text, which reads on after the content above it. Paragraph 2 of the closing text, which reads on after the content above it. Paragraph 2 of the closing text, which reads on after the content above it."
             }
-          ]
+          ],
+          "id": "paragraph-abfab280"
         }
       ],
       "children": [],
@@ -1417,7 +1460,8 @@
               "children": [],
               "text": "References"
             }
-          ]
+          ],
+          "id": "section-4f3bae6c"
         },
         {
           "type": "registers",
@@ -1462,7 +1506,8 @@
               ]
             ]
           },
-          "children": []
+          "children": [],
+          "id": "registers-56f887d5"
         },
         {
           "type": "property-editors",
@@ -1477,7 +1522,8 @@
               "status"
             ]
           },
-          "children": []
+          "children": [],
+          "id": "property-editors-72bb738d"
         },
         {
           "type": "paragraph",
@@ -1489,7 +1535,8 @@
               "children": [],
               "text": "Paragraph 1 of the closing text, which reads on after the content above it. Paragraph 1 of the closing text, which reads on after the content above it. Paragraph 1 of the closing text, which reads on after the content above it."
             }
-          ]
+          ],
+          "id": "paragraph-da81c4ff"
         },
         {
           "type": "paragraph",
@@ -1501,7 +1548,8 @@
               "children": [],
               "text": "Paragraph 2 of the closing text, which reads on after the content above it. Paragraph 2 of the closing text, which reads on after the content above it. Paragraph 2 of the closing text, which reads on after the content above it."
             }
-          ]
+          ],
+          "id": "paragraph-abfab280"
         },
         {
           "type": "section",
@@ -1515,7 +1563,8 @@
               "children": [],
               "text": "Summary"
             }
-          ]
+          ],
+          "id": "section-aa3fb73c"
         },
         {
           "type": "cards-metrics",
@@ -1606,9 +1655,11 @@
                       "children": [],
                       "text": " items."
                     }
-                  ]
+                  ],
+                  "id": "paragraph-4272b51e"
                 }
-              ]
+              ],
+              "id": "document-78466622"
             },
             {
               "type": "document",
@@ -1643,11 +1694,14 @@
                       "children": [],
                       "text": "Each item has its own rank."
                     }
-                  ]
+                  ],
+                  "id": "paragraph-30d7890c"
                 }
-              ]
+              ],
+              "id": "document-b0a488d6"
             }
-          ]
+          ],
+          "id": "cards-metrics-00e9c732"
         }
       ],
       "children": [],
@@ -1684,7 +1738,8 @@
               "children": [],
               "text": "Aside"
             }
-          ]
+          ],
+          "id": "section-bd565e03"
         },
         {
           "type": "paragraph",
@@ -1696,7 +1751,8 @@
               "children": [],
               "text": "A note a link opens as context."
             }
-          ]
+          ],
+          "id": "paragraph-f462740a"
         }
       ],
       "children": [],

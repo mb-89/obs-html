@@ -322,7 +322,8 @@
             "children": [],
             "text": "A short <abstract>."
           }
-        ]
+        ],
+        "id": "paragraph-8254a15d"
       }
     ]
   },
@@ -411,7 +412,8 @@
               "children": [],
               "text": "Intro"
             }
-          ]
+          ],
+          "id": "section-36539243"
         },
         {
           "type": "paragraph",
@@ -503,7 +505,8 @@
               },
               "children": []
             }
-          ]
+          ],
+          "id": "paragraph-957766ff"
         },
         {
           "type": "embeds",
@@ -511,7 +514,8 @@
             "target": "guide/usage",
             "chapter": "guide-usage"
           },
-          "children": []
+          "children": [],
+          "id": "embeds-d2658b78"
         },
         {
           "type": "list",
@@ -534,9 +538,11 @@
                       "children": [],
                       "text": "one"
                     }
-                  ]
+                  ],
+                  "id": "paragraph-7692c3ad"
                 }
-              ]
+              ],
+              "id": "list-item-7692c3ad"
             },
             {
               "type": "list-item",
@@ -552,11 +558,14 @@
                       "children": [],
                       "text": "two"
                     }
-                  ]
+                  ],
+                  "id": "paragraph-3fc4ccfe"
                 }
-              ]
+              ],
+              "id": "list-item-3fc4ccfe"
             }
-          ]
+          ],
+          "id": "list-08664fcc"
         },
         {
           "type": "bases",
@@ -593,7 +602,8 @@
               ]
             }
           },
-          "children": []
+          "children": [],
+          "id": "bases-cc30b281"
         },
         {
           "type": "command-fences",
@@ -601,7 +611,8 @@
             "source": "echo derived\n",
             "output": "derived\n"
           },
-          "children": []
+          "children": [],
+          "id": "command-fences-576af4dd"
         },
         {
           "type": "command-fences",
@@ -609,7 +620,8 @@
             "source": "echo produced > produced.txt\n",
             "silent": true
           },
-          "children": []
+          "children": [],
+          "id": "command-fences-a7028135"
         }
       ],
       "children": [
@@ -641,7 +653,8 @@
                   "children": [],
                   "text": "Usage"
                 }
-              ]
+              ],
+              "id": "section-a3e7bb6a"
             },
             {
               "type": "section",
@@ -655,7 +668,8 @@
                   "children": [],
                   "text": "Details"
                 }
-              ]
+              ],
+              "id": "section-0769abd6"
             },
             {
               "type": "paragraph",
@@ -667,7 +681,8 @@
                   "children": [],
                   "text": "Body."
                 }
-              ]
+              ],
+              "id": "paragraph-521b25cc"
             }
           ],
           "children": [],
@@ -740,7 +755,8 @@
               "children": [],
               "text": "."
             }
-          ]
+          ],
+          "id": "paragraph-9d91235b"
         },
         {
           "type": "figures",
@@ -831,7 +847,8 @@
               },
               "children": []
             }
-          ]
+          ],
+          "id": "figures-009c9499"
         },
         {
           "type": "figures",
@@ -916,7 +933,8 @@
               },
               "children": []
             }
-          ]
+          ],
+          "id": "figures-009c9499-2"
         },
         {
           "type": "callouts",
@@ -956,9 +974,11 @@
                   "children": [],
                   "text": " marks it."
                 }
-              ]
+              ],
+              "id": "paragraph-ae63abb0"
             }
-          ]
+          ],
+          "id": "callouts-0ba211e1"
         },
         {
           "type": "cards-metrics",
@@ -1049,11 +1069,14 @@
                       "children": [],
                       "text": "."
                     }
-                  ]
+                  ],
+                  "id": "paragraph-043c8ce6"
                 }
-              ]
+              ],
+              "id": "document-715be193"
             }
-          ]
+          ],
+          "id": "cards-metrics-0f801e3b"
         },
         {
           "type": "registers",
@@ -1095,7 +1118,8 @@
               ]
             ]
           },
-          "children": []
+          "children": [],
+          "id": "registers-904ef37f"
         },
         {
           "type": "figures",
@@ -1111,7 +1135,8 @@
               },
               "children": []
             }
-          ]
+          ],
+          "id": "figures-b10d9bf6"
         },
         {
           "type": "figures",
@@ -1127,7 +1152,8 @@
               },
               "children": []
             }
-          ]
+          ],
+          "id": "figures-a24b8217"
         },
         {
           "type": "figures",
@@ -1281,7 +1307,8 @@
               },
               "children": []
             }
-          ]
+          ],
+          "id": "figures-fbd17816"
         },
         {
           "type": "figures",
@@ -1322,7 +1349,8 @@
               },
               "children": []
             }
-          ]
+          ],
+          "id": "figures-2499fa72"
         }
       ],
       "children": [],
@@ -1601,7 +1629,8 @@
               "status"
             ]
           },
-          "children": []
+          "children": [],
+          "id": "property-editors-72bb738d"
         },
         {
           "type": "section",
@@ -1615,7 +1644,8 @@
               "children": [],
               "text": "Datum"
             }
-          ]
+          ],
+          "id": "section-479d477d"
         }
       ],
       "children": [],
@@ -1928,7 +1958,8 @@
               "children": [],
               "text": "Ranked items"
             }
-          ]
+          ],
+          "id": "section-4fc1a6df"
         }
       ],
       "children": [],

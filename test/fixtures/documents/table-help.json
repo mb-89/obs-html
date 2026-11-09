@@ -41,7 +41,8 @@
               "children": [],
               "text": "Evidence"
             }
-          ]
+          ],
+          "id": "section-abe3a481"
         },
         {
           "type": "bases",
@@ -103,7 +104,8 @@
               ]
             }
           },
-          "children": []
+          "children": [],
+          "id": "bases-c42329d4"
         }
       ],
       "children": [],
@@ -137,7 +139,8 @@
               "children": [],
               "text": "Instructions"
             }
-          ]
+          ],
+          "id": "section-83f83221"
         },
         {
           "type": "paragraph",
@@ -149,7 +152,8 @@
               "children": [],
               "text": "Canonical instructions are kept here."
             }
-          ]
+          ],
+          "id": "paragraph-56c88e55"
         }
       ],
       "children": [],

@@ -170,9 +170,11 @@
                 "children": [],
                 "text": "Abstract prose."
               }
-            ]
+            ],
+            "id": "paragraph-033bb4a8"
           }
-        ]
+        ],
+        "id": "callouts-9adb3430"
       },
       {
         "type": "bases",
@@ -195,7 +197,8 @@
             }
           }
         },
-        "children": []
+        "children": [],
+        "id": "bases-75b4abd1"
       },
       {
         "type": "section",
@@ -209,7 +212,8 @@
             "children": [],
             "text": "Metadata"
           }
-        ]
+        ],
+        "id": "section-731e0eab"
       },
       {
         "type": "bases",
@@ -239,7 +243,8 @@
             }
           }
         },
-        "children": []
+        "children": [],
+        "id": "bases-470e5287"
       }
     ]
   },
@@ -272,7 +277,8 @@
               "children": [],
               "text": "Parent"
             }
-          ]
+          ],
+          "id": "section-80795102"
         },
         {
           "type": "paragraph",
@@ -288,7 +294,8 @@
               },
               "children": []
             }
-          ]
+          ],
+          "id": "paragraph-40513982"
         },
         {
           "type": "paragraph",
@@ -302,7 +309,8 @@
               "children": [],
               "text": "1"
             }
-          ]
+          ],
+          "id": "paragraph-6b86b273"
         },
         {
           "type": "paragraph",
@@ -316,7 +324,8 @@
               },
               "children": []
             }
-          ]
+          ],
+          "id": "paragraph-94a1172a"
         }
       ],
       "children": [
@@ -372,7 +381,8 @@
                   "children": [],
                   "text": "Child"
                 }
-              ]
+              ],
+              "id": "section-525b79fa"
             },
             {
               "type": "paragraph",
@@ -392,7 +402,8 @@
                   },
                   "children": []
                 }
-              ]
+              ],
+              "id": "paragraph-99b834e8"
             },
             {
               "type": "paragraph",
@@ -412,7 +423,8 @@
                   },
                   "children": []
                 }
-              ]
+              ],
+              "id": "paragraph-011d8aac"
             },
             {
               "type": "paragraph",
@@ -426,7 +438,8 @@
                   },
                   "children": []
                 }
-              ]
+              ],
+              "id": "paragraph-94a1172a"
             }
           ],
           "children": [
@@ -561,7 +574,8 @@
                       "children": [],
                       "text": "Node"
                     }
-                  ]
+                  ],
+                  "id": "section-58f8d7f1"
                 },
                 {
                   "type": "section",
@@ -575,7 +589,8 @@
                       "children": [],
                       "text": "Extra"
                     }
-                  ]
+                  ],
+                  "id": "section-df2faef3"
                 },
                 {
                   "type": "paragraph",
@@ -587,7 +602,8 @@
                       "children": [],
                       "text": "Long prose for the preview. Long prose for the preview. Long prose for the preview. Long prose for the preview. Long prose for the preview. Long prose for the preview. Long prose for the preview. Long prose for the preview. Long prose for the preview. Long prose for the preview. Long prose for the preview. Long prose for the preview. Long prose for the preview. Long prose for the preview. Long prose for the preview. Long prose for the preview. Long prose for the preview. Long prose for the preview. Long prose for the preview. Long prose for the preview. Long prose for the preview. Long prose for the preview. Long prose for the preview. Long prose for the preview. Long prose for the preview. Long prose for the preview. Long prose for the preview. Long prose for the preview. Long prose for the preview. Long prose for the preview. Long prose for the preview. Long prose for the preview. Long prose for the preview. Long prose for the preview. Long prose for the preview. Long prose for the preview. Long prose for the preview. Long prose for the preview. Long prose for the preview. Long prose for the preview."
                     }
-                  ]
+                  ],
+                  "id": "paragraph-cb428568"
                 },
                 {
                   "type": "code",
@@ -595,7 +611,8 @@
                     "language": "text"
                   },
                   "children": [],
-                  "text": "CODE MUST NOT APPEAR\n"
+                  "text": "CODE MUST NOT APPEAR\n",
+                  "id": "code-a0c9c4c3"
                 },
                 {
                   "type": "bases",
@@ -618,7 +635,8 @@
                       ]
                     }
                   },
-                  "children": []
+                  "children": [],
+                  "id": "bases-0d22a2f6"
                 }
               ],
               "children": [],
@@ -671,7 +689,8 @@
               "children": [],
               "text": "Glossary"
             }
-          ]
+          ],
+          "id": "section-d5bbfb72"
         },
         {
           "type": "paragraph",
@@ -699,7 +718,8 @@
               "children": [],
               "text": "."
             }
-          ]
+          ],
+          "id": "paragraph-193970bc"
         },
         {
           "type": "bases",
@@ -720,7 +740,8 @@
               ]
             }
           },
-          "children": []
+          "children": [],
+          "id": "bases-5aed0ec4"
         },
         {
           "type": "bases",
@@ -750,7 +771,8 @@
               }
             }
           },
-          "children": []
+          "children": [],
+          "id": "bases-7868f21c"
         }
       ],
       "children": [],
@@ -784,7 +806,8 @@
               "children": [],
               "text": "Tags"
             }
-          ]
+          ],
+          "id": "section-113f999a"
         },
         {
           "type": "bases",
@@ -806,7 +829,8 @@
               ]
             }
           },
-          "children": []
+          "children": [],
+          "id": "bases-6640a5ad"
         }
       ],
       "children": [],
@@ -840,7 +864,8 @@
               "children": [],
               "text": "References"
             }
-          ]
+          ],
+          "id": "section-4f3bae6c"
         },
         {
           "type": "registers",
@@ -885,7 +910,8 @@
               ]
             ]
           },
-          "children": []
+          "children": [],
+          "id": "registers-1df4c36f"
         },
         {
           "type": "registers",
@@ -924,7 +950,8 @@
               ]
             ]
           },
-          "children": []
+          "children": [],
+          "id": "registers-10c523c5"
         }
       ],
       "children": [],
@@ -1060,7 +1087,8 @@
               "children": [],
               "text": "BLUF"
             }
-          ]
+          ],
+          "id": "section-ce3a16ba"
         },
         {
           "type": "paragraph",
@@ -1076,7 +1104,8 @@
               },
               "children": []
             }
-          ]
+          ],
+          "id": "paragraph-5e2c6006"
         },
         {
           "type": "bases",
@@ -1097,7 +1126,8 @@
               ]
             }
           },
-          "children": []
+          "children": [],
+          "id": "bases-5aed0ec4"
         }
       ],
       "children": [],
@@ -1290,7 +1320,8 @@
               "children": [],
               "text": "Conclusion"
             }
-          ]
+          ],
+          "id": "section-6350acdd"
         }
       ],
       "children": [],
@@ -1334,7 +1365,8 @@
               "children": [],
               "text": "Extra details"
             }
-          ]
+          ],
+          "id": "section-2f03faa6"
         },
         {
           "type": "paragraph",
@@ -1366,7 +1398,8 @@
               },
               "children": []
             }
-          ]
+          ],
+          "id": "paragraph-54c5c909"
         },
         {
           "type": "section",
@@ -1380,7 +1413,8 @@
               "children": [],
               "text": "More"
             }
-          ]
+          ],
+          "id": "section-5fed87bc"
         },
         {
           "type": "paragraph",
@@ -1392,7 +1426,8 @@
               "children": [],
               "text": "Nested content."
             }
-          ]
+          ],
+          "id": "paragraph-31910dd7"
         }
       ],
       "children": [],
@@ -1590,7 +1625,8 @@
               "children": [],
               "text": "Flatness"
             }
-          ]
+          ],
+          "id": "section-c6797862"
         },
         {
           "type": "paragraph",
@@ -1602,7 +1638,8 @@
               "children": [],
               "text": "Canonical datum A flatness."
             }
-          ]
+          ],
+          "id": "paragraph-4dffecd7"
         }
       ],
       "children": [],

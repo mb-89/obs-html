@@ -106,7 +106,8 @@
               "children": [],
               "text": "One"
             }
-          ]
+          ],
+          "id": "section-203a473f"
         },
         {
           "type": "paragraph",
@@ -118,7 +119,8 @@
               "children": [],
               "text": "Reviewable text."
             }
-          ]
+          ],
+          "id": "paragraph-ff2c2c76"
         },
         {
           "type": "paragraph",
@@ -132,7 +134,8 @@
               },
               "children": []
             }
-          ]
+          ],
+          "id": "paragraph-22202fa0"
         },
         {
           "type": "property-editors",
@@ -147,7 +150,8 @@
               "explanation"
             ]
           },
-          "children": []
+          "children": [],
+          "id": "property-editors-93d7ac83"
         },
         {
           "type": "bases",
@@ -169,7 +173,8 @@
               ]
             }
           },
-          "children": []
+          "children": [],
+          "id": "bases-26d7ea06"
         }
       ],
       "children": [],
@@ -245,7 +250,8 @@
               "children": [],
               "text": "Two"
             }
-          ]
+          ],
+          "id": "section-e86df0eb"
         },
         {
           "type": "paragraph",
@@ -257,7 +263,8 @@
               "children": [],
               "text": "Reviewable text."
             }
-          ]
+          ],
+          "id": "paragraph-ff2c2c76"
         },
         {
           "type": "paragraph",
@@ -271,7 +278,8 @@
               },
               "children": []
             }
-          ]
+          ],
+          "id": "paragraph-22202fa0"
         },
         {
           "type": "property-editors",
@@ -286,7 +294,8 @@
               "explanation"
             ]
           },
-          "children": []
+          "children": [],
+          "id": "property-editors-93d7ac83"
         },
         {
           "type": "bases",
@@ -308,7 +317,8 @@
               ]
             }
           },
-          "children": []
+          "children": [],
+          "id": "bases-26d7ea06"
         }
       ],
       "children": [],

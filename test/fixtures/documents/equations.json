@@ -67,7 +67,8 @@
               "children": [],
               "text": "Curves"
             }
-          ]
+          ],
+          "id": "section-7e06fb46"
         },
         {
           "type": "figures",
@@ -383,7 +384,8 @@
               },
               "children": []
             }
-          ]
+          ],
+          "id": "torque"
         },
         {
           "type": "figures",
@@ -769,7 +771,8 @@
               },
               "children": []
             }
-          ]
+          ],
+          "id": "saturated"
         },
         {
           "type": "figures",
@@ -912,7 +915,8 @@
               },
               "children": []
             }
-          ]
+          ],
+          "id": "quintic"
         }
       ],
       "children": [],
@@ -946,7 +950,8 @@
               "children": [],
               "text": "Sweeps"
             }
-          ]
+          ],
+          "id": "section-334140a5"
         },
         {
           "type": "figures",
@@ -1572,7 +1577,8 @@
               },
               "children": []
             }
-          ]
+          ],
+          "id": "step"
         },
         {
           "type": "figures",
@@ -1939,7 +1945,8 @@
               },
               "children": []
             }
-          ]
+          ],
+          "id": "cap"
         }
       ],
       "children": [],
@@ -2089,7 +2096,8 @@
               "children": [],
               "text": "Engine speed"
             }
-          ]
+          ],
+          "id": "section-939d0a88"
         }
       ],
       "children": [],

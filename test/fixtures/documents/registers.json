@@ -207,7 +207,8 @@
               "children": [],
               "text": "Points"
             }
-          ]
+          ],
+          "id": "section-60985a5c"
         },
         {
           "type": "paragraph",
@@ -219,7 +220,8 @@
               "children": [],
               "text": "All views."
             }
-          ]
+          ],
+          "id": "paragraph-f445a27f"
         },
         {
           "type": "registers",
@@ -276,7 +278,8 @@
               ]
             ]
           },
-          "children": []
+          "children": [],
+          "id": "registers-f4b0f611"
         }
       ],
       "children": [],
@@ -310,7 +313,8 @@
               "children": [],
               "text": "Second"
             }
-          ]
+          ],
+          "id": "section-0d51e3c0"
         },
         {
           "type": "paragraph",
@@ -330,7 +334,8 @@
               },
               "children": []
             }
-          ]
+          ],
+          "id": "paragraph-b38e1e69"
         },
         {
           "type": "registers",
@@ -387,7 +392,8 @@
               ]
             ]
           },
-          "children": []
+          "children": [],
+          "id": "registers-9659a62b"
         }
       ],
       "children": [],
@@ -421,7 +427,8 @@
               "children": [],
               "text": "Types"
             }
-          ]
+          ],
+          "id": "section-f9a69981"
         },
         {
           "type": "paragraph",
@@ -457,7 +464,8 @@
               },
               "children": []
             }
-          ]
+          ],
+          "id": "paragraph-9fc53c51"
         },
         {
           "type": "registers",
@@ -564,7 +572,8 @@
               ]
             ]
           },
-          "children": []
+          "children": [],
+          "id": "registers-aef6b94f"
         }
       ],
       "children": [],
@@ -623,7 +632,8 @@
               "children": [],
               "text": "Point A"
             }
-          ]
+          ],
+          "id": "section-5f70c11e"
         }
       ],
       "children": [],
@@ -684,7 +694,8 @@
               "children": [],
               "text": "Point B"
             }
-          ]
+          ],
+          "id": "section-edfbec71"
         }
       ],
       "children": [],
@@ -745,7 +756,8 @@
               "children": [],
               "text": "Point C"
             }
-          ]
+          ],
+          "id": "section-e521c9f9"
         }
       ],
       "children": [],
@@ -806,7 +818,8 @@
               "children": [],
               "text": "Point D"
             }
-          ]
+          ],
+          "id": "section-9bfe4703"
         }
       ],
       "children": [],
@@ -908,7 +921,8 @@
               "children": [],
               "text": "Datum"
             }
-          ]
+          ],
+          "id": "section-479d477d"
         }
       ],
       "children": [],
