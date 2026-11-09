@@ -544,7 +544,7 @@
                     "chapter": "figures",
                     "heading": "^plot-figure",
                     "label": "Figures > ^plot-figure",
-                    "figure": "plot-figure"
+                    "block": "plot-figure"
                   },
                   "children": []
                 },
@@ -1078,7 +1078,7 @@
               "id": "paragraph-fefbf36d"
             }
           ],
-          "id": "callouts-9d164cc6"
+          "id": "callouts-0d90f95d"
         },
         {
           "type": "section",
@@ -1143,7 +1143,7 @@
               "id": "list-item-3fc4ccfe"
             }
           ],
-          "id": "list-08664fcc"
+          "id": "list-b0fd9d4a"
         },
         {
           "type": "list",
@@ -1193,7 +1193,7 @@
               "id": "list-item-3e23e816"
             }
           ],
-          "id": "list-b2ed1404"
+          "id": "list-044acc88"
         },
         {
           "type": "section",
@@ -1659,7 +1659,7 @@
                   "id": "paragraph-4272b51e"
                 }
               ],
-              "id": "document-78466622"
+              "id": "document-15920d3c"
             },
             {
               "type": "document",
@@ -1698,10 +1698,10 @@
                   "id": "paragraph-30d7890c"
                 }
               ],
-              "id": "document-b0a488d6"
+              "id": "document-f7134543"
             }
           ],
-          "id": "cards-metrics-00e9c732"
+          "id": "cards-metrics-4850b419"
         }
       ],
       "children": [],
