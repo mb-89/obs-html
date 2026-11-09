@@ -83,9 +83,10 @@ Figures:
 Comments:
   --extract-comments HTML reads the comment JSON island of a returned, reviewed artifact
   without executing its scripts and prints deterministic comment candidates to stdout. With
-  --comments-output FILE it also writes the comments there in the core's format, which
-  obs-document --source MANIFEST --import-comments FILE --principal NAME writes into that
-  principal's overlay file.
+  --comments-output FILE it also writes the comments in the core's format, one file per author,
+  <FILE's stem>.<author>.json beside FILE, and prints one line per file,
+  import: obs-document --source MANIFEST --import-comments FILE --principal NAME, in the order
+  to run them; each writes that author's entries into the principal's overlay file.
 
 Printing a chapter:
   --print-chapter HTML CHAPTER prints one chapter of a built artifact to stdout, as the
@@ -167,7 +168,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--extract-comments", type=Path, metavar="HTML",
                         help="Print comment candidates from a returned, reviewed artifact.")
     parser.add_argument("--comments-output", type=Path, metavar="FILE",
-                        help="With --extract-comments, write the returned comments to FILE in the core's format.")
+                        help="With --extract-comments, write the returned comments in the core's format, one file per author beside FILE.")
     parser.add_argument("--print-chapter", nargs=2, metavar=("HTML", "CHAPTER"),
                         help="Print one chapter of a built artifact by id or title.")
     parser.add_argument("--chapter-format", choices=("html", "text"),

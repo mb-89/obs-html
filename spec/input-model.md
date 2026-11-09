@@ -1002,9 +1002,25 @@ record `field`. Nothing targets a chapter and a quote in place of a node.
 **Import.** `obs-html --extract-comments HTML` reads the island as untrusted data, never runs
 the artifact, and prints a deterministic text list of its threads, each comment with its state
 entries, for triage. With
-`--comments-output FILE` it also writes the island's comments to FILE in the core's format;
-the core writes them into a principal's overlay file (obs's input model, Comments and reviews,
-Adapter contract). The adapter names no overlay file.
+`--comments-output FILE` it also writes the island's comments in the core's format, one file
+per author, as the core imports a copy several readers worked on (obs's input model, Comments
+and reviews, Adapter contract). The file of an author is `<FILE's stem>.<author>.json` beside
+FILE, with one author too; FILE itself is not written, and a copy without entries writes no
+file. Each holds the island's `version` and `files` and that author's comments, decisions and
+state entries, with `names` the author alone. The adapter names no overlay file.
+
+The `<author>` of a file name is the author's file-name form, which is also the principal the
+import line names: the author in Unicode compatibility decomposition without combining marks,
+lower-cased, each run of characters other than `a`–`z` and `0`–`9` replaced by one `-`, and
+`-` cut at both ends. It must match the core's principal pattern (`$defs/principal` of
+`comments.schema.json`). An empty author, an author with no such form, and two authors with
+one form are input errors naming the island's field path of the entry and this section.
+
+After the list the export prints one line per file,
+`import: obs-document --source MANIFEST --import-comments <file> --principal <author>`, in an
+order the core accepts: each file after the files whose comments its replies and state entries
+name, otherwise in the order the authors first appear among the comments, decisions and state
+entries. A reader whose principal is another name passes that name instead.
 
 An island the core's schema refuses, and one of the retired version 2, are input errors naming
 the reviewed HTML, the island's field path and this section. Version 2 targets items by

@@ -135,33 +135,106 @@ def test_extract_comments_requires_exactly_one_island(tmp_path: Path) -> None:
     _refused(artifact, "")
 
 
-def test_extraction_exports_the_islands_comments_in_the_cores_format(tmp_path: Path) -> None:
-    island_value = model(ROOT, REPLY, BATCH, decisions=(DECISION,))
-    output = tmp_path / "returned.json"
-    extract_comments(write_artifact(tmp_path / "reviewed.html", island_value), output)
-    assert json.loads(output.read_text(encoding="utf-8")) == island_value
+IMPORT = re.compile(r"^import: obs-document --source MANIFEST --import-comments (\S+) --principal (\S+)$", re.M)
 
 
-def test_core_overlay_to_artifact_to_overlay_keeps_every_field(tmp_path: Path, document) -> None:
-    """R3 at the build's seam: the overlay a principal wrote, through the Document, the island and the
-    export, is the overlay the core's import writes back. The build's island names no reader; the
-    Comments bar adds the reader's names when it saves, as here."""
-    written = {"version": 1, "principal": "alice", "names": ["Alice", "Bob"], "comments": [ROOT, REPLY, BATCH],
-               "decisions": [DECISION]}
-    vault, returned = tmp_path / "vault", tmp_path / "returned"
-    for folder in (vault, returned):
+def _vaults(tmp_path: Path, *names: str) -> list[Path]:
+    """Vaults whose manifest lists the chapter intro, as the core imports into."""
+    folders = [tmp_path / name for name in names]
+    for folder in folders:
         folder.mkdir()
         (folder / "manifest.md").write_text("- [[intro]]\n", encoding="utf-8")
         (folder / "intro.md").write_text("# Intro\n\nText.\n", encoding="utf-8")
-    (vault / "manifest.comments.alice.json").write_text(json.dumps(written), encoding="utf-8")
+    return folders
+
+
+def _import_printed(printed: str, vault: Path, tmp_path: Path) -> list[tuple[str, str]]:
+    """Run each import line the export printed, in its order, through the core's CLI; none is refused."""
+    lines = IMPORT.findall(printed)
+    for file, principal in lines:
+        import_comments(vault / "manifest.md", Path(file), principal, tmp_path / "document.json")
+    return lines
+
+
+def test_extraction_exports_one_file_per_author_in_the_cores_format(tmp_path: Path) -> None:
+    island_value = {**model(ROOT, REPLY, BATCH, decisions=(DECISION,)), "names": ["Bob"]}
+    printed = extract_comments(write_artifact(tmp_path / "reviewed.html", island_value), tmp_path / "returned.json")
+    assert not (tmp_path / "returned.json").exists()
+    assert json.loads((tmp_path / "returned.alice.json").read_text(encoding="utf-8")) == {
+        "version": 1, "files": ["manifest.comments.alice.json"], "names": ["Alice"], "comments": [ROOT, BATCH],
+        "decisions": [DECISION]}
+    assert json.loads((tmp_path / "returned.bob.json").read_text(encoding="utf-8")) == {
+        "version": 1, "files": ["manifest.comments.alice.json"], "names": ["Bob"], "comments": [REPLY],
+        "decisions": []}
+    assert IMPORT.findall(printed) == [(str(tmp_path / "returned.alice.json"), "alice"),
+                                       (str(tmp_path / "returned.bob.json"), "bob")]
+
+
+def test_a_single_authors_copy_is_one_file_of_that_author_and_an_empty_copy_none(tmp_path: Path) -> None:
+    printed = extract_comments(write_artifact(tmp_path / "reviewed.html", model(ROOT)), tmp_path / "returned.json")
+    assert sorted(path.name for path in tmp_path.glob("returned*")) == ["returned.alice.json"]
+    assert IMPORT.findall(printed) == [(str(tmp_path / "returned.alice.json"), "alice")]
+    assert IMPORT.findall(extract_comments(write_artifact(tmp_path / "empty.html", EMPTY), tmp_path / "e.json")) == []
+    assert not list(tmp_path.glob("e.*"))
+
+
+def test_an_authors_file_name_is_its_principal_form(tmp_path: Path) -> None:
+    named = {**ROOT, "author": "Zoë  Müller-Smith!"}
+    extract_comments(write_artifact(tmp_path / "reviewed.html", model(named)), tmp_path / "returned.json")
+    assert json.loads((tmp_path / "returned.zoe-muller-smith.json").read_text(encoding="utf-8"))["names"] == [
+        "Zoë  Müller-Smith!"]
+
+
+@pytest.mark.parametrize("author, other", [("", None), ("李", None), ("bob", "Bob")])
+def test_an_author_without_a_file_name_of_its_own_is_refused_at_its_entry(tmp_path: Path, author, other) -> None:
+    comments = [ROOT, {**REPLY, "author": author}] if other is None else [{**ROOT, "author": other},
+                                                                          {**REPLY, "author": author}]
+    artifact = write_artifact(tmp_path / "reviewed.html", model(*comments))
+    _refused(artifact, ".comments[1].author", tmp_path / "returned.json")
+    assert not list(tmp_path.glob("returned*"))
+
+
+def test_a_copy_two_readers_worked_on_imports_as_two_principals_into_both_readers_entries(
+        tmp_path: Path, document) -> None:
+    """R3: a copy Bob reviewed after Alice, none of it imported yet, exports to a file per reader. The
+    printed imports, through the core's CLI in their order, refuse nothing, and their union is what
+    both readers did. Bob's first comment precedes Alice's, yet his file imports after hers, as his
+    reply and his resolve name her comment."""
+    early = {"id": "c0", "author": "Bob", "created": "2026-11-09T09:00:00Z", "state": "open",
+             "body": {"mediaType": "text/plain", "text": "Name the source."}, "target": PARAGRAPH}
+    resolve = {"id": "s1", "author": "Bob", "created": "2026-11-09T11:05:00Z", "target": "c1", "state": "resolved"}
+    reopen = {"id": "s2", "author": "Alice", "created": "2026-11-09T11:10:00Z", "target": "c1", "state": "open"}
+    did, returned = _vaults(tmp_path, "did", "returned")
+    for principal, name, comments, decisions, states in (("alice", "Alice", [ROOT], [DECISION], [reopen]),
+                                                         ("bob", "Bob", [early, REPLY], [], [resolve])):
+        (did / f"manifest.comments.{principal}.json").write_text(json.dumps(
+            {"version": 1, "principal": principal, "names": [name], "comments": comments, "decisions": decisions,
+             "states": states}), encoding="utf-8")
+    both = with_comments(copy.deepcopy(document), did / "manifest.md")["comments"]
+    artifact = write_artifact(tmp_path / "reviewed.html", {**both, "names": ["Bob"]})
+    printed = extract_comments(artifact, tmp_path / "returned.json")
+    assert [principal for _, principal in _import_printed(printed, returned, tmp_path)] == ["alice", "bob"]
+    assert with_comments(copy.deepcopy(document), returned / "manifest.md")["comments"] == both
+    for principal in ("alice", "bob"):
+        assert (json.loads((returned / f"manifest.comments.{principal}.json").read_text(encoding="utf-8"))
+                == json.loads((did / f"manifest.comments.{principal}.json").read_text(encoding="utf-8")))
+
+
+def test_core_overlays_to_artifact_to_overlays_keep_every_field(tmp_path: Path, document) -> None:
+    """At the build's seam: the overlays two principals wrote, through the Document, the island and the
+    export, are the overlays the core's imports write back."""
+    written = {"alice": {"version": 1, "principal": "alice", "names": ["Alice"], "comments": [ROOT, BATCH],
+                         "decisions": [DECISION]},
+               "bob": {"version": 1, "principal": "bob", "names": ["Bob"], "comments": [REPLY], "decisions": []}}
+    vault, returned = _vaults(tmp_path, "vault", "returned")
+    for principal, overlay in written.items():
+        (vault / f"manifest.comments.{principal}.json").write_text(json.dumps(overlay), encoding="utf-8")
     document = with_comments(document, vault / "manifest.md")
     artifact = tmp_path / "reviewed.html"
     artifact.write_text(render(document, load_config()), encoding="utf-8")
-    extract_comments(artifact, tmp_path / "returned.json")
-    saved = json.loads((tmp_path / "returned.json").read_text(encoding="utf-8"))
-    (tmp_path / "returned.json").write_text(json.dumps({**saved, "names": ["Alice", "Bob"]}), encoding="utf-8")
-    import_comments(returned / "manifest.md", tmp_path / "returned.json", "alice", tmp_path / "document.json")
-    assert json.loads((returned / "manifest.comments.alice.json").read_text(encoding="utf-8")) == written
+    _import_printed(extract_comments(artifact, tmp_path / "returned.json"), returned, tmp_path)
+    for principal, overlay in written.items():
+        assert json.loads((returned / f"manifest.comments.{principal}.json").read_text(encoding="utf-8")) == overlay
 
 
 MAPPED = """

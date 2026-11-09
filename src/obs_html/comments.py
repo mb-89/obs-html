@@ -4,11 +4,13 @@ returned copy (input-model#Comments and the core model).
 The core owns the format, the review semantics and the block ids (obs input-model, Comments and
 reviews); the island holds the core's model unchanged, and the one mapping onto the Comments bar's
 threads is the browser's (comment-model.js). Extraction reads the island as untrusted data and
-exports it in the core's format; the core writes it into a principal's overlay file.
+exports it in the core's format, a file per author; the core writes each into a principal's overlay file.
 """
 from __future__ import annotations
 
 import json
+import re
+import unicodedata
 from functools import cache
 from html.parser import HTMLParser
 from importlib.resources import files
@@ -26,6 +28,11 @@ OWNER = "input-model#Comments and the core model"
 SCHEMA = json.loads(files("obs").joinpath("comments.schema.json").read_text(encoding="utf-8"))
 """The core's format, read as the core's package data: the adapter imports no core module."""
 VERSION = SCHEMA["properties"]["version"]["const"]
+PRINCIPAL = re.compile(SCHEMA["$defs"]["principal"]["pattern"])
+"""The core's principal pattern, which an author's file-name form must match."""
+KINDS = {"comments": "author", "decisions": "reviewer", "states": "author"}
+"""Each kind of entry and the field that names its author; a reply's inReplyTo and a state entry's
+target name a comment."""
 
 
 def island_model(document: dict[str, Any]) -> dict[str, Any]:
@@ -94,12 +101,59 @@ def read_island(artifact_path: Path) -> dict[str, Any]:
 
 def extract_comments(artifact_path: Path, output: Path | None = None) -> str:
     """The returned copy's threads as a deterministic text list; with ``output``, also write its
-    comments there in the core's format, which ``obs-document --import-comments`` writes into a
-    principal's overlay file."""
+    entries in the core's format, one file per author beside ``output``, and list the
+    ``obs-document --import-comments`` call of each in an order the core accepts."""
     model = read_island(artifact_path)
-    if output is not None:
-        output.write_text(json.dumps(model, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    return _format_candidates(model)
+    text = _format_candidates(model)
+    if output is None:
+        return text
+    lines = []
+    for author, form in _authors(artifact_path, model):
+        path = output.with_name(f"{output.stem}.{form}.json")
+        split: dict[str, Any] = {"version": model["version"], "files": model["files"], "names": [author]}
+        for kind, name in KINDS.items():
+            entries = [entry for entry in model.get(kind, []) if entry[name] == author]
+            if entries or kind != "states":
+                split[kind] = entries
+        path.write_text(json.dumps(split, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        lines.append(f"import: obs-document --source MANIFEST --import-comments {path} --principal {form}\n")
+    return text + "".join(lines)
+
+
+def file_name_form(author: str) -> str:
+    """An author's file-name form, the principal its import names (spec/input-model.md, Comments and
+    the core model): without accents, lower-cased, other characters runs of ``-``."""
+    plain = "".join(char for char in unicodedata.normalize("NFKD", author) if not unicodedata.combining(char))
+    return re.sub(r"[^a-z0-9]+", "-", plain.lower()).strip("-")
+
+
+def _authors(source: Path, model: dict[str, Any]) -> list[tuple[str, str]]:
+    """Each author of the copy's entries with its file-name form, each after the authors whose
+    comments its replies and state entries name, otherwise in the order they first appear."""
+    by_comment = {comment["id"]: comment["author"] for comment in model["comments"]}
+    forms: dict[str, str] = {}
+    needs: dict[str, set[str]] = {}
+    for kind, name in KINDS.items():
+        for index, entry in enumerate(model.get(kind, [])):
+            author = entry[name]
+            if author not in forms:
+                form = file_name_form(author)
+                taken = next((other for other, known in forms.items() if known == form), None)
+                if not PRINCIPAL.fullmatch(form) or taken is not None:
+                    problem = (f"is {author!r}, which shares the file name form {form!r} with {taken!r}"
+                               if taken is not None else f"is {author!r}, which has no file name form "
+                               f"matching {PRINCIPAL.pattern}")
+                    raise _error(source, [kind, index, name], problem, "Save the copy with each reader named "
+                                 "by letters or digits, a name no other reader's differs from only in case "
+                                 "or punctuation")
+                forms[author] = form
+            named = {"comments": entry.get("inReplyTo"), "states": entry.get("target")}.get(kind)
+            needs.setdefault(author, set()).update({by_comment.get(named)} - {author, None})
+    ordered: list[str] = []
+    while len(ordered) < len(forms):
+        waiting = [author for author in forms if author not in ordered]
+        ordered.append(next((author for author in waiting if needs[author] <= set(ordered)), waiting[0]))
+    return [(author, forms[author]) for author in ordered]
 
 
 def _format_candidates(model: dict[str, Any]) -> str:
