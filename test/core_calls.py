@@ -26,7 +26,8 @@ elif request["call"] == "ids":
     result = request["document"]
     assign_ids(result)
 elif request["call"] == "validate":
-    validate_overlay(request["overlay"], Path(request["path"]))
+    for overlay in request["overlays"]:
+        validate_overlay(overlay, Path(request["path"]))
     result = None
 else:
     document = request["document"]
@@ -58,9 +59,10 @@ def with_ids(document: dict) -> dict:
     return _call(call="ids", document=document)
 
 
-def validate_overlay(overlay: dict, path: Path) -> None:
-    """``obs.comments.validate_overlay``; it fails the test where the core refuses the overlay."""
-    _call(call="validate", overlay=overlay, path=str(path))
+def validate_overlays(overlays: list[dict], path: Path) -> None:
+    """``obs.comments.validate_overlay`` on each overlay as the file ``path``; it fails the test where
+    the core refuses one."""
+    _call(call="validate", overlays=overlays, path=str(path))
 
 
 def with_comments(document: dict, manifest: Path) -> dict:
