@@ -116,18 +116,25 @@ def _format_candidates(model: dict[str, Any]) -> str:
     for comment in model["comments"]:
         if "inReplyTo" in comment:
             replies.setdefault(comment["inReplyTo"], []).append(comment)
+    changes: dict[str, list[dict[str, Any]]] = {}
+    for entry in model.get("states", []):
+        changes.setdefault(entry["target"], []).append(entry)
     roots = [comment for comment in model["comments"] if "inReplyTo" not in comment]
     lines = [f"comment candidates: {len(roots)}"]
 
     def append_comment(comment: dict[str, Any], depth: int) -> None:
         status = f" [{comment['state']}]" if depth else ""
         lines.append(f"{'  ' * depth}{role(comment['author'])}{status}: {comment['body']['text']}")
+        # A comment's state entries, in the model's order; the latest gives its state (obs.comments.comment_state).
+        lines.extend(f"{'  ' * depth}{role(entry['author'])} set it {entry['state']}"
+                     for entry in changes.get(comment["id"], []))
         for reply in replies.get(comment["id"], []):
             append_comment(reply, depth + 1)
 
     for root in roots:
         target = root["target"]
-        place = "".join(f" {key} {target[key]}" for key in ("chapter", "node", "field") if key in target)
+        place = " abstract" * ("abstract" in target) + "".join(
+            f" {key} {target[key]}" for key in ("chapter", "node", "field") if key in target)
         lines.append(f"--- {root['id']} [{root['state']}]{place or ' document'}")
         if target.get("quote"):
             lines.append(f"quote: {target['quote']}")

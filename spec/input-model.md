@@ -998,7 +998,8 @@ run on past it where the selection does; one in a keyed row stays in the row, or
 record `field`. Nothing targets a chapter and a quote in place of a node.
 
 **Import.** `obs-html --extract-comments HTML` reads the island as untrusted data, never runs
-the artifact, and prints a deterministic text list of its threads for triage. With
+the artifact, and prints a deterministic text list of its threads, each comment with its state
+entries, for triage. With
 `--comments-output FILE` it also writes the island's comments to FILE in the core's format;
 the core writes them into a principal's overlay file (obs's input model, Comments and reviews,
 Adapter contract). The adapter names no overlay file.

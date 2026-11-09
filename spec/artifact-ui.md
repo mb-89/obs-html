@@ -1832,8 +1832,8 @@ separate from artifact presentation.
 - Every comment and nested reply renders as the same compact key/value card, with labels for
   values such as author, status, and text rather than relying on position.
 
-  Text is directly
-  editable and persists without a separate Edit command.
+  The reader's own comment's text is directly editable and persists without a separate Edit
+  command; another author's is read-only ([[input-model#Comments and the core model]]).
 
   Every card has Reply,
   Resolve/Reopen, and Delete commands.

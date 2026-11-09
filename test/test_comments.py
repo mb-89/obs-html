@@ -89,6 +89,21 @@ def test_extract_comments_lists_anonymized_threads_deterministically(tmp_path: P
     assert "Alice" not in first and "throw new Error" not in first
 
 
+def test_extract_comments_lists_an_abstract_target_and_each_state_entry_under_its_comment(tmp_path: Path) -> None:
+    home = {**ROOT, "target": {"abstract": True, "node": "paragraph-8254a15d"}}
+    states = [{"id": "s1", "author": "Bob", "created": "2026-11-09T12:00:00Z", "target": "c1", "state": "resolved"},
+              {"id": "s2", "author": "Alice", "created": "2026-11-09T13:00:00Z", "target": "c1", "state": "open"}]
+    artifact = write_artifact(tmp_path / "reviewed.html", {**model(home, REPLY), "states": states})
+    assert extract_comments(artifact) == (
+        "comment candidates: 1\n"
+        "--- c1 [open] abstract node paragraph-8254a15d\n"
+        "reviewer-1: Clarify this.\n"
+        "reviewer-2 set it resolved\n"
+        "reviewer-1 set it open\n"
+        "  reviewer-2 [resolved]: Agreed.\n"
+    )
+
+
 def test_extract_comments_keeps_a_batch_scope_and_its_items(tmp_path: Path) -> None:
     extracted = extract_comments(write_artifact(tmp_path / "reviewed.html", model(BATCH)))
     assert "[Full chapter]" in extracted
