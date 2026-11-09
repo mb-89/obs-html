@@ -206,13 +206,13 @@ def test_a_copy_two_readers_worked_on_imports_as_two_principals_into_both_reader
     """R3: a copy Alice and Bob worked on in turn, none of it imported yet, exports to a file per reader.
     The printed import, through the core's CLI, refuses nothing, and its union is what both readers
     did, though each reader's entries name the other's: Bob replies to and resolves Alice's comment,
-    and Alice replies to Bob's."""
+    and Alice replies to his reply."""
     early = {"id": "c0", "author": "Bob", "created": "2026-11-09T09:00:00Z", "state": "open",
              "body": {"mediaType": "text/plain", "text": "Name the source."}, "target": PARAGRAPH}
     resolve = {"id": "s1", "author": "Bob", "created": "2026-11-09T11:05:00Z", "target": "c1", "state": "resolved"}
     reopen = {"id": "s2", "author": "Alice", "created": "2026-11-09T11:10:00Z", "target": "c1", "state": "open"}
     answer = {"id": "c4", "author": "Alice", "created": "2026-11-09T11:20:00Z", "state": "open",
-              "body": {"mediaType": "text/plain", "text": "The figure's caption."}, "inReplyTo": "c0"}
+              "body": {"mediaType": "text/plain", "text": "The figure's caption."}, "inReplyTo": "c2"}
     did, returned = _vaults(tmp_path, "did", "returned")
     for principal, name, comments, decisions, states in (("alice", "Alice", [ROOT, answer], [DECISION], [reopen]),
                                                          ("bob", "Bob", [early, REPLY], [], [resolve])):
