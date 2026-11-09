@@ -13,7 +13,7 @@ from pathlib import Path
 import pytest
 
 from conftest import CORE_ROOT, ROOT
-from documents import chapter, document as build, node, paragraph
+from documents import chapter, document as build, node, paragraph, without_node_ids
 from obs_html.artifact_data import decode_artifact_data
 from obs_html.config import load_config
 from obs_html.errors import InputError
@@ -84,9 +84,8 @@ def test_a_register_renders_between_the_paragraphs_of_the_text_around_it() -> No
     and an embed alone leaves no empty paragraph."""
     alone = render(REGISTERS, CONFIG)
     notes = {note["slug"]: note["html"] for note in decode_artifact_data(alone)["notes"]}
-    assert '<h1 id="points--points">Points</h1>\n<p data-node-id="paragraph-f445a27f">All views.</p>\n' \
-        '<div class="data-table-placeholder" ' \
-        in notes["points"]
+    assert '<h1 id="points--points">Points</h1>\n<p>All views.</p>\n<div class="data-table-placeholder" ' \
+        in without_node_ids(notes["points"])
     register = _register(REGISTERS, "points")
     document = build("Doc", chapter(
         "one", "One", paragraph("Before "), register,

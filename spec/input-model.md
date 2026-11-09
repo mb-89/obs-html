@@ -983,10 +983,11 @@ block's core id, which the rendered element carries as `data-node-id`.
 - An element without a core id is no item: the hidden status paragraph of a data table is the
   adapter's own, not Document content.
 
-A decision and a whole-item comment target `{chapter, node}`; a text selection inside one item
-targets that item with positions in the item's text, and a selection across items targets
-the chapter with positions in the chapter's text. Nothing targets a chapter and a quote in
-place of a node.
+A decision and a whole-item comment target `{chapter, node}`. A text selection targets the
+block it starts in: the nearest element with a core id, which headings, lists, quotes, callouts,
+tables and display maths carry too. Its positions count from the start of that block's text and
+run on past it where the selection does; one in a keyed row stays in the row, or in its detail's
+record `field`. Nothing targets a chapter and a quote in place of a node.
 
 **Import.** `obs-html --extract-comments HTML` reads the island as untrusted data, never runs
 the artifact, and prints a deterministic text list of its threads for triage.

@@ -391,13 +391,18 @@
         return copy.textContent || "";
     };
     const rangeText = (range) => canonicalText(range.cloneContents());
-    const marked = (chapter, root, range) => {
+    // A target's positions count from the start of its root's text; a block's may run on past the
+    // block into the text that follows it, a keyed row's stay inside the row.
+    const marked = (chapter, root, range, onward = false) => {
         const before = range.cloneRange();
         before.selectNodeContents(root);
         before.setEnd(range.startContainer, range.startOffset);
         const start = rangeText(before).length;
         const quote = rangeText(range);
-        const complete = canonicalText(root);
+        const context = range.cloneRange();
+        context.selectNodeContents(root);
+        if (onward) context.setEnd(chapterBody, chapterBody.childNodes.length);
+        const complete = rangeText(context);
         return {
             chapter, quote,
             prefix: complete.slice(Math.max(0, start - 40), start),
@@ -405,6 +410,8 @@
             start, end: start + quote.length,
         };
     };
+    const blockAt = (node) => (node?.nodeType === Node.ELEMENT_NODE ? node : node?.parentElement)
+        ?.closest("[data-node-id]");
     const selectedTarget = () => {
         const selection = globalThis.getSelection();
         if (!selection || selection.rangeCount !== 1 || selection.isCollapsed) {
@@ -417,13 +424,16 @@
         if (!rangeText(range).trim()) {
             return null;
         }
-        // A selection inside one item targets the item, one across items the chapter.
+        // A selection in a keyed row targets the row; any other targets the block it starts in.
         const table = tableScope(range.startContainer.parentElement);
-        const item = reviewItemForRange(range);
-        const scope = table.node ? table : item && !keyedRow({node: item}) ? {node: item} : {};
-        const scopeRoot = targetRoot(scope);
-        if (!scopeRoot?.contains(range.endContainer)) return null;
-        return {...marked(activeChapter?.dataset.chapter || "", scopeRoot, range), ...scope};
+        if (table.node) {
+            const root = targetRoot(table);
+            return root?.contains(range.endContainer)
+                ? {...marked(activeChapter?.dataset.chapter || "", root, range), ...table} : null;
+        }
+        const block = blockAt(range.startContainer);
+        if (!block || !chapterBody.contains(block)) return null;
+        return {...marked(activeChapter?.dataset.chapter || "", block, range, true), node: block.dataset.nodeId};
     };
 
     const targetForElement = (element) => {
@@ -438,13 +448,6 @@
         const heading = element?.closest("[data-heading-section]")?.previousElementSibling;
         return heading?.querySelector("[data-heading-toggle]")?.dataset.label ||
             heading?.textContent.trim() || "";
-    };
-
-    const reviewItemForRange = (range) => {
-        const node = range.startContainer.nodeType === Node.ELEMENT_NODE
-            ? range.startContainer : range.startContainer.parentElement;
-        const item = node?.closest("[data-review-item]");
-        return item?.contains(range.endContainer) ? item.dataset.reviewItem : "";
     };
 
     const markdownFence = (value) => {
@@ -663,7 +666,10 @@
         if (!root) return null;
         let offset = 0;
         let startSet = false;
-        for (const node of textNodes(root)) {
+        // A block's positions may run on past it; a keyed row's and the chapter's stay inside their root.
+        const all = root === chapterBody || keyedRow(target) ? textNodes(root) : textNodes(chapterBody);
+        const first = all.findIndex((node) => root.contains(node));
+        for (const node of first < 0 ? [] : all.slice(first)) {
             const next = offset + node.data.length;
             if (!startSet && target.start >= offset && target.start <= next) {
                 range.setStart(node, target.start - offset);

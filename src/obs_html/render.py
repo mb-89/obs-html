@@ -1173,8 +1173,10 @@ def _node(node: dict[str, object], context: Context) -> str:
 
 
 REVIEW_ELEMENTS = {"paragraph": "p", "list-item": "li", "table-row": "tr", "code": "pre", "command-fences": "pre",
-                   "figures": "figure"}
-"""The element each block type's review item is (input-model#Comments and the core model)."""
+                   "figures": "figure", "section": "h[1-6]", "list": "(?:ol|ul)", "quote": "blockquote",
+                   "callouts": "aside", "table": "table", "math": "div"}
+"""The element that carries each block type's core id: its review item's, or a block's whose text a
+comment on it targets, such as a heading's (input-model#Comments and the core model)."""
 
 
 def _identified(node: dict[str, object], html: str) -> str:

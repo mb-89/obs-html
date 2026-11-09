@@ -39,6 +39,12 @@ def _open(reader_browser, path):
     return page, errors
 
 
+def _artifact(tmp_path, document: dict):
+    artifact = tmp_path / "artifact.html"
+    artifact.write_text(artifact_html(document), encoding="utf-8")
+    return artifact
+
+
 def test_the_review_item_counts_name_every_fixture() -> None:
     assert sorted(REVIEW_ITEMS) == [path.stem for path in DOCUMENTS]
 
@@ -101,3 +107,35 @@ def test_the_bar_shows_the_resolved_model_and_a_reviewed_copy_shows_the_same_sta
     reopened, reopened_errors = _open(reader_browser, copy_path)
     assert reopened.evaluate(STATES) == shown
     assert errors == reopened_errors == []
+
+
+SELECT_ACROSS = """async () => {
+    await obsArtifact.activateChapter("intro");
+    await obsArtifact.whenChapterReady();
+    obsArtifact.openBar("comments", "right");
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    const heading = document.querySelector("[data-chapter-body] h1[data-node-id]");
+    const paragraph = document.querySelector('[data-chapter-body] [data-node-id="paragraph-957766ff"]');
+    const range = document.createRange();
+    range.setStart(heading.firstChild, 0);
+    range.setEnd(paragraph.querySelector(".semantic-mark-content").firstChild, 4);
+    getSelection().removeAllRanges();
+    getSelection().addRange(range);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    document.querySelector("[data-comment-add]").click();
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    const target = obsComments.data.annotations.at(-1).target;
+    const marked = [...CSS.highlights.get("obs-comments")].map((painted) => painted.toString());
+    return {target, heading: heading.dataset.nodeId, selected: range.toString(), marked};
+}"""
+
+
+def test_a_selection_across_blocks_targets_the_block_it_starts_in(tmp_path, reader_browser) -> None:
+    """Nothing targets a chapter and a quote: the heading the selection starts in is its target, and
+    the positions, counted from the heading's start, find the selected text again."""
+    page, errors = _open(reader_browser, _artifact(tmp_path, json.loads(FIXTURE.read_text(encoding="utf-8"))))
+    shown = page.evaluate(SELECT_ACROSS)
+    assert shown["target"]["node"] == shown["heading"] == "section-36539243"
+    assert (shown["target"]["start"], shown["target"]["quote"]) == (0, shown["selected"])
+    assert shown["selected"] in shown["marked"]
+    assert errors == []
