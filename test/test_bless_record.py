@@ -45,3 +45,13 @@ def test_the_record_names_none_of_the_above() -> None:
     chapter["bless"]["answer"] = {**VERDICT, "verdict": "pick", "pick": {"figure": "choice", "option": "none"}}
 
     assert '<span data-bless-record-verdict>None of the above</span>' in record_html(chapter)
+
+
+def test_a_comment_with_no_verdict_shows_and_says_the_chapter_asks_still() -> None:
+    """obs input-model, Answers: an entry of chapter, version and comment alone answers nothing."""
+    chapter = with_bless()["chapters"][0]
+    chapter["bless"]["comment"] = {"chapter": "one", "version": "1" * 64, "comment": "Only <a> thought."}
+
+    shown = record_html(chapter)
+    assert 'data-bless-record="comment"' in shown and "the chapter asks still" in shown
+    assert "Only &lt;a&gt; thought." in shown and "Verdict" not in shown
