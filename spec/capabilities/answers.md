@@ -43,9 +43,17 @@ be registered and the text always works.
 ## Contract
 
 ```js
-const result = await obsArtifact.sendAnswers({verdicts: [{chapter: "one", version: "<sha256>", verdict: "bless"}]});
+const result = await obsArtifact.sendAnswers({verdicts: [{chapter: "one", version: "<sha256>", verdict: "bless"},
+    {chapter: "two", version: "<sha256>", comment: "Only a thought."}]});
 // result: {sink: "host-save", result} | {sink: "server", written: "answers.json"} | {sink: "text"}
 ```
+
+Decided by the owner, 11 Nov 2026 (work issue `fix/decision-comments-never-lost-20261111`): sent
+means sent. A result from a registered sink or the local server is the sink's confirmation, and
+only then may the caller drop what it sent; `{sink: "text"}` means nothing was sent, and a
+rejection means the sink failed. The payload is obs's answers file
+([[capabilities/bless#Contract]] owns what the deck puts in it); a comment may stand in it with
+no verdict.
 
 A trusted runtime bundle registers a sink once, after `obsArtifact.registerApplication`:
 
