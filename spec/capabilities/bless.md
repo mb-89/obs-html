@@ -51,7 +51,9 @@ what the reader gives a chapter, its verdict, pick and comment, is its draft
 the browser's session storage, under `obs-bless-draft:<deck>:<chapter>` with the chapter's version,
 the deck being the Document's title as for the sent verdicts, and restores it on a reload where
 the version is the chapter's. It is written on every change and removed once a sink confirms the
-send that carried it.
+send that carried it. obs-html restores every chapter's draft itself, a Bless as every other
+verdict: opening the chapters in any order shows each one's verdict, pick and comment, so a host
+bundle needs no restore of its own.
 
 - A confirmed send is a `sendAnswers` result from a registered sink or the local server
   ([[capabilities/answers#Contract]]); the text sink and a rejection are not, and the drafts stay.
