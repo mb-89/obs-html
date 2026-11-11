@@ -27,6 +27,7 @@ def printed(pdf_browser, tmp_path_factory) -> Path:
     return pdf
 
 
+@pytest.mark.browser
 def test_render_writes_the_page_as_a_raster_at_the_scale(printed, tmp_path, capsys) -> None:
     output = tmp_path / "page.png"
     pdf_inspect.main(["render", str(printed), "--page", "1", "--scale", "1.5", "--output", str(output)])
@@ -37,6 +38,7 @@ def test_render_writes_the_page_as_a_raster_at_the_scale(printed, tmp_path, caps
     assert f"Wrote {output} (918x1188 px, page 1, scale 1.5)." in capsys.readouterr().out
 
 
+@pytest.mark.browser
 def test_render_names_the_pages_a_pdf_has(printed, tmp_path, capsys) -> None:
     with pytest.raises(SystemExit) as exit_info:
         pdf_inspect.main(["render", str(printed), "--page", "99", "--output", str(tmp_path / "x.png")])
@@ -50,6 +52,7 @@ def _refused(capsys, source: object, field: str) -> None:
     assert f"\n{source}: {field}: " in f"\n{error}", error
 
 
+@pytest.mark.browser
 def test_crop_renders_a_region_in_points_from_the_top_left(printed, tmp_path, capsys) -> None:
     page, region = tmp_path / "page.png", tmp_path / "region.png"
     pdf_inspect.main(["render", str(printed), "--page", "1", "--scale", "2", "--output", str(page)])
@@ -69,6 +72,7 @@ def _mean_difference(first: Image.Image, second: Image.Image) -> float:
     return sum(level * count for level, count in enumerate(histogram)) / sum(histogram)
 
 
+@pytest.mark.browser
 @pytest.mark.parametrize("box, in_pdf", [("1,2,3", False), ("300,50,100,250", False), ("0,0,700,100", True)])
 def test_crop_refuses_a_box_it_cannot_cut(printed, tmp_path, capsys, box, in_pdf) -> None:
     """A malformed box is the argument's fault; one outside the page names the PDF."""
@@ -78,6 +82,7 @@ def test_crop_refuses_a_box_it_cannot_cut(printed, tmp_path, capsys, box, in_pdf
     assert not (tmp_path / "x.png").exists()
 
 
+@pytest.mark.browser
 def test_text_prints_the_page_text_in_reading_order(printed, capsys) -> None:
     pdf_inspect.main(["text", str(printed), "--page", "1"])
     lines = capsys.readouterr().out.splitlines()
@@ -85,6 +90,7 @@ def test_text_prints_the_page_text_in_reading_order(printed, capsys) -> None:
     assert not any("\r" in line for line in lines)
 
 
+@pytest.mark.browser
 def test_text_writes_the_named_file(printed, tmp_path, capsys) -> None:
     output = tmp_path / "page-1.txt"
     pdf_inspect.main(["text", str(printed), "--page", "1", "--output", str(output)])
@@ -92,6 +98,7 @@ def test_text_writes_the_named_file(printed, tmp_path, capsys) -> None:
     assert capsys.readouterr().out == f"Wrote {output} (page 1 text).\n"
 
 
+@pytest.mark.browser
 def test_paths_lists_the_vector_paths_in_points_from_the_top_left(printed, capsys) -> None:
     pdf_inspect.main(["paths", str(printed), "--page", "1"])
     inspection = json.loads(capsys.readouterr().out)
@@ -109,6 +116,7 @@ def test_paths_lists_the_vector_paths_in_points_from_the_top_left(printed, capsy
     assert rules[0]["segments"][0] == {"type": "move", "point": rules[0]["bounds"][:2]}
 
 
+@pytest.mark.browser
 def test_annotate_draws_labelled_boxes_onto_a_raster(printed, tmp_path, capsys) -> None:
     page, marked = tmp_path / "page.png", tmp_path / "marked.png"
     pdf_inspect.main(["render", str(printed), "--page", "1", "--scale", "2", "--output", str(page)])
@@ -126,6 +134,7 @@ def test_annotate_draws_labelled_boxes_onto_a_raster(printed, tmp_path, capsys) 
     assert f"Wrote {marked} (2 marks on {page})." in capsys.readouterr().out
 
 
+@pytest.mark.browser
 @pytest.mark.parametrize("option, value", [("--colour", "reddish"), ("--box", "0,0,9999,10")])
 def test_annotate_refuses_marks_it_cannot_draw(printed, tmp_path, capsys, option, value) -> None:
     page = tmp_path / "page.png"
@@ -137,6 +146,7 @@ def test_annotate_refuses_marks_it_cannot_draw(printed, tmp_path, capsys, option
     _refused(capsys, page if option == "--box" else "obs-html-inspect", option)
 
 
+@pytest.mark.browser
 def test_every_tool_writes_only_the_files_it_is_named(printed, tmp_path, capsys) -> None:
     folder = tmp_path / "out"
     folder.mkdir()
@@ -149,6 +159,7 @@ def test_every_tool_writes_only_the_files_it_is_named(printed, tmp_path, capsys)
     assert sorted(path.name for path in printed.parent.iterdir()) == ["artifact.pdf", "images"]
 
 
+@pytest.mark.browser
 def test_raster_tools_need_an_output(printed, capsys) -> None:
     with pytest.raises(SystemExit) as exit_info:
         pdf_inspect.main(["render", str(printed), "--page", "1"])
@@ -162,6 +173,7 @@ def test_raster_tools_need_an_output(printed, capsys) -> None:
     (["render", "{pdf}", "--page", "1", "--output", "{tmp}/page.raster"], "{tmp}/page.raster", "--output"),
     (["paths", "{pdf}", "--page", "1", "--output", "{pdf}"], "{pdf}", "--output"),
 ])
+@pytest.mark.browser
 def test_paths_are_explicit_and_checked(printed, tmp_path, capsys, arguments, source, field) -> None:
     def fill(text: str) -> str:
         return text.format(tmp=tmp_path, pdf=printed)
