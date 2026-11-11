@@ -1800,6 +1800,13 @@ separate from artifact presentation.
   failure cannot be observed even on use, there is no notice; the control's help text names
   the remedy.
 
+  A file offer is a control that hands the reader a file. Every file offer saves through one
+  owner, the downloads feature's file offers ([[capabilities/file-offers]]), which lists them
+  and picks the save path by the host. In Claude's artifact viewer, a page that declares the
+  viewer's `downloads` capability saves through it. A page that does not declare it hides its
+  file offers and raises the downloads warning, which says what to declare. Elsewhere a file
+  offer is a browser download, as it always was. No file offer silently does nothing.
+
   No feature uses a browser dialog; its messages are inline. Print to PDF never stays in
   its preparing state. The registry and its entries are owned by obs-html's
   `features.py`; the list of abilities is not repeated here. A figure kind that needs a host

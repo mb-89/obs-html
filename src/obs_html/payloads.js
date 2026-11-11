@@ -5,6 +5,8 @@
     const decoded = new Map();
     const urls = new Map();
     const resolved = new Map();
+    // Each blob URL's Blob, so a file offer can save the bytes without fetching the URL (file-offers.js).
+    const blobs = new Map();
     const artifactDataIsland = document.querySelector("[data-artifact-data]");
     const artifactData = JSON.parse(artifactDataIsland.textContent);
     let assets = artifactData.embeddedAssets || {};
@@ -131,7 +133,9 @@
             const digest = [...new Uint8Array(await crypto.subtle.digest("SHA-256", bytes))]
                 .map(byte => byte.toString(16).padStart(2, "0")).join("");
             if (digest !== asset.sha256) throw new Error(`Embedded asset digest mismatch: ${asset.archivePath}`);
-            const url = URL.createObjectURL(new Blob([bytes], {type: asset.mime}));
+            const blob = new Blob([bytes], {type: asset.mime});
+            const url = URL.createObjectURL(blob);
+            blobs.set(url, blob);
             resolved.set(key, url);
             return url;
         })());
@@ -405,6 +409,7 @@
         attributeFilter: ["src", "href"]});
     globalThis.obsPayload = {
         activate, hydrate, restore, ready, bytes, fail, describeAsset, stageRewrite, commitRewrite,
+        blobFor: url => blobs.get(url) || null,
         readMember: async path => {
             await ready();
             index();

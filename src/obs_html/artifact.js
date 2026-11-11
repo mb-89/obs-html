@@ -989,14 +989,8 @@
         const bytes = globalThis.obsPayload ? await globalThis.obsPayload.bytes() :
             Uint8Array.from(atob(document.getElementById("obs-source-archive").textContent.trim()),
                 char => char.charCodeAt(0));
-        const url = URL.createObjectURL(new Blob([bytes], {type: "application/zip"}));
-        const download = document.createElement("a");
-        download.href = url;
-        download.download = info.complete ? "obs-html-source.zip" : "obs-html-partial-evidence.zip";
-        document.body.append(download);
-        download.click();
-        download.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 60000);
+        return globalThis.obsFileOffers.save({filename: info.complete ? "obs-html-source.zip"
+            : "obs-html-partial-evidence.zip", data: new Blob([bytes], {type: "application/zip"})});
     };
     document.addEventListener("click", async (event) => {
         const link = event.target.closest?.('[data-source-download], a[href="obs-source:archive"]');
@@ -1005,9 +999,8 @@
         event.stopImmediatePropagation();
         if (!sourceArchiveInfo().available) return;
         try {
-            await downloadSourceArchive();
-            const limited = globalThis.obsCapabilities?.explain("downloads");
-            if (limited) globalThis.obsCapabilities?.note(link, limited);
+            const {message} = await downloadSourceArchive();
+            if (message) globalThis.obsCapabilities?.note(link, message);
         } catch (error) {
             if (globalThis.obsPayload) globalThis.obsPayload.fail(error);
             else showApplicationError(error);

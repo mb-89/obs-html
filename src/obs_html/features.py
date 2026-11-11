@@ -190,7 +190,8 @@ FEATURES: tuple[Feature, ...] = (
     Feature("storage", "always: reader settings are kept", _always),
     Feature("printing", "always: Settings offers Print to PDF", _always),
     Feature("downloads", "always: Download HTML, Download source ZIP and, in the evidence edition, "
-            "attachment downloads", _always, ("attachment-download.js",), parts=(
+            "attachment downloads, each saved through the file offers (spec/capabilities/file-offers.md)",
+            _always, ("file-offers.js", "attachment-download.js"), parts=(
                 Part("source-archive", "a source archive (obs-document --embed-source): Download source ZIP "
                      "and Attach source ZIP to PDF, with the PDF library", _source_archive, ("archive.js",)),)),
     Feature("clipboard", "always: the Comments bar offers Copy comments", _always),

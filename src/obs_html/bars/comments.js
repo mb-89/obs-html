@@ -1082,7 +1082,8 @@
     const saveReviewedCopy = async () => {
         try {
             // Invoke the picker before cloning/compression can consume activation.
-            const picker = globalThis.showSaveFilePicker
+            // In Claude's artifact viewer the file offers save through the viewer (file-offers.js).
+            const picker = globalThis.showSaveFilePicker && !globalThis.obsFileOffers?.claude
                 ? globalThis.showSaveFilePicker({
                     suggestedName: reviewedFilename(),
                     types: [{description: "HTML file", accept: {"text/html": [".html"]}}],
@@ -1111,15 +1112,14 @@
                     fileError = error;
                 }
             }
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(new Blob([contents], {type: "text/html"}));
-            link.download = reviewedFilename();
-            link.click();
-            URL.revokeObjectURL(link.href);
-            announcer.textContent = (fileError ? `File save failed: ${fileError.message}. ` : "") +
-                "Download started. The browser cannot confirm it was saved; unsaved changes remain." +
-                (globalThis.obsCapabilities?.limit("downloads")
-                    ? ` ${globalThis.obsCapabilities.explain("downloads")}` : "");
+            const offer = await globalThis.obsFileOffers.save({filename: reviewedFilename(), data: contents,
+                type: "text/html"});
+            const failed = fileError ? `File save failed: ${fileError.message}. ` : "";
+            announcer.textContent = !offer.saved ? failed + offer.message
+                : globalThis.obsFileOffers.claude
+                    ? `${failed}${offer.message} It cannot confirm it was saved; unsaved changes remain.`
+                    : `${failed}Download started. The browser cannot confirm it was saved; unsaved changes remain.` +
+                        (offer.message ? ` ${offer.message}` : "");
         } catch (error) {
             if (error?.name === "AbortError") return;
             announcer.textContent = `HTML could not be saved: ${error.message}`;

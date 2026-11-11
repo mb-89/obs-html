@@ -1,7 +1,8 @@
 // Attach source ZIP to PDF (features.py, the downloads feature's source-archive part): ships only in
 // an artifact with an embedded source archive (source_archive.py). Settings' Attach source ZIP to PDF
 // reads a PDF the reader saved from this HTML, attaches the archive with the PDF library as the
-// interim adapter does, and downloads the result; Download source ZIP is artifact.js's.
+// interim adapter does, and saves the result through the file offers (file-offers.js); Download source
+// ZIP is artifact.js's.
 (() => {
     const archive = document.getElementById("obs-source-archive");
     if (!archive) return;
@@ -57,21 +58,15 @@
         const file = picker.files[0];
         if (!file || busy) return;
         busy = true;
-        let url;
         try {
             const result = await attach(await file.arrayBuffer());
-            url = URL.createObjectURL(new Blob([result], {type: "application/pdf"}));
-            const link = document.createElement("a");
-            link.href = url;
-            link.download = `${file.name.replace(/\.pdf$/i, "")}-with-source.pdf`;
-            document.body.append(link);
-            link.click();
-            link.remove();
-            status(globalThis.obsCapabilities?.explain("downloads") || "PDF with source ZIP downloaded.");
+            const {message} = await globalThis.obsFileOffers.save({
+                filename: `${file.name.replace(/\.pdf$/i, "")}-with-source.pdf`,
+                data: new Blob([result], {type: "application/pdf"})});
+            status(message || "PDF with source ZIP downloaded.");
         } catch (error) {
             status(`Could not attach source ZIP: ${error.message}`, true);
         } finally {
-            if (url) setTimeout(() => URL.revokeObjectURL(url), 60000);
             busy = false;
         }
     });
