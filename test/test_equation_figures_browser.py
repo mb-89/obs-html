@@ -17,6 +17,7 @@ from pathlib import Path
 
 import pytest
 
+import library_fakes
 from conftest import CORE_ROOT, ROOT, built_once
 from obs_html import cli
 
@@ -33,7 +34,8 @@ def artifact(tmp_path_factory) -> Path:
     def build(folder: Path) -> None:
         assert cli.main([str(EQUATIONS), str(folder / "artifact.html")]) == 0
 
-    return built_once(tmp_path_factory, "equations-artifact", build) / "artifact.html"
+    with library_fakes.real():  # Its subject is what math.js and Plotly compute and draw.
+        return built_once(tmp_path_factory, "equations-artifact", build) / "artifact.html"
 
 
 class Reader:

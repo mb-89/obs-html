@@ -4,7 +4,8 @@ Reader: a test that reads the spec artifact (the parity gate, the content-model 
 
 The spec's Document is the run's one shared build, which the core's test/spec_build.py owns
 (it builds the capability reference first and runs the spec's commands offline); this adapter
-renders that Document.
+renders that Document, with the real browser libraries: the spec artifact is the real
+artifact whose startup, print and archive its tests measure (test/library_fakes.py).
 """
 import os
 import shutil
@@ -13,6 +14,7 @@ from pathlib import Path
 
 import pytest
 
+import library_fakes
 from conftest import CORE_ROOT, built_once, spec_build
 from obs_html.cli import main as obs_html
 
@@ -42,4 +44,5 @@ def spec_artifact(tmp_path_factory) -> Path:
         assert obs_html([str(document), str(folder / "adapter.html")]) == 0, \
             "test/spec_artifact.py: obs-html could not render obs's spec Document"
 
-    return built_once(tmp_path_factory, "spec-artifact", build) / "adapter.html"
+    with library_fakes.real():  # The real artifact: its startup, its print, its archive (library_fakes.py).
+        return built_once(tmp_path_factory, "spec-artifact", build) / "adapter.html"

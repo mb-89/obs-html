@@ -12,6 +12,7 @@ from importlib.resources import files
 import pytest
 
 import canaries
+import library_fakes
 from conftest import FIXTURE, PIXEL, ROOT
 from documents import chapter, document, heading, node, paragraph
 from obs_html import features
@@ -158,7 +159,8 @@ def test_the_maths_library_ships_pinned_from_its_lockfile_with_its_licence() -> 
     lock = json.loads((ROOT / "maths" / "package-lock.json").read_text(encoding="utf-8"))
     packaged = SOURCE.joinpath("vendor", "maths")
     library = packaged.joinpath("math.js").read_text(encoding="utf-8")
-    html = render(with_figure("equations", EQUATIONS), CONFIG)
+    with library_fakes.real():  # Its subject is the maths library's embedding (libraries.py).
+        html = render(with_figure("equations", EQUATIONS), CONFIG)
 
     assert lock["packages"][""]["dependencies"] == {"mathjs": lock["packages"]["node_modules/mathjs"]["version"]}
     assert f"@version {lock['packages']['node_modules/mathjs']['version']}" in \

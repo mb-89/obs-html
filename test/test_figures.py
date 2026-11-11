@@ -6,6 +6,7 @@ import re
 
 import pytest
 
+import library_fakes
 from obs_html.config import load_config
 from obs_html.errors import InputError
 from obs_html.render import render
@@ -45,7 +46,8 @@ def test_trace_descriptors_become_plotly_figures_on_their_panel_axes(document) -
 
 
 def test_plot_figures_embed_plotly_with_its_licence_only_when_needed(document) -> None:
-    artifact = render(document, CONFIG)
+    with library_fakes.real():  # Its subject is the plotting library's embedding (libraries.py).
+        artifact = render(document, CONFIG)
     assert 'id="plotly-script"' in artifact and "Plotly" in artifact
     assert 'id="figure-script"' in artifact and 'id="figure-styles"' in artifact
     without = copy.deepcopy(document)

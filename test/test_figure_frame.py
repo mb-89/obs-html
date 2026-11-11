@@ -10,6 +10,7 @@ from pathlib import Path
 
 import pytest
 
+import library_fakes
 from conftest import ROOT, built_once
 from obs_html import cli
 from obs_html.artifact_data import decode_artifact_data
@@ -50,7 +51,8 @@ def figures_artifact(tmp_path_factory) -> Path:
     def build(folder: Path) -> None:
         assert cli.main([str(FIGURES), str(folder / "artifact.html")]) == 0
 
-    return built_once(tmp_path_factory, "figures-artifact", build) / "artifact.html"
+    with library_fakes.real():  # Its subject is the legend Plotly lays out and draws.
+        return built_once(tmp_path_factory, "figures-artifact", build) / "artifact.html"
 
 
 def _open(reader_browser, artifact: Path):

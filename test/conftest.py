@@ -12,9 +12,11 @@ from filelock import FileLock
 from jsonschema import Draft202012Validator
 from referencing import Registry, Resource
 
+import library_fakes
 import network_guard
 
 network_guard.install()
+library_fakes.install()
 
 ROOT = Path(__file__).parents[1]
 FIXTURE = ROOT / "test" / "fixtures" / "documents" / "document.json"
@@ -70,12 +72,13 @@ def built_once(tmp_path_factory, name: str, build) -> Path:
     """The folder ``build(folder)`` fills, built once per run and shared by every xdist worker.
 
     Workers' temporary folders sit side by side in the run's folder; the first worker to ask
-    builds there under a lock and the others wait for it and read what it built.
+    builds there under a lock and the others wait for it and read what it built. A build inside
+    ``library_fakes.real()`` embeds the real browser libraries and has a folder of its own.
     """
     root = tmp_path_factory.getbasetemp()
     if os.environ.get("PYTEST_XDIST_WORKER"):
         root = root.parent
-    folder = root / name
+    folder = root / (name if library_fakes.mode() == library_fakes.FAKE else f"{name}-{library_fakes.REAL}")
     with FileLock(f"{folder}.lock"):
         if not (folder / ".built").is_file():
             shutil.rmtree(folder, ignore_errors=True)

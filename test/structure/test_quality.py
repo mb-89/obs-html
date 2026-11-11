@@ -26,6 +26,11 @@ headless shell (``reader_browser`` and the other BROWSER_FIXTURES); full Chromiu
 (FULL_CHROMIUM_FIXTURES) serves only the named set FULL_CHROMIUM_TESTS, the checks whose
 behaviour can differ in the shell. A test outside the set that takes full Chromium, and a named
 test that does not, both fail.
+
+Every artifact a test builds embeds the browser libraries' fakes (test/library_fakes.py; obs
+quality.md, Testing boundaries). A build inside ``library_fakes.real()`` embeds the real
+libraries: only the modules REAL_LIBRARY_TESTS names enter it, each with why the real library is
+its subject. A module outside the set that enters it, and a named module that does not, both fail.
 """
 import re
 import ast
@@ -60,6 +65,18 @@ FULL_CHROMIUM_TESTS = {
         "test_print_to_pdf_in_a_sandboxed_frame_ends_in_an_inline_message"},
     # The startup marks: the first chapter's paint in the browser a reader opens.
     "test_startup_browser.py": {"test_the_spec_artifact_shows_its_first_chapter_within_a_second"},
+}
+# The modules whose builds embed the real browser libraries (``library_fakes.real()``), with why:
+# the doors' contract suite, and the tests whose subject is what a real library renders or how
+# the renderer embeds it. Every other test builds with the doors' fakes. test/spec_artifact.py
+# builds the spec artifact, the real artifact whose startup, print and archive its readers
+# measure, with the real libraries too.
+REAL_LIBRARY_TESTS = {
+    "test_library_doors_browser.py": "each door's contract, held by the real library and by its fake",
+    "test_equation_figures_browser.py": "the curves math.js computes and Plotly draws, zooms and prints",
+    "test_figure_frame.py": "the legend Plotly lays out, and the correction that keeps it inside the plot",
+    "test_figures.py": "the plotting library embedded with its licence (libraries.py)",
+    "test_features.py": "the maths library embedded whole from its lockfile, with its licence (libraries.py)",
 }
 # The fixtures that build an artifact once per run, wherever they are defined; a browser test
 # reads what they built, and the check does not look into them.
@@ -398,3 +415,52 @@ def test_shared(tmp_path_factory):
     found = spec_build.own_builds(tmp_path / "test_own_spec.py", CORE_ROOTS, set())
     assert [line.split(":")[0] for line in found] == ["test_core_spec"]
     assert "test_own_spec.py:12" in found[0] and "test/spec_build.py" in found[0]
+
+
+def enters_real_libraries(path: Path) -> list[int]:
+    """The lines where the module enters ``library_fakes.real()``, as an attribute or an imported name."""
+    module = ast.parse(path.read_text(encoding="utf-8"))
+    imported = {alias.asname or alias.name for node in ast.walk(module)
+                if isinstance(node, ast.ImportFrom) and node.module == "library_fakes"
+                for alias in node.names if alias.name == "real"}
+    return [call.lineno for name, call in called(module)
+            if name == "library_fakes.real" or (name in imported and isinstance(call.func, ast.Name))]
+
+
+def real_library_violations(tests: Path, named: dict[str, str]) -> list[str]:
+    found = []
+    for path in sorted(tests.glob("test_*.py")):
+        lines = enters_real_libraries(path)
+        if lines and path.name not in named:
+            found.append(f"{path.name}:{lines[0]} builds with the real browser libraries outside REAL_LIBRARY_TESTS; "
+                         "build with the doors' fakes (test/library_fakes.py), or name the module there with why "
+                         "the real library is its subject")
+        elif not lines and path.name in named:
+            found.append(f"{path.name}: REAL_LIBRARY_TESTS names it, but it builds with the doors' fakes; "
+                         "remove it from the set")
+    found += [f"{name}: REAL_LIBRARY_TESTS names a module the tests do not have; remove it"
+              for name in sorted(named) if not (tests / name).is_file()]
+    return found
+
+
+def test_only_the_named_set_builds_with_the_real_browser_libraries() -> None:
+    found = real_library_violations(TESTS, REAL_LIBRARY_TESTS)
+    assert found == [], "test/structure/test_quality.py: " + "\n".join(found)
+
+
+def test_the_library_check_names_a_real_build_outside_the_set(tmp_path: Path) -> None:
+    """The check is not vacuous: a module outside the set that enters real(), as an attribute or an
+    imported name, a named module that does not, and a named module the tests lack are each named."""
+    (tmp_path / "test_outside.py").write_text(
+        "import library_fakes\n\ndef test_one():\n    with library_fakes.real():\n        pass\n", encoding="utf-8")
+    (tmp_path / "test_imported.py").write_text(
+        "from library_fakes import real as genuine\n\ndef test_one():\n    with genuine():\n        pass\n",
+        encoding="utf-8")
+    (tmp_path / "test_named.py").write_text("def test_one():\n    pass\n", encoding="utf-8")
+    (tmp_path / "test_kept.py").write_text(
+        "import library_fakes\n\ndef test_one():\n    with library_fakes.real():\n        pass\n", encoding="utf-8")
+
+    found = real_library_violations(tmp_path, {"test_named.py": "why", "test_kept.py": "why", "test_gone.py": "why"})
+
+    assert [line.split(" ")[0] for line in found] == [
+        "test_imported.py:4", "test_named.py:", "test_outside.py:4", "test_gone.py:"], found
