@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import base64
+import copy
+import functools
 import hashlib
 import json
 import re
@@ -145,21 +147,33 @@ def _read_index(path: Path) -> dict:
             from error
 
 
+def _checked_index(path: Path) -> dict:
+    """An index file as JSON, refusing one its schema refuses."""
+    data = _read_index(path)
+    error = schema_error(list(Draft202012Validator(SCHEMA).iter_errors(data)), path, REFERENCE)
+    if error is not None:
+        raise error
+    return data
+
+
+@functools.cache
+def _packaged_index() -> dict:
+    """The packaged index, read and checked once per process: it is package data, which nothing
+    changes while the process runs; a style module's index is read and checked at every render."""
+    return _checked_index(ROOT / "assets.json")
+
+
 class SemanticAssets:
     def __init__(self, selected: Path | None = None):
         """The packaged index, overlaid by a style module's assets.json when one is selected."""
-        schema = SCHEMA
         indexes = [(ROOT / "assets.json", ROOT)]
         if selected is not None:
             path = selected.resolve(strict=True)
             indexes.append((path, path.parent))
         self.nodes, self.origins, self.value_origins = {}, {}, {}
         self.resources, self.embedded_assets = {}, {}
-        for path, boundary in indexes:
-            data = _read_index(path)
-            error = schema_error(list(Draft202012Validator(schema).iter_errors(data)), path, REFERENCE)
-            if error is not None:
-                raise error
+        for index, (path, boundary) in enumerate(indexes):
+            data = copy.deepcopy(_packaged_index()) if index == 0 else _checked_index(path)
             def overlay(nodes, prefix=""):
                 for segment, node in nodes.items():
                     name = f"{prefix}.{segment}" if prefix else segment

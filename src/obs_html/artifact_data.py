@@ -13,7 +13,10 @@ from obs_html.errors import InputError
 
 
 ARTIFACT_PATTERN = re.compile(r'(<script id="artifact-data"[^>]*>)(.*?)(</script>)', re.DOTALL)
-_SCRIPT_PATTERN = re.compile(r"(<script\b[^>]*>)(.*?)(</script>)", re.DOTALL | re.IGNORECASE)
+# A script element: its opening tag, then its body up to the first closing tag. Found as two
+# searches, not one pattern with a lazy body, which costs a step per character of a megabyte body.
+_SCRIPT_OPENING = re.compile(r"<script\b[^>]*>", re.IGNORECASE)
+_SCRIPT_CLOSING = re.compile(r"</script>", re.IGNORECASE)
 _INERT_TYPE = "application/x-obs-html-script"
 
 
@@ -191,18 +194,22 @@ def same_artifact_content(artifact: str, existing: str) -> bool:
 
 def prepare_artifact_scripts(artifact: str) -> str:
     """Make every model consumer inert, including scripts added by later stages."""
-    def prepare(match: re.Match[str]) -> str:
-        opening, body, closing = match.groups()
+    def prepare(opening: str) -> str:
         attrs = _attributes(opening)
         if attrs.get("id") in {"reader-startup-script", "running-header-script", "artifact-bootstrap-script"}:
-            return match[0]
+            return opening
         kind = attrs.get("type", "")
         if kind not in {"", "text/javascript", "application/javascript"}:
-            return match[0]
+            return opening
         opening = re.sub(r"""\s+type\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)""", "", opening, flags=re.IGNORECASE)
-        return opening[:-1] + f' type="{_INERT_TYPE}" data-obs-runtime>' + body + closing
+        return opening[:-1] + f' type="{_INERT_TYPE}" data-obs-runtime>'
 
-    artifact = _SCRIPT_PATTERN.sub(prepare, artifact)
+    parts, done = [], 0
+    while (opening := _SCRIPT_OPENING.search(artifact, done)) and (
+            closing := _SCRIPT_CLOSING.search(artifact, opening.end())):
+        parts += [artifact[done:opening.start()], prepare(opening[0]), artifact[opening.end():closing.end()]]
+        done = closing.end()
+    artifact = "".join(parts) + artifact[done:]
     if 'id="artifact-bootstrap-script"' not in artifact:
         runtime = files("obs_html").joinpath("artifact-data.js").read_text(encoding="utf-8")
         artifact = artifact.replace('<script id="artifact-data"',

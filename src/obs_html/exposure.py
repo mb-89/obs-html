@@ -40,8 +40,10 @@ def check_artifact(artifact: str) -> None:
         for what, pattern in patterns:
             if pattern.search(text):
                 raise InputError(SOURCE, where, f"exposes {what}", REMEDY)
-        if user and any(user.casefold() in (part.casefold() for part in re.split(r"[/\\]", path[0]))
-                        for path in ABSOLUTE_PATH.finditer(text)):
+        # A path part that is the user name is in the text, so a text without it holds no such path.
+        if user and user.casefold() in text.casefold() and any(
+                user.casefold() in (part.casefold() for part in re.split(r"[/\\]", path[0]))
+                for path in ABSOLUTE_PATH.finditer(text)):
             raise InputError(SOURCE, where, f"exposes the build machine's user name '{user}' in a path", REMEDY)
 
 

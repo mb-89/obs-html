@@ -5,7 +5,7 @@ import pytest
 from obs_html.config import load_config
 from obs_html.errors import InputError
 from obs_html.render import render
-from obs_html.artifact_data import decode_artifact_data
+from obs_html.artifact_data import decode_artifact_data, prepare_artifact_scripts
 
 from conftest import PIXEL
 from documents import chapter, document as build, heading, node, paragraph, text, without_node_ids
@@ -501,3 +501,26 @@ def test_a_chapter_outside_the_reading_order_does_not_decide_the_default_layout(
     source = _deck(True, False)
     source["chapters"][1]["toc"] = False
     assert _model(source)["reading"]["layout"] == "screens"
+
+
+def test_every_runtime_script_is_made_inert_and_every_other_script_is_kept_as_written() -> None:
+    """prepare_artifact_scripts: a JavaScript script of any spelling is made inert, its body kept;
+    the bootstrap's own scripts, a script of another type and an unclosed script stay as written."""
+    inert = 'type="application/x-obs-html-script" data-obs-runtime>'
+    artifact = ('<script id="artifact-bootstrap-script">boot()</script>\n'
+                '<script id="reader-startup-script">start()</script>\n'
+                '<SCRIPT id="one" TYPE="text/javascript">one("</scrip")</Script>\n'
+                "<script id='two'\n type='application/javascript'>two()</script>"
+                '<script id="three">three()\n</script>\n'
+                '<script id="data" type="application/json">{"a": "<script>"}</script>\n'
+                '<script id="artifact-data" type="application/json">{}</script>\n'
+                '<script id="open">never closed')
+    assert prepare_artifact_scripts(artifact) == (
+        '<script id="artifact-bootstrap-script">boot()</script>\n'
+        '<script id="reader-startup-script">start()</script>\n'
+        f'<SCRIPT id="one" {inert}one("</scrip")</Script>\n'
+        f"<script id='two' {inert}two()</script>"
+        f'<script id="three" {inert}three()\n</script>\n'
+        '<script id="data" type="application/json">{"a": "<script>"}</script>\n'
+        '<script id="artifact-data" type="application/json">{}</script>\n'
+        '<script id="open">never closed')
