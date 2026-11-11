@@ -26,6 +26,8 @@ build of the spec (test/test_parity_browser.py), made once per run.
 """
 from pathlib import Path
 
+import pytest
+
 from preview import open_preview
 from test_parity_browser import spec_html  # noqa: F401  (the spec, built once per run)
 
@@ -67,6 +69,7 @@ READ = """async ([firstChapterMark, readyMark, samples]) => {
 }"""
 
 
+@pytest.mark.browser
 def test_the_spec_artifact_shows_its_first_chapter_within_a_second(
         tmp_path: Path, full_chromium_browser, spec_html: str, record_property) -> None:
     errors: list[str] = []

@@ -22,6 +22,8 @@ import subprocess
 import zipfile
 from pathlib import Path
 
+import pytest
+
 from conftest import CORE_ROOT, spec_build
 from obs_html import reproduce
 from obs_html.cli import main as obs_html
@@ -44,6 +46,7 @@ def _offline(command: list[str], checkout: Path) -> list[str]:
     return [*command[:2], "--offline", *command[2:at], "python", str(OFFLINE_DOCUMENT), *command[at + 1:]]
 
 
+@pytest.mark.build
 def test_reproduce_rebuilds_obs_spec_from_its_archive_with_the_references_entry(
         tmp_path: Path, tmp_path_factory, monkeypatch, capsys) -> None:
     monkeypatch.setenv(spec_build.RUN_FOLDER, str(spec_build.base(tmp_path_factory)))

@@ -54,4 +54,5 @@ testpaths = ["test"]
 markers = [
     "dom: runs the embedded artifact runtime in Node (needs `npm --prefix test/browser ci`).",
     "browser: opens a real Chromium through Playwright.",
+    "build: builds a whole Document, artifact or package from inputs it does not make itself (the tier rule: the core's spec/design_input/quality.md, Testing boundaries).",
 ]

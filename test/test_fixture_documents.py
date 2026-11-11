@@ -60,6 +60,7 @@ def first_difference(committed, built, path="$"):
     return None if committed == built else f"{path}: committed {committed!r:.80}, built {built!r:.80}"
 
 
+@pytest.mark.build
 @pytest.mark.parametrize("name", list(build_documents.VAULTS))
 def test_the_committed_document_is_what_the_current_core_builds(rebuilt, name: str) -> None:
     folder, refused, _processes = rebuilt
@@ -76,6 +77,7 @@ def test_the_committed_document_is_what_the_current_core_builds(rebuilt, name: s
         "Document breaks.")
 
 
+@pytest.mark.build
 def test_every_vault_is_built_in_one_core_process(rebuilt) -> None:
     """Each core process costs its imports (about 0.3 s of CPU); the capability reference and every
     vault's Document are built in one."""

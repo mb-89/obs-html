@@ -58,6 +58,7 @@ ADAPTER = "import sys; from obs_html.cli import main; sys.exit(main(sys.argv[1:]
 CORE = "import sys; from obs.document import main; sys.exit(main(sys.argv[1:]))"
 
 
+@pytest.mark.build
 def test_the_audit_records_what_a_process_and_its_children_read_inside_the_checkout(installed_wheels, tmp_path) -> None:
     """The audit is not vacuous: a read of the checkout, in the process or in a Python it starts, is recorded."""
     read = f"open({str(CORE_ROOT / 'README.md')!r}).read()"
@@ -83,6 +84,7 @@ def _script(html: str, element: str) -> str:
     return found.group(1)
 
 
+@pytest.mark.build
 def test_the_installed_wheel_embeds_its_packaged_assets_and_reads_nothing_from_the_tree(installed_wheels, tmp_path) -> None:
     source = tmp_path / "document.json"
     source.write_text(json.dumps(document("Installed", chapter(
@@ -104,6 +106,7 @@ def test_the_installed_wheel_embeds_its_packaged_assets_and_reads_nothing_from_t
 DIAGRAMS = "# Diagrams\n\n```mermaid\ngraph TD\n  Draft --> Done\n```\n\n```plantuml\n@startuml\nAuthor -> Reviewer\n@enduml\n```\n"
 
 
+@pytest.mark.build
 def test_the_installed_core_draws_mermaid_and_plantuml_from_its_package_data(installed_wheels, tmp_path) -> None:
     (tmp_path / "manifest.md").write_text("- [[chapter]]\n", encoding="utf-8")
     (tmp_path / "chapter.md").write_text(DIAGRAMS, encoding="utf-8")
@@ -121,6 +124,7 @@ def test_the_installed_core_draws_mermaid_and_plantuml_from_its_package_data(ins
     assert plantuml.startswith("<svg") and "Reviewer" in plantuml
 
 
+@pytest.mark.build
 def test_the_installed_wheel_builds_its_own_spec_and_reads_nothing_from_the_tree(installed_wheels, tmp_path) -> None:
     output = tmp_path / "out" / "obs-html-specification.html"
     result, reads = audited(installed_wheels, tmp_path, ADAPTER, "--build-own-spec", str(output))
