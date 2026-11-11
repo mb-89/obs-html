@@ -9,7 +9,7 @@
 .top-band:has(.bless-controls:not([hidden]) .bless-send:not([hidden])) { --top-band-send: 1; }
 
 .top-band:has(.bless-controls:not([hidden]) .bless-pill:not([hidden])) {
-    --top-band-bless: 5;
+    --top-band-bless: 6;
     --top-band-gap: 0.3rem;
 }
 
@@ -116,10 +116,14 @@
     width: var(--top-control-size);
 }
 
-.bless-key[aria-pressed="true"] {
+.bless-key[aria-pressed="true"],
+.bless-comment-key[aria-expanded="true"] {
     background: var(--color-accent-soft);
     border-color: var(--color-accent);
 }
+
+/* The Comment key shows the accent while its chapter has a comment. */
+.bless-comment-key[data-bless-commented] { border-color: var(--color-accent); }
 
 /* Pressed, Bless and Decline are the review's pressed accept and reject keys (.review-action). */
 .bless-key[data-bless-key="bless"][aria-pressed="true"] {
