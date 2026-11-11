@@ -771,3 +771,34 @@ def test_a_failed_send_keeps_the_draft_and_says_so(built, reader_browser, tmp_pa
     assert _typed(page) == TYPED
     assert page.evaluate(DRAFTS)["record"]["comment"] == TYPED
     assert errors == []
+
+
+@pytest.mark.parametrize("viewport", WIDTHS, ids=["phone", "desktop"])
+def test_opening_the_chapters_in_another_order_finds_each_draft_back(deck, reader_browser, viewport: dict) -> None:
+    """Requirement 6, changes after filing: obs-html restores each decision's draft verdict, pick and
+    comment itself, a bless on any chapter as every other verdict, whichever chapter opens first."""
+    from playwright.sync_api import expect
+
+    page, errors = _open(reader_browser, deck.as_uri(), viewport)
+    page.locator('[data-bless-key="pick"]').click()
+    page.locator(f'[data-bless-pick="{FIGURE}:C"]').click()
+    page.locator("[data-bless-comment]").fill(TYPED)
+    _walk(page, 1, "swipe")
+    page.locator('[data-bless-key="bless"]').click()
+    page.locator("[data-bless-comment-key]").click()
+    page.locator("[data-bless-comment]").fill("Reads well.")
+
+    page.evaluate("location.hash = '#swipe'")  # The deck opens on the chapter given last, not the first.
+    page.reload()
+    page.wait_for_function("document.documentElement.dataset.artifactStatus === 'ready'")
+    expect(page.locator("[data-active-chapter]")).to_have_attribute("data-chapter", "swipe")
+    expect(page.locator("[data-bless-pill]")).to_have_text("Blessed")
+    expect(page.locator('[data-bless-key="bless"]')).to_have_attribute("aria-pressed", "true")
+    assert _typed(page) == "Reads well."
+    _walk(page, -1, "record")
+    expect(page.locator("[data-bless-pill]")).to_have_text("Picked C · Answers file alone")
+    expect(page.locator(f'#{FIGURE} [data-pugh-pick="C"]')).to_be_checked()
+    assert _typed(page) == TYPED
+    expect(page.locator("[data-bless-send]")).to_have_text("Send 2/2 ✎2")
+    _fits(page)
+    assert errors == []
