@@ -6,6 +6,7 @@ Reader: whoever changes the reader runtime, its motion rules, or the chapter swe
 
 Each fixture artifact is swept at each viewport by the test process's sweep child, with a hard
 timeout a little under the test's own, so a page whose main thread locks fails its test and names the chapter it was on.
+The test of a page that locks bounds the locked step by the page's own opening time instead (STALL).
 Under reduced motion, a figure chapter of figures.json and of document.json once locked the
 page: artifact-ui.md, Accessibility, owns the reduced-motion rule.
 """
@@ -14,7 +15,7 @@ import json
 import pytest
 
 from artifacts import artifact_html
-from chapter_sweep import VIEWPORTS, Sweeper, compare
+from chapter_sweep import STALL, VIEWPORTS, Sweeper, compare
 from conftest import ROOT
 
 DOCUMENTS = sorted((ROOT / "test" / "fixtures" / "documents").glob("*.json"))
@@ -66,19 +67,23 @@ console.error(`${innerWidth} px at device scale ${devicePixelRatio}`);
 
 
 @pytest.mark.browser
-def test_a_page_that_locks_fails_its_sweep_naming_the_chapter_and_the_next_sweep_runs_in_a_fresh_child(tmp_path):
+def test_a_page_that_locks_fails_its_sweep_naming_the_chapter_and_the_next_sweep_runs_in_a_fresh_child(tmp_path,
+                                                                                                         request):
+    # The locked step is bounded by STALL times the page's own opening time, not by a number of
+    # seconds a busy host can use up before the page has even opened.
     locking, reporting = tmp_path / "locking.html", tmp_path / "reporting.html"
     locking.write_text(LOCKING, encoding="utf-8")
     reporting.write_text(REPORTING, encoding="utf-8")
     kept = Sweeper()
     try:
-        swept = kept.sweep(locking, 3, motions=("reduce",), viewports=("phone",))
-        after = kept.sweep(reporting, 20, motions=("reduce",), viewports=("desktop",))
+        swept = kept.sweep(locking, sweep_timeout(request), motions=("reduce",), viewports=("phone",), stall=STALL)
+        after = kept.sweep(reporting, sweep_timeout(request), motions=("reduce",), viewports=("desktop",))
     finally:
         kept.close()
     assert swept.chapters == {("phone", "reduce"): []}
-    assert swept.failure.startswith("did not finish within 3 s; the page stopped answering at chapter 'locked' "
-                                    "(phone, prefers-reduced-motion: reduce), opening it")
+    assert swept.failure.startswith("the page stopped answering at chapter 'locked' "
+                                    f"(phone, prefers-reduced-motion: reduce), opening it: no answer within {STALL:g} "
+                                    "times the page's opening time")
     assert (after.failure, after.errors) == (None, [("desktop", "reduce", "1280 px at device scale 1")])
 
 

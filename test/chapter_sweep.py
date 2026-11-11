@@ -14,7 +14,10 @@ animation frames per step. Each console error and uncaught page error is reporte
 prints one JSON line per step, so where the page's main thread locks and no Playwright call
 returns, the parent's hard timeout ends the child's process tree and names the chapter, step,
 viewport and motion preference it was on; the next sweep starts a fresh child. A hang in one
-artifact therefore cannot outlast its timeout or touch another test's browser. obs quality.md, Testing boundaries, owns why the sweep does not lease the pool's pages.
+artifact therefore cannot outlast its timeout or touch another test's browser. The child also says
+how long each page took to open, from its new browser context to its chapter list; with ``stall``,
+a step after that which runs past ``stall`` times that time ends the child the same way, so a
+locked page fails at a bound that a busy host stretches as it stretches the opening. obs quality.md, Testing boundaries, owns why the sweep does not lease the pool's pages.
 
 With ``screenshots``, each step is saved as ``<folder>/<viewport>/<motion>/<NN>-<chapter>-<step>.png``;
 ``compare`` counts the pixels that differ between two such folders. From the adapter's folder:
@@ -30,6 +33,7 @@ import signal
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 # The emulated motion preferences the sweep opens an artifact with: none, and reduced motion.
@@ -45,6 +49,8 @@ VIEWPORTS = {
 # stops answering and for console errors, not at pixels a person reads, and three times the
 # scale draws nine times the pixels on every scroll step.
 PHONE_SCALE = 1
+# The multiple of a page's own opening time a sweep with a stall bound lets one step after it take.
+STALL = 10
 # How the child marks its output lines from anything else on its stdout.
 LINE = "chapter-sweep "
 # Resolves once the artifact has started, at once if it has; rejects on a failed startup.
@@ -92,17 +98,19 @@ class Sweeper:
     kept for the next: each sweep after the first starts no process and no browser.
 
     A sweep still running after its ``timeout`` ends the child with every process it started,
-    and the next sweep starts a fresh child; so does a sweep the child could not finish."""
+    and the next sweep starts a fresh child; so does a sweep the child could not finish, and, with
+    ``stall``, one whose step after a page opened took ``stall`` times that page's opening time."""
 
     def __init__(self):
         self._process = None
         self._lines = None
 
     def sweep(self, artifact: Path, timeout: float, motions=MOTIONS, screenshots: Path | None = None,
-              viewports=tuple(VIEWPORTS)) -> Swept:
-        """Sweep ``artifact`` at each of ``viewports`` with each of ``motions``, in the child."""
+              viewports=tuple(VIEWPORTS), stall: float | None = None) -> Swept:
+        """Sweep ``artifact`` at each of ``viewports`` with each of ``motions``, in the child, within
+        ``timeout`` seconds and, with ``stall``, each step after a page opened within ``stall`` times
+        the seconds that page took to open."""
         import queue
-        import time
 
         if self._process is None:
             self._start()
@@ -112,9 +120,12 @@ class Sweeper:
         self._process.stdin.flush()
         lines, timed_out, ended = [], False, False
         deadline = time.monotonic() + timeout
+        # The current page's opening time and its step's deadline, once the page has opened.
+        opening, step_deadline = None, None
         while True:
+            until = deadline if step_deadline is None else min(deadline, step_deadline)
             try:
-                line = self._lines.get(timeout=max(0.0, deadline - time.monotonic()))
+                line = self._lines.get(timeout=max(0.0, until - time.monotonic()))
             except queue.Empty:
                 timed_out = True
                 break
@@ -122,6 +133,12 @@ class Sweeper:
                 ended = True
                 break
             lines.append(line)
+            if "opening" in line:
+                opening, step_deadline = None, None
+            elif "opened" in line:
+                opening = line["opened"]
+            if stall is not None and opening is not None:
+                step_deadline = time.monotonic() + stall * opening
             if "finished" in line:
                 break
         returncode, error_output = None, ""
@@ -135,10 +152,13 @@ class Sweeper:
         place = (f"chapter {at['at']!r} ({at['viewport']}, prefers-reduced-motion: {at['motion']}), {at['doing']}"
                  if at else "opening the artifact")
         failure = None
-        if timed_out:
-            failure = (f"did not finish within {timeout:g} s; the page stopped answering at {place}. A loop or "
-                       "wait on the page's main thread never ended there. Remedy: open that chapter with the same "
-                       "motion preference and pause the page in DevTools (CDP Debugger.pause) to see the stack")
+        remedy = ("A loop or wait on the page's main thread never ended there. Remedy: open that chapter with the "
+                  "same motion preference and pause the page in DevTools (CDP Debugger.pause) to see the stack")
+        if timed_out and step_deadline is not None and step_deadline < deadline:
+            failure = (f"the page stopped answering at {place}: no answer within {stall:g} times the page's opening "
+                       f"time of {opening:.2f} s. {remedy}")
+        elif timed_out:
+            failure = f"did not finish within {timeout:g} s; the page stopped answering at {place}. {remedy}"
         elif ended:
             failure = (f"the sweep stopped at {place} (exit code {returncode}): "
                        f"{error_output.strip().splitlines()[-1] if error_output.strip() else 'no message'}")
@@ -216,20 +236,24 @@ def child() -> None:
                 size, phone = VIEWPORTS[name]
                 context = {**conftest.PHONE_CONTEXT, "device_scale_factor": PHONE_SCALE} if phone else {}
                 for motion in job["motions"]:
+                    _say(opening=True, viewport=name, motion=motion)
+                    started = time.monotonic()
                     _sweep_page(browser.new_context(reduced_motion=motion, viewport=size, **context).new_page(),
-                                Path(job["artifact"]), name, motion, screenshots)
+                                Path(job["artifact"]), name, motion, screenshots, started)
             _say(finished=True)
         browser.close()
 
 
-def _sweep_page(page, artifact: Path, viewport: str, motion: str, screenshots: Path | None) -> None:
-    """Open ``artifact`` in ``page`` and open and scroll each of its chapters, saying each step."""
+def _sweep_page(page, artifact: Path, viewport: str, motion: str, screenshots: Path | None, started: float) -> None:
+    """Open ``artifact`` in ``page`` and open and scroll each of its chapters, saying each step and,
+    once its chapters are listed, the seconds since ``started`` (before its context was made) it took to open."""
     say = functools.partial(_say, viewport=viewport, motion=motion)
     page.on("console", lambda message: message.type == "error" and say(error=message.text))
     page.on("pageerror", lambda error: say(error=str(error)))
     page.goto(artifact.resolve().as_uri())
     page.evaluate(READY)
     slugs = [chapter["slug"] for chapter in page.evaluate("obsArtifact.navigationChapters()")]
+    say(opened=time.monotonic() - started)
     for number, slug in enumerate(slugs, 1):
         say(at=slug, doing="opening it")
         steps = page.evaluate(OPEN, slug)
