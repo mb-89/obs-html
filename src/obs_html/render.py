@@ -27,7 +27,8 @@ from latex2mathml.converter import convert as mathml
 from obs_html.bars import BarDefinition, discover_bars
 from obs_html.config import Config, paper
 from obs_html.errors import DOCUMENT_OF, InputError, field_path, schema_error, warn
-from obs_html.features import included as included_features, maths_library, maths_library_licence, pugh_engine
+from obs_html import libraries
+from obs_html.features import included as included_features, pugh_engine
 from obs_html.figure_links import FigureLink
 from obs_html.figures import FIGURE_KINDS, render_figure
 from obs_html.artifact_data import encode_artifact_data, prepare_artifact_scripts, serialize_artifact_data
@@ -1483,8 +1484,7 @@ def _shell(model: dict[str, object], limits: list[dict[str, str]], overlay: str,
                              for feature in features for name in feature.styles)
     pdf_library = ""
     if any(part.key == "source-archive" for part in parts):
-        pdf_library = ('<script id="pdf-library-script">/* ' + read("vendor", "pdf-lib.LICENSE") + " */\n"
-                       + read("vendor", "pdf-lib.min.js").replace("</script", "<\\/script") + "</script>")
+        pdf_library = libraries.element("pdf")
     bar_scripts = "\n".join(f"\n{bar.script}" for bar in bars if bar.script)
     title = model["document"]["title"]
     figure_assets = ""
@@ -1493,18 +1493,12 @@ def _shell(model: dict[str, object], limits: list[dict[str, str]], overlay: str,
         if "plotly-script" in elements:
             figures = config.artifact["figures"]
             if figures["plotlyDelivery"] == "cdn":
-                plotly = (f'<script id="plotly-script" src="{figures["plotlyCdnUrl"]}" '
-                          f'integrity="{figures["plotlyCdnIntegrity"]}" crossorigin="anonymous" '
-                          "data-optional-runtime></script>")
+                plotly = libraries.cdn_element(figures["plotlyCdnUrl"], figures["plotlyCdnIntegrity"])
             else:
-                plotly = ('<script id="plotly-script">/* ' + read("vendor", "plotly.LICENSE") + " */\n"
-                          + read("vendor", "plotly-basic.min.js.LICENSE.txt") + "\n"
-                          + read("vendor", "plotly-basic.min.js").replace("</script", "<\\/script")
-                          + "</script>")
+                plotly = libraries.element("plotting")
         maths = ""
         if "maths-script" in elements:
-            maths = ('<script id="maths-script">/* ' + maths_library_licence() + " */\n"
-                     + maths_library().replace("</script", "<\\/script") + "</script>")
+            maths = libraries.element("maths")
         engine = ""
         if "pugh-engine-script" in elements:
             engine = '<script id="pugh-engine-script">' + pugh_engine().replace("</script", "<\\/script") + "</script>"

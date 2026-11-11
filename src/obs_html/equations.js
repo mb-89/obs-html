@@ -1,6 +1,6 @@
 /* Equation figures, plotted live (features.py, equations; artifact-ui.md, Equation figures).
    The Document's expression trees are evaluated with the embedded maths library (math.js, its
-   Complex numbers) in complex arithmetic with principal branches: a result is a point of the
+   Complex numbers, reached through its door, maths-door.js) in complex arithmetic with principal branches: a result is a point of the
    plot only where its imaginary part vanishes. The visible range of the swept variable is
    sampled again at every zoom and pan; systems the core could not solve exactly are solved here,
    algebraic ones by Newton's method seeded from the defaults, differential ones by an adaptive
@@ -20,7 +20,9 @@ globalThis.obsEquations = (() => {
   const SI_UNITS = {length: "m", mass: "kg", time: "s", current: "A", temperature: "K",
     substance: "mol", luminosity: "cd"};
   const states = new Map();  // figure anchor -> the reader's view state, for this session only.
-  const complex = (re, im = 0) => new globalThis.math.Complex(re, im);
+  const maths = () => globalThis.obsMaths;
+  const plotly = () => globalThis.obsPlotly;  // The plotting library's door (plotly-door.js).
+  const complex = (re, im = 0) => maths().complex(re, im);
   const none = () => complex(NaN, NaN);
 
   function real(z) {
@@ -32,22 +34,21 @@ globalThis.obsEquations = (() => {
     if (base.im === 0 && exponent.im === 0 && (base.re >= 0 || Number.isInteger(exponent.re))) {
       return complex(Math.pow(base.re, exponent.re));
     }
-    return base.pow(exponent);
+    return maths().operations.pow(base, exponent);
   }
   const realArguments = operation => (...values) => {
     const numbers = values.map(real);
     return numbers.some(number => number === null) ? none() : complex(operation(...numbers));
   };
   // Heaviside(0) = 1/2 and sign(0) = 0, as the shared test vectors fix them.
+  const operation = name => value => maths().operations[name](value);
   const OPERATORS = {
-    add: (...values) => values.reduce((total, value) => total.add(value)),
-    mul: (...values) => values.reduce((total, value) => total.mul(value)),
+    add: (...values) => values.reduce((total, value) => maths().operations.add(total, value)),
+    mul: (...values) => values.reduce((total, value) => maths().operations.mul(total, value)),
     pow,
-    exp: value => value.exp(), log: value => value.log(),
-    sin: value => value.sin(), cos: value => value.cos(), tan: value => value.tan(),
-    asin: value => value.asin(), acos: value => value.acos(), atan: value => value.atan(),
-    sinh: value => value.sinh(), cosh: value => value.cosh(), tanh: value => value.tanh(),
-    abs: value => complex(value.abs()),
+    ...Object.fromEntries(["exp", "log", "sin", "cos", "tan", "asin", "acos", "atan", "sinh", "cosh", "tanh"]
+      .map(name => [name, operation(name)])),
+    abs: value => complex(maths().operations.abs(value)),
     atan2: realArguments(Math.atan2),
     sign: realArguments(Math.sign),
     min: realArguments(Math.min), max: realArguments(Math.max),
@@ -133,27 +134,26 @@ globalThis.obsEquations = (() => {
   function parseExpression(text, names) {
     let node;
     try {
-      node = globalThis.math.parse(text);
+      node = maths().parse(text);
     } catch (error) {
       throw new Error(`cannot be parsed: ${error.message}`);
     }
     const tree = item => {
-      if (item.type === "ParenthesisNode") return tree(item.content);
-      if (item.type === "ConstantNode") {
-        if (typeof item.value !== "number") throw new Error(`holds ${item.value}, which is no number`);
-        return {number: item.value};
+      if ("number" in item) {
+        if (typeof item.number !== "number") throw new Error(`holds ${item.number}, which is no number`);
+        return {number: item.number};
       }
-      if (item.type === "SymbolNode") {
+      if ("name" in item) {
         if (names.includes(item.name)) return {symbol: item.name};
         if (item.name === "i") return {constant: "i"};
         if (item.name === "pi") return {number: Math.PI};
         if (item.name === "e") return {number: Math.E};
         throw new Error(`names ${item.name}, which is no variable of the figure (${names.join(", ")})`);
       }
-      if (item.type === "OperatorNode") {
+      if ("operator" in item) {
         const args = item.args.map(tree);
         const negative = value => ({op: "mul", args: [{number: -1}, value]});
-        switch (item.fn) {
+        switch (item.operator) {
         case "add": return {op: "add", args};
         case "subtract": return {op: "add", args: [args[0], negative(args[1])]};
         case "multiply": return {op: "mul", args};
@@ -161,17 +161,17 @@ globalThis.obsEquations = (() => {
         case "pow": return {op: "pow", args};
         case "unaryMinus": return negative(args[0]);
         case "unaryPlus": return args[0];
-        default: throw new Error(`uses the operator ${item.op}, which an equation figure does not evaluate`);
+        default: throw new Error(`uses the operator ${item.symbol}, which an equation figure does not evaluate`);
         }
       }
-      if (item.type === "FunctionNode") {
-        const name = item.fn.name;
+      if ("call" in item) {
+        const name = item.call;
         const args = item.args.map(tree);
         if (name === "sqrt") return {op: "pow", args: [args[0], {number: 0.5}]};
         if (FUNCTIONS[name]) return {op: FUNCTIONS[name], args};
         throw new Error(`calls ${name}, which is not among ${["sqrt", ...Object.keys(FUNCTIONS)].join(", ")}`);
       }
-      throw new Error(`holds a ${item.type}, which is no expression of numbers, variables and functions`);
+      throw new Error(`holds a ${item.other}, which is no expression of numbers, variables and functions`);
     };
     return tree(node);
   }
@@ -854,7 +854,7 @@ globalThis.obsEquations = (() => {
       [`${sweepAxis}axis`]: {title: {text: label(spec.plot.x.source, xScale.unit)}, zeroline: false},
       [`${valueAxis}axis`]: {title: {text: axisTitle(1)}, side: ys.some(item => item.axis === "secondary")
         ? (secondarySide === far ? near : far) : near, zeroline: false},
-      showlegend: view.chart?._fullLayout?.showlegend ?? true, margin: {t: 32, r: 64, l: 64, b: 56},
+      showlegend: (view.chart && plotly().layout(view.chart)?.showlegend) ?? true, margin: {t: 32, r: 64, l: 64, b: 56},
     };
     if (ys.some(item => item.axis === "secondary")) {
       layout[`${valueAxis}axis2`] = {title: {text: axisTitle(2)}, overlaying: valueAxis, side: secondarySide,
@@ -896,7 +896,7 @@ globalThis.obsEquations = (() => {
       const {traces, layout} = figureData(view, computed);
       view.drawing = true;
       try {
-        await globalThis.Plotly.react(view.chart, traces, {...view.base, ...layout}, view.config);
+        await plotly().react(view.chart, traces, {...view.base, ...layout}, view.config);
       } finally {
         view.drawing = false;
       }
@@ -912,7 +912,7 @@ globalThis.obsEquations = (() => {
   }
 
   function render(figure, spec, host) {
-    if (!globalThis.math?.Complex) {
+    if (!maths()?.available()) {
       const message = document.createElement("p");
       message.setAttribute("role", "status");
       message.textContent = "Equation figure unavailable: the maths library could not load.";
@@ -941,7 +941,7 @@ globalThis.obsEquations = (() => {
     views.set(figure, view);
     redraw(figure).then(() => {
       const sweepAxis = () => view.state.swap ? "yaxis" : "xaxis";
-      chart.on("plotly_relayout", event => {
+      plotly().on(chart, "relayout", event => {
         if (view.drawing) return;
         const axis = sweepAxis();
         if (event[`${axis}.autorange`]) view.state.range = null;
@@ -951,11 +951,12 @@ globalThis.obsEquations = (() => {
         redraw(figure).catch(() => {});
       });
       new ResizeObserver(() => {
-        if (!chart.isConnected || !chart.clientWidth || !chart.clientHeight || !chart._fullLayout) return;
+        const drawn = plotly().layout(chart);
+        if (!chart.isConnected || !chart.clientWidth || !chart.clientHeight || !drawn) return;
         const width = chart.clientWidth, height = chart.clientHeight;
-        if (chart._fullLayout.width === width && chart._fullLayout.height === height) return;
+        if (drawn.width === width && drawn.height === height) return;
         view.base = {...view.base, height};
-        globalThis.Plotly.relayout(chart, {width, height});
+        plotly().relayout(chart, {width, height});
       }).observe(chart);
     }).catch(() => {});
   }
@@ -1125,11 +1126,11 @@ globalThis.obsEquations = (() => {
     try {
       const computed = await compute(view, () => {});
       const {traces, layout} = figureData(view, computed);
-      await globalThis.Plotly.newPlot(chart, traces, {...layout, width: 900, height: 450});
-      return {src: await globalThis.Plotly.toImage(chart, {format: "svg", width: 900, height: 450}),
+      await plotly().plot(chart, traces, {...layout, width: 900, height: 450});
+      return {src: await plotly().image(chart, {width: 900, height: 450}),
         changed: changed(spec, state)};
     } finally {
-      globalThis.Plotly.purge(chart);
+      plotly().purge(chart);
       host.remove();
     }
   }

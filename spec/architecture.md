@@ -193,6 +193,40 @@ A build without npm, whose `npm pack` fails or whose tarball is not the pinned o
 renders and builds this specification with the installed wheel and fails when anything is read
 from the repository tree.
 
+## Library doors
+
+Decided by the user, 11 Nov 2026 (work issue `perf/browser-libraries-behind-doors-20261111`):
+each outside thing is reached through one door; the real thing is tested once, in that door's
+contract tests, and every other test runs against a fake held to the same contract.
+
+The artifact's three large browser libraries, the plotting library (Plotly), the maths library
+(math.js) and the PDF library (pdf-lib), are each reached through one door:
+
+| Library | Browser door | What the page calls |
+|---|---|---|
+| Plotly | `plotly-door.js`, `globalThis.obsPlotly` | draw, redraw and relayout a chart, resize it, its drawn size and legend, its events, an SVG image of it, purge it |
+| math.js | `maths-door.js`, `globalThis.obsMaths` | a complex number, the complex operations of an expression tree, a reader's expression parsed into one |
+| pdf-lib | `pdf-door.js`, `globalThis.obsPdf` | whether a PDF holds a named attachment, attach a file to a PDF |
+
+No other script names a library's globals, its objects' methods or its drawn markup (a plot's
+`_fullLayout` or `g.legend`); the figure, equation and archive scripts call the door. Each door
+says, through `available()` where the library can be missing, whether its library loaded, and the
+features' canaries ask the door.
+
+In Python, `libraries.py` is the one module that reads a library's packaged files and writes the
+elements that embed it: the library with its licence, then its door. The plotting library's CDN
+delivery (`artifact.figures.plotlyDelivery`) is also written there, as the CDN's script and the
+same door. `test/structure/test_architecture.py` refuses a library's globals in any other script
+of the package and a library's packaged files named in any other module.
+
+Each door has a fake, in the adapter's `test/fakes/`, that answers the same calls cheaply: a
+placeholder chart of the size asked for, with a legend box and the same events, complex arithmetic
+and an expression parser of the same tree, a PDF attachment it can find again. One contract suite,
+`test/test_library_doors_browser.py`, runs each door's contract against the real library and
+against its fake. Every other test builds pages with the fakes (obs quality.md, Testing
+boundaries); `test/library_fakes.py` owns the switch, and `test/structure/test_quality.py` names
+the tests whose subject is the real library's output and refuses any other test that asks for it.
+
 ## Artifact data ownership
 
 - The generated HTML embeds one canonical note store with identifiers, normalized frontmatter,

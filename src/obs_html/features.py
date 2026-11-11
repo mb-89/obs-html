@@ -16,9 +16,9 @@ FigureKind.features (figures.py); the feature's condition reads those declaratio
 registry has no inclusion mechanism of its own. A feature's part ships code only where its own condition holds as
 well, under the feature's canary: the downloads feature's source-archive part attaches the source
 ZIP to a PDF only in an artifact that has one. A library the renderer delivers itself (the
-plotting library, by artifact.figures.plotlyDelivery, the maths library, packaged from its
-npm lockfile ``maths/package-lock.json`` by hatch_build.py, ctrl's decision engine ``vendor/pugh.js``, and the PDF
-library ``vendor/pdf-lib.min.js`` of the source-archive part) ships exactly where its feature or part is included.
+plotting library, by artifact.figures.plotlyDelivery, the maths library and the PDF library of the
+source-archive part, each through its door, libraries.py, and ctrl's decision engine ``vendor/pugh.js``)
+ships exactly where its feature or part is included.
 """
 from __future__ import annotations
 
@@ -30,18 +30,6 @@ from typing import Callable
 from .artifact_data import serialize_artifact_data
 from .errors import InputError
 from .figures import FIGURE_KINDS
-
-
-def maths_library() -> str:
-    """The maths library (math.js) the equations feature embeds, packaged from its lockfile (hatch_build.py)."""
-    return files("obs_html").joinpath("vendor", "maths", "math.js").read_text(encoding="utf-8")
-
-
-def maths_library_licence() -> str:
-    """The maths library's licence and its bundled licences, which ship with it."""
-    maths = files("obs_html").joinpath("vendor", "maths")
-    return (maths.joinpath("LICENSE").read_text(encoding="utf-8") + "\n"
-            + maths.joinpath("math.js.LICENSE.txt").read_text(encoding="utf-8")).replace("*/", "* /")
 
 
 ENGINE_EXPORT = re.compile(r"^export const \{[^}]*\} = pughEngine\(\);\s*\Z", re.M)

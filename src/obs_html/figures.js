@@ -3,6 +3,8 @@
   "use strict";
   const initialized = new WeakSet();
   const overlayPlaceholders = new WeakMap();
+  // The plotting library's door (plotly-door.js), where the artifact ships it and its library loaded.
+  const plotting = () => (globalThis.obsPlotly?.available() ? globalThis.obsPlotly : null);
   function button(label, action) {
     const item = document.createElement("button");
     item.type = "button"; item.textContent = label; item.addEventListener("click", action);
@@ -144,7 +146,7 @@
       closeActiveOverlay = closeFigure;
       requestAnimationFrame(() => {
         const chart = figure.querySelector(".figure-chart");
-        if (chart && window.Plotly) Plotly.Plots.resize(chart);
+        if (chart && plotting()) plotting().resize(chart);
       });
     });
     expand.className = "figure-expand";
@@ -210,7 +212,7 @@
       expand.focus({preventScroll: true});
       requestAnimationFrame(() => {
         const chart = figure.querySelector(".figure-chart");
-        if (chart && window.Plotly) Plotly.Plots.resize(chart);
+        if (chart && plotting()) plotting().resize(chart);
       });
     }
     return {dialog, closeFigure};
@@ -308,9 +310,10 @@
     legend(figure) {
       const control = button("Legend", () => {
         const chart = figure.querySelector(".figure-chart");
-        if (!chart?._fullLayout || !window.Plotly) return;
-        const shown = chart._fullLayout.showlegend !== false;
-        Plotly.relayout(chart, {showlegend: !shown});
+        const drawn = chart && plotting()?.layout(chart);
+        if (!drawn) return;
+        const shown = drawn.showlegend;
+        plotting().relayout(chart, {showlegend: !shown});
         control.setAttribute("aria-pressed", String(!shown));
       });
       control.className = "filter-pill";
@@ -352,7 +355,8 @@
     const host = figure.querySelector(".figure-live");
     if (spec.kind === "svg") { svgInspector(figure, spec, host); return; }
     if (spec.kind === "pugh") { globalThis.obsPugh.render(figure, spec, host); return; }
-    if (!window.Plotly) {
+    const plotly = plotting();
+    if (!plotly) {
       const message = document.createElement("p");
       message.setAttribute("role", "status");
       message.textContent = "Interactive graph unavailable: Plotly could not load."
@@ -375,7 +379,7 @@
       legend: {...authoredLegend, borderwidth: 1, bordercolor: semanticBorder},
       autosize: true, height: 450, dragmode: "pan",
     };
-    const ready = Plotly.newPlot(chart, structuredClone(spec.data), structuredClone(layout), {
+    const ready = plotly.plot(chart, structuredClone(spec.data), structuredClone(layout), {
       responsive: true, scrollZoom: true, displaylogo: false,
       displayModeBar: true,
       edits: {legendPosition: true},
@@ -384,7 +388,7 @@
     ready.then(() => {
       figure.classList.add("figure-plot-ready");
       function legendKeyboard() {
-        const legend = chart.querySelector("g.legend");
+        const legend = plotly.legend(chart);
         if (!legend || legend.hasAttribute("tabindex")) return;
         legend.setAttribute("tabindex", "0");
         legend.setAttribute("role", "group");
@@ -393,11 +397,11 @@
           if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) return;
           event.preventDefault();
           event.stopPropagation();
-          const current = chart._fullLayout.legend;
+          const current = plotly.layout(chart).legend;
           const step = event.shiftKey ? 0.1 : 0.02;
           const dx = event.key === "ArrowLeft" ? -step : event.key === "ArrowRight" ? step : 0;
           const dy = event.key === "ArrowDown" ? -step : event.key === "ArrowUp" ? step : 0;
-          Plotly.relayout(chart, {
+          plotly.relayout(chart, {
             "legend.x": Math.max(0, Math.min(1, current.x + dx)),
             "legend.y": Math.max(0, Math.min(1, current.y + dy)),
           });
@@ -410,7 +414,7 @@
       let legendFrame = 0, corrected = "";
       function keepLegendReachable() {
         legendFrame = 0;
-        const legend = chart.querySelector("g.legend");
+        const legend = plotly.legend(chart);
         if (!legend || !chart.isConnected) return;
         const box = legend.getBoundingClientRect(), bounds = chart.getBoundingClientRect();
         const dx = box.width > bounds.width || box.left < bounds.left ? bounds.left - box.left :
@@ -422,13 +426,13 @@
           bounds.left, bounds.top, bounds.width, bounds.height]);
         if (measured === corrected) return;
         corrected = measured;
-        const layout = chart._fullLayout;
-        Plotly.relayout(chart, {
-          "legend.x": layout.legend.x + dx / layout._size.w,
-          "legend.y": layout.legend.y - dy / layout._size.h,
+        const layout = plotly.layout(chart);
+        plotly.relayout(chart, {
+          "legend.x": layout.legend.x + dx / layout.plot.width,
+          "legend.y": layout.legend.y - dy / layout.plot.height,
         });
       }
-      chart.on("plotly_afterplot", () => {
+      plotly.on(chart, "afterplot", () => {
         legendKeyboard();
         legendFrame ||= requestAnimationFrame(keepLegendReachable);
       });
@@ -436,8 +440,9 @@
       const observer = new ResizeObserver(() => {
         if (!chart.isConnected || !chart.clientWidth || !chart.clientHeight) return;
         const width = chart.clientWidth, height = chart.clientHeight;
-        if (chart._fullLayout.width === width && chart._fullLayout.height === height) return;
-        Plotly.relayout(chart, {width, height});
+        const drawn = plotly.layout(chart);
+        if (drawn.width === width && drawn.height === height) return;
+        plotly.relayout(chart, {width, height});
       });
       observer.observe(chart);
     }).catch(error => {
@@ -496,7 +501,7 @@
       }
       // An equation figure prints the reader's view; a caption note says where it changed.
       for (const figure of container.querySelectorAll('[data-figure-kind="equations"]:not(:has(> img))')) {
-        if (!window.Plotly) throw new Error("Cannot print graph: Plotly could not load.");
+        if (!plotting()) throw new Error("Cannot print graph: Plotly could not load.");
         const {src, changed} = await globalThis.obsEquations.printImage(figure, JSON.parse(figure.dataset.figureSpec));
         const image = document.createElement("img");
         image.className = "figure-default";
@@ -513,19 +518,19 @@
         }
       }
       for (const figure of container.querySelectorAll('[data-figure-kind="plot"]:not(:has(> img))')) {
-        if (!window.Plotly) throw new Error("Cannot print graph: Plotly could not load.");
+        if (!plotting()) throw new Error("Cannot print graph: Plotly could not load.");
         const spec = JSON.parse(figure.dataset.figureSpec);
         const chart = document.createElement("div");
         figure.querySelector(".figure-live").append(chart);
         try {
-          await Plotly.newPlot(chart, spec.data, {...spec.layout, width: 900, height: 450});
+          await plotting().plot(chart, spec.data, {...spec.layout, width: 900, height: 450});
           const image = document.createElement("img");
           image.className = "figure-default";
           image.alt = figure.querySelector("figcaption")?.textContent || spec.alt || spec.source;
-          image.src = await Plotly.toImage(chart, {format: "svg", width: 900, height: 450});
+          image.src = await plotting().image(chart, {width: 900, height: 450});
           figure.prepend(image);
         } finally {
-          Plotly.purge(chart);
+          plotting().purge(chart);
           chart.remove();
         }
       }

@@ -1,6 +1,6 @@
 // Attach source ZIP to PDF (features.py, the downloads feature's source-archive part): ships only in
 // an artifact with an embedded source archive (source_archive.py). Settings' Attach source ZIP to PDF
-// reads a PDF the reader saved from this HTML, attaches the archive with the PDF library as the
+// reads a PDF the reader saved from this HTML, attaches the archive with the PDF library, through its door (pdf-door.js), as the
 // interim adapter does, and saves the result through the file offers (file-offers.js); Download source
 // ZIP is artifact.js's.
 (() => {
@@ -15,32 +15,9 @@
     };
     const bytes = () => globalThis.obsPayload ? globalThis.obsPayload.bytes() :
         Uint8Array.from(atob(archive.textContent.trim()), char => char.charCodeAt(0));
-    const attach = async (source) => {
-        const {PDFDocument, PDFName, PDFDict, PDFArray, PDFSignature} = globalThis.PDFLib;
-        const pdf = await PDFDocument.load(source);
-        if (pdf.catalog.has(PDFName.of("Perms")) ||
-            pdf.getForm().getFields().some(field => field instanceof PDFSignature)) {
-            throw new Error("Signed PDFs cannot be modified; attach the ZIP before signing.");
-        }
-        const names = pdf.catalog.lookupMaybe(PDFName.of("Names"), PDFDict);
-        const files = names?.lookupMaybe(PDFName.of("EmbeddedFiles"), PDFDict);
-        const hasName = (tree) => {
-            const entries = tree.lookupMaybe(PDFName.of("Names"), PDFArray);
-            if (entries) {
-                for (let index = 0; index < entries.size(); index += 2) {
-                    if (entries.lookup(index).decodeText() === filename) return true;
-                }
-            }
-            const children = tree.lookupMaybe(PDFName.of("Kids"), PDFArray);
-            return children ? children.asArray().some(child => hasName(pdf.context.lookup(child, PDFDict))) : false;
-        };
-        if (files && hasName(files)) throw new Error(`PDF already contains ${filename}; choose the PDF as printed.`);
-        await pdf.attach(await bytes(), filename, {
-            mimeType: "application/zip", description: "The vault's source files",
-            afRelationship: globalThis.PDFLib.AFRelationship.Source,
-        });
-        return pdf.save();
-    };
+    // The PDF library's door (pdf-door.js) attaches the archive.
+    const attach = async (source) => globalThis.obsPdf.attach(source, await bytes(), {
+        filename, mimeType: "application/zip", description: "The vault's source files"});
     let busy = false;
     const picker = document.createElement("input");
     picker.type = "file";
