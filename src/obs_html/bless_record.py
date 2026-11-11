@@ -4,7 +4,8 @@ Reader: whoever changes how obs-html shows a reader's answer that obs-document -
 the Document (obs input-model, Answers; spec/capabilities/bless.md).
 
 A chapter whose bless request carries an ``answer`` shows it as answered; one whose request carries
-an ``outdated`` answer asks again (bless.js) and shows the old answer as outdated. The record names
+an ``outdated`` answer asks again (bless.js) and shows the old answer as outdated; one whose request
+carries a ``comment`` with no verdict asks still and shows the comment. The record names
 the verdict, the picked option, the comment and, per decision figure, the reader's weights, marks,
 rulings with their tripwires and the winner they give. The figure itself shows the same changes
 read-only (pugh-figure.js, from its spec's ``answered``).
@@ -58,7 +59,7 @@ def record_html(chapter: dict) -> str:
     request = chapter.get("bless") or {}
     verdict = request.get("answer") or request.get("outdated")
     if verdict is None:
-        return ""
+        return _comment_html(request["comment"]) if "comment" in request else ""
     bodies = _matrices(chapter["content"])
     criteria = {criterion["key"]: criterion for body in bodies for criterion in body["matrix"]["criteria"]}
     names: dict[str, str | None] = {}
@@ -85,3 +86,11 @@ def record_html(chapter: dict) -> str:
     kind = "outdated" if outdated else "answer"
     return (f'<aside class="bless-record bless-record-{kind}" data-bless-record="{kind}" '
             f'aria-label="{escape(title, quote=True)}">{"".join(parts)}</aside>')
+
+
+def _comment_html(entry: dict) -> str:
+    """A comment the reader sent with no verdict (obs input-model, Answers): shown, and the chapter asks still."""
+    title = "Comment, with no verdict: the chapter asks still"
+    return (f'<aside class="bless-record bless-record-comment" data-bless-record="comment" '
+            f'aria-label="{escape(title, quote=True)}"><p class="bless-record-title"><strong>{escape(title)}</strong></p>'
+            f'<p><strong>Comment:</strong> <span data-bless-record-comment>{escape(entry["comment"])}</span></p></aside>')

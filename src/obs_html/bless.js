@@ -10,10 +10,15 @@
    asks, so the figure's options list shows its radios. Each change of a chapter's verdict by a key or a
    pick, not by typing its comment, fires "obs-bless-change" on document, its detail
    {chapter, verdict}, the verdict a copy or null where it was cleared.
-   Send hands every complete verdict to the answer sink (answers.js) as one payload whose fields
-   obs's src/obs/answers.schema.json owns; spec/capabilities/bless.md owns the contract and
-   artifact-ui.md the top band. The verdicts are session state; which were sent is kept in
-   browser storage per chapter version, so a sent verdict shows as sent until its chapter changes. */
+   The Comment key (✎) opens the entry on any asking chapter without touching the verdict: a
+   chapter's comment is its own, kept through every key, pick, walk and Send (artifact-ui.md,
+   Comments that are never lost).
+   Send hands every complete verdict and every comment to the answer sink (answers.js) as one payload
+   whose fields obs's src/obs/answers.schema.json owns; spec/capabilities/bless.md owns the contract
+   and artifact-ui.md the top band. A chapter's verdict, pick and comment are its draft, kept in
+   session storage per deck and chapter version until a sink confirms the send (bless.md, Drafts);
+   which were sent is kept in local storage per chapter version, so a sent verdict shows as sent
+   until its chapter changes. */
 globalThis.obsBless = (() => {
   const LABELS = {bless: "Bless", decline: "Decline", ask: "Ask", pick: "Pick"};
   const GLYPHS = {bless: "✓", decline: "✗", ask: "?", pick: "⇄"};
@@ -41,8 +46,34 @@ globalThis.obsBless = (() => {
   const requests = new Map(data.notes.filter(note => note.bless).map(note => [note.slug, {
     ...note.bless, title: note.title, figures: note.bless.answer ? [] : decisions(note.html)}]));
   const asking = [...requests].filter(([, request]) => !request.answer).map(([slug]) => slug);
-  const verdicts = new Map();  // chapter -> {verdict, comment, pick}, this session only.
-  const sentKey = slug => `obs-bless-sent:${data.document?.title ?? document.title}:${slug}`;
+  const deck = data.document?.title ?? document.title;
+  const sentKey = slug => `obs-bless-sent:${deck}:${slug}`;
+  const draftKey = slug => `obs-bless-draft:${deck}:${slug}`;
+  /** A chapter's draft from session storage, where it was written at the chapter's version. */
+  const readDraft = slug => {
+    try {
+      const {version, ...draft} = JSON.parse(globalThis.sessionStorage.getItem(draftKey(slug)) || "null") ?? {};
+      return version === requests.get(slug).version ? draft : null;
+    } catch { return null; }
+  };
+  // Chapter -> its draft {verdict, pick, comment}, each part only where given; restored after a reload.
+  const verdicts = new Map(asking.map(slug => [slug, readDraft(slug)]).filter(([, draft]) => draft));
+  /** Keep the chapter's draft as it stands in session storage, or drop it where nothing is left. */
+  const keep = slug => {
+    const draft = verdicts.get(slug);
+    try {
+      if (draft) globalThis.sessionStorage.setItem(draftKey(slug), JSON.stringify({version: requests.get(slug).version, ...draft}));
+      else globalThis.sessionStorage.removeItem(draftKey(slug));
+    } catch (error) { globalThis.obsCapabilities?.fail("bless", `sessionStorage.setItem threw: ${error?.message || error}`); }
+  };
+  /** Set the chapter's draft, dropping its empty parts; an empty draft is no draft. */
+  const store = (slug, {verdict, pick, comment} = {}) => {
+    const draft = {...(verdict ? {verdict} : {}), ...(verdict === "pick" && pick ? {pick} : {}), ...(comment ? {comment} : {})};
+    if (Object.keys(draft).length) verdicts.set(slug, draft);
+    else verdicts.delete(slug);
+    keep(slug);
+  };
+  const commented = draft => Boolean(draft?.comment?.trim());
   const readSent = slug => {
     try {
       const sent = JSON.parse(globalThis.localStorage.getItem(sentKey(slug)) || "null");
@@ -53,7 +84,7 @@ globalThis.obsBless = (() => {
     try { globalThis.localStorage.setItem(sentKey(slug), JSON.stringify({version: requests.get(slug).version, verdict})); }
     catch (error) { globalThis.obsCapabilities?.fail("bless", `localStorage.setItem threw: ${error?.message || error}`); }
   };
-  const complete = verdict => Boolean(verdict && (!NEEDS_COMMENT.has(verdict.verdict) || verdict.comment?.trim())
+  const complete = verdict => Boolean(verdict?.verdict && (!NEEDS_COMMENT.has(verdict.verdict) || verdict.comment?.trim())
     && (verdict.verdict !== "pick" || verdict.pick));
   let active = null;
 
@@ -78,7 +109,14 @@ globalThis.obsBless = (() => {
     key.addEventListener("click", () => choose(verdict));
     return key;
   });
-  keys.append(...keyButtons);
+  // The Comment key: no verdict, it opens and closes the entry (artifact-ui.md, Comments that are never lost).
+  const commentKey = element("button", {type: "button", className: "icon-button bless-key bless-comment-key", textContent: "✎",
+    title: "Comment"});
+  commentKey.dataset.blessCommentKey = "";
+  commentKey.setAttribute("aria-label", "Comment");
+  commentKey.setAttribute("aria-expanded", "false");
+  commentKey.addEventListener("click", () => (entry.hidden ? openEntry() : closeEntry()));
+  keys.append(...keyButtons, commentKey);
   const entry = element("div", {className: "bless-entry"});
   entry.dataset.blessEntry = "";
   entry.hidden = true;
@@ -88,8 +126,9 @@ globalThis.obsBless = (() => {
   const comment = element("input", {type: "text", className: "bless-comment", placeholder: "Your comment (needed)"});
   comment.dataset.blessComment = "";
   comment.addEventListener("input", () => {
-    const verdict = verdicts.get(active);
-    if (verdict) verdict.comment = comment.value, update();
+    if (!requests.get(active) || requests.get(active).answer) return;
+    store(active, {...verdicts.get(active), comment: comment.value});  // Kept exactly as typed.
+    update();
   });
   comment.addEventListener("keydown", event => {
     event.stopPropagation();  // Typing never walks the chapters.
@@ -120,31 +159,40 @@ globalThis.obsBless = (() => {
     picks.hidden = verdict?.verdict !== "pick";
   }
   function openEntry() {
-    const verdict = verdicts.get(active);
+    const verdict = verdicts.get(active), needed = NEEDS_COMMENT.has(verdict?.verdict);
     entry.hidden = false;
-    comment.value = verdict.comment || "";
-    comment.setAttribute("aria-label", `Comment on ${STATES[verdict.verdict].toLowerCase()}, needed`);
+    commentKey.setAttribute("aria-expanded", "true");
+    comment.value = verdict?.comment || "";
+    comment.placeholder = `Your comment (${needed ? "needed" : "optional"})`;
+    comment.setAttribute("aria-label", verdict?.verdict
+      ? `Comment on ${STATES[verdict.verdict].toLowerCase()}, ${needed ? "needed" : "optional"}` : "Comment, with no verdict");
     pickKeys(active);
     comment.focus();
   }
-  function closeEntry() { entry.hidden = true; }
+  function closeEntry() {
+    entry.hidden = true;
+    commentKey.setAttribute("aria-expanded", "false");
+  }
+  /** Enter: the entry closes unless the verdict still needs its comment. */
   function finish() {
-    if (complete(verdicts.get(active))) closeEntry();
+    const verdict = verdicts.get(active);
+    if (!verdict?.verdict || complete(verdict)) closeEntry();
     update();
   }
-  /** Set a chapter's verdict, or clear it to pending with null, and tell the page (obs-bless-change). */
+  /** Set a chapter's verdict, or clear it to pending with null, keeping its comment, and tell the page
+      (obs-bless-change). */
   function decide(slug, verdict) {
-    if (verdict) verdicts.set(slug, verdict);
-    else verdicts.delete(slug);
+    store(slug, {...verdict, comment: verdicts.get(slug)?.comment});
     if (!verdict && slug === active) closeEntry();
     update();
+    const decided = verdicts.get(slug);
     document.dispatchEvent(new CustomEvent("obs-bless-change",
-      {detail: {chapter: slug, verdict: verdict ? structuredClone(verdict) : null}}));
+      {detail: {chapter: slug, verdict: decided?.verdict ? structuredClone(decided) : null}}));
   }
   function choose(verdict) {
     const previous = verdicts.get(active);
     if (previous?.verdict === verdict) { decide(active, null); return; }
-    decide(active, {...previous, verdict, ...(verdict === "pick" ? {} : {pick: undefined})});
+    decide(active, {verdict, pick: verdict === "pick" ? previous?.pick : undefined});
     if (NEEDS_COMMENT.has(verdict)) openEntry();
     else closeEntry();
   }
@@ -160,7 +208,7 @@ globalThis.obsBless = (() => {
     const slug = chapterOf(anchor);
     if (!slug) return;
     if (picked(anchor) === option) { decide(slug, null); return; }
-    decide(slug, {...verdicts.get(slug), verdict: "pick", pick: {figure: anchor, option}});
+    decide(slug, {verdict: "pick", pick: {figure: anchor, option}});
     if (slug !== active) return;
     openEntry();
     if (complete(verdicts.get(active))) comment.select();
@@ -202,6 +250,7 @@ globalThis.obsBless = (() => {
         : readSent(active) ? "sent" : "pending";
       pill.title = request.outdated ? `Bless pending: the answer given at an earlier version is outdated` : pill.textContent;
       keys.hidden = Boolean(request.answer);
+      commentKey.toggleAttribute("data-bless-commented", commented(verdict));
       for (const key of keyButtons) {
         key.setAttribute("aria-pressed", String(verdict?.verdict === key.dataset.blessKey));
         key.hidden = key.dataset.blessKey === "pick" && !request.figures.length;
@@ -209,33 +258,56 @@ globalThis.obsBless = (() => {
       if (!entry.hidden) pickKeys(active);
     }
     const done = asking.filter(slug => complete(verdicts.get(slug))).length;
+    const notes = asking.filter(slug => commented(verdicts.get(slug))).length;
     send.hidden = !asking.length;
-    send.disabled = done === 0;
-    send.textContent = `Send ${done}/${asking.length}`;
-    send.setAttribute("aria-label", `Send ${done} of ${asking.length} verdicts`);
+    send.disabled = done + notes === 0;
+    send.textContent = `Send ${done}/${asking.length}${notes ? ` ✎${notes}` : ""}`;
+    send.setAttribute("aria-label", `Send ${done} of ${asking.length} verdicts${notes ? ` and ${count(notes, "comment")}` : ""}`);
     send.title = send.getAttribute("aria-label");
   }
-  /** The payload: each complete verdict with the chapter's version and the reader's changes to its decision figures. */
+  const count = (n, noun) => `${n} ${noun}${n === 1 ? "" : "s"}`;
+  /** The payload: each complete verdict with its comment, the chapter's version and the reader's changes
+      to its decision figures, and each other chapter's comment alone (bless.md, Contract). */
   function payload() {
     const changes = globalThis.obsPugh?.readerState() ?? {};
-    return {verdicts: asking.filter(slug => complete(verdicts.get(slug))).map(slug => {
-      const {verdict, comment: text, pick: picked} = verdicts.get(slug);
+    return {verdicts: asking.filter(slug => complete(verdicts.get(slug)) || commented(verdicts.get(slug))).map(slug => {
+      const draft = verdicts.get(slug), version = requests.get(slug).version;
+      const text = commented(draft) ? {comment: draft.comment.trim()} : {};
+      if (!complete(draft)) return {chapter: slug, version, ...text};
       const figures = Object.fromEntries(requests.get(slug).figures.filter(figure => changes[figure.anchor])
         .map(figure => [figure.anchor, changes[figure.anchor]]));
-      return {chapter: slug, version: requests.get(slug).version, verdict,
-        ...(NEEDS_COMMENT.has(verdict) ? {comment: text.trim()} : {}), ...(picked ? {pick: picked} : {}),
+      return {chapter: slug, version, verdict: draft.verdict, ...text, ...(draft.pick ? {pick: draft.pick} : {}),
         ...(Object.keys(figures).length ? {figures} : {})};
     })};
   }
+  /** Say in the notice center what Send did (artifact-ui.md, Comments that are never lost). */
+  const tell = (severity, title, detail) => {
+    globalThis.obsNotices?.post({id: "bless-send", severity, title, details: [detail]});
+  };
   async function sendVerdicts() {
     const answers = payload();
     if (!answers.verdicts.length) return;
+    const given = answers.verdicts.filter(entry => entry.verdict), notes = answers.verdicts.filter(entry => entry.comment);
+    const what = `${count(given.length, "verdict")} and ${count(notes.length, "comment")}`;
+    const kept = "Your verdicts and comments are kept in the deck; send again.";
     send.disabled = true;
     try {
       const result = await globalThis.obsArtifact.sendAnswers(answers);
-      if (result.sink !== "text") for (const verdict of answers.verdicts) writeSent(verdict.chapter, verdict);
-    } catch (_error) {
-      // answers.js shows the payload as text and names the failure; nothing is lost.
+      if (result.sink === "text") {
+        tell("warning", "Not sent", `Sending is not available here, so ${what} were not sent. ${kept}`);
+        return;
+      }
+      // The sink confirmed: what it took is sent, and its drafts are cleared.
+      for (const entry of given) writeSent(entry.chapter, entry);
+      for (const entry of answers.verdicts) store(entry.chapter);
+      if (answers.verdicts.some(entry => entry.chapter === active)) { comment.value = ""; closeEntry(); }
+      const where = result.sink === "server" ? `obs-html serve, ${result.written}` : `the sink ${result.sink}`;
+      tell("information", "Sent", `Sent ${what} to ${where}.`);
+      for (const entry of answers.verdicts) document.dispatchEvent(new CustomEvent("obs-bless-change",
+        {detail: {chapter: entry.chapter, verdict: null}}));
+    } catch (error) {
+      // answers.js shows the payload as text and names the failure too.
+      tell("error", "Not sent", `${error?.message || error} ${kept}`);
     } finally {
       update();
     }

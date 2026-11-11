@@ -933,9 +933,10 @@ On such a chapter the top band shows, left of the notice icons:
   decision figure's own short name, [[#Decision figures]]), then "· sent" once sent and
   "· needs a comment" while a comment is missing.
 - **The keys:** four squares of the band's size: Bless (✓), Decline (✗), Ask (?) and Pick (⇄),
-  Pick only where the chapter has a decision figure.
+  Pick only where the chapter has a decision figure, then the Comment key (✎), which is no
+  verdict ([[#Comments that are never lost]]).
 - **The comment:** Decline, Ask and Pick open a one-line comment entry in the band, directly
-  under the keys, and only then; Pick shows there the other options' letters ("Pick A"), as the
+  under the keys, and so does the Comment key; Pick shows there the other options' letters ("Pick A"), as the
   radios of the figure's options list do, and "None of the above", which needs a comment as Decline does and
   is sent as the pick's option `none`. There is no comment box in the page and no browser dialog.
 
@@ -955,19 +956,48 @@ active pick ("Pick B" in the band, or the figure's checked radio), chosen again,
 "Bless pending". The comment entry closes, and Send's count drops.
 
 **Send** shows in the band, on every chapter, while any chapter asks: "Send 1/2", the complete
-verdicts of the asking chapters. It is disabled until one is complete, and hands one payload to
+verdicts of the asking chapters, and the comments ([[#Comments that are never lost]]). It is
+disabled until one is complete or a comment is written, and hands one payload to
 the answer sink ([[capabilities/answers]]); [[capabilities/bless]] owns its fields. A sent
 verdict shows as sent until its chapter's version changes.
 
 A chapter whose answer the build carries (`obs-document --answers`) shows it read-only under
 its heading: the verdict, the picked option, the comment and the reader's changes, rulings and
 tripwires; its pill reads "· recorded" and it has no keys. An outdated answer shows the same way,
-marked outdated, and the chapter asks again.
+marked outdated, and the chapter asks again. A comment the build carries with no verdict
+([[#Comments that are never lost]]) shows the same way, as the reader's comment, and the chapter
+asks still.
 
 When the band is short of space, the breadcrumbs shrink first. Then the pill drops what follows
 its state, whole ("Picked B · Close · sent" reads "Picked B"), then the state truncates, and
 then it shows only its state colour, as a square of the band's size; its label stays its
 tooltip and accessible name. Only then do the band's squares shrink. No key is dropped.
+
+### Comments that are never lost
+
+Decided by the owner, 11 Nov 2026 (work issue `fix/decision-comments-never-lost-20261111`): any
+decision in a deck can carry a comment, and a comment the reader typed is never lost by a click.
+
+- **Any verdict, or none:** Bless takes an optional comment, as Decline, Ask and Pick take their
+  needed one, and a comment with no verdict is kept too. The Comment key (✎) opens and closes the
+  entry on any asking chapter without touching the verdict; it shows as pressed while the entry is
+  open, and in the accent colour while the chapter has a comment. The entry's placeholder says
+  whether the comment is needed or optional. Enter closes the entry unless the verdict still
+  needs its comment; Escape always closes it.
+- **One draft per decision:** the comment is the chapter's, not its verdict's. Pressing or
+  changing a verdict key, clearing the verdict, a pick, walking to another chapter and back,
+  opening or closing the decision figure's options, details or tabs, and pressing Send leave it
+  exactly as typed. Closing the entry hides it; nothing but a confirmed send clears it.
+- **Reload:** the chapter's draft, its verdict, pick and comment, is reader state kept in the
+  browser's session storage per deck and per chapter version ([[capabilities/bless#Drafts]]), so
+  a reload of the page restores it, until a sink confirms its send.
+- **Send's count:** Send counts what it is about to send: "Send 1/2", the complete verdicts of the
+  asking chapters, then "✎2", the chapters with a comment, where there is one; its label says
+  both ("Send 1 of 2 verdicts and 2 comments"). It is enabled while either count is above none.
+- **Sent means sent:** once the sink confirms ([[capabilities/answers#Contract]]), the sent
+  chapters' drafts are cleared and the notice center says what was sent and where ("Sent 1
+  verdict and 2 comments to obs-html serve, answers.json"). Where the sink fails, or sending is not
+  available on the page, the drafts stay and the notice says so.
 
 ## Screens
 
