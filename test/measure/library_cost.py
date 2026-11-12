@@ -3,7 +3,7 @@
 Reader: whoever decides whether, or how, obs-html evaluates its libraries (architecture.md, Library
 doors): Plotly, math.js and pdf-lib.
 
-    uv run python adapters/html/test/browser/library_cost.py [--runs 5] [--output DIRECTORY]
+    uv run python adapters/html/test/measure/library_cost.py [--runs 5] [--output DIRECTORY]
 
 It builds real pages with this checkout's core and adapter, each with the real libraries (never
 the tests' fakes):
