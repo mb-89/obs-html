@@ -227,6 +227,14 @@ against its fake. Every other test builds pages with the fakes (obs quality.md, 
 boundaries); `test/library_fakes.py` owns the switch, and `test/structure/test_quality.py` names
 the tests whose subject is the real library's output and refuses any other test that asks for it.
 
+A page embeds only the libraries its features need (`features.py`), and the bootstrap evaluates
+each when the page opens. What that costs a page's start on a throttled phone is measured by
+`test/browser/library_cost.py`, a script beside the browser harnesses and no test; its docstring
+says what it builds and reads. Measured 12 Nov 2026 (work issue
+`perf/load-libraries-on-first-use-20261111`): a page with no figure, formula or PDF embeds none;
+the PDF library a source archive brings costs such a page under 300 ms to interactive, the
+threshold for evaluating libraries on first use, so they are evaluated at opening.
+
 ## Artifact data ownership
 
 - The generated HTML embeds one canonical note store with identifiers, normalized frontmatter,
