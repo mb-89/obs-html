@@ -203,8 +203,7 @@ and Chrome for the browser tests. Every run installs uv when it is missing.
 - `.\RUNME.ps1 -Setup` installs each missing declared tool with winget, reports every tool as
   present, installed or missing, and exits; the exit code is 0 only when all are present.
 - `.\RUNME.ps1 -Tools` lists the declared tools with their resolved paths and installs nothing.
-  `scripts/new-worktree.ps1` checks this list in its preflight and takes its default browser
-  from it; no other script repeats a tool id or path.
+  No other script repeats a tool id or path.
 
 Without either switch, `RUNME.ps1` and `RUNME.sh` pass their arguments to `uv run obs-document`;
 both switches take none. `RUNME.sh` has no setup mode; winget is Windows-only.
