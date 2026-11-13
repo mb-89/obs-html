@@ -1537,6 +1537,11 @@ separate from artifact presentation.
   the frame's own clock, and names the slowest startup steps when that is missed. Under the
   complete suite's parallel workers the runner's speed, not the artifact, sets the clock, so
   the second is not judged there; its docstring owns how.
+
+  CI checks the second outside the suite's shards: its `first chapter` job runs that test
+  alone five times and judges the median painted time against 1 s. It only warns on a miss
+  for now; once five main runs in a row have a median under 1 s, it blocks. The core's
+  `test/first_chapter.py` owns how it judges, and its `BLOCKING` whether a miss fails.
   Initialize nonvisible/unused views when needed and reuse existing caches rather
   than moving an unchanged whole-artifact calculation onto the first interaction.
 

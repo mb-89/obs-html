@@ -23,6 +23,11 @@ runners painted the same commit's first chapter between 0.4 s and 1.8 s, while i
 whole startup stayed between a quarter and two fifths, so there the test records the times and
 does not judge them.
 
+On CI the second is judged by the median of five runs alone, by the core's test/first_chapter.py,
+outside the suite's shards: it sets MEDIAN_VARIABLE, so each run records its times (the junit
+properties "startup painted ms" and "startup first chapter budget ms") and judges only the order,
+and it judges the median against the budget each run recorded.
+
 It reuses the parity gate's build of the spec (test/test_parity_browser.py), made once per run.
 """
 import os
@@ -34,6 +39,8 @@ from preview import open_preview
 from test_parity_browser import spec_html  # noqa: F401  (the spec, built once per run)
 
 FIRST_CHAPTER_MILLISECONDS = 1000
+# Set by test/first_chapter.py, which judges the median of its runs instead of each run's clock.
+MEDIAN_VARIABLE = "OBS_HTML_FIRST_CHAPTER_MEDIAN"
 MARKS = {
     "shown": "obs-startup first chapter shown",
     "painted": "obs-startup first chapter painted",
@@ -78,6 +85,7 @@ def test_the_spec_artifact_shows_its_first_chapter_within_a_second(
     times = {name: round(measured[name]) for name in ("firstPaint", *MARKS) if measured[name] is not None}
     for name, value in times.items():
         record_property(f"startup {name} ms", value)
+    record_property("startup first chapter budget ms", FIRST_CHAPTER_MILLISECONDS)
     print(f"spec artifact startup: first paint {times.get('firstPaint')} ms, first chapter shown "
           f"{times['shown']} ms, painted {times['painted']} ms, interactive {times['interactive']} ms, "
           f"ready {times['ready']} ms")
@@ -99,8 +107,8 @@ def test_the_spec_artifact_shows_its_first_chapter_within_a_second(
         "startup paints the first chapter before its next step (src/obs_html/artifact-data.js, "
         "yieldSlice).")
 
-    if not alone(request.config):
-        return  # under parallel workers the runner sets the clock (module docstring)
+    if not alone(request.config) or os.environ.get(MEDIAN_VARIABLE) == "1":
+        return  # the runner sets the clock, or test/first_chapter.py judges it (module docstring)
     if measured["painted"] > FIRST_CHAPTER_MILLISECONDS:
         before = [step for step in steps if step["start"] < measured["painted"]]
         slowest = sorted(before, key=lambda step: -step["duration"])[:5]
