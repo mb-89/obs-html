@@ -1525,15 +1525,18 @@ separate from artifact presentation.
   as a browser long task (50 ms), and only then waits until the browser has painted a
   frame; steps within a slice do not wait for frames.
 
-  The first chapter is painted within 1 s of opening the
-  spec artifact on the test machine, on the frame's own clock: the artifact marks
-  `obs-startup first chapter painted` and `obs-startup ready` (User Timing), and
-  `test_startup_browser.py` holds that budget from those marks and names the slowest
-  startup steps when it is missed.
+  The first chapter shows before the rest loads: once a startup step has shown it, the
+  startup paints a frame before it starts its next step, and every step it defers until the
+  artifact is interactive starts after that paint. The artifact marks `obs-startup first
+  chapter shown`, `obs-startup first chapter painted`, `obs-startup interactive` and
+  `obs-startup ready` (User Timing).
 
-  Where load on the machine slows the page itself, the
-  test scales the budget by a load factor it measures in the same run; its docstring owns
-  how.
+  `test_startup_browser.py` holds that order from those marks in every run, under any load,
+  and names the steps that came first when it is broken. Where it runs alone on the test
+  machine, it also holds the first chapter's paint to 1 s of opening the spec artifact, on
+  the frame's own clock, and names the slowest startup steps when that is missed. Under the
+  complete suite's parallel workers the runner's speed, not the artifact, sets the clock, so
+  the second is not judged there; its docstring owns how.
   Initialize nonvisible/unused views when needed and reuse existing caches rather
   than moving an unchanged whole-artifact calculation onto the first interaction.
 

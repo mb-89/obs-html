@@ -54,17 +54,29 @@
         requestAnimationFrame(() => requestAnimationFrame(resolve))).then(() => {
         sliceStart = performance.now();
     });
-    const yieldSlice = async () => {
-        if (performance.now() - sliceStart >= sliceMilliseconds) await paint();
-    };
     // Each startup step is a User Timing measure named "obs-startup <step>"; profilers and the
-    // startup test read them with performance.getEntriesByType("measure"). Two marks time the
-    // opening on the frame's own clock: "obs-startup first chapter painted", once a frame with
-    // the first chapter has been painted (two animation frames, as paint waits), and
-    // "obs-startup ready", as obs-html-ready is sent.
-    document.addEventListener("obs-chapter-change", () => requestAnimationFrame(() => requestAnimationFrame(() => {
-        performance.mark("obs-startup first chapter painted");
-    })), {once: true});
+    // startup test read them with performance.getEntriesByType("measure"). Marks time the
+    // opening on the frame's own clock: "obs-startup first chapter shown", as the first chapter
+    // is shown; "obs-startup first chapter painted", once a frame with it has been painted (two
+    // animation frames, as paint waits); "obs-startup interactive", as obs-html-interactive is
+    // sent; and "obs-startup ready", as obs-html-ready is sent.
+    // The first chapter shows before the rest loads: once a step has shown it, the next yield
+    // paints a frame whatever the slice, and its mark is set before that paint resolves (its
+    // frame callbacks were requested first), so every later step starts after the mark.
+    let firstChapterUnpainted = false;
+    document.addEventListener("obs-chapter-change", () => {
+        performance.mark("obs-startup first chapter shown");
+        firstChapterUnpainted = opening;
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+            performance.mark("obs-startup first chapter painted");
+        }));
+    }, {once: true});
+    const yieldSlice = async () => {
+        if (firstChapterUnpainted || performance.now() - sliceStart >= sliceMilliseconds) {
+            firstChapterUnpainted = false;
+            await paint();
+        }
+    };
     const step = async (name, run) => {
         const start = performance.now();
         try {
@@ -148,6 +160,7 @@
         globalThis.obsArtifact?.validateApplicationRuntime?.(selected);
         document.querySelector(".app-shell")?.removeAttribute("inert");
         document.querySelector("[data-menu-button]")?.removeAttribute("disabled");
+        performance.mark("obs-startup interactive");
         document.dispatchEvent(new CustomEvent("obs-html-interactive"));
         for (const task of work) {
             await yieldSlice();

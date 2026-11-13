@@ -1,29 +1,31 @@
-"""Startup budget: obs's spec artifact shows its first chapter within a second of opening.
+"""Startup: obs's spec artifact shows its first chapter before the rest loads, within a second.
 
 The spec is opened as a reader sees it in Claude's preview, in the null-origin frame
 (test/preview.py), on full Chromium (conftest.py, full_chromium_browser), not the headless
-shell the bulk of the browser tests use. The test waits on the
-artifact's obs-html-ready event (preview.open_preview) and on its "obs-startup first chapter
-painted" mark, never on a poll. It reads three times from the frame's own clock, which starts
-when the frame starts, so load on the machine before the page opens cannot count: first paint,
-and the artifact's own marks for its first chapter painted and fully interactive (both set by
-src/obs_html/artifact-data.js). No init script records them: in the sandboxed srcdoc frame, an
-init script can run after the artifact's own scripts and miss their events. The test fails when
-the first chapter is painted later than its budget, and names the slowest startup steps up to then:
-the "obs-startup <step>" measures artifact-data.js records.
+shell the bulk of the browser tests use. The test waits on the artifact's obs-html-ready event
+(preview.open_preview) and reads the artifact's own marks and startup measures, all set by
+src/obs_html/artifact-data.js on the frame's own clock: "obs-startup first chapter shown",
+"obs-startup first chapter painted", "obs-startup interactive" (every startup script has run;
+the deferred work starts after it) and "obs-startup ready", and the "obs-startup <step>"
+measures. No init script records them: in the sandboxed srcdoc frame, an init script can run
+after the artifact's own scripts and miss their events.
 
-The budget is FIRST_CHAPTER_MILLISECONDS on an idle machine. Where load on the machine (the
-complete suite's parallel workers) slows the page itself, the test measures that slowdown in the
-same run, right after the startup, in the same frame: a fixed workload (sorting a fixed typed
-array) is timed in many short samples; the fastest sample is the idle reference (a short sample
-mostly runs without being preempted), and the samples' total over the idle reference's is the
-load factor. The budget is
-FIRST_CHAPTER_MILLISECONDS times that factor, never less; the test records both and its failure
-message says so.
+The promise is proved by order, which no runner's speed changes (spec/design_input/quality.md,
+Testing boundaries): the first chapter is shown before the artifact is interactive, so before
+any deferred step, and no startup step starts between its being shown and its being painted.
+A first chapter held back behind the rest fails, naming the steps that came first.
 
-Run it alone with `uv run pytest test/test_startup_browser.py`; it reuses the parity gate's
-build of the spec (test/test_parity_browser.py), made once per run.
+The second is judged by the clock only where the test runs alone, as
+`uv run pytest test/test_startup_browser.py` runs it: the first chapter is painted within
+FIRST_CHAPTER_MILLISECONDS of the frame's start, and a miss names the slowest startup steps up to
+then. Under the complete suite's parallel workers (pytest-xdist) the runner sets the clock: CI's
+runners painted the same commit's first chapter between 0.4 s and 1.8 s, while its share of the
+whole startup stayed between a quarter and two fifths, so there the test records the times and
+does not judge them.
+
+It reuses the parity gate's build of the spec (test/test_parity_browser.py), made once per run.
 """
+import os
 from pathlib import Path
 
 import pytest
@@ -32,36 +34,23 @@ from preview import open_preview
 from test_parity_browser import spec_html  # noqa: F401  (the spec, built once per run)
 
 FIRST_CHAPTER_MILLISECONDS = 1000
-FIRST_CHAPTER_MARK = "obs-startup first chapter painted"
-READY_MARK = "obs-startup ready"
+MARKS = {
+    "shown": "obs-startup first chapter shown",
+    "painted": "obs-startup first chapter painted",
+    "interactive": "obs-startup interactive",
+    "ready": "obs-startup ready",
+}
 
-# The load reference's samples; each runs a fixed workload of about 1.5 ms on an idle machine.
-REFERENCE_SAMPLES = 100
-
-# Resolves once the first-chapter mark exists (buffered: at once if it was set already); the
-# artifact is ready by then, so the mark is set within two frames. Then measures the load factor.
-READ = """async ([firstChapterMark, readyMark, samples]) => {
+# The artifact is ready (open_preview), so every mark it sets is set by then; the first chapter's
+# paint follows its showing by two frames, so its mark is awaited (buffered: at once if set).
+READ = """async (marks) => {
     await new Promise(resolve => new PerformanceObserver((list, observer) => {
-        if (list.getEntriesByName(firstChapterMark).length) { observer.disconnect(); resolve(); }
+        if (list.getEntriesByName(marks.painted).length) { observer.disconnect(); resolve(); }
     }).observe({type: "mark", buffered: true}));
-    // A builtin's work (sorting a fixed typed array), which no JIT tier changes, unlike a script loop.
-    const values = new Float64Array(20000);
-    for (let index = 0, seed = 1; index < values.length; index++) values[index] = seed = (seed * 16807) % 2147483647;
-    const work = () => values.slice().sort();
-    work();
-    let idle = Infinity;
-    const begin = performance.now();
-    for (let index = 0; index < samples; index++) {
-        const start = performance.now();
-        work();
-        idle = Math.min(idle, performance.now() - start);
-    }
-    const loadFactor = Math.max(1, (performance.now() - begin) / (samples * idle));
+    const mark = name => performance.getEntriesByName(name, "mark")[0]?.startTime ?? null;
     return {
-        loadFactor,
-        firstPaint: performance.getEntriesByName("first-paint")[0]?.startTime,
-        firstChapter: performance.getEntriesByName(firstChapterMark)[0].startTime,
-        ready: performance.getEntriesByName(readyMark)[0].startTime,
+        firstPaint: performance.getEntriesByName("first-paint")[0]?.startTime ?? null,
+        ...Object.fromEntries(Object.entries(marks).map(([key, name]) => [key, mark(name)])),
         steps: performance.getEntriesByType("measure")
             .filter(entry => entry.name.startsWith("obs-startup "))
             .map(entry => ({name: entry.name.slice(12), start: entry.startTime, duration: entry.duration})),
@@ -69,32 +58,56 @@ READ = """async ([firstChapterMark, readyMark, samples]) => {
 }"""
 
 
+def alone(config: pytest.Config) -> bool:
+    """Whether this test process runs without parallel workers beside it."""
+    return not hasattr(config, "workerinput") and not os.environ.get("PYTEST_XDIST_WORKER")
+
+
 @pytest.mark.browser
 def test_the_spec_artifact_shows_its_first_chapter_within_a_second(
-        tmp_path: Path, full_chromium_browser, spec_html: str, record_property) -> None:
+        request, tmp_path: Path, full_chromium_browser, spec_html: str, record_property) -> None:
     errors: list[str] = []
     _page, frame = open_preview(tmp_path, full_chromium_browser, errors, spec_html, "null-origin")
-    measured = frame.evaluate(READ, [FIRST_CHAPTER_MARK, READY_MARK, REFERENCE_SAMPLES])
+    measured = frame.evaluate(READ, MARKS)
     assert not errors, f"test/test_startup_browser.py: the spec artifact raised errors while opening: {errors}"
+    missing = [MARKS[key] for key in MARKS if measured[key] is None]
+    assert not missing, (
+        f"test/test_startup_browser.py: the spec artifact set no {missing} mark while opening. Remedy: "
+        "set them in src/obs_html/artifact-data.js as adapters/html/spec/artifact-ui.md says.")
 
-    times = {name: round(measured[name]) for name in ("firstPaint", "firstChapter", "ready")}
-    load_factor = round(measured["loadFactor"], 2)
-    budget = round(FIRST_CHAPTER_MILLISECONDS * load_factor)
+    times = {name: round(measured[name]) for name in ("firstPaint", *MARKS) if measured[name] is not None}
     for name, value in times.items():
         record_property(f"startup {name} ms", value)
-    record_property("startup load factor", load_factor)
-    record_property("startup first chapter budget ms", budget)
-    print(f"spec artifact startup: first paint {times['firstPaint']} ms, first chapter "
-          f"{times['firstChapter']} ms, fully interactive {times['ready']} ms; budget {budget} ms "
-          f"({FIRST_CHAPTER_MILLISECONDS} ms idle times load factor {load_factor})")
-    if times["firstChapter"] > budget:
-        before = [step for step in measured["steps"] if step["start"] < measured["firstChapter"]]
-        slowest = sorted(before, key=lambda step: -step["duration"])[:5]
-        steps = "; ".join(f"{step['name']} {round(step['duration'])} ms" for step in slowest)
+    print(f"spec artifact startup: first paint {times.get('firstPaint')} ms, first chapter shown "
+          f"{times['shown']} ms, painted {times['painted']} ms, interactive {times['interactive']} ms, "
+          f"ready {times['ready']} ms")
+
+    steps = measured["steps"]
+    if measured["shown"] > measured["interactive"]:
+        before = [step["name"] for step in steps if step["start"] < measured["shown"]]
         raise AssertionError(
-            f"test/test_startup_browser.py: the spec artifact painted its first chapter after "
-            f"{times['firstChapter']} ms, over its {budget} ms budget ({FIRST_CHAPTER_MILLISECONDS} ms "
-            f"idle times the load factor {load_factor} measured in this run; first paint "
-            f"{times['firstPaint']} ms, fully interactive {times['ready']} ms). Slowest steps before it: "
-            f"{steps or 'none recorded'}. Remedy: make those steps of the adapter's startup "
+            f"test/test_startup_browser.py: the spec artifact showed its first chapter after "
+            f"{times['shown']} ms, after it was interactive ({times['interactive']} ms): the first "
+            f"chapter waited for the rest. Steps started before it: {'; '.join(before)}. Remedy: show "
+            "the first chapter as the startup scripts run (src/obs_html/artifact.js), not in work "
+            "deferred to after obs-html-interactive (adapters/html/spec/artifact-ui.md).")
+    between = [step["name"] for step in steps
+               if measured["shown"] <= step["start"] < measured["painted"]]
+    assert not between, (
+        f"test/test_startup_browser.py: the spec artifact started {between} after showing its first "
+        f"chapter ({times['shown']} ms) and before painting it ({times['painted']} ms). Remedy: the "
+        "startup paints the first chapter before its next step (src/obs_html/artifact-data.js, "
+        "yieldSlice).")
+
+    if not alone(request.config):
+        return  # under parallel workers the runner sets the clock (module docstring)
+    if measured["painted"] > FIRST_CHAPTER_MILLISECONDS:
+        before = [step for step in steps if step["start"] < measured["painted"]]
+        slowest = sorted(before, key=lambda step: -step["duration"])[:5]
+        named = "; ".join(f"{step['name']} {round(step['duration'])} ms" for step in slowest)
+        raise AssertionError(
+            f"test/test_startup_browser.py: run alone, the spec artifact painted its first chapter "
+            f"after {times['painted']} ms, over its {FIRST_CHAPTER_MILLISECONDS} ms budget (first "
+            f"paint {times.get('firstPaint')} ms, ready {times['ready']} ms). Slowest steps before "
+            f"it: {named or 'none recorded'}. Remedy: make those steps of the adapter's startup "
             "(src/obs_html/artifact-data.js and the scripts it starts) cheaper or defer them.")
