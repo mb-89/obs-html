@@ -170,9 +170,10 @@ pdf-lib and js-yaml, and the maths library) is package data of `obs_html`, and t
 it only through `importlib.resources`, so an installed wheel renders what a checkout renders.
 Most are tracked files in `src/obs_html`.
 
-The vendored Plotly and pdf-lib are tracked as their minified releases, unchanged, so a page
-works offline. `vendor.json` pins each by its package, version, source and integrity, and
-`test/test_vendored_libraries.py` refuses a copy that is not the pinned release. Both are over
+The vendored Plotly, pdf-lib and js-yaml are tracked as their minified releases, unchanged, so a
+page works offline. `vendor.json` pins each by its package, version, source and integrity, and
+`test/test_vendored_libraries.py` refuses a copy that is not the pinned release, and a minified
+release in `src/obs_html/vendor/` that `vendor.json` does not pin. Plotly and pdf-lib are over
 the repository's size bound and on its allow list (obs's architecture.md, Repository layout).
 
 An asset that comes from a lockfile is built into the
