@@ -316,6 +316,9 @@ layout); its docstring says what it builds and reads. Measured 12 Nov 2026 (work
 `perf/load-libraries-on-first-use-20261111`): a page with no figure, formula or PDF embeds none;
 the PDF library a source archive brings costs such a page under 300 ms to interactive, the
 threshold for evaluating libraries on first use, so they are evaluated at opening.
+What an artifact's bytes are made of (each runtime script, style and vendored library, the data
+island packed and decoded, the embedded assets, and its PDF's bytes per stream kind) is printed
+by `test/measure/artifact_bytes.py`, a measurement script of the same kind.
 
 Outside the page, `--print-verdicts` ([[cli#Printing the verdicts]]) reaches one more outside
 thing, a JavaScript runtime, Node.js, through one door, `verdicts.py`'s `run_node`: it runs the

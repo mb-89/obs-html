@@ -6,10 +6,13 @@ Reader: whoever changes how a decision figure is decided, laid out or printed.
 One artifact of the pugh fixture Document (fixtures/build_documents.py, pugh) serves every test:
 ctrl's test matrix with a fourth option, a chosen runner-up and a checklist, and a matrix of ten
 options with a Checklist row. The computed verdict's tests read a second, of the decision-verdict
-fixture, whose vault turns artifact.figures.decisionVerdict on and adds ctrl's matrix with a gate. The read-only checks share one page; the tests that change the
+fixture, whose vault turns artifact.figures.decisionVerdict on and adds ctrl's matrix with a gate; the printed
+verdict's test reads a third, the same Document with an answer to its decisions chapter. The read-only checks share one page; the tests that change the
 reader's view or the viewport lease their own. Every page runs with every request outside the
 artifact refused and recorded.
 """
+import contextlib
+import io
 import json
 from pathlib import Path
 
@@ -45,6 +48,46 @@ def verdict_artifact(tmp_path_factory) -> Path:
         assert cli.main([str(PUGH_VERDICT), str(folder / "artifact.html")]) == 0
 
     return built_once(tmp_path_factory, "pugh-verdict-artifact", build) / "artifact.html"
+
+
+ANSWER = {"verdict": "bless", "figures": {
+    OPTION: {"weights": {"speed": 0.5}, "marks": {"D": {"err": 1}}},
+    WIDE: {"weights": {"speed": 1}},
+    GATED: {"vetoes": ["C"], "lifts": {"B": ["gate0"]}}}}
+"""A reader's answer to the decisions chapter with figure changes of every kind the engine takes
+(obs input-model, Answers): a weight and a mark, a weight alone, and a veto with a lifted gate."""
+
+
+@pytest.fixture(scope="module")
+def answered_verdict(tmp_path_factory) -> Path:
+    """The decision-verdict Document whose decisions chapter carries ANSWER, and its artifact, in one folder."""
+    def build(folder: Path) -> None:
+        document = json.loads(PUGH_VERDICT.read_text(encoding="utf-8"))
+        [chapter] = [chapter for chapter in document["chapters"] if chapter["id"] == "decisions"]
+        chapter["bless"] = {"answer": ANSWER}
+        (folder / "document.json").write_text(json.dumps(document, ensure_ascii=False), encoding="utf-8")
+        assert cli.main([str(folder / "document.json"), str(folder / "artifact.html")]) == 0
+
+    return built_once(tmp_path_factory, "pugh-verdict-answered-artifact", build)
+
+
+@pytest.fixture(scope="module")
+def printed_verdicts(tmp_path_factory, answered_verdict) -> dict[str, dict[str, list[list]]]:
+    """What obs-html DOCUMENT --print-verdicts --verdict-format json states for the plain and the
+    answered Document, printed once: by anchor, each decision's lines as [part, letter, text], the
+    shape Reader.bottom reads from the page."""
+    documents = {"plain": PUGH_VERDICT, "answered": answered_verdict / "document.json"}
+
+    def build(folder: Path) -> None:
+        for name, document in documents.items():
+            with contextlib.redirect_stdout(io.StringIO()) as out:
+                assert cli.main([str(document), "--print-verdicts", "--verdict-format", "json"]) == 0
+            (folder / f"{name}.json").write_text(out.getvalue(), encoding="utf-8")
+
+    folder = built_once(tmp_path_factory, "pugh-verdict-prints", build)
+    return {name: {decision["anchor"]: [[line["part"], line.get("letter"), line["text"]] for line in decision["lines"]]
+                   for decision in json.loads((folder / f"{name}.json").read_text(encoding="utf-8"))["decisions"]}
+            for name in documents}
 
 
 class Reader:
@@ -446,4 +489,21 @@ def test_the_readers_vetoes_lifts_and_datum_feed_the_engine_and_the_page_decides
     # Reset restores the fence's vetoes and datum.
     assert reset[0] == engine() and reset[0]["winner"] == "B"
     assert reset[1] == ["veto", "B", "B · Precise is out: over budget: Cost of ownership 19 above 15."] and reset[2] == {}
+    reader.clean()
+
+
+
+@pytest.mark.parametrize("answered", [False, True], ids=["plain", "answered"])
+def test_the_printed_verdict_is_every_line_the_page_draws_for_every_decision(
+        answered, verdict_artifact, answered_verdict, printed_verdicts, reader_browser) -> None:
+    """cli.md, Printing the verdicts: the print states each decision as the page shows it, every line
+    of its bottom line; answered, as the answer left it (verdicts.py and the page map the anchors and
+    the answer apart: render.py, figures.py)."""
+    artifact = answered_verdict / "artifact.html" if answered else verdict_artifact
+    printed = printed_verdicts["answered" if answered else "plain"]
+    assert list(printed) == [OPTION, WIDE, GATED]
+    reader = Reader(reader_browser, artifact, anchors=tuple(printed))
+    assert {anchor: reader.bottom(anchor) for anchor in printed} == printed
+    # The answered page decides the answer, not the fence: its lines differ from the plain print's.
+    assert answered is (printed != printed_verdicts["plain"])
     reader.clean()
