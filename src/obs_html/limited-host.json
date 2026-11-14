@@ -1,0 +1,13 @@
+{
+  "noScripts": "Limited viewer: this viewer runs no scripts, so nothing on this page works here. Download the file and open it in a web browser.",
+  "needs": {
+    "storage": {
+      "missing": "this viewer blocks browser storage, so nothing you change here is kept",
+      "openInstead": "Download the file and open it in a web browser"
+    },
+    "claude-runtime": {
+      "missing": "this viewer is not the Claude app, so what the page sends from here does not arrive",
+      "openInstead": "Open it in the Claude app"
+    }
+  }
+}

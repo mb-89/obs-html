@@ -35,7 +35,7 @@ def check_artifact(artifact: str) -> None:
                                      for spelling in path_spellings(folder)), flags))
                 for label, folder in folders]
     user = _user_name()
-    for where, text in _texts(artifact):
+    for where, text in artifact_texts(artifact):
         text = _BASE64.sub("base64,", text)
         for what, pattern in patterns:
             if pattern.search(text):
@@ -61,11 +61,16 @@ def _user_name() -> str | None:
         return None
 
 
-def _texts(artifact: str) -> Iterator[tuple[str, str]]:
+def artifact_html(artifact: str) -> str:
+    """The artifact's HTML without the data island's content, whose lines ``artifact_texts`` numbers."""
+    island = ARTIFACT_PATTERN.search(artifact)
+    return artifact[:island.start(2)] + artifact[island.end(2):] if island else artifact
+
+
+def artifact_texts(artifact: str) -> Iterator[tuple[str, str]]:
     """The artifact's HTML, line by line without the data island, then each decoded data string."""
     island = ARTIFACT_PATTERN.search(artifact)
-    html = artifact[:island.start(2)] + artifact[island.end(2):] if island else artifact
-    for number, line in enumerate(html.splitlines(), 1):
+    for number, line in enumerate(artifact_html(artifact).splitlines(), 1):
         yield f"HTML line {number}", line
     if island:
         yield from _strings(decode_artifact_data(artifact), "artifact-data ")

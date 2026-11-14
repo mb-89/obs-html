@@ -93,6 +93,23 @@
           "exclusiveMaximum": 1,
           "description": "Shared inactive icon opacity; explanatory text and active icons remain unchanged."
         },
+        "limitedHostNeeds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "enum": ["scripts", "storage", "claude-runtime"]},
+          "default": [],
+          "description": "What the page needs of the page showing it; where a need is missing there, a banner says what does not work and where to open the page instead (architecture.md, Limited-host banner). Optional and empty where absent: the packaged cfg.json leaves it out, so an artifact built without it carries no banner and is byte for byte what it was."
+        },
+        "refuseProvenance": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether the build refuses an artifact in which the provenance check finds an absolute path, a session id or URL, a build timestamp or a private term of the local list, instead of warning of each (architecture.md, Provenance check). Optional and off where absent: the packaged cfg.json leaves it out."
+        },
+        "agentNote": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether the page carries a note for agents, a script element of type text/markdown saying how an agent reads and drives the page (architecture.md, Agent note). Optional and off where absent: the packaged cfg.json leaves it out, so an artifact built without it is byte for byte what it was."
+        },
         "guidedCard": {
           "type": "object",
           "additionalProperties": false,

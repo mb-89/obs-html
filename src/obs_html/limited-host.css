@@ -1,0 +1,14 @@
+.limited-host {
+    position: sticky;
+    top: 0;
+    z-index: 2147483647;
+    margin: 0;
+    padding: 0.6rem 1rem;
+    border-bottom: 2px solid #8a1c1c;
+    background: #fde8e8;
+    color: #5c0f0f;
+    font: 600 1rem/1.4 system-ui, sans-serif;
+}
+.limited-host[hidden] {
+    display: none;
+}

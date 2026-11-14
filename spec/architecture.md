@@ -170,6 +170,75 @@ Command execution is owned by a separate runner boundary. Markdown parsing suppl
 command and receives escaped output; it does not own process invocation, timeout policy,
 or authorization.
 
+## Opt-in page shell parts
+
+Decided by the user, 14 Nov 2026 (work issue `feat/page-shell-limited-host-and-provenance-check-20261114`),
+under the rule of [[architecture#Rendering and runtime]]: three parts of the page shell and
+its build, each standalone and pure (data in, data out) behind thin wiring, and each off where the
+adapter's configuration leaves its setting out. `cfg.schema.json` declares each default and the
+packaged `cfg.json` leaves the key out, so an artifact built without them is byte for byte what it
+was. Their ideas come from ctrl's `src/ui/limited.js`, `test/provenance.test.mjs` and
+`src/core/guide.js` (MIT License, Copyright (c) 2026 mb-89).
+
+### Limited-host banner
+
+A page opened in a limited viewer, such as a document host's preview or an artifact viewer that
+blocks scripts or storage, says so in one plain line instead of half-working. Only a page that
+declares what it needs gets the banner: `artifact.limitedHostNeeds` lists any of `scripts`,
+`storage` and `claude-runtime` (the Claude app's `claude.use`), in a deck's own `cfg.json` or a
+build's `--config`; empty, the default, the page carries none of it.
+
+- `limited-host.json` owns what each need stops and where to open the page instead, and the line
+  for missing scripts (`noScripts`). Every obs page needs scripts, so every banner holds that line
+  in its HTML, where it stays when no script runs.
+- `limited-host.js` is the banner's script. Its pure layer is `missingNeeds(needs, facts)`, the
+  declared needs a host lacks, and `bannerText(missing, table)`, the line; `hostFacts(view)` probes
+  the host, a probe that throws reading as a missing feature. Its wiring reads the declared needs'
+  table the page carries (`limited-host-needs`), words the line or hides the banner, and exposes the
+  result as `obsLimitedHost.missing`.
+- The script runs as the page is parsed, before the first paint, like the reader's startup script:
+  `prepare_artifact_scripts` leaves it running (`artifact_data.py`), so a full host never shows the
+  banner.
+- `limited_host.py` writes the banner's elements right after `<body>`, or nothing without needs.
+
+### Provenance check
+
+No built page carries names, absolute paths, session ids or build dates by accident.
+`provenance.py` is a standalone module: built HTML in, findings out. It reads each place as the
+exposure check does, each HTML line and each string of the decoded data island by its field path
+(`exposure.py`, `artifact_texts`), and finds:
+
+- an absolute path below a person's home folder or an agent's scratch folder: one rooted at the
+  folders `home`, `Users` or `root`, a drive's `Users` folder, `tmp` then `claude`, or macOS's
+  `var` then `folders` (`provenance.py`, `DETECTORS`);
+- a session URL (a URL carrying a session id), and a session id `session_<id>` elsewhere;
+- a build timestamp: an ISO date followed by `T` or a space and a time of day, hours and minutes; a
+  calendar date alone is authored content, such as a note's date property, and is not one;
+- a private term of the local list, `.public-check.local`, the nearest one up from the vault root
+  (else from the Document's folder), read as se's public check reads it: one case-insensitive regex
+  a line, blank lines, `#` comments and `off:` entries skipped.
+
+A finding names its place and the label of what it found (`local-term:<line>` for a local term),
+never the matched text. The build (`cli.py`, after the exposure check) warns of each finding; with
+`artifact.refuseProvenance` true it refuses the artifact, naming every place. Two exemptions,
+each named on the finding it covers, which then neither warns nor refuses:
+
+- `generation-timestamp`: `document.generation.timestamp` of the data island, the build time obs
+  records on purpose; `same_artifact_content` keeps an unchanged rebuild because of it. The check
+  reports it and leaves it as it is.
+- `vendored-library:<element id>`: a line of a script element that embeds a third-party library as
+  its release ships it (`plotly-script`, `maths-script`, `pdf-library-script`, `yaml-script`),
+  whose own text, such as Plotly's example dates, says nothing of the build.
+
+### Agent note
+
+With `artifact.agentNote` true, the page carries a short note for agents, `<script id="agent-note"
+type="text/markdown">`, before its data island: how an agent waits for the page, lists and shows
+its sections, filters them and prints one without a browser, and, where the page asks its reader
+for answers (the `answers` feature), how they reach the agent that asked. `agent-note.md` and
+`agent-note-answers.md` hold the text; `agent_note.py` writes the element, or nothing with the
+option off, the default.
+
 ## Packaged browser assets
 
 Every browser asset the renderer embeds (its scripts and styles, the icons, the vendored Plotly,

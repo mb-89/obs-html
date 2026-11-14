@@ -15,10 +15,10 @@ from typing import Sequence
 
 from obs_html.comments import extract_comments
 from obs_html.config import load_config, with_vault_settings
-from obs_html.errors import InputError, Parser, diagnostics, in_vault, vault_naming
+from obs_html.errors import InputError, Parser, diagnostics, in_vault, vault_naming, warn
 from obs_html.exposure import check_artifact
 from obs_html.figure_svg import document_figures, figure_svg
-from obs_html import serve
+from obs_html import provenance, serve
 from obs_html.render import render
 from obs_html.source_archive import attach, embedded
 from obs_html.artifact_data import chapter_html, html_text, same_artifact_content
@@ -261,6 +261,8 @@ def _write_artifact(document: dict, options: argparse.Namespace, config, destina
     except InputError as error:
         raise in_vault(error, options.vault_root, paths) from error
     check_artifact(artifact)
+    _check_provenance(artifact, config, Path(options.vault_root) if options.vault_root
+                      else options.document.resolve().parent if options.document else Path.cwd())
     if options.vault_root is None:  # The core, which passes it, printed its diagnostics already.
         diagnostics(document)
     if options.check:
@@ -285,6 +287,19 @@ def _write_artifact(document: dict, options: argparse.Namespace, config, destina
         if existing is None or not same_artifact_content(artifact, existing):
             _write_if_changed(destination, artifact.encode("utf-8"))
     print(f"Generated {destination}.")
+
+
+def _check_provenance(artifact: str, config, start: Path) -> None:
+    """Warn of each provenance finding of ``artifact``, or refuse it with them where the configuration
+    says so (artifact.refuseProvenance); the local list is the one nearest ``start``."""
+    found = provenance.findings(artifact, provenance.local_terms(provenance.local_list(start.resolve())))
+    errors = [provenance.problem(finding) for finding in provenance.reported(found)]
+    if errors and config.artifact.get("refuseProvenance", False):
+        first = errors[0]
+        raise InputError(first.source, first.field, "; ".join(
+            [first.problem, *(f"{error.field}: {error.problem}" for error in errors[1:])]), first.remedy)
+    for error in errors:
+        warn(error)
 
 
 OWN_SPEC = "spec"

@@ -196,7 +196,8 @@ def prepare_artifact_scripts(artifact: str) -> str:
     """Make every model consumer inert, including scripts added by later stages."""
     def prepare(opening: str) -> str:
         attrs = _attributes(opening)
-        if attrs.get("id") in {"reader-startup-script", "running-header-script", "artifact-bootstrap-script"}:
+        if attrs.get("id") in {"reader-startup-script", "running-header-script", "artifact-bootstrap-script",
+                                "limited-host-script"}:
             return opening
         kind = attrs.get("type", "")
         if kind not in {"", "text/javascript", "application/javascript"}:

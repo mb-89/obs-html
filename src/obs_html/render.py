@@ -28,8 +28,10 @@ from obs_html.bars import BarDefinition, discover_bars
 from obs_html.config import Config, paper
 from obs_html.errors import DOCUMENT_OF, InputError, field_path, schema_error, warn
 from obs_html import libraries
+from obs_html.agent_note import agent_note_markup
 from obs_html.features import feature_source, included as included_features, pugh_engine
 from obs_html.figure_links import FigureLink
+from obs_html.limited_host import limited_host_markup
 from obs_html.figures import FIGURE_KINDS, render_figure
 from obs_html.artifact_data import encode_artifact_data, prepare_artifact_scripts, serialize_artifact_data
 from obs_html.semantic_assets import SemanticAssets, markup
@@ -1537,6 +1539,10 @@ def _shell(model: dict[str, object], limits: list[dict[str, str]], overlay: str,
                           + re.sub(r"</script", r"<\\/script", runtime_source, flags=re.IGNORECASE)
                           + "</script>")
     header_metadata = escape(serialize_artifact_data(model["document"]["metadataHtml"]), quote=True)
+    # The opt-in page shell parts (architecture.md, Opt-in page shell parts): each is "" by default.
+    limited_host = limited_host_markup(config.artifact.get("limitedHostNeeds", []))
+    agent_note = agent_note_markup(config.artifact.get("agentNote", False),
+                                   any(feature.key == "answers" for feature in features))
     return f"""<!doctype html>
 <html lang="en" data-theme="{escape(startup['theme'])}" data-layout="{escape(startup['layout'])}">
 <head>
@@ -1552,7 +1558,7 @@ def _shell(model: dict[str, object], limits: list[dict[str, str]], overlay: str,
   <style id="semantic-asset-styles">{assets.css()}</style>{feature_styles}
 </head>
 <body>
-  <header class="top-band" data-top-band>
+  {limited_host}<header class="top-band" data-top-band>
     <div class="top-band-path" data-top-band-path data-transient-content></div>
     <button class="icon-button frontmatter-toggle" type="button" data-frontmatter-toggle
             aria-label="Show frontmatter" aria-expanded="false"
@@ -1605,7 +1611,7 @@ def _shell(model: dict[str, object], limits: list[dict[str, str]], overlay: str,
     {''.join(_bar(bar) for bar in bars)}
   </div>
 
-  {encode_artifact_data(model, config.artifact["dataCompression"])}
+  {agent_note}{encode_artifact_data(model, config.artifact["dataCompression"])}
   {source_archive.island(archive) if archive is not None else ""}
   <script id="obs-comments" type="application/json" data-comment-island>{_json_island(comments)}</script>
   <script id="document-limits" type="application/json">{_json_island(limits)}</script>
