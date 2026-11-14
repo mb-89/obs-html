@@ -286,6 +286,18 @@ def shared_settings() -> list[tuple[Row, str, str]]:
     return shared
 
 
+MISSING = object()
+
+
+def has(value: object, path: str) -> bool:
+    """Whether the settings ``value`` holds the dotted ``path``."""
+    for part in path.split("."):
+        if not isinstance(value, dict) or part not in value:
+            return False
+        value = value[part]
+    return True
+
+
 def lookup(value: object, path: str) -> object:
     for part in path.split("."):
         assert isinstance(value, dict) and part in value, part
@@ -319,13 +331,19 @@ def test_a_shared_setting_keeps_its_schema_default_limits_and_reader(row, owner,
     """The key that holds a setting here is constrained by its own schema, its default satisfies
     those limits, and code outside the settings files reads it. The schema as it stands is the
     reference: this adapter's cfg.schema.json with its packaged cfg.json, or the core's
-    config.schema.json with the default it declares."""
+    config.schema.json with the default it declares. An adapter option whose absence keeps an
+    artifact byte for byte what it was (architecture.md, Rendering and runtime) stays out of the
+    packaged cfg.json, which every artifact carries, and declares its default in cfg.schema.json."""
     from jsonschema import Draft202012Validator
 
     if owner == "obs-html":
         package = ADAPTER / "src" / "obs_html"
         schema, where = load(ADAPTER_SCHEMA), "adapters/html/src/obs_html/cfg.schema.json"
-        default = lookup(load(package / "cfg.json"), key)
+        packaged = load(package / "cfg.json")
+        default = (lookup(packaged, key) if has(packaged, key)
+                   else schema_node(schema, key).get("default", MISSING))
+        assert default is not MISSING, (f"{row.where()}: {key} has no default in the packaged cfg.json nor in "
+                                        f"{where}. Declare one; see {OWNER}")
         sources = [path for path in package.rglob("*") if path.suffix in {".py", ".js"}]
     else:
         package = ROOT / "src" / "obs"

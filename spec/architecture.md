@@ -90,6 +90,13 @@ figure kind's own script (the Sankey drawing, the decision engine) ships only wi
 runtime that calls into a feature's script does so only where the feature's content is on the
 page, so a script left out leaves no call behind.
 
+Decided by the user, 14 Nov 2026 (work issue `feat/pugh-engine-computes-the-verdict-20261114`): new
+behaviour ships as a standalone module, or behind an option whose default is today's output. A
+feature's part may need an option of the adapter's configuration (`Part.option`), off where the
+configuration leaves it out; the code a feature's own script runs only with such a part sits in
+that part's marked regions, which the renderer strips where the part does not ship
+(`features.py`, `feature_source`). Without the option an artifact is byte for byte what it was.
+
 The reader's own Base-table code (a note's tables, their saved presentation and their rows in
 search) is the tables feature's script, `tables.js`. The reader's core (`artifact.js`) reaches it
 through one hook: it calls `globalThis.obsTables.attach(core)` once, where `core` holds what the

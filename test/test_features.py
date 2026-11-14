@@ -18,7 +18,7 @@ from documents import chapter, document, heading, node, paragraph
 from obs_html import features
 from obs_html.artifact_data import decode_artifact_data
 from obs_html.config import load_config
-from obs_html.features import FEATURES, Feature, Part
+from obs_html.features import FEATURES, Feature, Part, feature_source
 from obs_html.figures import FIGURE_KINDS
 from obs_html.render import render
 
@@ -223,8 +223,8 @@ def test_a_newly_registered_feature_or_part_must_appear_in_the_feature_fixture(f
 def test_the_inclusion_condition_decides_whether_code_elements_and_canary_ship(feature) -> None:
     included, excluded = CASES[feature.key]
     canary = SOURCE.joinpath(feature.canary).read_text(encoding="utf-8").strip() if feature.canary else None
-    code = [SOURCE.joinpath(name).read_text(encoding="utf-8").strip()
-            for name in (*feature.code, *feature.styles, *feature.base_styles)]
+    # A script as it ships without any option's part (features.py, feature_source): CONFIG turns none on.
+    code = [feature_source(name).strip() for name in (*feature.code, *feature.styles, *feature.base_styles)]
     elements = [f'id="{element}"' for element in feature.elements]
     for source in included:
         html, title = render(source, CONFIG), source["manifest"]["title"]
@@ -283,3 +283,17 @@ def test_a_feature_added_to_the_registry_is_expected_by_the_canary_tests(monkeyp
     for html, (run, undecided) in zip(artifacts, before):
         assert canaries.canaries(html) == [*run, "fake"]
         assert canaries.undecided_where_flags_hidden(html) == [*undecided, "fake"]
+
+
+def test_a_part_an_option_turns_on_ships_only_with_it_and_its_regions_strip_without_it() -> None:
+    """features.py, Part.option and feature_source: the decision figure's verdict part ships only where
+    artifact.figures.decisionVerdict is true, and without it the figure script carries none of its regions."""
+    part = next(part for feature in FEATURES if feature.key == "pugh" for part in feature.parts if part.key == "verdict")
+    assert part.option == ("figures", "decisionVerdict")
+    assert [part.enabled(config) for config in ({}, {"figures": {}}, {"figures": {"decisionVerdict": False}},
+                                                {"figures": {"decisionVerdict": True}})] == [False, False, False, True]
+    plain, kept = feature_source("pugh-figure.js"), feature_source("pugh-figure.js", ["verdict"])
+    assert "part verdict" not in plain and "obsPughVerdict" not in plain
+    assert kept == SOURCE.joinpath("pugh-figure.js").read_text(encoding="utf-8")
+    regions = kept.count("// part verdict {") + kept.count("/* part verdict { */")
+    assert regions == kept.count("// } part verdict") + kept.count("/* } part verdict */") > 0

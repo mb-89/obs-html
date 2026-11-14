@@ -28,7 +28,7 @@ from obs_html.bars import BarDefinition, discover_bars
 from obs_html.config import Config, paper
 from obs_html.errors import DOCUMENT_OF, InputError, field_path, schema_error, warn
 from obs_html import libraries
-from obs_html.features import included as included_features, pugh_engine
+from obs_html.features import feature_source, included as included_features, pugh_engine
 from obs_html.figure_links import FigureLink
 from obs_html.figures import FIGURE_KINDS, render_figure
 from obs_html.artifact_data import encode_artifact_data, prepare_artifact_scripts, serialize_artifact_data
@@ -1475,9 +1475,11 @@ def _shell(model: dict[str, object], limits: list[dict[str, str]], overlay: str,
     canaries = "".join(f'\n  <script id="canary-{feature.key}">\n{read(feature.canary)}  </script>'
                        for feature in features if feature.canary)
     elements = {element for feature in features for element in feature.elements}
-    parts = [part for feature in features for part in feature.shipped(model, trusted_runtime is not None)]
-    feature_code = "".join(f"{read(name)}\n" for feature in features for name in feature.code)
-    feature_code += "".join(f"{read(name)}\n" for part in parts for name in part.code)
+    parts = [part for feature in features
+             for part in feature.shipped(model, trusted_runtime is not None, config.artifact)]
+    shipped_parts = [part.key for part in parts]
+    feature_code = "".join(f"{feature_source(name, shipped_parts)}\n" for feature in features for name in feature.code)
+    feature_code += "".join(f"{feature_source(name, shipped_parts)}\n" for part in parts for name in part.code)
     stylesheet = read("base.css") + "".join(
         f"\n{read(name)}" for feature in features for name in feature.base_styles) + "\n" + overlay
     feature_styles = "".join(f'\n  <style id="feature-styles-{feature.key}">\n{read(name)}  </style>'

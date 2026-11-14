@@ -363,6 +363,11 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
+        "decisionVerdict": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether a decision figure states its engine's verdict, each runner-up's single-weight tie and each veto in its Proposed winner box, and offers the reader's vetoes, lifts and datum (artifact-ui, The engine's bottom line). Optional and off where absent: the packaged cfg.json leaves it out, so an artifact built without it is byte for byte what it was."
+        },
         "plotlyDelivery": {
           "type": "string",
           "enum": [

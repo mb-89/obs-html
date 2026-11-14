@@ -493,9 +493,11 @@ weights and marks in place and plays what-if; the details sit behind tabs.
 
 A decision figure (obs capabilities/pugh-decisions) is decided in the reader's page by
 `src/obs_html/pugh-figure.js` with ctrl's Pugh engine, `src/obs_html/vendor/pugh.js`, copied
-unchanged from ctrl (its header names the commit). The engine is embedded, with its header,
-only in an artifact that holds a decision figure: it is the reader feature `pugh`
-(`features.py`), whose canary reports a host that does not run it.
+unchanged from ctrl (its header names the commit). ctrl's tests of the engine's rules (obs
+capabilities/pugh-decisions, The rules) run against that file under their ctrl names,
+`test/pugh-engine.test.mjs`. The engine is embedded, with its header, only in an artifact that
+holds a decision figure: it is the reader feature `pugh` (`features.py`), whose canary reports a
+host that does not run it.
 
 Every option carries its letter, A, B, C and on in the order the fence lists them, wherever the
 figure names it, its label and its short name (obs input-model, Pugh decision figures). Where
@@ -521,7 +523,8 @@ proposed winner is a sub-section of its own, so the page reads Current situation
 1. **Potential solutions**, after the note's text: the options list, in the figure's frame.
 2. **Proposed winner**, after it: one box drawn as the report's bottom-line-up-front box (the
    `> [!important]` emphasis box, [[#Takeaways and orientation]]), holding the Y-statement and, under it, the
-   proposed option's success criterion, "Success criterion: ‹text›", where it has one.
+   proposed option's success criterion, "Success criterion: ‹text›", where it has one, and, with
+   the computed verdict on, the engine's bottom line ([[#The engine's bottom line]]).
 3. **Details**, after it: the tabs, in the adapter's tab control (the look of a table's detail
    tabs), Matrix shown at the start, then one tab for each of the chapter's sections after the
    figure ([[#Decision tabs from the chapter]]).
@@ -532,7 +535,8 @@ parts in the same order in its own frame, the box under its options list.
 **The options list:** one row per option. A row is its letter chip, its short name and an
 expander; expanding it shows the option's label where that says more, its `what` sentence, its
 wins and losses, and its success criterion, "Success criterion: ‹text›", where the fence gives
-the option a `success` (obs input-model, Pugh decision figures). The computed winner's row carries a "winner" mark; the fence's `chosen` option,
+the option a `success` (obs input-model, Pugh decision figures), and, with the computed verdict on,
+the option's changes ([[#The reader's vetoes and datum]]). The computed winner's row carries a "winner" mark; the fence's `chosen` option,
 where it is another, a "chosen" mark.
 
 Where the chapter asks for a bless, each row carries a radio, and the list ends with a row "None
@@ -597,6 +601,62 @@ drawn on top of the page, across the matrix's borders, never clipped and never a
 scroll bar. A letter, a column head, a Wins or Losses count, a mark with a reason and the
 Sensitivity bar show their card on hover or focus, and on a tap; a tap elsewhere hides it. A mark
 the reader can change shows its reason on hover or focus, and a tap changes it.
+
+#### The engine's bottom line
+
+Decided by the user, 14 Nov 2026 (work issue `feat/pugh-engine-computes-the-verdict-20261114`): the
+decision states its computed verdict, "it can't be judgment" (ctrl's design input 55), where the
+computed verdict is on. Its changes after filing make it an option, off by default, so a decision
+figure is what it was until someone turns it on: `artifact.figures.decisionVerdict` (cfg.schema.json),
+true in the adapter's configuration or in a vault's own `cfg.json`, as a deck's. With it off the
+artifact carries none of the module below, byte for byte the artifact it was.
+
+The verdict is its own module, `src/obs_html/pugh-verdict.js`, the pugh feature's part `verdict`
+(`features.py`): a pure layer, data in and data out (the reader's changes to ctrl's engine
+overrides; the engine's result to the bottom line's lines), and thin wiring the figure calls only
+inside its `part verdict` regions ([[architecture#Rendering and runtime]]).
+
+Under the Y-statement and the success criterion, the Proposed winner box holds what ctrl's engine computed
+(its `sensitivity` and each option's `vetoes`; obs capabilities/pugh-decisions, The rules), one
+line each, in this order:
+
+- **The verdict:** "The choice holds: ‹winner› wins ‹share› of the weight draws within ±‹step›."
+  where the engine's verdict is `holds`, else "The choice depends on the weights: ‹winner› wins
+  ‹share› of the weight draws within ±‹step›." ‹winner› is the engine's suggestion, whatever the
+  reader picked. With one option that fits it reads "‹winner› is the only option that fits.";
+  with none the Y-statement already says "No option fits." and the line is left out.
+- **Each runner-up**, the engine's `runnersUp` in its order (at most `runnersUp`, 3 by default),
+  with its single-weight tie: "‹option› ties if ‹criterion› goes ‹from› → ‹to›: a reasonable
+  change." or "…: not a reasonable change." by the engine's `reasonable`; "‹option› ties it now."
+  where it ties at the current weights; "No single weight makes ‹option› tie." where none does.
+- **Each vetoed option**, in letter order: "‹option› is out: ‹reason›; ‹reason›." with each
+  standing veto's reason as the engine words it, the reader's own as "vetoed by you". A veto the
+  reader lifted is named after them, "lifted: ‹reason›"; an option whose vetoes are all lifted is
+  in and reads "‹option› is in: lifted: ‹reason›."
+
+The lines follow the reader's changes at once, as everything the engine decides does. Print shows
+them as the reader left them.
+
+#### The reader's vetoes and datum
+
+Decided by the user, 14 Nov 2026 (work issue `feat/pugh-engine-computes-the-verdict-20261114`): the
+person's changes that ctrl's engine takes (ctrl's `design/output/pugh.md`, "The person's changes")
+feed it here too, where the computed verdict is on, and the page decides again at once. A changed
+mark is the engine's cell nudge
+([[#The decision matrix]]); an option's expander in the options list holds the rest, as keys:
+
+- **Veto** takes the option out of the ranking, the engine's option veto, its reason "vetoed by
+  you"; the key then reads **Remove my veto**.
+- **Make it the datum** makes the option the datum, the engine's `datum` change: every mark is set
+  again against it. The datum's own row has no such key; once the reader moved the datum, the
+  fence's datum's row has it, and choosing it there restores the fence's datum.
+- **Lift**, one per standing veto of the engine's own (the fence's `fits: false` and each gate that
+  fails), after the veto's reason: the engine's lift of that veto; the option is in once none
+  stands. A lifted veto's key reads **Restore**.
+
+Each change is handed to the engine with the comment "Changed by the reader", as every change
+needs one. Reset restores the fence's weights, marks, vetoes and datum. Where the figure is read
+only (print, an answer's record), the keys are not shown; the bottom line says what stands.
 
 #### Tab badges
 
@@ -685,9 +745,10 @@ The flag shows where a cell is within reach, or the winner's share is under the 
 share; and, as before, where an option is ruled "could happen" or the fence's `chosen` option is
 not the winner.
 
-The changed weights and marks, the rulings and the tripwires are reader state, kept per figure
-anchor while the artifact is open, and readable by the page as `obsPugh.readerState()`, by figure
-anchor and with options by letter, with the winner they give, for whatever sends a reader's
+The changed weights and marks, the vetoed options, the lifted vetoes (by the engine's veto id,
+`given` or `gate<n>`), the reader's datum, the rulings and the tripwires are reader state, kept per
+figure anchor while the artifact is open, and readable by the page as `obsPugh.readerState()`, by
+figure anchor and with options by letter, with the winner they give, for whatever sends a reader's
 verdict ([[#Bless verdicts]]).
 
 Print and PDF show the options list with every option expanded, the Proposed winner box

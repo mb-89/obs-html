@@ -7,7 +7,7 @@ A chapter whose bless request carries an ``answer`` shows it as answered; one wh
 an ``outdated`` answer asks again (bless.js) and shows the old answer as outdated; one whose request
 carries a ``comment`` with no verdict asks still and shows the comment. The record names
 the verdict, the picked option, the comment and, per decision figure, the reader's weights, marks,
-rulings with their tripwires and the winner they give. The figure itself shows the same changes
+vetoes, lifted vetoes and datum, rulings with their tripwires and the winner they give. The figure itself shows the same changes
 read-only (pugh-figure.js, from its spec's ``answered``).
 """
 from __future__ import annotations
@@ -33,6 +33,11 @@ def _matrices(nodes: list[dict]) -> list[dict]:
     return found
 
 
+def _named(letter: str, names: dict[str, str | None]) -> str:
+    """An option as the record names it: its letter and short name, "B · Close", or the letter alone."""
+    return f"{letter} · {names[letter]}" if names.get(letter) else letter
+
+
 def _changes(figure: dict, criteria: dict[str, dict], names: dict[str, str]) -> list[str]:
     lines = []
     for key, weight in figure.get("weights", {}).items():
@@ -42,6 +47,14 @@ def _changes(figure: dict, criteria: dict[str, dict], names: dict[str, str]) -> 
     for letter, marks in figure.get("marks", {}).items():
         for key, mark in marks.items():
             lines.append(f"Mark of {letter} on {criteria.get(key, {'label': key})['label']}: {SYMBOLS[mark]}")
+    for letter in figure.get("vetoes", []):
+        lines.append(f"{_named(letter, names)} vetoed")
+    for letter, ids in figure.get("lifts", {}).items():
+        for veto in ids:
+            which = "the fence's verdict that it does not fit" if veto == "given" else f"gate {int(veto[4:]) + 1}"
+            lines.append(f"Veto of {_named(letter, names)} lifted: {which}")
+    if figure.get("datum"):
+        lines.append(f"Datum: {_named(figure['datum'], names)}")
     for letter, ruling in figure.get("rulings", {}).items():
         if ruling.get("ruling") == "could":
             watch = f"; watch for: {ruling['tripwire']}" if ruling.get("tripwire") else "; no sign to watch for yet"

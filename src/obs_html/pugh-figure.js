@@ -84,7 +84,7 @@ globalThis.obsPugh = (() => {
     return structuredClone(states.get(anchor) ?? fresh(answered));
   }
   const changed = view => Boolean(view && (Object.keys(view.weights).length
-    || Object.values(view.marks).some(marks => Object.keys(marks).length)));
+    || Object.values(view.marks).some(marks => Object.keys(marks).length)/* part verdict { */ || globalThis.obsPughVerdict?.changed(view)/* } part verdict */));
   const texts = value => (value === undefined ? [] : [].concat(value));
 
   /** The options with their letters, the failed checklist items and the matrix the engine decides.
@@ -134,6 +134,10 @@ globalThis.obsPugh = (() => {
   function decide(spec, view = {weights: {}, marks: {}}) {
     const figureModel = model(spec);
     const matrix = matrixFor(spec, figureModel, view.weights);
+    // part verdict {
+    // The reader's vetoes, lifts and datum, the engine's own overrides (pugh-verdict.js); ships only with that part.
+    matrix.overrides = globalThis.obsPughVerdict?.overrides(view, figureModel) ?? [];
+    // } part verdict
     const base = engine().decide(matrix);
     const overrides = [];
     for (const [letter, marks] of Object.entries(view.marks)) {
@@ -144,6 +148,9 @@ globalThis.obsPugh = (() => {
         if (by) overrides.push({kind: "cell", candidate: option.key, criterion, action: "nudge", by, comment: "Changed by the reader"});
       }
     }
+    // part verdict {
+    if (overrides.length) overrides.unshift(...matrix.overrides);
+    // } part verdict
     const result = overrides.length ? engine().decide({...matrix, overrides}) : base;
     return {result, figureModel};
   }
@@ -244,7 +251,11 @@ globalThis.obsPugh = (() => {
           ...(spec.matrix.chosen === option.key && option.key !== winner ? tagged("chosen", "chosen") : []))),
         option.short && labelAdds(option.short, option.name) ? element("p", {className: "pugh-option-label", textContent: option.name}) : null,
         option.what ? element("p", {className: "pugh-option-what", textContent: option.what}) : null,
-        said("wins", "Wins"), said("losses", "Losses"), successLine(option, "option-success"));
+        said("wins", "Wins"), said("losses", "Losses"), successLine(option, "option-success")/* part verdict { */,
+        globalThis.obsPughVerdict?.actions({figure, spec, result, option, view, print, redraw: () => draw(figure, spec)})/* } part verdict */);
+      // part verdict {
+      globalThis.obsPughVerdict?.fold(details);
+      // } part verdict
       if (!print) details.addEventListener("toggle", () => { view.open[option.letter] = details.open; });
       const row = element("li", {className: "pugh-option"}, picks ? radio(option.letter, `Pick ${tag(option)}`) : null, details);
       row.dataset.pughOption = option.letter;
@@ -302,7 +313,8 @@ globalThis.obsPugh = (() => {
   function proposed(spec, result, figureModel, pick) {
     const letter = proposedLetter(result, figureModel, pick);
     const box = element("aside", {className: "content-card content-emphasis pugh-proposed-box"},
-      statement(spec, result, figureModel, pick), successLine(letter && figureModel.byLetter[letter], "success"));
+      statement(spec, result, figureModel, pick), successLine(letter && figureModel.byLetter[letter], "success")/* part verdict { */,
+      ...(globalThis.obsPughVerdict?.bottomLine(result, figureModel) ?? [])/* } part verdict */);
     box.dataset.pughPart = "proposed";
     box.setAttribute("aria-label", "Proposed winner");
     return box;
@@ -990,6 +1002,9 @@ globalThis.obsPugh = (() => {
     if (view.locked) return;  // An answer's changes are the record; nothing resets them.
     view.weights = {};
     view.marks = {};
+    // part verdict {
+    globalThis.obsPughVerdict?.reset(view);
+    // } part verdict
     draw(figure, spec);
   }
   function render(figure, spec, host) {
@@ -1038,9 +1053,10 @@ globalThis.obsPugh = (() => {
   function readerState() {
     const marked = view => Object.fromEntries(Object.entries(view.marks).filter(([, marks]) => Object.keys(marks).length));
     return Object.fromEntries([...states].filter(([, view]) => !view.locked)
-      .map(([anchor, view]) => [anchor, structuredClone({weights: view.weights, marks: marked(view), rulings: view.rulings,
+      .map(([anchor, view]) => [anchor, structuredClone({weights: view.weights, marks: marked(view), /* part verdict { */...globalThis.obsPughVerdict?.state(view), /* } part verdict */rulings: view.rulings,
         winner: view.winner})])
-      .filter(([, view]) => Object.keys(view.weights).length || Object.keys(view.marks).length || Object.keys(view.rulings).length));
+      .filter(([, view]) => Object.keys(view.weights).length || Object.keys(view.marks).length || Object.keys(view.rulings).length/* part verdict { */
+        || globalThis.obsPughVerdict?.changed(view)/* } part verdict */));
   }
   /** A figure's options as it letters and names them: letter, name and short name (model), for the
       bless pill's "Picked B · Close" (bless.js). */

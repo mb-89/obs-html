@@ -19,13 +19,20 @@ ZIP to a PDF only in an artifact that has one. A library the renderer delivers i
 plotting library, by artifact.figures.plotlyDelivery, the maths library and the PDF library of the
 source-archive part, each through its door, libraries.py, and ctrl's decision engine ``vendor/pugh.js``)
 ships exactly where its feature or part is included.
+
+A part may also need an option of the adapter's configuration (``Part.option``, a path in
+``artifact`` of cfg.json) that is off by default, so an artifact built without it is what it was.
+A feature script holds the code it runs only with a part inside that part's regions, a line region
+(``// part <key> {`` to ``// } part <key>`` on lines of their own) or an inline one (``/* part
+<key> { */`` to ``/* } part <key> */``); ``feature_source`` strips every region of a part that does
+not ship, so where it does not, the script ships as it would without the part.
 """
 from __future__ import annotations
 
 from dataclasses import dataclass
 from importlib.resources import files
 import re
-from typing import Callable
+from typing import Callable, Iterable
 
 from .artifact_data import serialize_artifact_data
 from .errors import InputError
@@ -46,13 +53,37 @@ def pugh_engine() -> str:
     return ENGINE_EXPORT.sub("globalThis.obsPughEngine = pughEngine();\n", source)
 
 
+PART_REGION = re.compile(
+    r"^[ \t]*// part (?P<line>[a-z][a-z0-9-]*) \{\n.*?^[ \t]*// \} part (?P=line)\n"
+    r"|/\* part (?P<inline>[a-z][a-z0-9-]*) \{ \*/.*?/\* \} part (?P=inline) \*/", re.M | re.S)
+"""A part's region in a feature script: a line region or an inline one (the module docstring)."""
+
+
+def feature_source(name: str, parts: Iterable[str] = ()) -> str:
+    """The package script ``name`` as an artifact ships it: every region of a part not in ``parts`` stripped."""
+    kept = set(parts)
+    source = files("obs_html").joinpath(name).read_text(encoding="utf-8")
+    return PART_REGION.sub(lambda region: region[0] if (region["line"] or region["inline"]) in kept else "", source)
+
+
 @dataclass(frozen=True)
 class Part:
-    """Code of a feature that ships only where the part's own condition holds as well."""
+    """Code of a feature that ships only where the part's own condition holds as well, and, where
+    it names an ``option``, only where that option of the artifact configuration is true."""
     key: str
     condition: str
     included: Callable[[dict, bool], bool]
     code: tuple[str, ...]
+    option: tuple[str, ...] = ()
+    """The path in the adapter's ``artifact`` configuration (cfg.json) of the boolean that turns the
+    part on; empty for a part its condition alone ships."""
+
+    def enabled(self, artifact_config: dict | None) -> bool:
+        """Whether the configuration turns the part on: it names no option, or that option is true."""
+        value: object = artifact_config if self.option else True
+        for key in self.option:
+            value = value.get(key) if isinstance(value, dict) else None
+        return value is True
 
 
 @dataclass(frozen=True)
@@ -76,9 +107,10 @@ class Feature:
     host: bool = True
     """Whether the feature needs something of the page showing the HTML, so it has a canary."""
 
-    def shipped(self, model: dict, trusted_runtime: bool) -> tuple[Part, ...]:
+    def shipped(self, model: dict, trusted_runtime: bool, artifact_config: dict | None = None) -> tuple[Part, ...]:
         """The parts the artifact carries along with the feature."""
-        return tuple(part for part in self.parts if part.included(model, trusted_runtime))
+        return tuple(part for part in self.parts
+                     if part.included(model, trusted_runtime) and part.enabled(artifact_config))
 
     @property
     def canary(self) -> str | None:
@@ -200,7 +232,11 @@ FEATURES: tuple[Feature, ...] = (
             elements=("maths-script",)),
     Feature("pugh", "a figure of a kind that needs the decision engine (figures.py, FIGURE_KINDS): "
             "a decision figure", _figures_need("pugh"), ("pugh-figure.js",),
-            elements=("pugh-engine-script",), base_styles=("pugh.css",)),
+            elements=("pugh-engine-script",), base_styles=("pugh.css",), parts=(
+                Part("verdict", "a decision figure in an artifact built with artifact.figures.decisionVerdict on: "
+                     "the engine's verdict, runners-up and vetoes, and the reader's vetoes, lifts and datum "
+                     "(artifact-ui.md, The engine's bottom line)", _figures_need("pugh"), ("pugh-verdict.js",),
+                     option=("figures", "decisionVerdict")),)),
     Feature("sankey", "a figure of a kind drawn by the Sankey script (figures.py, FIGURE_KINDS): a Sankey "
             "figure", _figures_need("sankey"), ("sankey-figure.js",), host=False),
     Feature("tables", "a note with a Base table: the reader's table code, the data table, the Bases schema "

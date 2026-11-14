@@ -5,7 +5,8 @@ Reader: whoever changes how a decision figure is decided, laid out or printed.
 
 One artifact of the pugh fixture Document (fixtures/build_documents.py, pugh) serves every test:
 ctrl's test matrix with a fourth option, a chosen runner-up and a checklist, and a matrix of ten
-options with a Checklist row. The read-only checks share one page; the tests that change the
+options with a Checklist row. The computed verdict's tests read a second, of the decision-verdict
+fixture, whose vault turns artifact.figures.decisionVerdict on and adds ctrl's matrix with a gate. The read-only checks share one page; the tests that change the
 reader's view or the viewport lease their own. Every page runs with every request outside the
 artifact refused and recorded.
 """
@@ -19,8 +20,9 @@ from obs_html import cli
 
 
 PUGH = ROOT / "test" / "fixtures" / "documents" / "pugh.json"
+PUGH_VERDICT = ROOT / "test" / "fixtures" / "documents" / "decision-verdict.json"
 VECTORS = json.loads((ROOT / "test" / "fixtures" / "pugh-vectors.json").read_text(encoding="utf-8"))
-OPTION, WIDE = "decisions--block-option", "decisions--block-wide"
+OPTION, WIDE, GATED = "decisions--block-option", "decisions--block-wide", "decisions--block-gated"
 SMALL_WITH_C = next(vector for vector in VECTORS["matrices"] if vector["name"] == "small with C")
 LETTERS = {"D": "A", "A": "B", "B": "C", "C": "D"}
 """The option figure decides ctrl's matrix with the fourth option C (build_documents.py, DECISION),
@@ -37,10 +39,18 @@ def artifact(tmp_path_factory) -> Path:
     return built_once(tmp_path_factory, "pugh-artifact", build) / "artifact.html"
 
 
+@pytest.fixture(scope="module")
+def verdict_artifact(tmp_path_factory) -> Path:
+    def build(folder: Path) -> None:
+        assert cli.main([str(PUGH_VERDICT), str(folder / "artifact.html")]) == 0
+
+    return built_once(tmp_path_factory, "pugh-verdict-artifact", build) / "artifact.html"
+
+
 class Reader:
     """A page of the artifact whose requests beyond the file itself are refused and recorded."""
 
-    def __init__(self, browser, artifact: Path, width: int = 1200):
+    def __init__(self, browser, artifact: Path, width: int = 1200, anchors: tuple[str, ...] = (OPTION, WIDE)):
         self.page = browser.new_page(viewport={"width": width, "height": 900})
         self.requests: list[str] = []
         self.errors: list[str] = []
@@ -55,7 +65,7 @@ class Reader:
         self.page.goto(artifact.as_uri())
         self.page.wait_for_function("document.documentElement.dataset.artifactStatus === 'ready'")
         self.page.evaluate("obsPages.setPaged(false); obsArtifact.activateChapter('decisions')")
-        for anchor in (OPTION, WIDE):
+        for anchor in anchors:
             self.page.wait_for_selector(f"#{anchor}.figure-pugh-ready")
 
     def view(self, anchor: str) -> dict:
@@ -108,6 +118,11 @@ class Reader:
                         [`${letter(entry.key)}:${entry.tie.criterion}`, [entry.tie.to, entry.tie.reasonable]]))},
             };
         }""", anchor)
+
+    def bottom(self, anchor: str) -> list[list]:
+        """The computed verdict's lines in the figure's Proposed winner box: each line's part, option and text."""
+        return self.page.evaluate("""anchor => [...document.getElementById(anchor).querySelectorAll('.pugh-bottom')]
+            .map(line => [line.dataset.pughPart, line.dataset.pughFor ?? null, line.textContent])""", anchor)
 
     def weigh(self, criterion: str, weight: float) -> None:
         field = self.page.locator(f'#{OPTION} [data-pugh-weight="{criterion}"]')
@@ -167,6 +182,8 @@ def test_the_page_decides_ctrls_test_vectors_and_the_matrix_tab_shows_the_decisi
         cell: to for cell, (to, _) in grid["engine"]["ties"].items()}
     assert grid["reach"] == [cell for cell, (_, reasonable) in grid["engine"]["ties"].items() if reasonable] == []
     assert grid["share"] == grid["engine"]["share"]
+    # Without artifact.figures.decisionVerdict the figure is what it was: no verdict lines, no keys of its part.
+    assert reader.bottom(OPTION) == [] and reader.page.evaluate("typeof globalThis.obsPughVerdict") == "undefined"
     wide = reader.view(WIDE)
     assert wide["criteria"][-1] == "checklist" and wide["tabs"][1] == ["checklist", "false", False, "1"]
     assert reader.page.evaluate("""() => [...document.querySelectorAll(
@@ -342,4 +359,91 @@ def test_the_pareto_tab_draws_the_options_with_the_engines_plot_and_flags_a_domi
                                      "D · Middling by B · Precise and C · Quick.")
     assert dominated["lines"]["C"] == ["pl-option", "pugh-dominated"] and dominated["lines"]["B"] == ["pl-front"]
     assert dominated["flag"] == "Pareto, the winner is dominated by B" and dominated["badge"] == "flag"
+    reader.clean()
+
+
+ENGINE_FIELDS = {"chosen", "checklist", "what", "wins", "losses"}
+"""The gated fence's fields that are obs's, not the engine's (capabilities/pugh-decisions, Fence fields and the engine)."""
+
+
+def test_with_the_option_on_the_proposed_winner_states_the_verdict_each_runner_ups_tie_and_each_veto(
+        verdict_artifact, reader_browser) -> None:
+    """artifact-ui.md, The engine's bottom line: the engine's verdict, each runner-up's single-weight
+    tie and whether that change is reasonable, and each vetoed option with its reasons."""
+    reader = Reader(reader_browser, verdict_artifact, anchors=(OPTION, WIDE, GATED))
+
+    assert reader.bottom(OPTION) == [
+        ["verdict", None, "The choice holds: C · Quick wins 96.0 % of the weight draws within ±1."],
+        ["runner-up", "B", "B · Precise ties if Speed goes 2 → 0.5: not a reasonable change."],
+        ["runner-up", "D", "No single weight makes D · Middling tie."],
+        ["runner-up", "A", "No single weight makes A · What runs today tie."]]
+    assert reader.bottom(WIDE)[:3] == [
+        ["verdict", None, "The choice depends on the weights: G wins 88.3 % of the weight draws within ±1."],
+        ["runner-up", "H", "H ties it now."], ["runner-up", "C", "C ties if Speed goes 2 → 1: a reasonable change."]]
+    assert reader.bottom(GATED)[-1] == ["veto", "B", "B · Precise is out: over budget: Cost of ownership 19 above 15."]
+    # The verdict is the engine's, and so is the Sensitivity tab's: one decision.
+    assert reader.view(OPTION)["verdict"] == "holds"
+    reader.clean()
+
+
+def test_the_readers_vetoes_lifts_and_datum_feed_the_engine_and_the_page_decides_again_at_once(
+        verdict_artifact, reader_browser) -> None:
+    """artifact-ui.md, The reader's vetoes and datum: each key is one of the engine's overrides, and the
+    figure shows what decide() gives with them, at once."""
+    from fixtures.build_documents import GATED as gated
+    matrix = {key: value for key, value in gated.items() if key not in ENGINE_FIELDS}
+    matrix["candidates"] = [{key: value for key, value in option.items() if key not in ENGINE_FIELDS}
+                            for option in gated["candidates"]]
+    reader = Reader(reader_browser, verdict_artifact, anchors=(OPTION, WIDE, GATED))
+    page, figure = reader.page, reader.page.locator(f"#{GATED}")
+    letters = {"D": "A", "A": "B", "B": "C", "C": "D"}
+
+    def expand(letter: str) -> None:
+        if not figure.locator(f'.pugh-option-list [data-pugh-option="{letter}"] details').evaluate("node => node.open"):
+            figure.locator(f'.pugh-option-list [data-pugh-option="{letter}"] summary').click()
+
+    def engine(*overrides: dict) -> dict:
+        return page.evaluate("""matrix => { const r = obsPughEngine.decide(matrix);
+            return {winner: r.suggestion.key, totals: Object.fromEntries(r.candidates.map(c => [c.key, c.total]))}; }""",
+                             {**matrix, "overrides": [{**override, "comment": "x"} for override in overrides]})
+
+    def shown() -> dict:
+        view = reader.view(GATED)
+        keys = {letter: key for key, letter in letters.items()}
+        return {"winner": keys[view["winner"]], "totals": {keys[letter]: total for letter, total in view["totals"].items()}}
+
+    closed = figure.locator('[data-pugh-actions="B"]').is_hidden()
+    expand("B")
+    gate = figure.locator('[data-pugh-lift="B:gate0"]')
+    held = gate.get_attribute("aria-pressed")
+    gate.click()
+    lifted = (shown(), reader.bottom(GATED), figure.locator('[data-pugh-lift="B:gate0"]').inner_text())
+    expand("C")
+    figure.locator('[data-pugh-actions="C"] [data-pugh-action="veto"]').click()
+    vetoed = (shown(), reader.bottom(GATED))
+    expand("D")
+    figure.locator('[data-pugh-actions="D"] [data-pugh-action="datum"]').click()
+    moved = (shown(), page.evaluate("obsPugh.readerState()"))
+    figure.locator(".pugh-view .pugh-reset").click()
+    reset = (shown(), reader.bottom(GATED)[-1], page.evaluate("obsPugh.readerState()"))
+
+    lift = {"kind": "lift", "candidate": "A", "veto": "gate0"}
+    veto = {"kind": "option", "candidate": "B", "action": "veto"}
+    datum = {"kind": "datum", "candidate": "C"}
+    # A closed expander's keys are hidden, not merely folded.
+    assert closed and held == "false"
+    # Lifting the gate's veto puts B back in, as decide() does with that lift; the box says it is in.
+    assert lifted[0] == engine(lift) and lifted[2] == "Restore"
+    assert ["veto", "B", "B · Precise is in: lifted: over budget: Cost of ownership 19 above 15."] in lifted[1]
+    # Vetoing the winner C: decide() with both changes, at once; the box names the reader's veto.
+    assert vetoed[0] == engine(lift, veto) and vetoed[0]["winner"] == "A"
+    assert ["veto", "C", "C · Quick is out: vetoed by you."] in vetoed[1]
+    assert vetoed[1][0][0] == "verdict" and "B · Precise" in vetoed[1][0][2]
+    # Making D the datum sets every mark again against it.
+    assert moved[0] == engine(datum, veto, lift)
+    assert moved[1] == {GATED: {"weights": {}, "marks": {}, "vetoes": ["C"], "lifts": {"B": ["gate0"]}, "datum": "D",
+                                "rulings": {}, "winner": letters[moved[0]["winner"]]}}
+    # Reset restores the fence's vetoes and datum.
+    assert reset[0] == engine() and reset[0]["winner"] == "B"
+    assert reset[1] == ["veto", "B", "B · Precise is out: over budget: Cost of ownership 19 above 15."] and reset[2] == {}
     reader.clean()

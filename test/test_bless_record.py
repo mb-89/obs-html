@@ -55,3 +55,21 @@ def test_a_comment_with_no_verdict_shows_and_says_the_chapter_asks_still() -> No
     shown = record_html(chapter)
     assert 'data-bless-record="comment"' in shown and "the chapter asks still" in shown
     assert "Only &lt;a&gt; thought." in shown and "Verdict" not in shown
+
+
+def test_the_record_names_the_readers_vetoes_lifted_vetoes_and_datum() -> None:
+    """artifact-ui.md, The reader's vetoes and datum: the engine's changes beyond weights and marks
+    are part of the record, each option by its letter and short name."""
+    chapter = _chapter("answer")
+    matrix = {"criteria": [{"key": "cost", "weight": 1, "better": "lower"}],
+              "candidates": [{"key": "a", "label": "One"}, {"key": "b", "label": "Two"}, {"key": "c", "label": "Three"}]}
+    chapter["content"].append({"type": "figures", "attrs": {"kind": "pugh"}, "children": [
+        {"type": "pugh", "attrs": {"matrix": matrix, "shortNames": ["One", "Two", None]}, "children": []}]})
+    chapter["bless"]["answer"] = {**VERDICT, "figures": {"choice": {
+        "vetoes": ["A"], "lifts": {"C": ["given", "gate1"]}, "datum": "B", "winner": "C"}}}
+    record = record_html(chapter)
+
+    assert "<li>A · One vetoed</li>" in record
+    assert "<li>Veto of C lifted: the fence&#x27;s verdict that it does not fit</li>" in record
+    assert "<li>Veto of C lifted: gate 2</li>" in record
+    assert "<li>Datum: B · Two</li>" in record and "<li>Winner with these changes: C</li>" in record

@@ -1,4 +1,4 @@
-"""Runs the standalone Node unit tests (``test/*.test.js``) and syntax-checks every runtime ``.js``."""
+"""Runs the standalone Node unit tests (``test/*.test.js`` and ``test/*.test.mjs``) and syntax-checks every runtime ``.js``."""
 import shutil
 import subprocess
 from pathlib import Path
@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 TEST_ROOT = Path(__file__).resolve().parent
-NODE_TESTS = sorted(TEST_ROOT.glob("*.test.js"))
+NODE_TESTS = sorted([*TEST_ROOT.glob("*.test.js"), *TEST_ROOT.glob("*.test.mjs")])
 PACKAGE_ROOT = TEST_ROOT.parent / "src" / "obs_html"
 RUNTIME_SCRIPTS = sorted(PACKAGE_ROOT.rglob("*.js"))
 pytestmark = pytest.mark.dom
@@ -22,7 +22,7 @@ def _node() -> str:
 def test_node_unit_tests_are_present():
     assert {path.name for path in NODE_TESTS} == {
         "attachment-replacement.test.js", "bases-filter-conformance.test.js", "canonical-transaction.test.js",
-        "comment-model.test.js", "equations.test.js", "pugh.test.js", "zip-rewrite.test.js"}
+        "comment-model.test.js", "equations.test.js", "pugh-engine.test.mjs", "pugh-verdict.test.js", "pugh.test.js", "zip-rewrite.test.js"}
 
 
 def test_runtime_scripts_include_bar_and_storage_runtimes():
