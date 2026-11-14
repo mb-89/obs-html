@@ -153,6 +153,35 @@ as the adapter rendered them from its Document.
 CHAPTER; a title that two chapters share lists their ids. Like `--extract-comments`, it renders
 nothing, so it refuses DOCUMENT and the rendering options.
 
+## Printing the verdicts
+
+Decided by the user, 14 Nov 2026 (work issue `feat/pugh-verdict-as-text-20261114`): an agent that
+decides a question opens no page, so `obs-html DOCUMENT --print-verdicts` prints the computed
+verdict of each decision of DOCUMENT (each `pugh` figure) to stdout and writes no artifact. Each
+decision prints its title, then the lines of its bottom line, the sentences the page draws with
+`artifact.figures.decisionVerdict` on ([[artifact-ui#The engine's bottom line]]), so an agent
+cites what the person reads. A decision whose chapter carries an answer is decided as the answer
+left it, as the page shows it. The print does not read that setting and does not turn it on; a
+build without `--print-verdicts` is the build it was.
+
+`--verdict-format text` (the default) prints one block per decision, its title and then its
+lines, a blank line between decisions; obs capabilities/pugh-decisions, Printing the verdicts,
+shows one.
+`--verdict-format json` prints one JSON object, `{"decisions": [...]}`, one entry per decision in
+Document order: its `anchor` (the figure's id in the artifact), `title`, `answered`, its `lines`
+as the bottom line's data (`part`, `text`, and where they apply `letter`, `verdict` and
+`reasonable`), the engine's `suggestion`, its `ranking` with each option's letter, name, total,
+whether it fits and its vetoes, and its `sensitivity` with each runner-up's tie point (`criterion`,
+`from`, `to`, `reasonable`, `now`). A Document without a decision prints one line, "No decision
+in DOCUMENT." or `{"decisions": []}`, and exits 0.
+
+The decision is the page's own, through one door to a JavaScript runtime, Node.js
+(`verdicts.py`, `run_node`): it runs ctrl's engine (`vendor/pugh.js`) unchanged with the figure's
+mapping (`obsPugh.decide`, `pugh-figure.js`) and the wording of the pure layer
+(`bottomLineOf`, `pugh-verdict.js`), which `pugh-text.js` calls; obs copies no rule into Python.
+The engine has no clock and draws from the fence's seed, so the same Document prints the same
+bytes. Without `node` on PATH the call prints one line naming the remedy and exits 2.
+
 ## Serving answers
 
 `obs-html serve ARTIFACT` serves a built artifact and the files beside it on `127.0.0.1` and takes

@@ -317,6 +317,13 @@ layout); its docstring says what it builds and reads. Measured 12 Nov 2026 (work
 the PDF library a source archive brings costs such a page under 300 ms to interactive, the
 threshold for evaluating libraries on first use, so they are evaluated at opening.
 
+Outside the page, `--print-verdicts` ([[cli#Printing the verdicts]]) reaches one more outside
+thing, a JavaScript runtime, Node.js, through one door, `verdicts.py`'s `run_node`: it runs the
+page's own decision scripts, unchanged, and answers with what they print. The real runtime is
+tested once, in `test/test_print_verdicts.py`'s test of the printed lines; every other test of the
+print runs the door's fake in that module, which answers as the door does, a missing runtime
+included.
+
 ## Artifact data ownership
 
 - The generated HTML embeds one canonical note store with identifiers, normalized frontmatter,

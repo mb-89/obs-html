@@ -18,7 +18,7 @@ from obs_html.config import load_config, with_vault_settings
 from obs_html.errors import InputError, Parser, diagnostics, in_vault, vault_naming, warn
 from obs_html.exposure import check_artifact
 from obs_html.figure_svg import document_figures, figure_svg
-from obs_html import provenance, serve
+from obs_html import provenance, serve, verdicts
 from obs_html.render import render
 from obs_html.source_archive import attach, embedded
 from obs_html.artifact_data import chapter_html, html_text, same_artifact_content
@@ -94,6 +94,13 @@ Printing a chapter:
   artifact's table of contents, or a chapter's title. --chapter-format text prints plain text,
   one line per block, instead of HTML. An unknown chapter fails and lists the available ids.
 
+Printing the verdicts:
+  DOCUMENT --print-verdicts prints the computed verdict of each decision (pugh figure) of DOCUMENT
+  to stdout, the lines its page draws with artifact.figures.decisionVerdict on, and writes no
+  artifact. --verdict-format json prints them as data with the engine's suggestion, ranking and
+  tie points instead of text. It runs the page's own engine in Node.js; without node on PATH it
+  fails (exit 2) with one line naming the remedy.
+
 PDF operations:
   --export-pdf HTML --output file.pdf prints existing HTML with local Chrome/Edge/Chromium
   or Playwright Chromium, and attaches the source ZIP the HTML embeds as obs-html-source.zip.
@@ -126,6 +133,7 @@ Examples:
   obs-html --check-rendered artifact.html
   obs-html --extract-comments reviewed.html
   obs-html --print-chapter artifact.html intro --chapter-format text
+  obs-html document.json --print-verdicts --verdict-format json
   obs-html document.json --export-figures figures
   obs-html --build-own-spec obs-html-specification.html
   obs-html serve artifact.html --wait --timeout 3600
@@ -173,6 +181,10 @@ def build_parser() -> argparse.ArgumentParser:
                         help="Print one chapter of a built artifact by id or title.")
     parser.add_argument("--chapter-format", choices=("html", "text"),
                         help="Print the --print-chapter chapter as html (default) or plain text.")
+    parser.add_argument("--print-verdicts", action="store_true",
+                        help="Print the computed verdict of each decision of DOCUMENT; writes no artifact.")
+    parser.add_argument("--verdict-format", choices=("text", "json"),
+                        help="Print the --print-verdicts verdicts as text (default) or JSON.")
     parser.add_argument("--export-pdf", type=Path, metavar="HTML", help="Print existing HTML to PDF.")
     parser.add_argument("--output", type=Path, metavar="PDF",
                         help="PDF written by --export-pdf or --attach-source-to-pdf.")
@@ -207,8 +219,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         if options.chapter_format and not options.print_chapter:
             raise InputError(PROG, "--chapter-format", "is only used with --print-chapter",
                              "Add --print-chapter HTML CHAPTER, or drop --chapter-format")
+        if options.verdict_format and not options.print_verdicts:
+            raise InputError(PROG, "--verdict-format", "is only used with --print-verdicts",
+                             "Add --print-verdicts, or drop --verdict-format")
         with recording() as recorded:
-            if options.print_chapter:
+            if options.print_verdicts:
+                _print_verdicts(options)
+            elif options.print_chapter:
                 _print_chapter(options)
             elif options.extract_comments:
                 _extract(options)
@@ -222,6 +239,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                 _build_own_spec(options, config)
             else:
                 _render(options, config)
+    except verdicts.RuntimeMissing as error:  # One line naming the remedy (cli.md, Printing the verdicts).
+        parser.exit(2, f"{error}\n")
     except InputError as error:
         parser.print_usage(sys.stderr)
         parser.exit(2, f"{error}\n")
@@ -458,6 +477,23 @@ def _print_chapter(options: argparse.Namespace) -> None:
     except InputError as error:
         raise InputError(path, error.field, error.problem, error.remedy) from error
     print(html_text(html) if options.chapter_format == "text" else html, end="")
+
+
+def _print_verdicts(options: argparse.Namespace) -> None:
+    """Print the verdict of each decision of DOCUMENT (cli.md, Printing the verdicts); writes nothing."""
+    _alone("--print-verdicts", options, "destination", "check", "style", "trusted_runtime_bundle",
+           "embed_attachments", "export_pdf", "check_rendered", "output", "export_figures", "extract_comments",
+           "print_chapter", "attach_source_to_pdf", "build_own_spec")
+    if options.document is None:
+        raise InputError(PROG, "DOCUMENT", "is missing", "Name the JSON Document whose decisions to print")
+    document = _read_document(options.document)
+    try:
+        decided = verdicts.verdicts(document)
+    except (KeyError, TypeError, AttributeError) as error:
+        raise InputError(options.document, "DOCUMENT", f"is not a Document obs-html reads ({error!r})",
+                         "Build the Document with obs-document") from error
+    print(verdicts.json_of(decided) if options.verdict_format == "json"
+          else verdicts.text_of(decided, str(options.document)), end="")
 
 
 PROG = "obs-html"
