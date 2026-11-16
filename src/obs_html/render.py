@@ -401,6 +401,24 @@ def _callout(node: dict[str, object], context: Context) -> str:
     return f"{opening}{header}{_nodes(node['children'], context)}</aside>\n"
 
 
+COLUMN_WEIGHTS = range(1, 9)
+"""The weights a columns block may carry (obs capabilities/columns); columns.css has a rule for each."""
+
+
+def _columns(node: dict[str, object], context: Context) -> str:
+    """A two-column block (obs capabilities/columns): its two ``document`` children side by side in
+    their weights' ratio, as classes columns.css reads, never inline styles; columns.css stacks them
+    where the reader is too narrow (artifact-ui.md, two-column blocks)."""
+    weights, columns = node["attrs"].get("weights"), node["children"]
+    if not (isinstance(weights, list) and len(weights) == 2 and all(weight in COLUMN_WEIGHTS for weight in weights)):
+        raise _stale(context, ["attrs", "weights"], f"is {weights!r}, not two weights from 1 to 8")
+    if len(columns) != 2 or any(column.get("type") != "document" for column in columns):
+        raise _stale(context, ["children"], "is not the block's two columns, two document nodes")
+    body = "".join(f'<div class="content-column content-column--weight-{weight}">{_body(column, index, context)}</div>'
+                   for index, (weight, column) in enumerate(zip(weights, columns)))
+    return f'<div class="content-columns" data-content-columns="{weights[0]}:{weights[1]}">{body}</div>\n'
+
+
 def _chapter_title(chapter: str, context: Context) -> str:
     """The title of the chapter a link node's ``attrs.chapter`` names."""
     if chapter not in context.chapters:
@@ -778,6 +796,7 @@ CAPABILITIES: dict[str, Renderer] = {
     "callouts": _callout,
     "cards-metrics": _cards,
     "chapter-inclusion": _nothing,
+    "columns": _columns,
     "command-fences": _command,
     "count-query": _nothing,
     "embeds": _embed,
@@ -1740,12 +1759,23 @@ def _index_headings(chapter: str, nodes: list[dict[str, object]], context: Conte
     """A heading's anchor is ``<chapter>--<slug>``; the home page's second-level headings also
     name its front-page groups (pages.js, the abstract's ``@<slug>`` sections)."""
     seen: set[str] = set()
-    for node in nodes:
+    for node in _with_columns(nodes):
         if node["type"] == "section":
             slug = _identifier(_plain(node))
             if slug not in seen:
                 seen.add(slug)
                 context.headings[f"{chapter}#{slug}"] = f"{chapter}--{slug}"
+
+
+def _with_columns(nodes: list[dict[str, object]]) -> Iterator[dict[str, object]]:
+    """The nodes of a chapter's content in order, a columns block's columns' blocks in its place: a
+    heading in a column is one of its chapter's (obs capabilities/columns)."""
+    for node in nodes:
+        if node["type"] == "columns":
+            for column in node["children"]:
+                yield from _with_columns(column["children"])
+        else:
+            yield node
 
 
 CSS_CLASS = re.compile(r"-?[_A-Za-z][_A-Za-z0-9-]*")

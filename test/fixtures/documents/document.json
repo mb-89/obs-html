@@ -981,6 +981,58 @@
           "id": "callouts-4289d30a"
         },
         {
+          "type": "columns",
+          "attrs": {
+            "weights": [
+              1,
+              2
+            ]
+          },
+          "children": [
+            {
+              "type": "document",
+              "attrs": {},
+              "children": [
+                {
+                  "type": "paragraph",
+                  "attrs": {},
+                  "children": [
+                    {
+                      "type": "text",
+                      "attrs": {},
+                      "children": [],
+                      "text": "The claim."
+                    }
+                  ],
+                  "id": "paragraph-91a47f91"
+                }
+              ],
+              "id": "document-bceab407"
+            },
+            {
+              "type": "document",
+              "attrs": {},
+              "children": [
+                {
+                  "type": "paragraph",
+                  "attrs": {},
+                  "children": [
+                    {
+                      "type": "text",
+                      "attrs": {},
+                      "children": [],
+                      "text": "Its evidence."
+                    }
+                  ],
+                  "id": "paragraph-08658013"
+                }
+              ],
+              "id": "document-bceab407-2"
+            }
+          ],
+          "id": "columns-bceab407"
+        },
+        {
           "type": "cards-metrics",
           "attrs": {
             "source": "{\"version\": 1, \"cards\": [{\"title\": \"Items\", \"body\": \"Ranked: [[rankedItems]].\", \"metrics\": [{\"label\": \"Items\", \"where\": [{\"field\": \"kind\", \"equals\": \"item\"}]}, {\"label\": \"Ranks\", \"from\": \"ranked\", \"where\": [], \"distinct\": \"rank\"}]}]}\n",
@@ -3327,19 +3379,19 @@
     },
     {
       "level": "warning",
-      "message": "appendix.md:35: figure without caption. Add a caption to the figure fence; see input-model#Figure captions and references."
+      "message": "appendix.md:41: figure without caption. Add a caption to the figure fence; see input-model#Figure captions and references."
     },
     {
       "level": "warning",
-      "message": "appendix.md:35: figure without block id. Add a line ^name after the fence so references can link it; see input-model#Figure captions and references."
+      "message": "appendix.md:41: figure without block id. Add a line ^name after the fence so references can link it; see input-model#Figure captions and references."
     },
     {
       "level": "warning",
-      "message": "appendix.md:52: figure without caption. Add a caption to the figure fence; see input-model#Figure captions and references."
+      "message": "appendix.md:58: figure without caption. Add a caption to the figure fence; see input-model#Figure captions and references."
     },
     {
       "level": "warning",
-      "message": "appendix.md:52: figure without block id. Add a line ^name after the fence so references can link it; see input-model#Figure captions and references."
+      "message": "appendix.md:58: figure without block id. Add a line ^name after the fence so references can link it; see input-model#Figure captions and references."
     }
   ],
   "capabilities": [
@@ -3348,6 +3400,7 @@
     "callouts",
     "cards-metrics",
     "chapter-inclusion",
+    "columns",
     "command-fences",
     "count-query",
     "embeds",

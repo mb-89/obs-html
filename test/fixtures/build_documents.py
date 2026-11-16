@@ -384,7 +384,7 @@ CARDS = '{"version": 1, "cards": [{"title": "Items", "body": "Ranked: [[rankedIt
 def document(root: Path) -> None:
     """The adapter's main fixture (conftest.py's FIXTURE): a paged manifest with a cover, a chapter
     with a nested chapter, a Base and command fences, an appendix with figures (a Mermaid and a
-    PlantUML diagram among them, an equation figure, a decision figure and a timeline figure), a callout, cards and a register, a count quantity and a glossary note with a property editor. Its one
+    PlantUML diagram among them, an equation figure, a decision figure and a timeline figure), a callout, a two-column block, cards and a register, a count quantity and a glossary note with a property editor. Its one
     diagnostic, the link to the missing note, is the one the CLI test reads on stderr."""
     (root / "images").mkdir()
     (root / "images" / "logo.png").write_bytes(base64.b64decode(
@@ -413,6 +413,7 @@ def document(root: Path) -> None:
         f"```figure\nversion: 1\nkind: plot\ncontent: {json.dumps(RESPONSE)}\n```\n\n"
         f"```figure\nversion: 1\nkind: plot\ncontent: {json.dumps(FLOW)}\n```\n\n"
         "> [!warning] Check the limits\n> The badge ![Logo](images/logo.png) marks it.\n\n"
+        "||| 1:2\nThe claim.\n|||\nIts evidence.\n|||\n\n"
         f"```cards\n{CARDS}\n```\n\n![[items.base]]\n\n"
         "```mermaid\ngraph LR\n  Item --> Rank\n```\n\n```plantuml\n@startuml\nItem -> Rank\n@enduml\n```\n\n"
         f"```figure\nversion: 1\nkind: equations\ncontent:\n{_indent(PARABOLA)}```\n\n"
@@ -739,7 +740,7 @@ def features(root: Path) -> None:
     sweep reads beside pages, for screens; a note outside the reading order,
     opened as context, needs popups; the plot figure needs plotting, the Sankey figure sankey, the
     timeline figure timeline, the equation figure equations and the decision figure pugh; the prose chapter, with the decision figure, asks for a
-    bless, which needs answers and bless. Its chapters also hold what those checks read in obs's spec: prose with
+    bless, which needs answers and bless; the overview's two-column block needs columns. Its chapters also hold what those checks read in obs's spec: prose with
     links, marks, an image, a callout and nested headings; a paged table of notes outside the contents,
     whose second view lists a kind no row has, for empty-groups, and whose third folds its passing rows,
     for passing-rows;
@@ -755,7 +756,7 @@ def features(root: Path) -> None:
         "- [[prose]]\n- [[references]]\n", encoding="utf-8")
     (root / "overview.md").write_text(
         "# Overview\n\nEvery reader feature once: [[figures]], [[tables]], [[prose]] and an "
-        "[[aside]] outside the reading order.\n", encoding="utf-8")
+        "[[aside]] outside the reading order.\n\n||| 1:2\nA claim.\n|||\nIts evidence.\n|||\n", encoding="utf-8")
     (root / "aside.md").write_text("# Aside\n\nA note a link opens as context.\n", encoding="utf-8")
     (root / "drawing.svg").write_text(GALLERY_SVG, encoding="utf-8")
     (root / "figures.md").write_text(
@@ -814,12 +815,40 @@ def features(root: Path) -> None:
             encoding="utf-8")
 
 
+COLUMN_CARDS = {"version": 1, "cards": [{"title": "Coverage", "body": "See [[columns#Details]].",
+                                         "metrics": [{"label": "Items", "where": [{"field": "kind", "equals": "item"}]}]}]}
+ITEM_TABLE = "```base\nfilters: 'kind == \"item\"'\nviews:\n  - type: table\n    order: [file.name, rank]\n```\n"
+
+
+def columns(root: Path) -> None:
+    """test_columns.py's and test_columns_browser.py's vault (obs capabilities/columns), the interim
+    adapter's column cases (its test_columns.py): a 1:2 block with a card on the left and a heading,
+    a marked paragraph and a Base table on the right, which the card links; delimiters in code and
+    in prose, which stay text; two tables each ended by a delimiter; a second chapter with two blocks
+    in a row; and a block in the manifest's home. Not a moved interim vault."""
+    (root / "manifest.md").write_text(
+        "---\ntitle: Columns\n---\n- [[columns]]\n- [[more]]\n\n"
+        f"|||\nLeft **overview**.\n|||\n{ITEM_TABLE}|||\n", encoding="utf-8")
+    (root / "columns.md").write_text(
+        "# Columns\n\nThe claim beside its evidence.\n\n"
+        f"||| 1:2\n```cards\n{json.dumps(COLUMN_CARDS)}\n```\n"
+        f"|||\n## Details\n\nQuestion #mark/open_point/columns\n\n{ITEM_TABLE}|||\n\n"
+        "```text\n|||\n|||\n|||\n```\n\n    |||\n\ninline ||| stays prose\n\n"
+        "|||\n| Left | Value |\n|---|---|\n| One | 1 |\n"
+        "|||\n| Right | Value |\n|---|---|\n| Two | 2 |\n|||\n\nAfter the blocks.\n", encoding="utf-8")
+    (root / "more.md").write_text(
+        "# More\n\n|||\nFirst left `|||`.\n|||\nFirst right.\n|||\n\n"
+        "|||\nSecond left.\n|||\nSecond right.\n|||\n", encoding="utf-8")
+    for index in (1, 2, 3):
+        (root / f"item-{index}.md").write_text(f"---\nkind: item\nrank: {index}\n---\n", encoding="utf-8")
+
+
 VAULTS = {"figures": figures, "equations": equations, "pugh": pugh, "decision-verdict": decision_verdict, "document": document, "complete": complete, "artifact-change": artifact_change, "projections": projections,
           "table-help": table_help, "structural": structural, "callouts": callouts,
           "registers": registers, "cards": cards,
           "property-editor-projection": property_editor_projection, "self-link": self_link,
           "figure-references": figure_references, "source-archive": source_archive,
-          "features": features}
+          "features": features, "columns": columns}
 RUNS_COMMANDS = {"document"}
 """The vaults whose cmd fences the build runs (obs-document --execute-commands): ``echo`` only."""
 EMBEDS_SOURCE = {"source-archive", "features"}

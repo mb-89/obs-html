@@ -138,6 +138,7 @@ CASES = {
     "figures": ([with_figure("image", IMAGE), with_figure("pugh", PUGH)], [plain(), with_guided_card()]),
     "cards": ([fixture("cards")], [plain(), with_figure("pugh", PUGH)]),
     "property-editor": ([fixture("property-editor-projection")], [plain(), with_guided_card()]),
+    "columns": ([fixture("columns")], [plain(), fixture("cards")]),
 }
 
 

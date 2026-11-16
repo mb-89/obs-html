@@ -186,6 +186,58 @@
             }
           ],
           "id": "paragraph-4b8c420c"
+        },
+        {
+          "type": "columns",
+          "attrs": {
+            "weights": [
+              1,
+              2
+            ]
+          },
+          "children": [
+            {
+              "type": "document",
+              "attrs": {},
+              "children": [
+                {
+                  "type": "paragraph",
+                  "attrs": {},
+                  "children": [
+                    {
+                      "type": "text",
+                      "attrs": {},
+                      "children": [],
+                      "text": "A claim."
+                    }
+                  ],
+                  "id": "paragraph-f3fa612a"
+                }
+              ],
+              "id": "document-38c61ef1"
+            },
+            {
+              "type": "document",
+              "attrs": {},
+              "children": [
+                {
+                  "type": "paragraph",
+                  "attrs": {},
+                  "children": [
+                    {
+                      "type": "text",
+                      "attrs": {},
+                      "children": [],
+                      "text": "Its evidence."
+                    }
+                  ],
+                  "id": "paragraph-08658013"
+                }
+              ],
+              "id": "document-38c61ef1-2"
+            }
+          ],
+          "id": "columns-38c61ef1"
         }
       ],
       "children": [],
@@ -5574,6 +5626,7 @@
     "callouts",
     "cards-metrics",
     "chapter-inclusion",
+    "columns",
     "count-query",
     "equation-figures",
     "figure-descriptor",
@@ -5737,7 +5790,7 @@
       },
       {
         "path": "overview.md",
-        "data": "IyBPdmVydmlldwoKRXZlcnkgcmVhZGVyIGZlYXR1cmUgb25jZTogW1tmaWd1cmVzXV0sIFtbdGFibGVzXV0sIFtbcHJvc2VdXSBhbmQgYW4gW1thc2lkZV1dIG91dHNpZGUgdGhlIHJlYWRpbmcgb3JkZXIuCg=="
+        "data": "IyBPdmVydmlldwoKRXZlcnkgcmVhZGVyIGZlYXR1cmUgb25jZTogW1tmaWd1cmVzXV0sIFtbdGFibGVzXV0sIFtbcHJvc2VdXSBhbmQgYW4gW1thc2lkZV1dIG91dHNpZGUgdGhlIHJlYWRpbmcgb3JkZXIuCgp8fHwgMToyCkEgY2xhaW0uCnx8fApJdHMgZXZpZGVuY2UuCnx8fAo="
       },
       {
         "path": "prose.md",

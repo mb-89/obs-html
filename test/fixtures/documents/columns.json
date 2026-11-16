@@ -1,0 +1,1027 @@
+{
+  "schemaVersion": 1,
+  "manifest": {
+    "title": "Columns",
+    "path": "manifest.md",
+    "metadata": {
+      "title": "Columns"
+    },
+    "abstract": [
+      {
+        "type": "markdown-frontmatter",
+        "attrs": {
+          "metadata": {
+            "title": "Columns"
+          }
+        },
+        "children": [
+          {
+            "type": "field",
+            "attrs": {
+              "name": "title"
+            },
+            "children": [
+              {
+                "type": "text",
+                "attrs": {},
+                "children": [],
+                "text": "Columns"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "manifest",
+        "attrs": {},
+        "children": []
+      },
+      {
+        "type": "markdown",
+        "attrs": {},
+        "children": []
+      },
+      {
+        "type": "columns",
+        "attrs": {
+          "weights": [
+            1,
+            1
+          ]
+        },
+        "children": [
+          {
+            "type": "document",
+            "attrs": {},
+            "children": [
+              {
+                "type": "paragraph",
+                "attrs": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "attrs": {},
+                    "children": [],
+                    "text": "Left "
+                  },
+                  {
+                    "type": "strong",
+                    "attrs": {},
+                    "children": [
+                      {
+                        "type": "text",
+                        "attrs": {},
+                        "children": [],
+                        "text": "overview"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "text",
+                    "attrs": {},
+                    "children": [],
+                    "text": "."
+                  }
+                ],
+                "id": "paragraph-f9535297"
+              }
+            ],
+            "id": "document-bceab407"
+          },
+          {
+            "type": "document",
+            "attrs": {},
+            "children": [
+              {
+                "type": "bases",
+                "attrs": {
+                  "source": "filters: 'kind == \"item\"'\nviews:\n  - type: table\n    order: [file.name, rank]\n",
+                  "spec": {
+                    "filters": "kind == \"item\"",
+                    "views": [
+                      {
+                        "type": "table",
+                        "order": [
+                          "file.name",
+                          "rank"
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "children": [],
+                "id": "bases-ddd6848d"
+              }
+            ],
+            "id": "document-bceab407-2"
+          }
+        ],
+        "id": "columns-bceab407"
+      }
+    ]
+  },
+  "chapters": [
+    {
+      "id": "columns",
+      "title": "Columns",
+      "content": [
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "columns"
+          },
+          "children": []
+        },
+        {
+          "type": "markdown",
+          "attrs": {},
+          "children": []
+        },
+        {
+          "type": "section",
+          "attrs": {
+            "level": 1
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Columns"
+            }
+          ],
+          "id": "section-b4b69aed"
+        },
+        {
+          "type": "paragraph",
+          "attrs": {},
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "The claim beside its evidence."
+            }
+          ],
+          "id": "paragraph-a2f3f00f"
+        },
+        {
+          "type": "columns",
+          "attrs": {
+            "weights": [
+              1,
+              2
+            ]
+          },
+          "children": [
+            {
+              "type": "document",
+              "attrs": {},
+              "children": [
+                {
+                  "type": "cards-metrics",
+                  "attrs": {
+                    "source": "{\"version\": 1, \"cards\": [{\"title\": \"Coverage\", \"body\": \"See [[columns#Details]].\", \"metrics\": [{\"label\": \"Items\", \"where\": [{\"field\": \"kind\", \"equals\": \"item\"}]}]}]}\n",
+                    "spec": {
+                      "version": 1,
+                      "cards": [
+                        {
+                          "title": "Coverage",
+                          "body": "See [[columns#Details]].",
+                          "metrics": [
+                            {
+                              "label": "Items",
+                              "where": [
+                                {
+                                  "field": "kind",
+                                  "equals": "item"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  },
+                  "children": [
+                    {
+                      "type": "document",
+                      "attrs": {
+                        "title": [
+                          {
+                            "type": "text",
+                            "attrs": {},
+                            "children": [],
+                            "text": "Coverage"
+                          }
+                        ],
+                        "labels": [
+                          [
+                            {
+                              "type": "text",
+                              "attrs": {},
+                              "children": [],
+                              "text": "Items"
+                            }
+                          ]
+                        ]
+                      },
+                      "children": [
+                        {
+                          "type": "paragraph",
+                          "attrs": {},
+                          "children": [
+                            {
+                              "type": "text",
+                              "attrs": {},
+                              "children": [],
+                              "text": "See "
+                            },
+                            {
+                              "type": "wikilinks",
+                              "attrs": {
+                                "target": "columns",
+                                "chapter": "columns",
+                                "heading": "Details",
+                                "label": "Columns > Details"
+                              },
+                              "children": []
+                            },
+                            {
+                              "type": "text",
+                              "attrs": {},
+                              "children": [],
+                              "text": "."
+                            }
+                          ],
+                          "id": "paragraph-c1288b97"
+                        }
+                      ],
+                      "id": "document-9a13815e"
+                    }
+                  ],
+                  "id": "cards-metrics-9e4490fc"
+                }
+              ],
+              "id": "document-9e4490fc"
+            },
+            {
+              "type": "document",
+              "attrs": {},
+              "children": [
+                {
+                  "type": "section",
+                  "attrs": {
+                    "level": 2
+                  },
+                  "children": [
+                    {
+                      "type": "text",
+                      "attrs": {},
+                      "children": [],
+                      "text": "Details"
+                    }
+                  ],
+                  "id": "section-cdbaa400"
+                },
+                {
+                  "type": "paragraph",
+                  "attrs": {},
+                  "children": [
+                    {
+                      "type": "text",
+                      "attrs": {},
+                      "children": [],
+                      "text": "Question "
+                    },
+                    {
+                      "type": "marks",
+                      "attrs": {
+                        "category": "open_point",
+                        "id": "columns"
+                      },
+                      "children": []
+                    }
+                  ],
+                  "id": "paragraph-0cd010de"
+                },
+                {
+                  "type": "bases",
+                  "attrs": {
+                    "source": "filters: 'kind == \"item\"'\nviews:\n  - type: table\n    order: [file.name, rank]\n",
+                    "spec": {
+                      "filters": "kind == \"item\"",
+                      "views": [
+                        {
+                          "type": "table",
+                          "order": [
+                            "file.name",
+                            "rank"
+                          ]
+                        }
+                      ]
+                    }
+                  },
+                  "children": [],
+                  "id": "bases-ddd6848d"
+                }
+              ],
+              "id": "document-9e4490fc-2"
+            }
+          ],
+          "id": "columns-9e4490fc"
+        },
+        {
+          "type": "code",
+          "attrs": {
+            "language": "text"
+          },
+          "children": [],
+          "text": "|||\n|||\n|||\n",
+          "id": "code-408ed46d"
+        },
+        {
+          "type": "code",
+          "attrs": {
+            "language": ""
+          },
+          "children": [],
+          "text": "|||\n",
+          "id": "code-ecad0ad5"
+        },
+        {
+          "type": "paragraph",
+          "attrs": {},
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "inline ||| stays prose"
+            }
+          ],
+          "id": "paragraph-2cb8a769"
+        },
+        {
+          "type": "columns",
+          "attrs": {
+            "weights": [
+              1,
+              1
+            ]
+          },
+          "children": [
+            {
+              "type": "document",
+              "attrs": {},
+              "children": [
+                {
+                  "type": "table",
+                  "attrs": {},
+                  "children": [
+                    {
+                      "type": "table-row",
+                      "attrs": {},
+                      "children": [
+                        {
+                          "type": "table-cell",
+                          "attrs": {
+                            "header": true
+                          },
+                          "children": [
+                            {
+                              "type": "text",
+                              "attrs": {},
+                              "children": [],
+                              "text": "Left"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "table-cell",
+                          "attrs": {
+                            "header": true
+                          },
+                          "children": [
+                            {
+                              "type": "text",
+                              "attrs": {},
+                              "children": [],
+                              "text": "Value"
+                            }
+                          ]
+                        }
+                      ],
+                      "id": "table-row-836bf51e"
+                    },
+                    {
+                      "type": "table-row",
+                      "attrs": {},
+                      "children": [
+                        {
+                          "type": "table-cell",
+                          "attrs": {
+                            "header": false
+                          },
+                          "children": [
+                            {
+                              "type": "text",
+                              "attrs": {},
+                              "children": [],
+                              "text": "One"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "table-cell",
+                          "attrs": {
+                            "header": false
+                          },
+                          "children": [
+                            {
+                              "type": "text",
+                              "attrs": {},
+                              "children": [],
+                              "text": "1"
+                            }
+                          ]
+                        }
+                      ],
+                      "id": "table-row-38914f8a"
+                    }
+                  ],
+                  "id": "table-8f29679f"
+                }
+              ],
+              "id": "document-8f29679f"
+            },
+            {
+              "type": "document",
+              "attrs": {},
+              "children": [
+                {
+                  "type": "table",
+                  "attrs": {},
+                  "children": [
+                    {
+                      "type": "table-row",
+                      "attrs": {},
+                      "children": [
+                        {
+                          "type": "table-cell",
+                          "attrs": {
+                            "header": true
+                          },
+                          "children": [
+                            {
+                              "type": "text",
+                              "attrs": {},
+                              "children": [],
+                              "text": "Right"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "table-cell",
+                          "attrs": {
+                            "header": true
+                          },
+                          "children": [
+                            {
+                              "type": "text",
+                              "attrs": {},
+                              "children": [],
+                              "text": "Value"
+                            }
+                          ]
+                        }
+                      ],
+                      "id": "table-row-c0033c98"
+                    },
+                    {
+                      "type": "table-row",
+                      "attrs": {},
+                      "children": [
+                        {
+                          "type": "table-cell",
+                          "attrs": {
+                            "header": false
+                          },
+                          "children": [
+                            {
+                              "type": "text",
+                              "attrs": {},
+                              "children": [],
+                              "text": "Two"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "table-cell",
+                          "attrs": {
+                            "header": false
+                          },
+                          "children": [
+                            {
+                              "type": "text",
+                              "attrs": {},
+                              "children": [],
+                              "text": "2"
+                            }
+                          ]
+                        }
+                      ],
+                      "id": "table-row-0a9d3780"
+                    }
+                  ],
+                  "id": "table-8f29679f-2"
+                }
+              ],
+              "id": "document-8f29679f-2"
+            }
+          ],
+          "id": "columns-8f29679f"
+        },
+        {
+          "type": "paragraph",
+          "attrs": {},
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "After the blocks."
+            }
+          ],
+          "id": "paragraph-db021e97"
+        }
+      ],
+      "children": [],
+      "metadata": {}
+    },
+    {
+      "id": "more",
+      "title": "More",
+      "content": [
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "more"
+          },
+          "children": []
+        },
+        {
+          "type": "markdown",
+          "attrs": {},
+          "children": []
+        },
+        {
+          "type": "section",
+          "attrs": {
+            "level": 1
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "More"
+            }
+          ],
+          "id": "section-954dd8d9"
+        },
+        {
+          "type": "columns",
+          "attrs": {
+            "weights": [
+              1,
+              1
+            ]
+          },
+          "children": [
+            {
+              "type": "document",
+              "attrs": {},
+              "children": [
+                {
+                  "type": "paragraph",
+                  "attrs": {},
+                  "children": [
+                    {
+                      "type": "text",
+                      "attrs": {},
+                      "children": [],
+                      "text": "First left "
+                    },
+                    {
+                      "type": "code",
+                      "attrs": {},
+                      "children": [],
+                      "text": "|||"
+                    },
+                    {
+                      "type": "text",
+                      "attrs": {},
+                      "children": [],
+                      "text": "."
+                    }
+                  ],
+                  "id": "paragraph-b2cd9d78"
+                }
+              ],
+              "id": "document-8d38069e"
+            },
+            {
+              "type": "document",
+              "attrs": {},
+              "children": [
+                {
+                  "type": "paragraph",
+                  "attrs": {},
+                  "children": [
+                    {
+                      "type": "text",
+                      "attrs": {},
+                      "children": [],
+                      "text": "First right."
+                    }
+                  ],
+                  "id": "paragraph-95853813"
+                }
+              ],
+              "id": "document-8d38069e-2"
+            }
+          ],
+          "id": "columns-8d38069e"
+        },
+        {
+          "type": "columns",
+          "attrs": {
+            "weights": [
+              1,
+              1
+            ]
+          },
+          "children": [
+            {
+              "type": "document",
+              "attrs": {},
+              "children": [
+                {
+                  "type": "paragraph",
+                  "attrs": {},
+                  "children": [
+                    {
+                      "type": "text",
+                      "attrs": {},
+                      "children": [],
+                      "text": "Second left."
+                    }
+                  ],
+                  "id": "paragraph-136c5643"
+                }
+              ],
+              "id": "document-8d38069e-3"
+            },
+            {
+              "type": "document",
+              "attrs": {},
+              "children": [
+                {
+                  "type": "paragraph",
+                  "attrs": {},
+                  "children": [
+                    {
+                      "type": "text",
+                      "attrs": {},
+                      "children": [],
+                      "text": "Second right."
+                    }
+                  ],
+                  "id": "paragraph-5af2270a"
+                }
+              ],
+              "id": "document-8d38069e-4"
+            }
+          ],
+          "id": "columns-8d38069e-2"
+        }
+      ],
+      "children": [],
+      "metadata": {}
+    },
+    {
+      "id": "item-1",
+      "title": "Item 1",
+      "toc": false,
+      "content": [
+        {
+          "type": "markdown-frontmatter",
+          "attrs": {
+            "metadata": {
+              "kind": "item",
+              "rank": 1
+            }
+          },
+          "children": [
+            {
+              "type": "field",
+              "attrs": {
+                "name": "kind"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "item"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "item-1"
+          },
+          "children": []
+        }
+      ],
+      "children": [],
+      "metadata": {
+        "kind": "item",
+        "rank": 1
+      }
+    },
+    {
+      "id": "item-2",
+      "title": "Item 2",
+      "toc": false,
+      "content": [
+        {
+          "type": "markdown-frontmatter",
+          "attrs": {
+            "metadata": {
+              "kind": "item",
+              "rank": 2
+            }
+          },
+          "children": [
+            {
+              "type": "field",
+              "attrs": {
+                "name": "kind"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "item"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "item-2"
+          },
+          "children": []
+        }
+      ],
+      "children": [],
+      "metadata": {
+        "kind": "item",
+        "rank": 2
+      }
+    },
+    {
+      "id": "item-3",
+      "title": "Item 3",
+      "toc": false,
+      "content": [
+        {
+          "type": "markdown-frontmatter",
+          "attrs": {
+            "metadata": {
+              "kind": "item",
+              "rank": 3
+            }
+          },
+          "children": [
+            {
+              "type": "field",
+              "attrs": {
+                "name": "kind"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "item"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "item-3"
+          },
+          "children": []
+        }
+      ],
+      "children": [],
+      "metadata": {
+        "kind": "item",
+        "rank": 3
+      }
+    }
+  ],
+  "links": [
+    {
+      "id": "columns-details",
+      "href": "columns",
+      "label": "Columns > Details"
+    }
+  ],
+  "assets": [],
+  "records": [
+    {
+      "id": "columns",
+      "type": "note",
+      "path": "columns.md",
+      "fields": {},
+      "fieldNodes": []
+    },
+    {
+      "id": "item-1",
+      "type": "note",
+      "path": "item-1.md",
+      "fields": {
+        "kind": "item",
+        "rank": 1
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "kind"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "item"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "item-2",
+      "type": "note",
+      "path": "item-2.md",
+      "fields": {
+        "kind": "item",
+        "rank": 2
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "kind"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "item"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "item-3",
+      "type": "note",
+      "path": "item-3.md",
+      "fields": {
+        "kind": "item",
+        "rank": 3
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "kind"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "item"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "manifest",
+      "type": "note",
+      "path": "manifest.md",
+      "fields": {
+        "title": "Columns"
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "title"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Columns"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "more",
+      "type": "note",
+      "path": "more.md",
+      "fields": {},
+      "fieldNodes": []
+    },
+    {
+      "id": "chapter-columns",
+      "type": "chapter",
+      "note": "columns",
+      "fields": {
+        "chapter": "Columns",
+        "title": "Columns",
+        "depth": "0",
+        "slug": "columns",
+        "sourcePath": "columns.md"
+      }
+    },
+    {
+      "id": "chapter-more",
+      "type": "chapter",
+      "note": "more",
+      "fields": {
+        "chapter": "More",
+        "title": "More",
+        "depth": "0",
+        "slug": "more",
+        "sourcePath": "more.md"
+      }
+    },
+    {
+      "id": "tag-columns-open-point-columns",
+      "type": "tag",
+      "note": "columns",
+      "fields": {
+        "sourcePath": "columns.md",
+        "type": "open_point",
+        "label": "columns",
+        "text": "Question",
+        "source": "Columns"
+      }
+    },
+    {
+      "id": "document-metadata-title",
+      "type": "documentMetadata",
+      "fields": {
+        "key": "title",
+        "value": "Columns"
+      }
+    }
+  ],
+  "semanticResources": [],
+  "diagnostics": [],
+  "capabilities": [
+    "bases",
+    "cards-metrics",
+    "chapter-inclusion",
+    "columns",
+    "manifest",
+    "markdown",
+    "markdown-frontmatter",
+    "marks",
+    "wikilinks"
+  ],
+  "cssSnippets": []
+}

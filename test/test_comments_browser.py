@@ -19,8 +19,8 @@ pytestmark = pytest.mark.browser
 DOCUMENTS = sorted((ROOT / "test" / "fixtures" / "documents").glob("*.json"))
 # Each fixture Document's review items: per open chapter, the items the adapter had before they were
 # block ids, less the data tables' hidden status paragraphs, which are no content.
-REVIEW_ITEMS = {"artifact-change": 10, "callouts": 4, "cards": 10, "complete": 25, "decision-verdict": 3, "document": 21, "equations": 5,
-                "features": 54, "figure-references": 15, "figures": 9, "projections": 8,
+REVIEW_ITEMS = {"artifact-change": 10, "callouts": 4, "cards": 10, "columns": 20, "complete": 25, "decision-verdict": 3, "document": 23,
+                "equations": 5, "features": 56, "figure-references": 15, "figures": 9, "projections": 8,
                 "property-editor-projection": 0, "pugh": 2, "registers": 10, "self-link": 33, "source-archive": 2,
                 "structural": 5, "table-help": 2}
 HOME = "home"

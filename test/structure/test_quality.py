@@ -55,6 +55,7 @@ FULL_CHROMIUM_TESTS = {
     # Print and PDF export: the PDF path prints with the browser it finds, and print media.
     "test_pdf.py": EVERY_TEST,
     "test_pdf_inspect.py": EVERY_TEST,
+    "test_columns_browser.py": {"test_a_printed_block_stays_side_by_side"},
     "test_notice_center_browser.py": {"test_icon_opens_its_list_an_entry_expands_and_escape_closes"},
     # The viewer fixture's sandboxed frame: what a scripts-only, out-of-process frame limits, when a
     # stand-in in it runs, and its print.

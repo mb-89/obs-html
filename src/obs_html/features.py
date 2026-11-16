@@ -280,6 +280,8 @@ FEATURES: tuple[Feature, ...] = (
             elements=("cards-script",), host=False, base_styles=("cards.css",)),
     Feature("property-editor", "a property editor", _marked("data-property-editor"),
             elements=("property-editor-script",), host=False),
+    Feature("columns", "a two-column block (obs capabilities/columns): its side-by-side and stacking rules",
+            _marked("data-content-columns"), host=False, base_styles=("columns.css",)),
 )
 
 
