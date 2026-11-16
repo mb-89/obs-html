@@ -167,6 +167,30 @@ consume the same applied global Filter; a table's local query remains independen
   A predicate remains visibly active even if it matches all or zero rows; an
   invalid draft cannot hide the preceding valid applied predicate. Clearing
   removes this local warning only when that local predicate is actually cleared.
+- A view's `obsHtml.passing` ([[input-model]]) folds the rows that pass. The table lists the rows
+  its passing filter does not match; the matching rows fold into one line under the table,
+  `<p> of <t> <label>`, such as `264 of 266 verified`. Readers see what fails first, and the
+  passing rows cost one line.
+
+  The line is one button with `aria-expanded`, usable by pointer and keyboard. Opening it puts the
+  passing rows back in the table at their sorted and grouped place; closing it folds them again.
+  When every row the filters keep passes, the table shows no body rows and the line is the
+  sentence `All <t> <label>.` in the positive tone (`--color-positive`); it is the same button. When
+  no row passes, the line still counts them and has nothing to open. A view with no rows keeps
+  the empty result and draws no line.
+
+  Both numbers count the rows the global Filter and the table-local filter keep: the fold applies
+  after them, as a further presentation step, so with the fold open `<t>` equals the n of the
+  footer's `n of m items`. A listed row keeps its group heading and its ancestor path, as a
+  table-local filter keeps them; a passing ancestor shown for that reason still counts as passing.
+  With `obsHtml.showEmptyGroups`, a listed value whose rows all pass has rows, so while folded it
+  draws no caption, not `(0)`: only a value no row has is a hole.
+
+  Only the all-pass sentence takes the positive tone: no row and no count line does. A Search hit
+  in a folded row and a `?tableFilter=` link into the view (a metric drill-down among them) open
+  the fold, so the link still shows exactly the rows it counted ([[artifact-ui]], Dock menu). The
+  open or folded state is session-only reader state, like the table-local filter; print keeps it:
+  a folded table prints its line or sentence and no passing rows, an opened one prints its rows.
 
 ### Bases filter grammar
 
@@ -458,6 +482,10 @@ adapter's browser evaluator runs the same conformance fixture.
   `pageSize` with `pagination: false`.
 
   Filtering resets to page one; grouping and sorting are evaluated before pagination.
+
+  While a view's passing rows are folded (`obsHtml.passing`), the item count and the pages count
+  only the listed rows; opening the fold counts every row again and resets to page one, as
+  filtering does.
 
   Group headings
   and source-tree ancestor context remain with page items without consuming their page quota.

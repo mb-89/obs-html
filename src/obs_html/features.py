@@ -196,6 +196,13 @@ def _empty_groups(model: dict, _trusted_runtime: bool) -> bool:
                for view in table["definition"].get("views") or [] if isinstance(view, dict))
 
 
+def _passing_rows(model: dict, _trusted_runtime: bool) -> bool:
+    """A Base table's view sets obsHtml.passing (generic-tables.md, Query and filtering)."""
+    return any(isinstance((view.get("obsHtml") or {}).get("passing"), dict)
+               for note in model["notes"] for table in note["tables"]
+               for view in table["definition"].get("views") or [] if isinstance(view, dict))
+
+
 def _marked(marker: str) -> Callable[[dict, bool], bool]:
     """Whether the artifact's model holds ``marker``, the attribute the renderer writes on the
     element a feature's script finds (a figure, a record card, a property editor)."""
@@ -262,7 +269,9 @@ FEATURES: tuple[Feature, ...] = (
             elements=("data-table-script", "base-schema", "yaml-script"), host=False,
             base_styles=("tables.css",), parts=(
                 Part("empty-groups", "a view that sets obsHtml.showEmptyGroups: its groupOrder values no row has "
-                     "drawn as groups with the count (0) (generic-tables.md, groupOrder)", _empty_groups, ()),)),
+                     "drawn as groups with the count (0) (generic-tables.md, groupOrder)", _empty_groups, ()),
+                Part("passing-rows", "a view that sets obsHtml.passing: its passing rows folded into one count "
+                     "line that opens them (generic-tables.md, Query and filtering)", _passing_rows, ()))),
     Feature("options-menu", "a Base table or a figure: their one options menu (options-menu.js)",
             _options_menu, ("options-menu.js",), host=False, base_styles=("options-menu.css",)),
     Feature("figures", "a figure: its frame's styles and script", _figures,

@@ -121,6 +121,9 @@
                 throw new TypeError("obsHtml.showEmptyGroups requires obsHtml.groupOrder.");
             }
             // } part empty-groups
+            // part passing-rows {
+            compileFilter(view.obsHtml?.passing?.filters, () => undefined);
+            // } part passing-rows
             Object.keys(view.columnSize || {}).forEach(supportedProperty);
             if (view.columnSize && view.obsHtml?.columnSizing === "equal") {
                 throw new TypeError("columnSize cannot be combined with columnSizing: equal.");

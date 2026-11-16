@@ -148,8 +148,12 @@
         // Without obs.records a view selects canonical notes, as in Obsidian (generic-tables).
         const recordType = view.obs?.records ?? definition.obs?.records;
         const nativeNotes = !recordType;
+        // part passing-rows {
+        // The passing filter resolves fields as the view's filters do: through this one resolver.
+        let fieldValue;
+        // } part passing-rows
         // Projected rows resolve their own fields first, then the owner note (generic-tables).
-        const compiled = globalThis.obsBases.compileFilter(filters, (row, field) => {
+        const compiled = globalThis.obsBases.compileFilter(filters, /* part passing-rows { */fieldValue = /* } part passing-rows */(row, field) => {
             const owner = recordsBySlug.get(row.noteId);
             if (nativeNotes && owner) return globalThis.obsBases.recordValue(owner, field);
             if (Object.hasOwn(row.ownFields, field)) return row.ownFields[field];
@@ -306,6 +310,12 @@
             // part empty-groups {
             showEmptyGroups: view.obsHtml?.showEmptyGroups === true,
             // } part empty-groups
+            // part passing-rows {
+            passing: view.obsHtml?.passing ? {
+                match: globalThis.obsBases.compileFilter(view.obsHtml.passing.filters, fieldValue).match,
+                label: view.obsHtml.passing.label,
+            } : undefined,
+            // } part passing-rows
             screenPageBreaks: view.obsHtml?.screenPageBreaks !== false,
             pagination: view.obsHtml?.pagination !== false,
             pageSize: view.obsHtml?.pageSize ?? artifactData.tablePageSize,
@@ -493,6 +503,15 @@
                 // part empty-groups {
                 showEmptyGroups: definition.showEmptyGroups,
                 // } part empty-groups
+                // part passing-rows {
+                // The fold's state is session-only reader state, which print keeps (generic-tables).
+                passing: definition.passing,
+                initialPassingOpen: state.passingOpen === true,
+                onPassingChange: staticView ? undefined : open => {
+                    if (open) state.passingOpen = true;
+                    else delete state.passingOpen;
+                },
+                // } part passing-rows
                 screenPageBreaks: definition.screenPageBreaks,
                 pagination: definition.pagination,
                 columnSizing: definition.columnSizing,
@@ -661,6 +680,16 @@
                         } else button.replaceWith(document.createTextNode(button.textContent));
                     });
                     rendered.element.replaceWith(plainTable);
+                    // part passing-rows {
+                    // A folded table prints its line or its sentence, and an opened one its rows.
+                    const passingLine = rendered.element.querySelector(":scope > .data-table-passing");
+                    if (passingLine && !passingLine.hidden) {
+                        const line = document.createElement("p");
+                        line.className = passingLine.className;
+                        line.textContent = passingLine.textContent;
+                        plainTable.after(line);
+                    }
+                    // } part passing-rows
                 }
             };
             mount(placeholder);

@@ -490,7 +490,10 @@ def _data_table(definition: dict[str, object], rows: list[list[str]] | None, con
     context.assets.normalize_definition(definition, source)
     key = f"{context.chapter or HOME}-base-{len(context.tables) + 1}"
     places = [("filters", definition.get("filters")),
-              *((f"views[{index}].filters", view.get("filters")) for index, view in enumerate(definition.get("views", [])))]
+              *((f"views[{index}].filters", view.get("filters")) for index, view in enumerate(definition.get("views", []))),
+              *((f"views[{index}].obsHtml.passing.filters", view["obsHtml"]["passing"].get("filters"))
+                for index, view in enumerate(definition.get("views", []))
+                if isinstance(view.get("obsHtml"), dict) and isinstance(view["obsHtml"].get("passing"), dict))]
     for place, filters in places:
         unsupported = _unsupported_filter(filters)
         if unsupported is not None:

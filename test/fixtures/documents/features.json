@@ -865,7 +865,7 @@
                 {
                   "type": "bases",
                   "attrs": {
-                    "source": "filters: 'kind == \"item\"'\nproperties:\n  description: {displayName: Description}\nviews:\n  - type: table\n    name: Items\n    order: [file.name, rank, description]\n    sort: [{property: rank, direction: ASC}]\n  - type: table\n    name: Kinds\n    order: [file.name, rank]\n    groupBy: {property: kind, direction: ASC}\n    obsHtml: {groupOrder: [item, part], showEmptyGroups: true}\n",
+                    "source": "filters: 'kind == \"item\"'\nproperties:\n  description: {displayName: Description}\nviews:\n  - type: table\n    name: Items\n    order: [file.name, rank, description]\n    sort: [{property: rank, direction: ASC}]\n  - type: table\n    name: Kinds\n    order: [file.name, rank]\n    groupBy: {property: kind, direction: ASC}\n    obsHtml: {groupOrder: [item, part], showEmptyGroups: true}\n  - type: table\n    name: Checked\n    order: [file.name, rank]\n    obsHtml: {passing: {filters: 'rank != 1', label: checked}}\n",
                     "spec": {
                       "filters": "kind == \"item\"",
                       "properties": {
@@ -907,12 +907,26 @@
                             ],
                             "showEmptyGroups": true
                           }
+                        },
+                        {
+                          "type": "table",
+                          "name": "Checked",
+                          "order": [
+                            "file.name",
+                            "rank"
+                          ],
+                          "obsHtml": {
+                            "passing": {
+                              "filters": "rank != 1",
+                              "label": "checked"
+                            }
+                          }
                         }
                       ]
                     }
                   },
                   "children": [],
-                  "id": "bases-4d6d78c7"
+                  "id": "bases-86f3a151"
                 },
                 {
                   "type": "paragraph",
@@ -5747,7 +5761,7 @@
       },
       {
         "path": "tables.md",
-        "data": "IyBUYWJsZXMKCmBgYGJhc2UKZmlsdGVyczogJ2tpbmQgPT0gIml0ZW0iJwpwcm9wZXJ0aWVzOgogIGRlc2NyaXB0aW9uOiB7ZGlzcGxheU5hbWU6IERlc2NyaXB0aW9ufQp2aWV3czoKICAtIHR5cGU6IHRhYmxlCiAgICBuYW1lOiBJdGVtcwogICAgb3JkZXI6IFtmaWxlLm5hbWUsIHJhbmssIGRlc2NyaXB0aW9uXQogICAgc29ydDogW3twcm9wZXJ0eTogcmFuaywgZGlyZWN0aW9uOiBBU0N9XQogIC0gdHlwZTogdGFibGUKICAgIG5hbWU6IEtpbmRzCiAgICBvcmRlcjogW2ZpbGUubmFtZSwgcmFua10KICAgIGdyb3VwQnk6IHtwcm9wZXJ0eToga2luZCwgZGlyZWN0aW9uOiBBU0N9CiAgICBvYnNIdG1sOiB7Z3JvdXBPcmRlcjogW2l0ZW0sIHBhcnRdLCBzaG93RW1wdHlHcm91cHM6IHRydWV9CmBgYAoKUGFyYWdyYXBoIDEgb2YgdGhlIGNsb3NpbmcgdGV4dCwgd2hpY2ggcmVhZHMgb24gYWZ0ZXIgdGhlIGNvbnRlbnQgYWJvdmUgaXQuIFBhcmFncmFwaCAxIG9mIHRoZSBjbG9zaW5nIHRleHQsIHdoaWNoIHJlYWRzIG9uIGFmdGVyIHRoZSBjb250ZW50IGFib3ZlIGl0LiBQYXJhZ3JhcGggMSBvZiB0aGUgY2xvc2luZyB0ZXh0LCB3aGljaCByZWFkcyBvbiBhZnRlciB0aGUgY29udGVudCBhYm92ZSBpdC4gCgpQYXJhZ3JhcGggMiBvZiB0aGUgY2xvc2luZyB0ZXh0LCB3aGljaCByZWFkcyBvbiBhZnRlciB0aGUgY29udGVudCBhYm92ZSBpdC4gUGFyYWdyYXBoIDIgb2YgdGhlIGNsb3NpbmcgdGV4dCwgd2hpY2ggcmVhZHMgb24gYWZ0ZXIgdGhlIGNvbnRlbnQgYWJvdmUgaXQuIFBhcmFncmFwaCAyIG9mIHRoZSBjbG9zaW5nIHRleHQsIHdoaWNoIHJlYWRzIG9uIGFmdGVyIHRoZSBjb250ZW50IGFib3ZlIGl0LiAK"
+        "data": "IyBUYWJsZXMKCmBgYGJhc2UKZmlsdGVyczogJ2tpbmQgPT0gIml0ZW0iJwpwcm9wZXJ0aWVzOgogIGRlc2NyaXB0aW9uOiB7ZGlzcGxheU5hbWU6IERlc2NyaXB0aW9ufQp2aWV3czoKICAtIHR5cGU6IHRhYmxlCiAgICBuYW1lOiBJdGVtcwogICAgb3JkZXI6IFtmaWxlLm5hbWUsIHJhbmssIGRlc2NyaXB0aW9uXQogICAgc29ydDogW3twcm9wZXJ0eTogcmFuaywgZGlyZWN0aW9uOiBBU0N9XQogIC0gdHlwZTogdGFibGUKICAgIG5hbWU6IEtpbmRzCiAgICBvcmRlcjogW2ZpbGUubmFtZSwgcmFua10KICAgIGdyb3VwQnk6IHtwcm9wZXJ0eToga2luZCwgZGlyZWN0aW9uOiBBU0N9CiAgICBvYnNIdG1sOiB7Z3JvdXBPcmRlcjogW2l0ZW0sIHBhcnRdLCBzaG93RW1wdHlHcm91cHM6IHRydWV9CiAgLSB0eXBlOiB0YWJsZQogICAgbmFtZTogQ2hlY2tlZAogICAgb3JkZXI6IFtmaWxlLm5hbWUsIHJhbmtdCiAgICBvYnNIdG1sOiB7cGFzc2luZzoge2ZpbHRlcnM6ICdyYW5rICE9IDEnLCBsYWJlbDogY2hlY2tlZH19CmBgYAoKUGFyYWdyYXBoIDEgb2YgdGhlIGNsb3NpbmcgdGV4dCwgd2hpY2ggcmVhZHMgb24gYWZ0ZXIgdGhlIGNvbnRlbnQgYWJvdmUgaXQuIFBhcmFncmFwaCAxIG9mIHRoZSBjbG9zaW5nIHRleHQsIHdoaWNoIHJlYWRzIG9uIGFmdGVyIHRoZSBjb250ZW50IGFib3ZlIGl0LiBQYXJhZ3JhcGggMSBvZiB0aGUgY2xvc2luZyB0ZXh0LCB3aGljaCByZWFkcyBvbiBhZnRlciB0aGUgY29udGVudCBhYm92ZSBpdC4gCgpQYXJhZ3JhcGggMiBvZiB0aGUgY2xvc2luZyB0ZXh0LCB3aGljaCByZWFkcyBvbiBhZnRlciB0aGUgY29udGVudCBhYm92ZSBpdC4gUGFyYWdyYXBoIDIgb2YgdGhlIGNsb3NpbmcgdGV4dCwgd2hpY2ggcmVhZHMgb24gYWZ0ZXIgdGhlIGNvbnRlbnQgYWJvdmUgaXQuIFBhcmFncmFwaCAyIG9mIHRoZSBjbG9zaW5nIHRleHQsIHdoaWNoIHJlYWRzIG9uIGFmdGVyIHRoZSBjb250ZW50IGFib3ZlIGl0LiAK"
       }
     ],
     "build": {

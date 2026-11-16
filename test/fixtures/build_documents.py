@@ -741,7 +741,8 @@ def features(root: Path) -> None:
     timeline figure timeline, the equation figure equations and the decision figure pugh; the prose chapter, with the decision figure, asks for a
     bless, which needs answers and bless. Its chapters also hold what those checks read in obs's spec: prose with
     links, marks, an image, a callout and nested headings; a paged table of notes outside the contents,
-    whose second view lists a kind no row has, for empty-groups;
+    whose second view lists a kind no row has, for empty-groups, and whose third folds its passing rows,
+    for passing-rows;
     a figure reference across chapters; a register and a property editor; a card group with metrics
     and a quantity link (FEATURE_CARDS). As in obs's spec, the
     chapters the reading script walks are nested three deep, with headings. Each chapter's
@@ -776,7 +777,9 @@ def features(root: Path) -> None:
         "views:\n  - type: table\n    name: Items\n    order: [file.name, rank, description]\n"
         f"    sort: [{{property: rank, direction: ASC}}]\n"
         "  - type: table\n    name: Kinds\n    order: [file.name, rank]\n    groupBy: {property: kind, direction: ASC}\n"
-        f"    obsHtml: {{groupOrder: [item, part], showEmptyGroups: true}}\n```\n\n{FEATURE_PROSE}\n", encoding="utf-8")
+        f"    obsHtml: {{groupOrder: [item, part], showEmptyGroups: true}}\n"
+        "  - type: table\n    name: Checked\n    order: [file.name, rank]\n"
+        f"    obsHtml: {{passing: {{filters: 'rank != 1', label: checked}}}}\n```\n\n{FEATURE_PROSE}\n", encoding="utf-8")
     for index in range(1, FEATURE_ITEMS + 1):
         (root / f"item-{index:02}.md").write_text(
             f"---\nkind: item\nrank: {index}\ndescription: Item {index} of the paged table, "

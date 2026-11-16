@@ -175,3 +175,22 @@ def test_the_base_schema_leaves_the_cores_keys_to_the_core() -> None:
     for namespace in (schema["properties"]["obsHtml"], view["obsHtml"]):
         assert not {"records", "members"} & set(namespace["properties"])
     assert schema["properties"]["obs"] == view["obs"] == {"$ref": "#/$defs/core"}
+
+
+@pytest.mark.parametrize("filters", ["status > 3", {"and": ['status == "verified"', "formula.done == true"]}])
+def test_a_passing_filter_obs_html_cannot_evaluate_fails_at_its_field(filters: object) -> None:
+    """generic-tables.md, Query and filtering (obsHtml.passing): the passing filter is held to the
+    view's filter grammar, so one obs-html cannot evaluate fails the build at its own field, in a
+    Base fence and in a register's .base file alike."""
+    view = {"type": "table", "order": ["file.name"],
+            "obsHtml": {"passing": {"filters": filters, "label": "verified"}}}
+    with pytest.raises(InputError) as fence:
+        render(build("Doc", chapter("one", "One", node("bases", source="", spec={"views": [view]}))), CONFIG)
+    assert (fence.value.source, fence.value.field) == ("chapter one", "base.views[0].obsHtml.passing.filters")
+    document = copy.deepcopy(REGISTERS)
+    register = _register(document, "points")  # the whole .base file: its views keep their index
+    assert register["attrs"]["view"] is None
+    register["attrs"]["base"]["views"][1]["obsHtml"] = view["obsHtml"]
+    with pytest.raises(InputError) as dotbase:
+        render(document, CONFIG)
+    assert (dotbase.value.source, dotbase.value.field) == (register["attrs"]["target"], "views[1].obsHtml.passing.filters")

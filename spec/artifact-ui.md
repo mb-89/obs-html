@@ -2188,7 +2188,8 @@ separate from artifact presentation.
   the rendered content.
 
   A table hit additionally switches the table to the page holding the row, expands its
-  collapsed ancestors, groups and the detail panel holding the match,
+  collapsed ancestors, groups and the detail panel holding the match, opens the fold that holds
+  it (a view's passing rows, [[generic-tables]]),
   clears a table-local filter that hides it, then scrolls to and highlights the match; this
   works in Pages and continuous layout. Later chapter navigation clears those highlights.
 - The filter bar uses a recognizable rendered funnel shape rather than a font glyph; search is

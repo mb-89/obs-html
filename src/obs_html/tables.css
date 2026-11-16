@@ -294,7 +294,36 @@
 /* A listed group no row has (obsHtml.showEmptyGroups): a muted caption with no control (generic-tables.md). */
 .data-table-group-row--empty th {
     color: var(--color-text-muted);
-}/* } part empty-groups */
+}/* } part empty-groups *//* part passing-rows { */
+
+/* A view's passing rows folded into one line under the table (obsHtml.passing, generic-tables.md):
+   the count reads as the footer does; only the all-pass sentence takes the positive tone. */
+.data-table-passing {
+    background: none;
+    border: 0;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    display: block;
+    font-family: var(--font-interface);
+    font-size: 0.8rem;
+    margin-block-start: 0.4rem;
+    padding: 0;
+    text-align: start;
+}
+
+.data-table-passing:disabled {
+    cursor: default;
+}
+
+.data-table-passing:not(:disabled):hover,
+.data-table-passing:focus-visible {
+    text-decoration: underline;
+}
+
+.data-table-passing--all {
+    color: var(--color-positive);
+    font-weight: 600;
+}/* } part passing-rows */
 
 .data-table-shell[data-filter-active="true"] {
     outline: var(--border-width) solid var(--color-warning);

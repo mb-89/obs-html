@@ -99,6 +99,7 @@
               "details": {"enum": ["columns"]},
               "showEmptyDetailTabs": {"type": "boolean"},
               "showEmptyGroups": {"type": "boolean", "$comment": "part empty-groups"},
+              "passing": {"type": "object", "required": ["filters", "label"], "additionalProperties": false, "properties": {"filters": {"$ref": "#/$defs/filter"}, "label": {"$ref": "#/$defs/text"}}, "$comment": "part passing-rows"},
               "screenPageBreaks": {"type": "boolean"},
               "pagination": {"const": false},
               "pageSize": {"type": "integer", "minimum": 1},

@@ -491,6 +491,16 @@ no row has as a group caption with the count `(0)`, in its listed place; it requ
 `groupOrder`, and [[generic-tables]] owns how such a caption looks, pages and links. Omitted, it
 is off and a grouped table draws only the groups its rows have. Its code ships only in an
 artifact with a view that sets it ([[architecture#Rendering and runtime]]).
+`passing: {filters, label}` under a table view's `obsHtml` declares which of its rows pass, in a
+`base` fence and in a register's `.base` file alike. `filters` is written in the view's own Bases
+filter grammar and matched with the same field resolution as the view's `filters`; no other
+grammar or evaluator is added ([[semantic-assets]]). `label` names the passing state, such as
+`verified`. Both keys are required and no other key is allowed. A passing filter obs-html cannot
+evaluate fails the build at `base.views[i].obsHtml.passing.filters` (`views[i].obsHtml.passing.filters`
+in a `.base` file), as a view's `filters` fails at its own field. The view then lists the rows that
+do not pass and folds the passing ones into one count line; [[generic-tables]] owns the fold, its
+line and its counts. Omitted, every row is listed as before; its code ships only in an artifact
+with a view that sets it ([[architecture#Rendering and runtime]]).
 `screenPageBreaks: false` under the view's `obsHtml` keeps the current table page,
 including expanded details, together on one variable-height HTML sheet. This is a
 screen pagination hint, not text `nowrap` or a change to row pagination. PDF retains

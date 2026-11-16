@@ -182,6 +182,21 @@
         return rows.filter((row) => retained.has(row.key));
     };
 
+    // part passing-rows {
+    // The passing fold (obsHtml.passing; generic-tables): the rows the filters keep, in tree order,
+    // and whether a row passes in; the rows listed while folded (those that do not pass, with the
+    // ancestor path they need), how many of the rows pass and how many there are out.
+    const foldPassingRows = (rows, passes) => ({
+        listed: retainMatchesAndAncestors(rows, {empty: false, match: row => !passes(row)}),
+        passing: rows.filter(passes).length,
+        total: rows.length,
+    });
+    // The fold's line: `<p> of <t> <label>`, the sentence `All <t> <label>.` when every row passes,
+    // and nothing for a view without rows.
+    const passingCaption = ({passing, total}, label) => !total ? ""
+        : passing === total ? `All ${total} ${label}.` : `${passing} of ${total} ${label}`;
+
+    // } part passing-rows
     const render = ({
         key, columns: initialColumns, availableColumns = initialColumns, fieldCatalog, rows,
         views = [], activeView = 0, onViewChange,
@@ -190,7 +205,7 @@
             document.querySelector("[data-artifact-data]").textContent,
         )[compact ? "tableCompactColumnMinimumPixels" : "tableColumnMinimumPixels"],
         showEmptyDetailTabs = false, /* part empty-groups { */showEmptyGroups = false, /* } part empty-groups */screenPageBreaks = true,
-        initialRowKeys, onRowKeysChange,
+        initialRowKeys, onRowKeysChange,/* part passing-rows { */ passing, initialPassingOpen = false, onPassingChange,/* } part passing-rows */
         columnSizing, detailFontSize = JSON.parse(
             document.querySelector("[data-artifact-data]").textContent,
         ).tableDetailFontSizePoints,
@@ -422,6 +437,24 @@
         globalThis.obsAssets.replace(clearFilter, "close");
         filterWarning.append(filterIcon, filterLabel, clearFilter);
         shell.append(filterWarning, scroller, queryEditor, queryError, presentationError, footer, options);
+        // part passing-rows {
+        // The fold's one line under the table: a button that opens and closes the passing rows.
+        const passingLine = document.createElement("button");
+        passingLine.type = "button";
+        passingLine.className = "data-table-passing";
+        passingLine.hidden = true;
+        let passingOpen = Boolean(passing) && initialPassingOpen;
+        const setPassingOpen = (open) => {
+            passingOpen = open;
+            onPassingChange?.(open);
+        };
+        passingLine.addEventListener("click", () => {
+            setPassingOpen(!passingOpen);
+            pageIndex = 0;
+            renderBody();
+        });
+        if (passing) scroller.after(passingLine);
+        // } part passing-rows
         // Several authored views of one base: a pill per view name; the owner remounts the chosen view.
         if (views.length > 1) {
             const selector = document.createElement("div");
@@ -554,6 +587,20 @@
         let activeGroupRows = [];
         let suppressHeaderClick = false;
         let visibleRows = baseRows;
+        // part passing-rows {
+        // The rows the table lists: every row the filters keep, or, while folded, those that do not pass.
+        const passingFold = () => foldPassingRows(visibleRows, passing.match);
+        const listedRows = () => passing && !passingOpen ? passingFold().listed : visibleRows;
+        const updatePassingLine = () => {
+            if (!passing) return;
+            const fold = passingFold();
+            passingLine.textContent = passingCaption(fold, passing.label);
+            passingLine.hidden = !fold.total;
+            passingLine.disabled = !fold.passing;
+            passingLine.classList.toggle("data-table-passing--all", fold.total > 0 && fold.passing === fold.total);
+            passingLine.setAttribute("aria-expanded", String(passingOpen));
+        };
+        // } part passing-rows
         let metrics = {
             padding: 28, indent: 0, toggle: 0, headerControlExtra: 0,
             font: getComputedStyle(document.body).font, headerFont: getComputedStyle(document.body).font,
@@ -1007,6 +1054,9 @@
         };
 
         const orderedRows = () => {
+            // part passing-rows {
+            const visibleRows = listedRows();
+            // } part passing-rows
             const retained = new Set(visibleRows.map((row) => row.key));
             const children = new Map();
             visibleRows.forEach((row) => {
@@ -1296,6 +1346,17 @@
                     emptyGroupLabels(level.order, buckets.keys()).forEach(label => buckets.set(label, []));
                 }
                 // } part empty-groups
+                // part passing-rows {
+                // A listed value whose rows all pass has rows, folded into the line: it is no hole.
+                if (passing && !passingOpen && depth === 0 && !branchKey) {
+                    const kept = new Set(visibleRows.map(item => item.key));
+                    const present = new Set(visibleRows.filter(item => !kept.has(item.parentKey))
+                        .map(item => String(item.values[level.property] ?? "Unspecified")));
+                    [...buckets].forEach(([label, entries]) => {
+                        if (!entries.length && present.has(label)) buckets.delete(label);
+                    });
+                }
+                // } part passing-rows
                 const compare = compareGroupLabels(level, sorts.find((sort) => sort.property === level.property));
                 [...buckets].sort(([left], [right]) => compare(left, right)).forEach(([label, entries]) => {
                     const groupPath = [...path, [level.property, label]];
@@ -1373,6 +1434,9 @@
         };
 
         const paginate = (ordered, reason = "") => {
+            // part passing-rows {
+            updatePassingLine();
+            // } part passing-rows
             if (!pagination) {
                 updateViewportHeight();
                 shell.dispatchEvent(new CustomEvent("obs-table-change", {bubbles: true, detail: {reason}}));
@@ -1432,6 +1496,11 @@
             });
             updateViewportHeight();
             count.textContent = `${visibleRows.length} of ${baseRows.length} items`;
+            // part passing-rows {
+            if (passing && !passingOpen) {
+                count.textContent = `${listedRows().length} of ${foldPassingRows(baseRows, passing.match).listed.length} items`;
+            }
+            // } part passing-rows
             pageLabel.textContent = `Page ${pageIndex + 1} of ${pages}`;
             previousPage.disabled = pageIndex === 0;
             nextPage.disabled = pageIndex >= pages - 1;
@@ -1541,6 +1610,10 @@
             renderFacets();
         });
         shell.addEventListener("obs-table-set-filter", (event) => {
+            // part passing-rows {
+            // A link's or a Search hit's rows are shown whole: the fold opens (generic-tables).
+            if (passing) setPassingOpen(true);
+            // } part passing-rows
             filterSelections.clear();
             input.value = event.detail.expression;
             filterProjection = event.detail.projection || "";
@@ -1579,6 +1652,9 @@
             const byKey = new Map(baseRows.map((row) => [row.key, row]));
             let target = byKey.get(event.detail.key);
             if (!target) return;
+            // part passing-rows {
+            if (passing && !passingOpen && passing.match(target)) setPassingOpen(true);
+            // } part passing-rows
             revealKey = target.key;
             if (event.detail.details && hasDetails(target)) expandedDetails.add(target.key);
             const subject = catalogByKey.get(event.detail.column);
@@ -1647,5 +1723,5 @@
         };
     };
 
-    globalThis.obsDataTable = {render, fitStaticTable, compareGroupLabels/* part empty-groups { */, emptyGroupLabels/* } part empty-groups */};
+    globalThis.obsDataTable = {render, fitStaticTable, compareGroupLabels/* part empty-groups { */, emptyGroupLabels/* } part empty-groups *//* part passing-rows { */, foldPassingRows, passingCaption/* } part passing-rows */};
 })();
