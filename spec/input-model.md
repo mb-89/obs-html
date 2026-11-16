@@ -501,6 +501,15 @@ in a `.base` file), as a view's `filters` fails at its own field. The view then 
 do not pass and folds the passing ones into one count line; [[generic-tables]] owns the fold, its
 line and its counts. Omitted, every row is listed as before; its code ships only in an artifact
 with a view that sets it ([[architecture#Rendering and runtime]]).
+`detailFields: [<field>, ...]` under a table view's `obsHtml` chooses the fields an opened row
+shows above its note's text: only the listed fields, in the listed order, each with the fields
+nested under it. The omission rules above still apply, so a listed field the note leaves blank is
+not shown. `detailFields: []` shows no field block at all, only the note's text. The list holds
+unique non-blank field names; any other value fails the view's validation at its own field,
+`views[i].obsHtml.detailFields`, as the other view options fail at theirs. It changes ordinary note
+details only: the tabs of `details: columns` keep their reference metadata. Omitted, an opened row
+shows every field as before; its code ships only in an artifact with a view that sets it
+([[architecture#Rendering and runtime]]).
 `screenPageBreaks: false` under the view's `obsHtml` keeps the current table page,
 including expanded details, together on one variable-height HTML sheet. This is a
 screen pagination hint, not text `nowrap` or a change to row pagination. PDF retains

@@ -100,6 +100,7 @@
               "showEmptyDetailTabs": {"type": "boolean"},
               "showEmptyGroups": {"type": "boolean", "$comment": "part empty-groups"},
               "passing": {"type": "object", "required": ["filters", "label"], "additionalProperties": false, "properties": {"filters": {"$ref": "#/$defs/filter"}, "label": {"$ref": "#/$defs/text"}}, "$comment": "part passing-rows"},
+              "detailFields": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "\\S"}, "$comment": "part detail-fields"},
               "screenPageBreaks": {"type": "boolean"},
               "pagination": {"const": false},
               "pageSize": {"type": "integer", "minimum": 1},

@@ -357,3 +357,26 @@ def test_the_passing_rows_part_ships_only_where_a_view_sets_the_option_and_strip
         html = render(source, CONFIG)
         shipped[label] = [name for name in PASSING_ROWS_FILES if feature_source(name, ["passing-rows"]) in html]
     assert shipped == {"off": [], "on": list(PASSING_ROWS_FILES)}
+
+
+DETAIL_FIELDS_FILES = ("table.js", "tables.js", "base.schema.json")
+
+
+@pytest.mark.parametrize("detail_fields", [[], ["date"], "date"])
+def test_the_detail_fields_part_ships_where_a_view_sets_the_option_and_strips_without_it(detail_fields) -> None:
+    """features.py, the tables feature's part detail-fields: it ships where any view of a Base sets
+    obsHtml.detailFields (an empty list and a value its schema line refuses alike), and without it
+    the files the renderer embeds carry none of its regions, so such an artifact is what it was."""
+    part = next(part for feature in FEATURES if feature.key == "tables" for part in feature.parts
+                if part.key == "detail-fields")
+    assert part.option == ()
+    for name in DETAIL_FIELDS_FILES:
+        plain_source, kept = feature_source(name), feature_source(name, ["detail-fields"])
+        assert "detail-fields" not in plain_source and "detailFields" not in plain_source, name
+        assert "chosenDetailEntries" not in plain_source, name
+        assert kept != plain_source and "showEmptyGroups" not in kept and "passing" not in kept.lower(), name
+    shipped = {}
+    for label, source in (("off", _grouped_table()), ("on", _grouped_table(detailFields=detail_fields))):
+        html = render(source, CONFIG)
+        shipped[label] = [name for name in DETAIL_FIELDS_FILES if feature_source(name, ["detail-fields"]) in html]
+    assert shipped == {"off": [], "on": list(DETAIL_FIELDS_FILES)}

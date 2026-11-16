@@ -197,6 +197,18 @@
         : passing === total ? `All ${total} ${label}.` : `${passing} of ${total} ${label}`;
 
     // } part passing-rows
+    // part detail-fields {
+    // The fields an opened row shows (obsHtml.detailFields; input-model.md): its note's metadata
+    // entries and the view's list in; out, the entries each listed name selects, the field and the
+    // fields nested under it, in the listed order, each once. Without a list, the entries as they are.
+    const chosenDetailEntries = (entries, fields) => {
+        if (!fields) return entries;
+        const chosen = new Set();
+        return fields.flatMap(name => entries.filter(([field]) =>
+            (field === name || field.startsWith(`${name}.`)) && !chosen.has(field) && chosen.add(field)));
+    };
+
+    // } part detail-fields
     const render = ({
         key, columns: initialColumns, availableColumns = initialColumns, fieldCatalog, rows,
         views = [], activeView = 0, onViewChange,
@@ -1722,5 +1734,5 @@
         };
     };
 
-    globalThis.obsDataTable = {render, fitStaticTable, compareGroupLabels/* part empty-groups { */, emptyGroupLabels/* } part empty-groups *//* part passing-rows { */, foldPassingRows, passingCaption/* } part passing-rows */};
+    globalThis.obsDataTable = {render, fitStaticTable, compareGroupLabels/* part empty-groups { */, emptyGroupLabels/* } part empty-groups *//* part passing-rows { */, foldPassingRows, passingCaption/* } part passing-rows *//* part detail-fields { */, chosenDetailEntries/* } part detail-fields */};
 })();

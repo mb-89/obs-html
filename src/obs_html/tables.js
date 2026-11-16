@@ -316,6 +316,9 @@
                 label: view.obsHtml.passing.label,
             } : undefined,
             // } part passing-rows
+            // part detail-fields {
+            detailFields: view.obsHtml?.detailFields,
+            // } part detail-fields
             screenPageBreaks: view.obsHtml?.screenPageBreaks !== false,
             pagination: view.obsHtml?.pagination !== false,
             pageSize: view.obsHtml?.pageSize ?? artifactData.tablePageSize,
@@ -547,7 +550,9 @@
                         subject.dataset.referenceNote = note.slug;
                         const metadata = document.createElement("dl");
                         metadata.className = "note-detail-metadata";
-                        const metadataEntries = permittedMetadata(note, profile);
+                        const metadataEntries = /* part detail-fields { */globalThis.obsDataTable.chosenDetailEntries(
+                            /* } part detail-fields */permittedMetadata(note, profile)/* part detail-fields { */,
+                            columnKey === undefined ? definition.detailFields : undefined)/* } part detail-fields */;
                         metadataEntries.forEach(([field, value]) => {
                             const reference = definition.properties?.[columnKey]?.obsHtml?.reference;
                             const formatting = reference?.metadataFormats?.[field];
@@ -571,6 +576,10 @@
                             metadata.append(term, description);
                         });
                         subject.append(metadata);
+                        // part detail-fields {
+                        // A view that chooses its fields shows no field block where none is left.
+                        if (definition.detailFields && !metadata.childElementCount) metadata.remove();
+                        // } part detail-fields
                         appendTrustedHtml(subject, note.html);
                         container.append(subject);
                         renderChapterTables(note, subject, staticView, respectFilter);

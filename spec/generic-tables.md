@@ -239,6 +239,9 @@ adapter's browser evaluator runs the same conformance fixture.
   detail row directly underneath, rendering that note's metadata and body from the same record
   used by links and other projections.
 
+  A view may choose which of the note's fields that row shows, in its order, or none
+  (`obsHtml.detailFields`, owned by [[input-model]]).
+
   Details are lazy, collapsed initially, and independent
   of source-parent and group expansion.
 
