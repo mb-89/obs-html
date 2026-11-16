@@ -18,6 +18,7 @@ from documents import chapter, document, heading, node, paragraph
 from obs_html import features
 from obs_html.artifact_data import decode_artifact_data
 from obs_html.config import load_config
+from obs_html.errors import InputError
 from obs_html.features import FEATURES, Feature, Part, feature_source
 from obs_html.figures import FIGURE_KINDS
 from obs_html.render import render
@@ -362,11 +363,12 @@ def test_the_passing_rows_part_ships_only_where_a_view_sets_the_option_and_strip
 DETAIL_FIELDS_FILES = ("table.js", "tables.js", "base.schema.json")
 
 
-@pytest.mark.parametrize("detail_fields", [[], ["date"], "date"])
+@pytest.mark.parametrize("detail_fields", [[], ["date"]])
 def test_the_detail_fields_part_ships_where_a_view_sets_the_option_and_strips_without_it(detail_fields) -> None:
     """features.py, the tables feature's part detail-fields: it ships where any view of a Base sets
-    obsHtml.detailFields (an empty list and a value its schema line refuses alike), and without it
-    the files the renderer embeds carry none of its regions, so such an artifact is what it was."""
+    obsHtml.detailFields (an empty list too), and without it the files the renderer embeds carry
+    none of its regions, so such an artifact is what it was. A value its schema line refuses fails
+    the build (test_a_detail_fields_value_its_schema_line_refuses_fails_the_build)."""
     part = next(part for feature in FEATURES if feature.key == "tables" for part in feature.parts
                 if part.key == "detail-fields")
     assert part.option == ()
@@ -380,3 +382,11 @@ def test_the_detail_fields_part_ships_where_a_view_sets_the_option_and_strips_wi
         html = render(source, CONFIG)
         shipped[label] = [name for name in DETAIL_FIELDS_FILES if feature_source(name, ["detail-fields"]) in html]
     assert shipped == {"off": [], "on": list(DETAIL_FIELDS_FILES)}
+
+
+def test_a_detail_fields_value_its_schema_line_refuses_fails_the_build() -> None:
+    """The build holds obsHtml.detailFields to its schema line, as the browser does (input-model.md,
+    Compact declarative table presentation)."""
+    with pytest.raises(InputError) as failure:
+        render(_grouped_table(detailFields="date"), CONFIG)
+    assert (failure.value.source, failure.value.field) == ("chapter one", "base.views[1].obsHtml.detailFields")

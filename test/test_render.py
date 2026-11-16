@@ -267,11 +267,18 @@ def test_the_filter_check_accepts_and_refuses_what_the_shared_conformance_fixtur
     fixture = json.loads((core_root / "test" / "fixtures" / "bases-filter-conformance.json").read_text(
         encoding="utf-8"))
     for case in fixture["cases"]:
+        if case["filter"] is None:  # The core reads no filter; base.schema.json, as base.js holds it, refuses null.
+            with pytest.raises(InputError) as failure:
+                _render(_filtered(None))
+            assert (failure.value.source, failure.value.field) == ("chapter items", "base.filters")
+            continue
         _render(_filtered(case["filter"]))
-    for filters in fixture["unsupported"]:
+    deeper = {'{"and": []}': "base.filters.and", '{"not": [{"or": []}]}': "base.filters.not[0].or"}
+    for filters in fixture["unsupported"]:  # base.schema.json names an empty operand list at its own field
         with pytest.raises(InputError) as failure:
             _render(_filtered(filters))
-        assert (failure.value.source, failure.value.field) == ("chapter items", "base.filters")
+        field = deeper.get(json.dumps(filters), "base.filters")
+        assert (failure.value.source, failure.value.field) == ("chapter items", field)
 
 
 def test_an_ignored_record_marks_its_note_and_an_ignored_chapter_stays_in_the_reading_order() -> None:

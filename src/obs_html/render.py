@@ -20,7 +20,8 @@ from pathlib import Path, PurePosixPath
 from typing import Callable, Iterator
 from urllib.parse import unquote
 
-from jsonschema import Draft202012Validator
+from jsonschema import Draft202012Validator, validators
+from referencing import Registry, Resource
 from latex2mathml import exceptions as math_exceptions
 from latex2mathml.converter import convert as mathml
 
@@ -470,7 +471,7 @@ def _register(node: dict[str, object], context: Context) -> str:
     definition, view = attrs["base"], attrs["view"]
     if view is not None:
         definition, rows = {**definition, "views": [definition["views"][view]]}, [rows[view]]
-    return _data_table(definition, rows, context, attrs["target"], node)
+    return _data_table(definition, rows, context, attrs["target"], node, None if view is None else [view])
 
 
 def _row_keys(records: list[dict[str, object]]) -> dict[str, str]:
@@ -502,9 +503,13 @@ def _slug_source(slug: str, context: Context) -> str:
 
 
 def _data_table(definition: dict[str, object], rows: list[list[str]] | None, context: Context,
-                source: str, node: dict[str, object]) -> str:
+                source: str, node: dict[str, object], views: list[int] | None = None) -> str:
     """A table placeholder the runtime fills; its rows are review items keyed by ``node``'s id
-    (input-model#Comments and the core model)."""
+    (input-model#Comments and the core model). ``views`` are the indexes in the .base file of a
+    one-view table's views."""
+    error = base_definition_error(definition, source, views)
+    if error is not None:
+        raise error
     context.assets.normalize_definition(definition, source)
     key = f"{context.chapter or HOME}-base-{len(context.tables) + 1}"
     places = [("filters", definition.get("filters")),
@@ -528,8 +533,37 @@ def _data_table(definition: dict[str, object], rows: list[list[str]] | None, con
 
 
 FILE_PROPERTIES = ("file.name", "file.path", "file.folder", "file.ext")
-COMPARISON = re.compile(json.loads(files("obs_html").joinpath("base.schema.json").read_text(encoding="utf-8"))
-                        ["$defs"]["comparison"]["pattern"])
+BASE_SCHEMA = json.loads(files("obs_html").joinpath("base.schema.json").read_text(encoding="utf-8"))
+COMPARISON = re.compile(BASE_SCHEMA["$defs"]["comparison"]["pattern"])
+BROWSER_KEYWORDS = frozenset({
+    "$ref", "oneOf", "not", "type", "minimum", "maximum", "enum", "const", "minLength", "maxLength", "pattern",
+    "minItems", "maxItems", "uniqueItems", "items", "minProperties", "maxProperties", "dependentRequired",
+    "required", "properties", "additionalProperties"})
+"""The JSON Schema keywords base.js's validator implements (validateNode); test_registers.py holds
+the two to each other. The build checks a Base with these alone, so it refuses nothing the browser
+accepts (input-model.md, Compact declarative table presentation)."""
+BASE_VALIDATOR = validators.create(
+    meta_schema=Draft202012Validator.META_SCHEMA, type_checker=Draft202012Validator.TYPE_CHECKER,
+    validators={keyword: check for keyword, check in Draft202012Validator.VALIDATORS.items()
+                if keyword in BROWSER_KEYWORDS},
+)(BASE_SCHEMA, registry=Registry().with_resource("assets.schema.json", Resource.from_contents(json.loads(
+    files("obs_html").joinpath("assets.schema.json").read_text(encoding="utf-8")))))
+"""base.schema.json as base.js reads it, with the assets schema its icon names refer to."""
+VIEW_FIELD = re.compile(r"^((?:base\.)?views)\[(\d+)\]")
+
+
+def base_definition_error(definition: object, source: str, views: list[int] | None = None) -> InputError | None:
+    """The input error of the first part of a Base ``definition`` that base.schema.json refuses, as
+    the browser's base.js refuses it, or None. ``source`` names the note of a fence, whose fields sit
+    under ``base.``, or the .base file; ``views`` maps a one-view table's views to their index in
+    that file."""
+    error = schema_error(list(BASE_VALIDATOR.iter_errors(definition)), source,
+                         "obs-html's base.schema.json and its input-model.md, Compact declarative table "
+                         "presentation", prefix="" if source.endswith(".base") else "base")
+    if error is None or views is None:
+        return error
+    field = VIEW_FIELD.sub(lambda match: f"{match[1]}[{views[int(match[2])]}]", error.field)
+    return InputError(error.source, field, error.problem, error.remedy)
 
 
 def _unsupported_filter(filters: object) -> str | None:

@@ -458,6 +458,14 @@ equal initial widths for its displayed subject columns, and select a smaller poi
 size for expanded subject details. These are schema-validated `obsHtml` view options;
 omitting them preserves the existing table defaults.
 
+obs-html checks every Base definition, a `base` fence's or an embedded `.base` file's, against
+the packaged `base.schema.json` when it builds the artifact, with the JSON Schema keywords
+`base.js` implements, so the build refuses what that schema refuses in the browser and nothing
+more. A refused option fails the build naming the note or `.base` file and its field path
+(`base.views[0].obsHtml.groupOrder` in a fence, `views[0].obsHtml.groupOrder` in a `.base` file).
+The browser checks the definition again with the same schema, since a reader can edit a query in
+the open artifact.
+
 Shared bounds/defaults belong in configuration and its schema, not duplicated
 constants.
 The declarations are `pagination: false`, `columnSizing: equal`, and

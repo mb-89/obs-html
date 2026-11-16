@@ -17,7 +17,7 @@ from documents import chapter, document as build, node, paragraph, without_node_
 from obs_html.artifact_data import decode_artifact_data
 from obs_html.config import load_config
 from obs_html.errors import InputError
-from obs_html.render import render
+from obs_html.render import BROWSER_KEYWORDS, base_definition_error, render
 from test_dom import run_artifact_dom_contract
 
 
@@ -194,3 +194,87 @@ def test_a_passing_filter_obs_html_cannot_evaluate_fails_at_its_field(filters: o
     with pytest.raises(InputError) as dotbase:
         render(document, CONFIG)
     assert (dotbase.value.source, dotbase.value.field) == (register["attrs"]["target"], "views[1].obsHtml.passing.filters")
+
+
+def _fence(spec: dict, home: bool = False) -> dict:
+    """A Document with one Base fence of ``spec``, in a chapter or on the home page."""
+    fence = node("bases", source="", spec=spec)
+    return build("Doc", abstract=(fence,)) if home else build("Doc", chapter("one", "One", fence))
+
+
+@pytest.mark.parametrize(("options", "field"), [
+    ({"groupOrder": []}, "base.views[0].obsHtml.groupOrder"),
+    ({"groupOrdr": ["a"]}, "base.views[0].obsHtml.groupOrdr"),
+    ({"passing": {"filters": "x == 1"}}, "base.views[0].obsHtml.passing.label"),
+])
+@pytest.mark.parametrize("home", [False, True], ids=["chapter", "home"])
+def test_a_base_fence_view_option_the_schema_refuses_fails_the_build_at_its_field(
+        options: dict, field: str, home: bool) -> None:
+    """input-model.md, Compact declarative table presentation: the build checks a Base fence
+    against base.schema.json, as the browser does, and names the note and the field."""
+    spec = {"views": [{"type": "table", "order": ["file.name"], "groupBy": {"property": "kind"},
+                       "obsHtml": options}]}
+    with pytest.raises(InputError) as failure:
+        render(_fence(spec, home), CONFIG)
+    assert (failure.value.source, failure.value.field) == ("manifest.md" if home else "chapter one", field)
+    assert "base.schema.json" in failure.value.remedy
+
+
+@pytest.mark.parametrize(("options", "field"), [
+    ({"passing": {"filters": "x == 1"}}, "obsHtml.passing.label"),
+    ({"groupOrder": []}, "obsHtml.groupOrder"),
+    ({"detailFeilds": ["kind"]}, "obsHtml.detailFeilds"),
+])
+def test_a_base_file_view_option_the_schema_refuses_fails_the_build_at_its_field(options: dict, field: str) -> None:
+    """The same check for a .base file a register embeds, whole (views keep their index) and by one
+    view heading (the view is named by its index in the file, not in the one-view table)."""
+    document = copy.deepcopy(REGISTERS)
+    whole = _register(document, "points")
+    assert whole["attrs"]["view"] is None
+    whole["attrs"]["base"]["views"][1]["obsHtml"] = options
+    with pytest.raises(InputError) as failure:
+        render(document, CONFIG)
+    assert (failure.value.source, failure.value.field) == (whole["attrs"]["target"], f"views[1].{field}")
+    document = copy.deepcopy(REGISTERS)
+    one = _register(document, "second")
+    index = one["attrs"]["view"]
+    assert index is not None and index > 0
+    one["attrs"]["base"]["views"][index]["obsHtml"] = options
+    with pytest.raises(InputError) as failure:
+        render(document, CONFIG)
+    assert (failure.value.source, failure.value.field) == (one["attrs"]["target"], f"views[{index}].{field}")
+
+
+VIEW = {"type": "table", "order": ["file.name"]}
+
+
+def test_base_definition_error_names_the_field_in_a_fence_and_in_a_base_file() -> None:
+    """The pure check behind the build's: None for a valid definition; a fence's fields under
+    base., a .base file's at the top, and a one-view table's view by its index in the file."""
+    assert base_definition_error({"views": [VIEW]}, "chapter one") is None
+    refused = {"views": [{**VIEW, "obsHtml": {"pageSize": 0}}]}
+    fence = base_definition_error(refused, "chapter one")
+    assert (fence.source, fence.field) == ("chapter one", "base.views[0].obsHtml.pageSize")
+    dotbase = base_definition_error(refused, "points.base", views=[2])
+    assert (dotbase.source, dotbase.field) == ("points.base", "views[2].obsHtml.pageSize")
+    top = base_definition_error({"views": [VIEW], "filter": "x == 1"}, "points.base", views=[2])
+    assert (top.source, top.field) == ("points.base", "filter")
+
+
+@pytest.mark.parametrize("icon", [
+    {"name": "upload", "label": "Run", "action": "app.run", "card": {"title": "Run", "submit": "Go", "link": "x"}},
+    {"name": "upload", "label": "Run", "action": "app.run", "unavailable": "No file"},
+], ids=["card-link-without-unavailable", "unavailable-without-card-link"])
+def test_base_definition_error_holds_only_the_keywords_base_js_implements(icon: dict) -> None:
+    """base.js's validator implements no if/then/else, so the browser accepts an action icon the
+    schema's conditional would refuse; the build refuses nothing the browser accepts."""
+    definition = {"properties": {"run": {"obsHtml": {"icon": icon}}}, "views": [VIEW]}
+    assert base_definition_error(definition, "chapter one") is None
+
+
+def test_the_builds_base_keywords_are_those_base_js_implements() -> None:
+    """BROWSER_KEYWORDS names exactly the keywords validateNode in base.js reads off a rule."""
+    script = (ROOT / "src" / "obs_html" / "base.js").read_text(encoding="utf-8")
+    body = script[script.index("const validateNode"):script.index("const validate =")]
+    read = set(re.findall(r"\brule\.(\$?[A-Za-z]+)", body)) | set(re.findall(r'hasOwn\(rule, "(\w+)"\)', body))
+    assert read == BROWSER_KEYWORDS
