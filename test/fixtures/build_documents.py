@@ -797,7 +797,7 @@ RUNS_COMMANDS = {"document"}
 """The vaults whose cmd fences the build runs (obs-document --execute-commands): ``echo`` only."""
 EMBEDS_SOURCE = {"source-archive", "features"}
 """The vaults the build archives (obs-document --embed-source)."""
-FIXTURE_BUILD = {"repository": "https://github.com/mb-89/obs", "commit": "0" * 40,
+FIXTURE_BUILD = {"repository": "https://example.invalid/obs", "commit": "0" * 40,
                  "lockfiles": {"uv.lock": {"obs": "0.0.0"}},
                  "arguments": ["--adapter", "html", "--destination", "document.html", "--embed-source"]}
 """The build record an archived fixture Document carries in place of the core's: the core records

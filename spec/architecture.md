@@ -177,8 +177,7 @@ under the rule of [[architecture#Rendering and runtime]]: three parts of the pag
 its build, each standalone and pure (data in, data out) behind thin wiring, and each off where the
 adapter's configuration leaves its setting out. `cfg.schema.json` declares each default and the
 packaged `cfg.json` leaves the key out, so an artifact built without them is byte for byte what it
-was. Their ideas come from ctrl's `src/ui/limited.js`, `test/provenance.test.mjs` and
-`src/core/guide.js` (MIT License, Copyright (c) 2026 mb-89).
+was.
 
 ### Limited-host banner
 

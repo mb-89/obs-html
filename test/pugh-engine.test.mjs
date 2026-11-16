@@ -1,11 +1,10 @@
-// ctrl's Pugh engine tests, ported: the tests of the engine's decision in github.com/mb-89/ctrl
-// test/pugh.test.mjs at commit e98eba5f7bcb8abf2686dc336dedb28e91e7b698, under their names and
+// ctrl's Pugh engine tests, ported: the tests of the engine's decision, under their names and
 // unchanged but for the import, run against the engine as this package carries it
 // (src/obs_html/vendor/pugh.js). Not ported: ctrl's tests of its own report, CLI, figures and
 // browser page (renderHtml, renderMarkdown, tools/pugh.mjs, plotSvg's series), which obs does not
 // use; obs's figure lays out the engine's result itself (pugh-figure.js).
 //
-// Copyright (c) 2026 mb-89. MIT License: ctrl's LICENSE, whose notice follows.
+// MIT License: ctrl's LICENSE, whose notice follows.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 // associated documentation files (the "Software"), to deal in the Software without restriction,

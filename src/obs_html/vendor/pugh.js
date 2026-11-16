@@ -1,7 +1,7 @@
-// obs-html carries ctrl's Pugh decision engine: this file is github.com/mb-89/ctrl src/core/pugh.js
-// at commit 2839d765ff04d5586f1f0199203bbebf2d03cd22 (MIT, ctrl's package.json), copied unchanged below
-// these four lines. The renderer embeds its pughEngine() for decision figures (features.py, pugh_engine);
-// to update it, copy ctrl's file again under this header with its new commit.
+// obs-html carries ctrl's Pugh decision engine (MIT), copied unchanged below these four lines.
+// The renderer embeds its pughEngine() for decision figures (features.py, pugh_engine).
+// To update it, copy the engine's file again under this header.
+//
 
 // A Pugh decision matrix, generic: candidates marked against a datum on
 // criteria, weighted, gated, ranked, and tested against its own weights.

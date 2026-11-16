@@ -5211,7 +5211,7 @@
       }
     ],
     "build": {
-      "repository": "https://github.com/mb-89/obs",
+      "repository": "https://example.invalid/obs",
       "commit": "0000000000000000000000000000000000000000",
       "lockfiles": {
         "uv.lock": {

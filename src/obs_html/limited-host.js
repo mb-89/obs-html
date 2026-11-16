@@ -4,7 +4,6 @@
 // the line for missing scripts (limited-host.json, noScripts), so where no script runs it stays; this
 // script runs as the page is parsed, before the first paint, and words the line from what it finds
 // (the table of each declared need the page carries, limited-host-needs) or hides it.
-// Adapted from ctrl's src/ui/limited.js (MIT License, Copyright (c) 2026 mb-89).
 (() => {
     // Pure: the declared needs the host lacks, in declared order. A fact that is not false is met.
     const missingNeeds = (needs, facts) => needs.filter((need) => facts[need] === false);
