@@ -320,7 +320,8 @@ adapter's browser evaluator runs the same conformance fixture.
   parent or group; it never flattens hierarchy. Equal values retain canonical source order.
 - Clicking a column header toggles primary ascending/descending sort; Enter or Space does the same.
   Shift-click adds or reverses a secondary sort level. Headers expose their sort state accessibly.
-  Dragging and resizing never trigger sorting.
+  A header carries no hover help: it names its column and no instructions, so a tap on a phone
+  sorts and opens no card. Dragging and resizing never trigger sorting.
 - A sort directive for a grouped property orders that level's group labels, overriding the grouping
   direction while active. Other sort directives order rows inside groups. Nested group levels and
   source-tree descendants keep their hierarchy during these operations.

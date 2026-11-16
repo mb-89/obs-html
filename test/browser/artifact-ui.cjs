@@ -216,6 +216,8 @@ if (process.argv[7] === "--artifact-change-only") {
     click(headers()[0]);
     runTimers();
     assert.equal(headers()[0].getAttribute("aria-sort"), "ascending");
+    assert.deepEqual(headers().filter(cell => cell.hasAttribute("data-hover-help")).map(cell => cell.dataset.columnKey), [],
+        "A header carries no hover help (generic-tables.md, sorting).");
     assert.equal(artifactDirty(), false, "A sort is not a change of the HTML.");
     const opening = columns();
     const move = new window.Event("keydown", {bubbles: true, cancelable: true});

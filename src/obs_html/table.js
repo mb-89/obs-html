@@ -980,7 +980,6 @@
                 cell.setAttribute("aria-sort", activeSort
                     ? activeSort.direction === "DESC" ? "descending" : "ascending"
                     : "none");
-                cell.dataset.hoverHelp = `${column.label}: click to sort; Shift-click for another sort level`;
                 const sortHeader = (secondary = false) => {
                     const existing = sorts.find((level) => level.property === column.key);
                     const direction = existing?.direction === "ASC" ? "DESC" : "ASC";
