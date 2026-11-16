@@ -399,9 +399,13 @@
         return [...row.querySelectorAll("[data-detail-column]")].find(panel =>
             panel.dataset.detailColumn === target.field && panel.closest("[data-detail-owner]") === row);
     };
+    // The text a target's positions never count: the running page header and footer, and the review
+    // gutter's controls, which the bar inserts only while it is open (spec/input-model.md, Comments
+    // and the core model).
+    const notCounted = ".paper-header, .paper-footer, [data-review-gutter]";
     const canonicalText = (node) => {
         const copy = node.cloneNode(true);
-        copy.querySelectorAll(".paper-header, .paper-footer").forEach((item) => item.remove());
+        copy.querySelectorAll(notCounted).forEach((item) => item.remove());
         return copy.textContent || "";
     };
     const rangeText = (range) => canonicalText(range.cloneContents());
@@ -663,7 +667,7 @@
         const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
         const nodes = [];
         while (walker.nextNode()) {
-            if (!walker.currentNode.parentElement.closest(".paper-header, .paper-footer")) {
+            if (!walker.currentNode.parentElement.closest(notCounted)) {
                 nodes.push(walker.currentNode);
             }
         }
@@ -675,27 +679,19 @@
                 !Number.isInteger(target.start) || !Number.isInteger(target.end)) {
             return null;
         }
-        const range = document.createRange();
         const root = targetRoot(target);
         if (!root) return null;
-        let offset = 0;
-        let startSet = false;
         // A block's positions may run on past it; a keyed row's and the chapter's stay inside their root.
         const all = root === chapterBody || keyedRow(target) ? textNodes(root) : textNodes(chapterBody);
         const first = all.findIndex((node) => root.contains(node));
-        for (const node of first < 0 ? [] : all.slice(first)) {
-            const next = offset + node.data.length;
-            if (!startSet && target.start >= offset && target.start <= next) {
-                range.setStart(node, target.start - offset);
-                startSet = true;
-            }
-            if (startSet && target.end >= offset && target.end <= next) {
-                range.setEnd(node, target.end - offset);
-                return range;
-            }
-            offset = next;
-        }
-        return null;
+        const nodes = first < 0 ? [] : all.slice(first);
+        const span = commentModel.anchorSpan(nodes.map((node) => node.data).join(""), target, reviewGutterText());
+        const points = commentModel.rangePoints(nodes.map((node) => node.data.length), span.start, span.end);
+        if (!points) return null;
+        const range = document.createRange();
+        range.setStart(nodes[points.start.index], points.start.offset);
+        range.setEnd(nodes[points.end.index], points.end.offset);
+        return range;
     };
 
     const reviewElements = (root) => [...root.querySelectorAll("p, li, tr, pre, figure")]
@@ -798,6 +794,11 @@
         button.title = label;
         return button;
     };
+
+    // The text one review gutter shows, which a copy saved by release 3.9.0 or earlier counted.
+    let gutterText = null;
+    const reviewGutterText = () => gutterText ??=
+        ["accept", "reject", "comment"].map((kind) => reviewButton(kind, "").textContent).join("");
 
     const reviewItemsForRecord = (record) => {
         const isDocument = globalThis.obsArtifact.isDocument(record);

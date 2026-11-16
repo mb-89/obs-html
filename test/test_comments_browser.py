@@ -129,17 +129,20 @@ SELECT_ACROSS = """async () => {
     await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     const target = obsComments.data.annotations.at(-1).target;
     const marked = [...CSS.highlights.get("obs-comments")].map((painted) => painted.toString());
-    return {target, heading: heading.dataset.nodeId, selected: range.toString(), marked};
+    const own = range.cloneContents();
+    own.querySelectorAll("[data-review-gutter]").forEach((gutter) => gutter.remove());
+    return {target, heading: heading.dataset.nodeId, selected: range.toString(), own: own.textContent, marked};
 }"""
 
 
 def test_a_selection_across_blocks_targets_the_block_it_starts_in(tmp_path, reader_browser) -> None:
     """Nothing targets a chapter and a quote: the heading the selection starts in is its target, and
-    the positions, counted from the heading's start, find the selected text again."""
+    the positions, counted from the heading's start, find the selected text again; the quote is the
+    selection's own text, without the review gutter it crosses."""
     page, errors = _open(reader_browser, _artifact(tmp_path, json.loads(FIXTURE.read_text(encoding="utf-8"))))
     shown = page.evaluate(SELECT_ACROSS)
     assert shown["target"]["node"] == shown["heading"] == "section-36539243"
-    assert (shown["target"]["start"], shown["target"]["quote"]) == (0, shown["selected"])
+    assert (shown["target"]["start"], shown["target"]["quote"]) == (0, shown["own"])
     assert shown["selected"] in shown["marked"]
     assert errors == []
 
@@ -180,3 +183,85 @@ def test_a_readers_resolve_of_anothers_comment_is_their_own_state_entry_and_only
     assert [(state["author"], state["target"], state["state"]) for state in island["states"]] == \
         [("Bob", "c1", "resolved")]
     assert errors == []
+
+
+COMMENT_ON = """async ({chapter, node, quote}) => {
+    await obsArtifact.activateChapter(chapter);
+    await obsArtifact.whenChapterReady();
+    obsArtifact.openBar("comments", "right");
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    const block = document.querySelector(`[data-chapter-body] [data-node-id="${node}"]`);
+    const walker = document.createTreeWalker(block, NodeFilter.SHOW_TEXT);
+    let text = null;
+    while (walker.nextNode()) {
+        if (!walker.currentNode.parentElement.closest("[data-review-gutter]") &&
+                walker.currentNode.data.includes(quote)) { text = walker.currentNode; break; }
+    }
+    const range = document.createRange();
+    range.setStart(text, text.data.indexOf(quote));
+    range.setEnd(text, text.data.indexOf(quote) + quote.length);
+    getSelection().removeAllRanges();
+    getSelection().addRange(range);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    document.querySelector("[data-comment-add]").click();
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    return obsComments.data.annotations.at(-1).target;
+}"""
+
+PAINTED = """async ({chapter, bar}) => {
+    await obsArtifact.activateChapter(chapter);
+    await obsArtifact.whenChapterReady();
+    if (bar) obsArtifact.openBar("comments", "right");
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    return [...(CSS.highlights.get("obs-comments") || [])].map((painted) => painted.toString());
+}"""
+
+
+@pytest.mark.parametrize(("chapter", "node", "quote"), [
+    ("intro", "paragraph-957766ff", "the de"),
+    ("appendix", None, "heading he"),
+], ids=["marked paragraph", "unmarked paragraph"])
+def test_a_reopened_reviewed_copy_paints_a_comment_on_its_quote(chapter, node, quote, tmp_path, reader_browser) -> None:
+    """A comment's positions count the block's own text, not the review gutter's controls, so the copy
+    reopens with its highlight on the quoted characters, with the Comments bar closed and open."""
+    page, errors = _open(reader_browser, _artifact(tmp_path, json.loads(FIXTURE.read_text(encoding="utf-8"))))
+    if node is None:
+        node = page.evaluate("""async (chapter) => { await obsArtifact.activateChapter(chapter);
+            await obsArtifact.whenChapterReady();
+            return document.querySelector("[data-chapter-body] p[data-node-id]").dataset.nodeId; }""", chapter)
+    target = page.evaluate(COMMENT_ON, {"chapter": chapter, "node": node, "quote": quote})
+    assert (target["node"], target["quote"]) == (node, quote)
+    assert page.evaluate(PAINTED, {"chapter": chapter, "bar": True}) == [quote]
+    copy_path = tmp_path / "reviewed.html"
+    copy_path.write_text(page.evaluate("obsComments.reviewedHtml()"), encoding="utf-8")
+    reopened, reopened_errors = _open(reader_browser, copy_path)
+    assert reopened.evaluate(PAINTED, {"chapter": chapter, "bar": False}) == [quote]
+    assert reopened.evaluate(PAINTED, {"chapter": chapter, "bar": True}) == [quote]
+    assert errors == reopened_errors == []
+
+
+SAVED_BY_3_9_0 = ROOT / "test" / "fixtures" / "comments-saved-by-3.9.0.html"
+
+
+def _old_island() -> dict:
+    text = SAVED_BY_3_9_0.read_text(encoding="utf-8")
+    return json.loads(text.split("data-comment-island>", 1)[1].rsplit("</script>", 1)[0])
+
+
+def test_a_copy_saved_by_3_9_0_reopens_with_each_highlight_on_its_quote(tmp_path, reader_browser) -> None:
+    """Release 3.9.0's positions counted the open bar's review gutter: its copy, rebuilt with its
+    comments or loaded into a built artifact, paints each comment on its quote in its block."""
+    old = _old_island()
+    quotes = {comment["target"]["chapter"]: comment["target"]["quote"] for comment in old["comments"]}
+    assert quotes == {"intro": "the de", "appendix": "heading he"}
+    assert all(comment["target"]["prefix"].startswith("✓×💬") for comment in old["comments"])
+    document = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    rebuilt, errors = _open(reader_browser, _artifact(tmp_path, {**document, "comments": old}))
+    loaded, loaded_errors = _open(reader_browser, _artifact(tmp_path, document))
+    loaded.set_input_files("[data-comment-files]", str(SAVED_BY_3_9_0))
+    loaded.wait_for_function("obsComments.data.annotations.length === 2")
+    for page in (rebuilt, loaded):
+        for chapter, quote in quotes.items():
+            assert page.evaluate(PAINTED, {"chapter": chapter, "bar": False}) == [quote], chapter
+            assert page.evaluate(PAINTED, {"chapter": chapter, "bar": True}) == [quote], chapter
+    assert errors == loaded_errors == []

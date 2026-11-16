@@ -1013,9 +1013,18 @@ manifest abstract: its items and selections target `{abstract: true, node}`, and
 `{abstract: true}`; inside the page they keep the home page's chapter key, `home`, which no
 Document chapter may have. A text selection targets the
 block it starts in: the nearest element with a core id, which headings, lists, quotes, callouts,
-tables and display maths carry too. Its positions count from the start of that block's text and
-run on past it where the selection does; one in a keyed row stays in the row, or in its detail's
-record `field`. Nothing targets a chapter and a quote in place of a node.
+tables and display maths carry too. Its positions count from the start of that block's own text,
+without the review controls the Comments bar inserts (the review gutter's accept, reject and
+comment icons) or the running page header and footer, and run on past it where the selection
+does; one in a keyed row stays in the row, or in its detail's record `field`. Nothing targets a
+chapter and a quote in place of a node. Saving, reopening and painting a highlight count the same
+text, so a reviewed copy reopens with each highlight on its quote, whether the bar is open or not.
+
+A copy saved by release 3.9.0 or earlier counted the gutter's text too, where its bar was open:
+its positions are read corrected, never rewritten. Where the quote is not at its positions, the
+quote with every gutter text taken out is looked for one gutter's length earlier, then at its
+occurrence nearest there in the target's text; a quote found nowhere keeps its positions, and the
+comment keeps its block either way. `obsCommentModel.anchorSpan` owns the rule.
 
 **Import.** `obs-html --extract-comments HTML` reads the island as untrusted data, never runs
 the artifact, and prints a deterministic text list of its threads, each comment with its state
