@@ -297,3 +297,34 @@ def test_a_part_an_option_turns_on_ships_only_with_it_and_its_regions_strip_with
     assert kept == SOURCE.joinpath("pugh-figure.js").read_text(encoding="utf-8")
     regions = kept.count("// part verdict {") + kept.count("/* part verdict { */")
     assert regions == kept.count("// } part verdict") + kept.count("/* } part verdict */") > 0
+
+
+EMPTY_GROUPS_FILES = ("table.js", "tables.js", "base.js", "tables.css", "base.schema.json")
+
+
+def _grouped_table(**options: object) -> dict:
+    view = {"type": "table", "name": "Items", "order": ["file.name", "phase"], "groupBy": {"property": "phase"},
+            "obsHtml": {"groupOrder": ["design", "build"], **options}}
+    base = node("bases", source="", spec={"views": [{"type": "table", "name": "All", "order": ["file.name"]}, view]})
+    return document("Grouped", chapter("one", "One", heading(1, "One"), base))
+
+
+def test_the_empty_groups_part_ships_only_where_a_view_sets_the_option_and_strips_without_it() -> None:
+    """features.py, the tables feature's part empty-groups: it ships where any view of a Base sets
+    obsHtml.showEmptyGroups, and without it the files the renderer embeds carry none of its regions
+    (the JSON line region of the schema included), so such an artifact is what it was."""
+    part = next(part for feature in FEATURES if feature.key == "tables" for part in feature.parts
+                if part.key == "empty-groups")
+    assert part.option == ()
+    for name in EMPTY_GROUPS_FILES:
+        plain_source, kept = feature_source(name), feature_source(name, ["empty-groups"])
+        assert "empty-groups" not in plain_source and "showEmptyGroups" not in plain_source, name
+        assert kept == SOURCE.joinpath(name).read_text(encoding="utf-8") != plain_source, name
+    assert "showEmptyGroups" not in json.dumps(json.loads(feature_source("base.schema.json")))
+    shipped = {}
+    for label, source in (("off", _grouped_table()), ("false", _grouped_table(showEmptyGroups=False)),
+                          ("on", _grouped_table(showEmptyGroups=True))):
+        html = render(source, CONFIG)
+        shipped[label] = [name for name in EMPTY_GROUPS_FILES if feature_source(name, ["empty-groups"]) in html]
+        assert not any(feature_source(name) in html for name in EMPTY_GROUPS_FILES) or label != "on", label
+    assert shipped == {"off": [], "false": [], "on": list(EMPTY_GROUPS_FILES)}

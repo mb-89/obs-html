@@ -116,6 +116,11 @@
             if (view.obsHtml?.groupOrder && !view.groupBy) {
                 throw new TypeError("obsHtml.groupOrder requires groupBy.");
             }
+            // part empty-groups {
+            if (view.obsHtml?.showEmptyGroups && !view.obsHtml.groupOrder) {
+                throw new TypeError("obsHtml.showEmptyGroups requires obsHtml.groupOrder.");
+            }
+            // } part empty-groups
             Object.keys(view.columnSize || {}).forEach(supportedProperty);
             if (view.columnSize && view.obsHtml?.columnSizing === "equal") {
                 throw new TypeError("columnSize cannot be combined with columnSizing: equal.");

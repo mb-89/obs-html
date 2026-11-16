@@ -1483,7 +1483,8 @@ def _shell(model: dict[str, object], limits: list[dict[str, str]], overlay: str,
     feature_code = "".join(f"{feature_source(name, shipped_parts)}\n" for feature in features for name in feature.code)
     feature_code += "".join(f"{feature_source(name, shipped_parts)}\n" for part in parts for name in part.code)
     stylesheet = read("base.css") + "".join(
-        f"\n{read(name)}" for feature in features for name in feature.base_styles) + "\n" + overlay
+        f"\n{feature_source(name, shipped_parts)}"
+        for feature in features for name in feature.base_styles) + "\n" + overlay
     feature_styles = "".join(f'\n  <style id="feature-styles-{feature.key}">\n{read(name)}  </style>'
                              for feature in features for name in feature.styles)
     pdf_library = ""
@@ -1516,14 +1517,15 @@ def _shell(model: dict[str, object], limits: list[dict[str, str]], overlay: str,
         property_assets = f'<script id="property-editor-script">{read("properties.js")}</script>'
     base_schema = assets_schema = yaml_library = data_table = ""
     if "base-schema" in elements:  # with the schema of the assets it refers to
-        base_schema = f'<script id="base-schema" type="application/json">{read("base.schema.json")}</script>'
+        base_schema = (f'<script id="base-schema" type="application/json">'
+                       f'{feature_source("base.schema.json", shipped_parts)}</script>')
         assets_schema = (f'<script type="application/json" data-json-schema="assets.schema.json">'
                          f'{read("assets.schema.json")}</script>')
     if "yaml-script" in elements:
         yaml_library = (f'<script id="yaml-script">\n/* {read("vendor", "js-yaml.LICENSE")} */\n'
                         f'{read("vendor", "js-yaml.min.js")}\n  </script>')
     if "data-table-script" in elements:
-        data_table = f'<script id="data-table-script">\n{read("table.js")}\n  </script>'
+        data_table = f'<script id="data-table-script">\n{feature_source("table.js", shipped_parts)}\n  </script>'
     startup = model["reading"]
     reader_startup = "".join(
         f"    {line}\n" for line in read("reader-startup.js")
@@ -1626,7 +1628,7 @@ def _shell(model: dict[str, object], limits: list[dict[str, str]], overlay: str,
   {assets_schema}
   {yaml_library}
   <script id="base-script">
-{read("base.js")}
+{feature_source("base.js", shipped_parts)}
   </script>
   {data_table}
   <script id="zip-rewrite-script">{read("zip-rewrite.js")}</script>

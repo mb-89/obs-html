@@ -98,6 +98,7 @@
               "compact": {"type": "boolean"},
               "details": {"enum": ["columns"]},
               "showEmptyDetailTabs": {"type": "boolean"},
+              "showEmptyGroups": {"type": "boolean", "$comment": "part empty-groups"},
               "screenPageBreaks": {"type": "boolean"},
               "pagination": {"const": false},
               "pageSize": {"type": "integer", "minimum": 1},

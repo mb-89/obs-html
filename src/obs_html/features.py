@@ -25,7 +25,11 @@ A part may also need an option of the adapter's configuration (``Part.option``, 
 A feature script holds the code it runs only with a part inside that part's regions, a line region
 (``// part <key> {`` to ``// } part <key>`` on lines of their own) or an inline one (``/* part
 <key> { */`` to ``/* } part <key> */``); ``feature_source`` strips every region of a part that does
-not ship, so where it does not, the script ships as it would without the part.
+not ship, so where it does not, the script ships as it would without the part. A part may instead
+turn on with what the Document asks for (its condition alone), and its regions may sit in the files
+the renderer embeds whole as well (base.js, table.js, the structural styles and base.schema.json).
+JSON has no comments, so a schema property of a part is a JSON line region: one line of its own,
+``"<name>": {..., "$comment": "part <key>"},``, removed where the part does not ship.
 """
 from __future__ import annotations
 
@@ -55,15 +59,17 @@ def pugh_engine() -> str:
 
 PART_REGION = re.compile(
     r"^[ \t]*// part (?P<line>[a-z][a-z0-9-]*) \{\n.*?^[ \t]*// \} part (?P=line)\n"
-    r"|/\* part (?P<inline>[a-z][a-z0-9-]*) \{ \*/.*?/\* \} part (?P=inline) \*/", re.M | re.S)
-"""A part's region in a feature script: a line region or an inline one (the module docstring)."""
+    r"|/\* part (?P<inline>[a-z][a-z0-9-]*) \{ \*/.*?/\* \} part (?P=inline) \*/"
+    r'|^[ \t]*"[^"\n]+": \{[^\n]*"\$comment": "part (?P<json>[a-z][a-z0-9-]*)"\},?\n', re.M | re.S)
+"""A part's region in a feature script: a line region, an inline one or a JSON line one (the module docstring)."""
 
 
 def feature_source(name: str, parts: Iterable[str] = ()) -> str:
     """The package script ``name`` as an artifact ships it: every region of a part not in ``parts`` stripped."""
     kept = set(parts)
     source = files("obs_html").joinpath(name).read_text(encoding="utf-8")
-    return PART_REGION.sub(lambda region: region[0] if (region["line"] or region["inline"]) in kept else "", source)
+    return PART_REGION.sub(lambda region: region[0] if (
+        region["line"] or region["inline"] or region["json"]) in kept else "", source)
 
 
 @dataclass(frozen=True)
@@ -180,6 +186,13 @@ def _tables(model: dict, _trusted_runtime: bool) -> bool:
     return any(note["tables"] for note in model["notes"])
 
 
+def _empty_groups(model: dict, _trusted_runtime: bool) -> bool:
+    """A Base table's view sets obsHtml.showEmptyGroups (generic-tables.md, groupOrder)."""
+    return any((view.get("obsHtml") or {}).get("showEmptyGroups") is True
+               for note in model["notes"] for table in note["tables"]
+               for view in table["definition"].get("views") or [] if isinstance(view, dict))
+
+
 def _marked(marker: str) -> Callable[[dict, bool], bool]:
     """Whether the artifact's model holds ``marker``, the attribute the renderer writes on the
     element a feature's script finds (a figure, a record card, a property editor)."""
@@ -242,7 +255,9 @@ FEATURES: tuple[Feature, ...] = (
     Feature("tables", "a note with a Base table: the reader's table code, the data table, the Bases schema "
             "and the YAML library its definition editor reads", _tables, ("tables.js",),
             elements=("data-table-script", "base-schema", "yaml-script"), host=False,
-            base_styles=("tables.css",)),
+            base_styles=("tables.css",), parts=(
+                Part("empty-groups", "a view that sets obsHtml.showEmptyGroups: its groupOrder values no row has "
+                     "drawn as groups with the count (0) (generic-tables.md, groupOrder)", _empty_groups, ()),)),
     Feature("options-menu", "a Base table or a figure: their one options menu (options-menu.js)",
             _options_menu, ("options-menu.js",), host=False, base_styles=("options-menu.css",)),
     Feature("figures", "a figure: its frame's styles and script", _figures,

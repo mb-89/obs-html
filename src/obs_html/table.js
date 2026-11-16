@@ -159,6 +159,15 @@
         return (sort?.direction || level.direction) === "DESC" ? -result : result;
     };
 
+    // part empty-groups {
+    // The listed group values no row has, in their listed order (obsHtml.showEmptyGroups;
+    // generic-tables): the order and the labels of the filtered rows' groups in, labels out.
+    const emptyGroupLabels = (order, labels) => {
+        const present = new Set(labels);
+        return order.filter(label => !present.has(label));
+    };
+
+    // } part empty-groups
     const retainMatchesAndAncestors = (rows, query) => {
         if (query.empty) return rows;
         const byKey = new Map(rows.map((row) => [row.key, row]));
@@ -180,7 +189,7 @@
         compact = false, minimumColumnWidth = JSON.parse(
             document.querySelector("[data-artifact-data]").textContent,
         )[compact ? "tableCompactColumnMinimumPixels" : "tableColumnMinimumPixels"],
-        showEmptyDetailTabs = false, screenPageBreaks = true,
+        showEmptyDetailTabs = false, /* part empty-groups { */showEmptyGroups = false, /* } part empty-groups */screenPageBreaks = true,
         initialRowKeys, onRowKeysChange,
         columnSizing, detailFontSize = JSON.parse(
             document.querySelector("[data-artifact-data]").textContent,
@@ -491,6 +500,10 @@
         // Authored columns, or a trusted runtime's derived projection; neither is reader state.
         let projectedColumnKeys = initialColumns.map(column => column.key);
         const groups = initialGroup.map((item) => ({...item}));
+        // part empty-groups {
+        // The authored level whose groupOrder values no row has are drawn; gone once the reader removes it.
+        const emptyGroupLevel = showEmptyGroups ? groups[0] : undefined;
+        // } part empty-groups
         const sorts = initialSort.map((item) => ({...item}));
         // Reader-resized widths are session view state only: never an artifact change.
         const resizedWidths = new Map(Object.entries(isMapping(initialColumnWidths) ? initialColumnWidths : {})
@@ -1278,6 +1291,11 @@
                     if (!buckets.has(value)) buckets.set(value, []);
                     buckets.get(value).push(item);
                 });
+                // part empty-groups {
+                if (depth === 0 && !branchKey && level === emptyGroupLevel && level.order) {
+                    emptyGroupLabels(level.order, buckets.keys()).forEach(label => buckets.set(label, []));
+                }
+                // } part empty-groups
                 const compare = compareGroupLabels(level, sorts.find((sort) => sort.property === level.property));
                 [...buckets].sort(([left], [right]) => compare(left, right)).forEach(([label, entries]) => {
                     const groupPath = [...path, [level.property, label]];
@@ -1316,6 +1334,14 @@
                         renderBody();
                     });
                     cell.append(toggle, `${caption} (${entries.length})`);
+                    // part empty-groups {
+                    if (!entries.length) {
+                        toggle.remove();
+                        heading.classList.add("data-table-group-row--empty");
+                        heading.dataset.groupEmpty = "true";
+                        delete heading.dataset.groupCollapsed;
+                    }
+                    // } part empty-groups
                     cell.style.paddingInlineStart = `${0.6 + activeGroupRows.length * 1.2}rem`;
                     heading.append(cell);
                     body.append(heading);
@@ -1382,6 +1408,16 @@
             });
             const keep = new Set(selected);
             selected.forEach((row) => rowGroupParents.get(row)?.forEach((group) => keep.add(group)));
+            // part empty-groups {
+            // An empty group shows on the page of the row or collapsed group before it, else on page one.
+            const counted = new Set(dataRows);
+            let previous;
+            allRows.forEach((row) => {
+                if (row.dataset.groupEmpty) {
+                    if (previous ? selected.has(previous) : pageIndex === 0) keep.add(row);
+                } else if (counted.has(row)) previous = row;
+            });
+            // } part empty-groups
             allRows.forEach((row) => {
                 if (row.dataset.detailOwner && selected.has(byKey.get(row.dataset.detailOwner))) {
                     keep.add(row);
@@ -1611,5 +1647,5 @@
         };
     };
 
-    globalThis.obsDataTable = {render, fitStaticTable, compareGroupLabels};
+    globalThis.obsDataTable = {render, fitStaticTable, compareGroupLabels/* part empty-groups { */, emptyGroupLabels/* } part empty-groups */};
 })();

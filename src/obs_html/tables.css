@@ -289,7 +289,12 @@
     background: var(--color-accent-soft);
     color: var(--color-text);
     font-family: var(--font-interface);
-}
+}/* part empty-groups { */
+
+/* A listed group no row has (obsHtml.showEmptyGroups): a muted caption with no control (generic-tables.md). */
+.data-table-group-row--empty th {
+    color: var(--color-text-muted);
+}/* } part empty-groups */
 
 .data-table-shell[data-filter-active="true"] {
     outline: var(--border-width) solid var(--color-warning);

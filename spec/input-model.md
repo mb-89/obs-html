@@ -483,6 +483,11 @@ detail-subject column as a tab; tabs without permitted content are visibly disab
 and cannot be activated.
 
 The omitted/default setting retains the existing omission behavior for other artifacts.
+`showEmptyGroups: true` under the view's `obsHtml` draws every `obsHtml.groupOrder` value that
+no row has as a group caption with the count `(0)`, in its listed place; it requires
+`groupOrder`, and [[generic-tables]] owns how such a caption looks, pages and links. Omitted, it
+is off and a grouped table draws only the groups its rows have. Its code ships only in an
+artifact with a view that sets it ([[architecture#Rendering and runtime]]).
 `screenPageBreaks: false` under the view's `obsHtml` keeps the current table page,
 including expanded details, together on one variable-height HTML sheet. This is a
 screen pagination hint, not text `nowrap` or a change to row pagination. PDF retains

@@ -303,6 +303,9 @@
                 ? artifactData.tableCompactColumnMinimumPixels : artifactData.tableColumnMinimumPixels,
             columnDetails: view.obsHtml?.details === "columns",
             showEmptyDetailTabs: view.obsHtml?.showEmptyDetailTabs === true,
+            // part empty-groups {
+            showEmptyGroups: view.obsHtml?.showEmptyGroups === true,
+            // } part empty-groups
             screenPageBreaks: view.obsHtml?.screenPageBreaks !== false,
             pagination: view.obsHtml?.pagination !== false,
             pageSize: view.obsHtml?.pageSize ?? artifactData.tablePageSize,
@@ -487,6 +490,9 @@
                 minimumColumnWidth: definition.minimumColumnWidth,
                 columnDetails: definition.columnDetails,
                 showEmptyDetailTabs: definition.showEmptyDetailTabs,
+                // part empty-groups {
+                showEmptyGroups: definition.showEmptyGroups,
+                // } part empty-groups
                 screenPageBreaks: definition.screenPageBreaks,
                 pagination: definition.pagination,
                 columnSizing: definition.columnSizing,

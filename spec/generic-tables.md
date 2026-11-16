@@ -265,13 +265,26 @@ adapter's browser evaluator runs the same conformance fixture.
   A view's `obsHtml.groupOrder` lists `groupBy` values in their display order; unlisted values
   follow in the `groupBy` direction. It requires `groupBy`. A sort directive on the grouped
   property overrides it while active, as it overrides the grouping direction.
+
+  With `obsHtml.showEmptyGroups: true` the declared order is a completeness check: every
+  `groupOrder` value that no row has gets a caption in its place, `<label>: <value> (0)` (or
+  `<value> (0)`), so a missing value shows as a visible zero. It requires `groupOrder`; omitted,
+  it is off and no empty caption is drawn.
+
+  An empty caption is muted and has no expand or collapse control. It is drawn only in the
+  table's top-level group pass, for the first authored group level: never under a source-tree
+  parent, and not once the reader removes that level from Group by. Its count is taken after
+  the table-local and global filters, as every group's is, so a filter that removes every row
+  of a listed value shows that value with `(0)`. A reader sort on the grouped property orders
+  empty captions with the others.
 - Group headings and source-tree parents each have independent expand/collapse controls. Groups
   default expanded and retain their own state during filtering, pagination, and column changes.
   A collapsed group remains reachable even when it has no currently rendered child rows.
 - Group headings have stable internal anchors `table-group--<table-key>[--row--<source-row-key>]--<property-slug>--<value-slug>`,
   repeating the property/value pair for nested groups. Each slug lowercases and replaces
   non-ASCII-alphanumeric runs with `-`, then trims edge hyphens; an empty slug becomes
-  `value`.
+  `value`. An empty caption of `obsHtml.showEmptyGroups` has the same anchor as any group, so
+  a link to it lands on that caption.
 
   Internal chapter links may target the id with the existing `@id` route after
   applying a table-local filter. When filtering leaves no matching group, navigation
@@ -448,6 +461,9 @@ adapter's browser evaluator runs the same conformance fixture.
 
   Group headings
   and source-tree ancestor context remain with page items without consuming their page quota.
+  An empty caption (`obsHtml.showEmptyGroups`) consumes none either and adds nothing to the item
+  count; it shows on the page of the row or collapsed group just before it, or on page one when
+  nothing comes before it.
 
   Empty results remain on page one with both arrows disabled.
 

@@ -97,6 +97,14 @@ configuration leaves it out; the code a feature's own script runs only with such
 that part's marked regions, which the renderer strips where the part does not ship
 (`features.py`, `feature_source`). Without the option an artifact is byte for byte what it was.
 
+A part may instead turn on with what the Document asks for, as `empty-groups` of the tables
+feature does with a view's `obsHtml.showEmptyGroups`. Its regions may also sit in the scripts,
+stylesheets and schema the renderer embeds whole (`base.js`, `table.js`, the structural styles,
+`base.schema.json`), which it strips the same way. JSON has no comments, so a schema property of
+a part is one line of its own whose value carries `"$comment": "part <key>"`, removed where the
+part does not ship. Such an option works only in an artifact that ships its part: in any other
+artifact, the Query view refuses a definition that sets it as an unsupported property.
+
 The reader's own Base-table code (a note's tables, their saved presentation and their rows in
 search) is the tables feature's script, `tables.js`. The reader's core (`artifact.js`) reaches it
 through one hook: it calls `globalThis.obsTables.attach(core)` once, where `core` holds what the
