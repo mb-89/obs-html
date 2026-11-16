@@ -30,6 +30,9 @@ turn on with what the Document asks for (its condition alone), and its regions m
 the renderer embeds whole as well (base.js, table.js, the structural styles and base.schema.json).
 JSON has no comments, so a schema property of a part is a JSON line region: one line of its own,
 ``"<name>": {..., "$comment": "part <key>"},``, removed where the part does not ship.
+The figure frame's script, figures.js, holds a figure kind's calls into its feature's script the
+same way, in regions named by the feature's key, so an artifact without the feature ships figures.js
+as it was.
 """
 from __future__ import annotations
 
@@ -252,6 +255,8 @@ FEATURES: tuple[Feature, ...] = (
                      option=("figures", "decisionVerdict")),)),
     Feature("sankey", "a figure of a kind drawn by the Sankey script (figures.py, FIGURE_KINDS): a Sankey "
             "figure", _figures_need("sankey"), ("sankey-figure.js",), host=False),
+    Feature("timeline", "a figure of a kind drawn by the timeline script (figures.py, FIGURE_KINDS): a timeline "
+            "figure", _figures_need("timeline"), ("timeline-figure.js",), styles=("timeline.css",), host=False),
     Feature("tables", "a note with a Base table: the reader's table code, the data table, the Bases schema "
             "and the YAML library its definition editor reads", _tables, ("tables.js",),
             elements=("data-table-script", "base-schema", "yaml-script"), host=False,

@@ -197,8 +197,10 @@ def test_base_views_become_runtime_tables(document) -> None:
 def test_records_join_the_queryable_population_outside_the_reading_order(document) -> None:
     model = _model(document)
     records = {note["slug"]: note for note in model["notes"] if note["slug"] not in model["toc"]}
-    # ranked, datum: included notes; manifest: the manifest note's own record, which the core lists.
-    assert set(records) == {"alpha", "beta", "gamma", "other", "ranked", "datum", "manifest"}
+    # ranked, datum: included notes; event-*: the timeline figure's records; manifest: the manifest
+    # note's own record, which the core lists.
+    assert set(records) == {"alpha", "beta", "gamma", "other", "ranked", "datum", "event-a", "event-b", "event-c",
+                            "manifest"}
     assert records["alpha"]["frontmatter"] == {"kind": "item", "rank": 1, "item": {"name": "Alpha"}}
     assert records["alpha"]["html"] == ""
     # A record without a chapter (the manifest note's) is no document page.

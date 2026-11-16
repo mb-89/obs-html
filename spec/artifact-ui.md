@@ -841,6 +841,56 @@ section, opens its tab and scrolls to it: the artifact's one way of revealing a 
 (`artifact.js`, `revealSource`) asks the figure (`pugh-figure.js`, `reveal`). Decided by the
 dispatcher, 6 Nov 2026 (work issue `fix/decision-figure-follow-ups-20261106`).
 
+### Timeline figures
+
+Decided by the user, 16 Nov 2026 (work issue `feat/timeline-figure-kind-20261116`): a timeline
+figure (obs capabilities/timeline-figures) is drawn in the reader's page in the house styles, one
+renderer whatever chapter holds it. obs input-model, Timeline figures, owns its content and its
+row order; this section owns how this adapter draws it.
+
+- One kind, one script. `figures.py` gives the kind its body inside the one frame (`frame`):
+  the caption, numbering, expand overlay and review item are the frame's, and the kind adds no
+  entry to the options menu. `timeline-figure.js` draws the rows, the drill-down, the filter and
+  the anchor; `timeline.css` styles them. Both ship only with a timeline figure (`features.py`,
+  `timeline`), so a Document without one carries nothing of them.
+- One pure model. `obsTimeline.model` takes the figure's content and the selected records and
+  returns the lanes and the rows, each row its kind (past, band or planned), its year divider and
+  one cell per lane with its stop, item count, last label, markers and items. It reads no page
+  and no clock, and the drawing reads nothing else; its unit test runs it without a page.
+- The records. The page selects them with the shared conditions evaluator
+  (`globalThis.obsQuery.compileConditions`) over the query's `from` chain and `where`, from the
+  records the reader's global filter leaves, as a Sankey figure's counts do; a filter change
+  redraws the rows. The lanes are fixed by the unfiltered selection, so a filter that empties a
+  lane leaves its column with empty cells.
+- The grid. One lane header row, which stays in view while the chapter scrolls (`position:
+  sticky`), then the rows. Each row is a native disclosure (`details`) whose summary is the
+  row's date or band label and its cells: a stop, the item count and the last item's label,
+  cut with an ellipsis. A past stop is filled, a planned stop is hollow and its date italic, a
+  band's stop is a square mark and its row is set off by the accent's border; a marker is a
+  diamond with its label. Each row is at least 2.4rem tall. A year divider is a row of its own.
+- The drill-down. An opened row lists its items per lane, under the lane's name, markers first;
+  each item is a disclosure whose summary is its label and its flags as chips, and whose body is
+  its `text` as plain text and a link to its note. The link is the prose link of the note
+  (`internal-link`), so a note with a `url` previews as every reference note does.
+- Tones. A flag's chip takes its tone's colour token (`--color-neutral`, `--color-positive`,
+  `--color-warning`, `--color-negative`, assets.json), as text and border on the canvas; a lane has
+  no colour. `timeline.css` holds no colour literal and the figure no inline style: the lane count
+  is the grid's `data-timeline-lanes` attribute, one rule per count from 1 to 8.
+- The empty selection. Where no record is left to draw, the frame holds one sentence, "No records
+  to show.", and no grid.
+- The anchor. With `anchor`, the chapter that holds the figure opens with the anchor row centred
+  in the chapter's viewport each time it opens at its top. A chapter opened at a heading, a block
+  or a source line keeps that place: the figure moves the scroll only where the chapter is still
+  at its top and its address names no heading. This is the one exception to
+  [[input-model]]'s rule that a chapter opens at its top.
+- Phone width. At 390 px with up to 4 lanes nothing scrolls sideways, rows open or closed: the
+  date column narrows, labels are cut with an ellipsis and an opened row's lists take the full
+  width.
+- Light, dark and print. Colours come from the token pairs, so dark mode needs no rule of its
+  own. Print is light, like every print, and draws the rows from the unfiltered selection, as a
+  dynamic Sankey prints its authored default, each row open or closed as the reader left it; a
+  print never changes the reader's view.
+
 ## Reading shell
 
 - An artifact with appendices has one Appendix chapter. Its direct children are the handwritten appendices

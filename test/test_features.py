@@ -106,6 +106,8 @@ PUGH = next(item["children"][0]["attrs"] for chapter_ in DECISIONS["chapters"] f
 FIGURES = json.loads((ROOT / "test" / "fixtures" / "documents" / "figures.json").read_text(encoding="utf-8"))
 SANKEY = next(item["children"][0]["attrs"] for chapter_ in FIGURES["chapters"] for item in chapter_["content"]
               if item["type"] == "figures" and item["attrs"]["kind"] == "sankey")
+TIMELINE = next(item["children"][0]["attrs"] for chapter_ in FIGURES["chapters"] for item in chapter_["content"]
+                if item["type"] == "figures" and item["attrs"]["kind"] == "timeline")
 
 
 def fixture(name: str) -> dict:
@@ -130,6 +132,7 @@ CASES = {
     "equations": ([with_figure("equations", EQUATIONS)], [plain(), with_figure("plot", PLOT)]),
     "pugh": ([with_figure("pugh", PUGH)], [plain(), with_figure("equations", EQUATIONS)]),
     "sankey": ([with_figure("sankey", SANKEY)], [plain(), with_figure("pugh", PUGH)]),
+    "timeline": ([with_figure("timeline", TIMELINE)], [plain(), with_figure("sankey", SANKEY)]),
     "tables": ([with_guided_card()], [plain(), with_figure("pugh", PUGH)]),
     "options-menu": ([with_guided_card(), with_figure("image", IMAGE)], [plain(), with_bless()]),
     "figures": ([with_figure("image", IMAGE), with_figure("pugh", PUGH)], [plain(), with_guided_card()]),

@@ -173,7 +173,10 @@ obsHtml:
 - Exactly one chapter or subchapter is visible at a time.
 - The active chapter has its own scroll range; content never continues into the next one.
 - Left and right controls walk the chapter sequence (obs's input model, Manifest contract).
-- Selecting a table-of-contents item or changing chapters resets content scroll to the top.
+- Selecting a table-of-contents item or changing chapters resets content scroll to the top,
+  with one exception: a chapter that holds a timeline figure with an `anchor` opens with that
+  figure's anchor row centred, unless its address names a heading or block
+  (obs capabilities/timeline-figures, The anchor; [[artifact-ui#Timeline figures]]).
 - Stable URL fragments identify chapters so browser history and direct links work.
 - Home is always a reachable navigation destination, including when a filter leaves
   one or no matching authored chapters. Previous/next, breadcrumb/Home and both

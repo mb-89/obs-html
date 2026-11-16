@@ -384,7 +384,7 @@ CARDS = '{"version": 1, "cards": [{"title": "Items", "body": "Ranked: [[rankedIt
 def document(root: Path) -> None:
     """The adapter's main fixture (conftest.py's FIXTURE): a paged manifest with a cover, a chapter
     with a nested chapter, a Base and command fences, an appendix with figures (a Mermaid and a
-    PlantUML diagram among them, an equation figure and a decision figure), a callout, cards and a register, a count quantity and a glossary note with a property editor. Its one
+    PlantUML diagram among them, an equation figure, a decision figure and a timeline figure), a callout, cards and a register, a count quantity and a glossary note with a property editor. Its one
     diagnostic, the link to the missing note, is the one the CLI test reads on stderr."""
     (root / "images").mkdir()
     (root / "images" / "logo.png").write_bytes(base64.b64decode(
@@ -417,8 +417,10 @@ def document(root: Path) -> None:
         "```mermaid\ngraph LR\n  Item --> Rank\n```\n\n```plantuml\n@startuml\nItem -> Rank\n@enduml\n```\n\n"
         f"```figure\nversion: 1\nkind: equations\ncontent:\n{_indent(PARABOLA)}```\n\n"
         "```pugh\ncriteria: [{key: cost, weight: 1, better: lower}]\n"
-        "candidates: [{key: now, values: {cost: 2}}, {key: new, values: {cost: 1}}]\n```\n",
+        "candidates: [{key: now, values: {cost: 2}}, {key: new, values: {cost: 1}}]\n```\n\n"
+        f"```figure\nversion: 1\nkind: timeline\ncontent: {json.dumps(TIMELINE)}\n```\n",
         encoding="utf-8")
+    _timeline_events(root)
     (root / "items.base").write_text(
         "filters: 'kind == \"item\"'\nviews:\n"
         "  - {type: table, name: Items, order: [file.name, rank]}\n"
@@ -615,10 +617,24 @@ GALLERY_SVG = ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 20">'
                '<rect width="20" height="20" fill="#587894"/><circle cx="30" cy="10" r="8" fill="#73869a"/></svg>')
 
 
+TIMELINE = {"records": {"where": [{"field": "kind", "equals": "event"}]}, "date": "when", "lane": "team",
+            "today": "2026-01-10", "lanes": ["Build", "Review"], "label": "short"}
+"""A small timeline figure of the gallery and the feature fixture: two lanes over a year end."""
+
+
+def _timeline_events(root: Path) -> None:
+    """The record-only notes the timeline figure selects (obs input-model, Timeline figures)."""
+    for name, day, team in (("event-a", "2025-12-30", "Build"), ("event-b", "2026-01-05", "Review"),
+                            ("event-c", "2026-01-20", "Build")):
+        (root / f"{name}.md").write_text(
+            f"---\nkind: event\nwhen: {day}\nteam: {team}\nshort: Event {name[-1].upper()}\n"
+            "obs: {document: false}\n---\n", encoding="utf-8")
+
+
 def figures(root: Path) -> None:
     """One figure of each kind (test_figure_frame.py), captioned and numbered by chapter, each with
     a block id; the image, the Sankey and the Mermaid diagram read their content from files, the
-    others inline. Not a
+    others inline; the timeline selects three record-only events. Not a
     moved interim vault: it is the adapter's own fixture of the one figure frame."""
     (root / "manifest.md").write_text(
         "---\ntitle: Figures\nobsHtml: {figures: {numbering: chapter}}\n---\n- [[gallery]]\n", encoding="utf-8")
@@ -634,7 +650,9 @@ def figures(root: Path) -> None:
         "plantuml": "content: |\n  @startuml\n  Draft -> Review : submit\n  @enduml",
         "equations": f"content:\n{_indent(PARABOLA)}",
         "pugh": f"content: {json.dumps(DECISION)}",
+        "timeline": f"content: {json.dumps(TIMELINE)}",
     }
+    _timeline_events(root)
     (root / "gallery.md").write_text("# Gallery\n\n" + "".join(
         f"```figure\nversion: 1\nkind: {kind}\ncaption: The {kind} figure, see [[gallery]].\n{fence}\n```\n"
         f"^{kind}-figure\n\n" for kind, fence in fences.items()), encoding="utf-8")
@@ -720,7 +738,7 @@ def features(root: Path) -> None:
     archived (--embed-source) for the source-archive part; it opens in screens, the view the
     sweep reads beside pages, for screens; a note outside the reading order,
     opened as context, needs popups; the plot figure needs plotting, the Sankey figure sankey, the
-    equation figure equations and the decision figure pugh; the prose chapter, with the decision figure, asks for a
+    timeline figure timeline, the equation figure equations and the decision figure pugh; the prose chapter, with the decision figure, asks for a
     bless, which needs answers and bless. Its chapters also hold what those checks read in obs's spec: prose with
     links, marks, an image, a callout and nested headings; a paged table of notes outside the contents,
     whose second view lists a kind no row has, for empty-groups;
@@ -743,7 +761,10 @@ def features(root: Path) -> None:
         "# Figures\n\n## Image\n\n```figure\nversion: 1\nkind: image\ncaption: The image figure.\nsource: drawing.svg\n```\n"
         f"^image-figure\n\n## Plot\n\n```figure\nversion: 1\nkind: plot\ncaption: The plot figure.\ncontent: {json.dumps(RESPONSE)}\n```\n"
         f"^plot-figure\n\n## Flow\n\n```figure\nversion: 1\nkind: sankey\ncaption: The Sankey figure.\n"
-        f"source: flow.json\n```\n^sankey-figure\n\n{FEATURE_PROSE}\n", encoding="utf-8")
+        f"source: flow.json\n```\n^sankey-figure\n\n## Timeline\n\n```figure\nversion: 1\nkind: timeline\n"
+        f"caption: The timeline figure.\ncontent: {json.dumps(TIMELINE)}\n```\n^timeline-figure\n\n{FEATURE_PROSE}\n",
+        encoding="utf-8")
+    _timeline_events(root)
     (root / "flow.json").write_text(json.dumps(FLOW["data"]["sankey"]), encoding="utf-8")
     (root / "equations.md").write_text(
         "# Equations\n\nThe plot figure is [[figures#^plot-figure]].\n\n## Parabola\n\n"

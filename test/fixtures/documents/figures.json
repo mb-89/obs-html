@@ -839,10 +839,345 @@
             }
           ],
           "id": "pugh-figure"
+        },
+        {
+          "type": "figures",
+          "attrs": {
+            "kind": "timeline",
+            "caption": [
+              {
+                "type": "paragraph",
+                "attrs": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "attrs": {},
+                    "children": [],
+                    "text": "The timeline figure, see "
+                  },
+                  {
+                    "type": "wikilinks",
+                    "attrs": {
+                      "target": "gallery",
+                      "chapter": "gallery",
+                      "heading": "",
+                      "label": "gallery"
+                    },
+                    "children": []
+                  },
+                  {
+                    "type": "text",
+                    "attrs": {},
+                    "children": [],
+                    "text": "."
+                  }
+                ]
+              }
+            ],
+            "block": "timeline-figure"
+          },
+          "children": [
+            {
+              "type": "timeline",
+              "attrs": {
+                "records": {
+                  "where": [
+                    {
+                      "field": "kind",
+                      "equals": "event"
+                    }
+                  ]
+                },
+                "date": "when",
+                "lane": "team",
+                "today": "2026-01-10",
+                "lanes": [
+                  "Build",
+                  "Review"
+                ],
+                "label": "short"
+              },
+              "children": []
+            }
+          ],
+          "id": "timeline-figure"
         }
       ],
       "children": [],
       "metadata": {}
+    },
+    {
+      "id": "event-a",
+      "title": "Event A",
+      "toc": false,
+      "content": [
+        {
+          "type": "markdown-frontmatter",
+          "attrs": {
+            "metadata": {
+              "kind": "event",
+              "when": "2025-12-30",
+              "team": "Build",
+              "short": "Event A",
+              "obs": {
+                "document": false
+              }
+            }
+          },
+          "children": [
+            {
+              "type": "field",
+              "attrs": {
+                "name": "kind"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "event"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "team"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "Build"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "short"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "Event A"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "profiles",
+          "attrs": {
+            "profile": {
+              "document": false
+            }
+          },
+          "children": []
+        },
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "event-a"
+          },
+          "children": []
+        }
+      ],
+      "children": [],
+      "metadata": {
+        "kind": "event",
+        "when": "2025-12-30",
+        "team": "Build",
+        "short": "Event A",
+        "obs": {
+          "document": false
+        }
+      }
+    },
+    {
+      "id": "event-b",
+      "title": "Event B",
+      "toc": false,
+      "content": [
+        {
+          "type": "markdown-frontmatter",
+          "attrs": {
+            "metadata": {
+              "kind": "event",
+              "when": "2026-01-05",
+              "team": "Review",
+              "short": "Event B",
+              "obs": {
+                "document": false
+              }
+            }
+          },
+          "children": [
+            {
+              "type": "field",
+              "attrs": {
+                "name": "kind"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "event"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "team"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "Review"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "short"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "Event B"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "profiles",
+          "attrs": {
+            "profile": {
+              "document": false
+            }
+          },
+          "children": []
+        },
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "event-b"
+          },
+          "children": []
+        }
+      ],
+      "children": [],
+      "metadata": {
+        "kind": "event",
+        "when": "2026-01-05",
+        "team": "Review",
+        "short": "Event B",
+        "obs": {
+          "document": false
+        }
+      }
+    },
+    {
+      "id": "event-c",
+      "title": "Event C",
+      "toc": false,
+      "content": [
+        {
+          "type": "markdown-frontmatter",
+          "attrs": {
+            "metadata": {
+              "kind": "event",
+              "when": "2026-01-20",
+              "team": "Build",
+              "short": "Event C",
+              "obs": {
+                "document": false
+              }
+            }
+          },
+          "children": [
+            {
+              "type": "field",
+              "attrs": {
+                "name": "kind"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "event"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "team"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "Build"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "short"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "Event C"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "profiles",
+          "attrs": {
+            "profile": {
+              "document": false
+            }
+          },
+          "children": []
+        },
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "event-c"
+          },
+          "children": []
+        }
+      ],
+      "children": [],
+      "metadata": {
+        "kind": "event",
+        "when": "2026-01-20",
+        "team": "Build",
+        "short": "Event C",
+        "obs": {
+          "document": false
+        }
+      }
     }
   ],
   "links": [
@@ -854,6 +1189,180 @@
   ],
   "assets": [],
   "records": [
+    {
+      "id": "event-a",
+      "type": "note",
+      "path": "event-a.md",
+      "fields": {
+        "kind": "event",
+        "when": "2025-12-30",
+        "team": "Build",
+        "short": "Event A",
+        "obs": {
+          "document": false
+        }
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "kind"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "event"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "team"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Build"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "short"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Event A"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "event-b",
+      "type": "note",
+      "path": "event-b.md",
+      "fields": {
+        "kind": "event",
+        "when": "2026-01-05",
+        "team": "Review",
+        "short": "Event B",
+        "obs": {
+          "document": false
+        }
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "kind"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "event"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "team"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Review"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "short"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Event B"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "event-c",
+      "type": "note",
+      "path": "event-c.md",
+      "fields": {
+        "kind": "event",
+        "when": "2026-01-20",
+        "team": "Build",
+        "short": "Event C",
+        "obs": {
+          "document": false
+        }
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "kind"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "event"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "team"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Build"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "short"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Event C"
+            }
+          ]
+        }
+      ]
+    },
     {
       "id": "gallery",
       "type": "note",
@@ -937,7 +1446,9 @@
     "markdown-frontmatter",
     "mermaid",
     "plantuml",
+    "profiles",
     "pugh-decisions",
+    "timeline-figures",
     "wikilinks"
   ],
   "cssSnippets": []

@@ -354,6 +354,9 @@
     const spec = JSON.parse(figure.dataset.figureSpec);
     const host = figure.querySelector(".figure-live");
     if (spec.kind === "svg") { svgInspector(figure, spec, host); return; }
+    // part timeline {
+    if (spec.kind === "timeline") { globalThis.obsTimeline.render(figure); return; }
+    // } part timeline
     if (spec.kind === "pugh") { globalThis.obsPugh.render(figure, spec, host); return; }
     const plotly = plotting();
     if (!plotly) {
@@ -483,6 +486,9 @@
     // A figure the page layout places (pages.js): a decision figure's height is its drawn view,
     // so it is drawn at once, as the reader sees it, or in a print copy as it prints; so are its details and its Proposed winner box.
     place(figure) {
+      // part timeline {
+      if (figure.dataset.figureKind === "timeline") { globalThis.obsTimeline.place(figure); return; }
+      // } part timeline
       if (figure.matches("[data-pugh-details], [data-pugh-proposed]")) { globalThis.obsPugh.placeDetails(figure); return; }
       if (figure.dataset.figureKind !== "pugh" || figure.classList.contains("figure-pugh-ready")) return;
       if (figure.closest(".print-book")) globalThis.obsPugh.print(figure, JSON.parse(figure.dataset.figureSpec));
@@ -495,6 +501,10 @@
       });
     },
     async preparePrint(container) {
+      // part timeline {
+      // A timeline prints the rows the reader opened, from its unfiltered records (timeline-figure.js).
+      container.querySelectorAll('[data-figure-kind="timeline"]').forEach(globalThis.obsTimeline.print);
+      // } part timeline
       // A decision figure prints the reader's view (pugh-figure.js).
       for (const figure of container.querySelectorAll('[data-figure-kind="pugh"]')) {
         globalThis.obsPugh.print(figure, JSON.parse(figure.dataset.figureSpec));

@@ -1,6 +1,6 @@
 """The one figure frame and the figure kinds it frames: images, SVG drawings, Sankey diagrams,
-stored-data plots, Mermaid and PlantUML diagrams, equation figures and decision figures (the Document's ``figures`` nodes, obs
-input-model, Figure input direction).
+stored-data plots, Mermaid and PlantUML diagrams, equation figures, decision figures and timeline figures (the Document's
+``figures`` nodes, obs input-model, Figure input direction).
 
 Reader: whoever changes how a figure is framed or adds a figure kind (artifact-ui.md, One
 figure frame).
@@ -139,6 +139,13 @@ def _pugh_body(attrs: dict, alt: str, _source: str, _links: dict[str, FigureLink
                 {"kind": "pugh", "alt": alt or "Decision", "matrix": matrix, "shortNames": attrs["shortNames"]})
 
 
+def _timeline_body(attrs: dict, alt: str, _source: str, _links: dict[str, FigureLink]) -> Body:
+    """A timeline figure: the runtime (timeline-figure.js) draws its rows from the records the
+    Document's query selects in the page, so the spec is the body the core checked, as it is."""
+    return Body('<div class="figure-live timeline-figure" aria-label="Timeline"></div>',
+                {"kind": "timeline", "alt": alt or "Timeline", **attrs})
+
+
 FIGURE_KINDS: dict[str, FigureKind] = {
     "image": FigureKind(_image_body, authored=True),
     "svg": FigureKind(_svg_body, authored=True),
@@ -153,6 +160,8 @@ FIGURE_KINDS: dict[str, FigureKind] = {
                             features=("plotting", "equations")),
     # Decided in the page with ctrl's engine.
     "pugh": FigureKind(_pugh_body, options=("weights",), features=("pugh",)),
+    # Drawn in the page by its own script (timeline-figure.js), whose rows follow the filter.
+    "timeline": FigureKind(_timeline_body, features=("timeline",)),
 }
 """The figure kinds this adapter renders, by the core's kind (obs src/obs/figure.py, FIGURE_KINDS)."""
 

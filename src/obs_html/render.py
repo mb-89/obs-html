@@ -796,6 +796,7 @@ CAPABILITIES: dict[str, Renderer] = {
     "queries": _nothing,
     "references": _references,
     "registers": _register,
+    "timeline-figures": _nothing,  # A figure kind: figures.py draws its body.
     "wikilinks": _wikilink,
 }
 
@@ -1508,7 +1509,8 @@ def _shell(model: dict[str, object], limits: list[dict[str, str]], overlay: str,
         if "pugh-engine-script" in elements:
             engine = '<script id="pugh-engine-script">' + pugh_engine().replace("</script", "<\\/script") + "</script>"
         figure_assets = (f'<style id="figure-styles">{read("figures.css")}</style>{plotly}{maths}{engine}'
-                         f'<script id="figure-script">{read("figures.js")}</script>')
+                         f'<script id="figure-script">'
+                         f'{feature_source("figures.js", [*shipped_parts, *(feature.key for feature in features)])}</script>')
     card_assets = ""
     if "cards-script" in elements:
         card_assets = f'<script id="cards-script">{read("cards.js")}</script>'

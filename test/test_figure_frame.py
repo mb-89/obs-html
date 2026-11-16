@@ -21,7 +21,7 @@ from obs_html.render import render
 
 
 FIGURES = ROOT / "test" / "fixtures" / "documents" / "figures.json"
-KINDS = ("image", "svg", "sankey", "plot", "mermaid", "plantuml", "equations", "pugh")
+KINDS = ("image", "svg", "sankey", "plot", "mermaid", "plantuml", "equations", "pugh", "timeline")
 FIGURE = re.compile(r'<figure class="obs-figure figure-(\w+)" data-artifact-figure data-figure-kind="\1"'
                     r' id="([^"]+)"[^>]*>(.*?)</figure>', re.S)
 

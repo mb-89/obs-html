@@ -1,0 +1,243 @@
+/* The timeline figure (timeline-figure.js; artifact-ui.md, Timeline figures): the timeline
+   feature's styles (features.py, timeline), which ship only with a timeline figure. Every colour is
+   a semantic token, so dark mode and print follow the token pairs; the lane count is the grid's
+   data-timeline-lanes attribute, never an inline style. */
+.timeline {
+    --timeline-when: 4.5rem;
+    --timeline-lanes: 1;
+    font-family: var(--font-interface);
+    font-size: 0.85rem;
+    min-width: 0;
+}
+
+.timeline[data-timeline-lanes="2"] { --timeline-lanes: 2; }
+.timeline[data-timeline-lanes="3"] { --timeline-lanes: 3; }
+.timeline[data-timeline-lanes="4"] { --timeline-lanes: 4; }
+.timeline[data-timeline-lanes="5"] { --timeline-lanes: 5; }
+.timeline[data-timeline-lanes="6"] { --timeline-lanes: 6; }
+.timeline[data-timeline-lanes="7"] { --timeline-lanes: 7; }
+.timeline[data-timeline-lanes="8"] { --timeline-lanes: 8; }
+
+/* One grid for the header and every row's summary: the date column, then the lanes. */
+.timeline-lanes,
+.timeline-summary {
+    align-items: center;
+    column-gap: 0.5rem;
+    display: grid;
+    grid-template-columns: var(--timeline-when) repeat(var(--timeline-lanes), minmax(0, 1fr));
+}
+
+/* The lane header stays in view while the chapter scrolls. */
+.timeline-lanes {
+    background: var(--color-canvas);
+    border-block-end: var(--border-width) solid var(--color-border);
+    font-weight: 600;
+    padding-block: 0.4rem;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.timeline-lane-name,
+.timeline-label,
+.timeline-marker {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.timeline-year {
+    color: var(--color-text-muted);
+    font-weight: 600;
+    margin: 0;
+    padding-block: 0.75rem 0.25rem;
+}
+
+.timeline-row > .timeline-summary {
+    cursor: pointer;
+    list-style: none;
+    min-block-size: 2.4rem;
+}
+
+.timeline-row > .timeline-summary::-webkit-details-marker {
+    display: none;
+}
+
+.timeline-row[open] > .timeline-summary,
+.timeline-row > .timeline-summary:hover {
+    background: var(--color-surface);
+}
+
+.timeline-row > .timeline-summary:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: -2px;
+}
+
+.timeline-when {
+    color: var(--color-text-muted);
+    overflow-wrap: anywhere;
+}
+
+.timeline-row--planned .timeline-when {
+    font-style: italic;
+}
+
+/* A band (Today, Next) is set off by the accent's border. */
+.timeline-row--band > .timeline-summary {
+    background: var(--color-accent-soft);
+    border-block: 2px solid var(--color-accent);
+}
+
+.timeline-row--band .timeline-when {
+    color: var(--color-accent);
+    font-weight: 600;
+}
+
+/* A cell: the lane's line, its stop, the count and the last item's label. */
+.timeline-cell {
+    align-items: center;
+    align-self: stretch;
+    display: flex;
+    gap: 0.35rem;
+    min-block-size: 2.4rem;
+    min-width: 0;
+    padding-inline-start: 1.15rem;
+    position: relative;
+}
+
+.timeline-cell::before {
+    border-inline-start: 2px solid var(--color-border);
+    content: "";
+    inset-block: 0;
+    inset-inline-start: 0.3rem;
+    position: absolute;
+}
+
+.timeline-stop {
+    background: var(--color-canvas);
+    block-size: 0.75rem;
+    border: 2px solid var(--color-text);
+    border-radius: 50%;
+    box-sizing: border-box;
+    inline-size: 0.75rem;
+    inset-inline-start: 0;
+    position: absolute;
+}
+
+.timeline-cell--past .timeline-stop {
+    background: var(--color-text);
+}
+
+.timeline-cell--band .timeline-stop {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+    border-radius: 0.1rem;
+}
+
+.timeline-count {
+    flex-shrink: 0;
+    font-weight: 600;
+}
+
+.timeline-label {
+    color: var(--color-text-muted);
+}
+
+/* A marker, such as a release: a diamond with its label. */
+.timeline-marker,
+.timeline-marker-line {
+    font-weight: 600;
+}
+
+.timeline-marker::before,
+.timeline-marker-line::before {
+    background: var(--color-text);
+    block-size: 0.5rem;
+    content: "";
+    display: inline-block;
+    inline-size: 0.5rem;
+    margin-inline-end: 0.3rem;
+    transform: rotate(45deg);
+}
+
+/* An opened row's lists: per lane, its markers and its items. */
+.timeline-list {
+    padding-block: 0.25rem 0.75rem;
+    padding-inline-start: calc(var(--timeline-when) + 0.5rem);
+}
+
+.timeline-list-lane {
+    font-weight: 600;
+    margin: 0.5rem 0 0.25rem;
+}
+
+.timeline-marker-line {
+    margin: 0.25rem 0;
+}
+
+.timeline-items {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.timeline-item > summary {
+    cursor: pointer;
+    overflow-wrap: anywhere;
+    padding-block: 0.2rem;
+}
+
+.timeline-text {
+    font-family: var(--font-content);
+    margin: 0.25rem 0 0.25rem 1rem;
+    overflow-wrap: anywhere;
+    white-space: pre-line;
+}
+
+.timeline-link {
+    display: inline-block;
+    margin-inline-start: 1rem;
+}
+
+/* A flag: its tone's colour on the canvas, as text and border, never colour alone. */
+.timeline-flag {
+    border: var(--border-width) solid currentColor;
+    border-radius: var(--radius-small);
+    display: inline-block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding-inline: 0.25rem;
+}
+
+.timeline-flag--neutral { color: var(--color-neutral); }
+.timeline-flag--positive { color: var(--color-positive); }
+.timeline-flag--warning { color: var(--color-warning); }
+.timeline-flag--negative { color: var(--color-negative); }
+
+.timeline-empty {
+    margin: 0;
+    text-align: center;
+}
+
+/* A phone: a narrower date column, and an opened row's lists take the full width. */
+@media (max-width: 30rem) {
+    .timeline {
+        --timeline-when: 3.6rem;
+    }
+
+    .timeline-lanes,
+    .timeline-summary {
+        column-gap: 0.25rem;
+    }
+
+    .timeline-list {
+        padding-inline-start: 0.5rem;
+    }
+}
+
+@media print {
+    .timeline-lanes {
+        position: static;
+    }
+}
