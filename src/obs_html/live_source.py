@@ -278,3 +278,35 @@ def live_publish(document: dict) -> dict | None:
                 if route["tool"] not in tools:
                     tools.append(route["tool"])
     return {"mcp": {"servers": [{"server": server, "tools": tools} for server, tools in servers.items()]}} if servers else None
+
+
+DEFAULT_PORTS = {"http": 80, "https": 443}
+
+
+def origin(url: str) -> str | None:
+    """The origin of an ``http(s)`` URL, ``scheme://host[:port]`` with its default port left out, or
+    None for any other URL."""
+    try:
+        parts = urlsplit(url)
+        port = parts.port
+    except ValueError:
+        return None
+    if parts.scheme not in DEFAULT_PORTS or not parts.hostname:
+        return None
+    shown = "" if port is None or port == DEFAULT_PORTS[parts.scheme] else f":{port}"
+    return f"{parts.scheme}://{parts.hostname.lower()}{shown}"
+
+
+def web_origins(model: dict) -> frozenset[str]:
+    """The origins the web routes of a page declare, from its data island's table entries, whose
+    ``live`` is the declaration (generic-tables.md, The web route: Headless printing)."""
+    found = set()
+    for note in model.get("notes") or []:
+        for table in (note.get("tables") or []) if isinstance(note, dict) else []:
+            live = table.get("live") if isinstance(table, dict) else None
+            for route in (live.get("changes") or []) if isinstance(live, dict) else []:
+                if isinstance(route, dict) and route.get("provider") == "web":
+                    found.update(origin(request.get("url", "")) for request in route.get("requests") or []
+                                 if isinstance(request, dict))
+    found.discard(None)
+    return frozenset(found)

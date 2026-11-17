@@ -12,7 +12,9 @@ from playwright.sync_api import (
 )
 from pypdf import PdfReader, PdfWriter
 
+from obs_html.artifact_data import decode_artifact_data
 from obs_html.errors import InputError
+from obs_html.live_source import origin, web_origins
 from obs_html.timings import stage
 
 
@@ -36,14 +38,34 @@ def _executable() -> str | None:
     )
 
 
+# Set before a headless page loads: it turns every live route of the page off (generic-tables.md,
+# The web route: Headless printing).
+LIVE_OFF = "globalThis.obsLiveOff = true;"
+
+
+def _declared_origins(html: Path) -> frozenset[str]:
+    """The origins the page's web routes declare, from its data island; none for a page without one."""
+    try:
+        return web_origins(decode_artifact_data(html.read_text(encoding="utf-8")))
+    except (InputError, OSError, UnicodeDecodeError):
+        return frozenset()
+
+
 @contextmanager
 def _browser_page(operation: str, html: Path) -> Iterator[Page]:
-    """A headless page for ``operation`` (the obs-html option) on ``html``."""
+    """A headless page for ``operation`` (the obs-html option) on ``html``. It reads no live data: the
+    flag turns every live route off before the page loads, and, as a backstop, every request to an
+    origin a web route of the page declares is aborted; every other request goes through."""
+    origins = _declared_origins(html)
     try:
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch(executable_path=_executable())
             try:
-                yield browser.new_page()
+                page = browser.new_page()
+                page.add_init_script(LIVE_OFF)
+                if origins:
+                    page.route(lambda url: origin(url) in origins, lambda route: route.abort())
+                yield page
             finally:
                 browser.close()
     except BrowserError as error:

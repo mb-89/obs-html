@@ -4,6 +4,7 @@ import copy
 import json
 import re
 import shutil
+from contextlib import contextmanager
 from io import BytesIO
 from pathlib import Path
 
@@ -13,7 +14,7 @@ from pypdf import PdfReader
 
 from conftest import FIXTURE, ROOT
 from documents import chapter, document, node
-from obs_html import cli
+from obs_html import cli, pdf
 
 
 PIXEL = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
@@ -90,6 +91,75 @@ def test_rendered_check_fails_on_a_live_source_that_does_not_reproduce_a_row_and
     assert "note issues/widgets-1.md" in errors[0] and "derive check of field status" in errors[0]
     cli.main(["--check-rendered", str(tmp_path / "corrected.html")])
     assert "status ready, 0 console errors," in capsys.readouterr().out
+
+
+# Every text of a live table's line (live-data.js, READER_TEXT), each part around its {name} and {n}.
+READER_TEXTS = [part for text in re.findall(r'^\s+\w+: "([^"]*)",$', re.search(
+    r"const READER_TEXT = Object\.freeze\(\{\n(.*?)\n\s+\}\);", (ROOT / "src" / "obs_html" / "live-data.js").read_text(
+        encoding="utf-8"), re.S)[1], re.M) for part in re.split(r"\{\w+\}", text) if len(part.strip()) > 3]
+
+
+def _recording(monkeypatch) -> dict[str, list[str]]:
+    """Every request, failed request and console error of the headless pages the CLI opens."""
+    seen: dict[str, list[str]] = {"requests": [], "failed": [], "errors": []}
+    opened = pdf._browser_page
+
+    @contextmanager
+    def recorded(operation, html):
+        with opened(operation, html) as page:
+            page.on("request", lambda request: seen["requests"].append(request.url))
+            page.on("requestfailed", lambda request: seen["failed"].append(request.url))
+            page.on("console", lambda message: seen["errors"].append(message.text) if message.type == "error" else None)
+            yield page
+    monkeypatch.setattr(pdf, "_browser_page", recorded)
+    return seen
+
+
+@pytest.mark.browser
+def test_the_headless_page_turns_live_routes_off_and_aborts_only_a_declared_origin(
+        pdf_browser, fixture_artifact, tmp_path) -> None:
+    """generic-tables.md, The web route (Headless printing): the flag is set before the page loads,
+    and a request to the origin its web route declares is aborted; a page without one aborts nothing."""
+    (tmp_path / "tracker.json").write_text(json.dumps(_live_tracker("Next")), encoding="utf-8")
+    assert cli.main([str(tmp_path / "tracker.json"), str(tmp_path / "tracker.html")]) == 0
+    ask = "url => fetch(url).then(() => 'answered', () => 'refused')"
+    for html, refused in ((tmp_path / "tracker.html", True), (fixture_artifact, False)):
+        failed: list[str] = []
+        with pdf._browser_page("--export-pdf", html) as page:
+            page.on("requestfailed", lambda request: failed.append(request.url))
+            page.goto(html.resolve().as_uri(), wait_until="load")
+            page.wait_for_function("!!globalThis.obsPages")
+            assert page.evaluate("globalThis.obsLiveOff") is True
+            assert failed == []
+            if refused:
+                assert page.evaluate(ask, "https://api.example.test/repos") == "refused"
+                assert failed == ["https://api.example.test/repos"]
+
+
+@pytest.mark.browser
+def test_printing_a_page_with_a_web_route_reads_nothing_and_prints_only_its_saved_rows(
+        pdf_browser, fixture_artifact, tmp_path, capsys, monkeypatch) -> None:
+    """The PDF build, --export-pdf and --check-rendered make no request to the declared origin, log
+    no console error, and print the saved rows with no line under the table, so no date or time
+    (cli.md, PDF output, Rendered check); the feature fixture, without a web route, aborts nothing."""
+    seen = _recording(monkeypatch)
+    source = tmp_path / "tracker.json"
+    source.write_text(json.dumps(_live_tracker("Next")), encoding="utf-8")
+    assert cli.main([str(source), str(tmp_path / "tracker.html")]) == 0
+    assert cli.main([str(source), str(tmp_path / "built.pdf")]) == 0
+    cli.main(["--export-pdf", str(tmp_path / "tracker.html"), "--output", str(tmp_path / "export.pdf")])
+    capsys.readouterr()
+    cli.main(["--check-rendered", str(tmp_path / "tracker.html")])
+    assert "status ready, 0 console errors," in capsys.readouterr().out
+    assert [url for url in seen["requests"] if "example.test" in url] == []
+    assert seen["errors"] == [] and seen["failed"] == []
+    for printed in ("built.pdf", "export.pdf"):
+        text = "\n".join(page.extract_text() for page in PdfReader(tmp_path / printed).pages)
+        assert "widgets-1" in text and "widgets-2" in text, printed
+        assert [part for part in READER_TEXTS if part.strip() in text] == [], printed
+    seen["failed"].clear()
+    cli.main(["--export-pdf", str(fixture_artifact), "--output", str(tmp_path / "fixture.pdf")])
+    assert seen["failed"] == []
 
 
 @pytest.mark.browser

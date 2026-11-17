@@ -28,10 +28,10 @@ const [request] = connector.requests;
 const plain = value => JSON.parse(JSON.stringify(value));
 
 // The exported names later pieces call stay as they are.
-assert.deepEqual(Object.keys(live).sort(), ["LIMITS", "READER_TEXT", "check", "fillTemplate", "lower", "mapItem",
-    "merge", "notePath", "project", "readList", "readPath", "reader", "requestInput", "since", "statusLine",
-    "targetNames", "validateNodes"]);
-assert.deepEqual(plain(live.LIMITS), {items: 2000, fieldBytes: 65536, pathSteps: 8});
+assert.deepEqual(Object.keys(live).sort(), ["LIMITS", "READER_TEXT", "answerList", "check", "extract", "fillTemplate",
+    "keptKey", "lower", "mapItem", "merge", "nextLink", "notePath", "project", "readBody", "readList", "readPath",
+    "reader", "refusal", "requestInput", "since", "statusLine", "targetNames", "validateNodes", "webReader", "webUrl"]);
+assert.deepEqual(plain(live.LIMITS), {items: 2000, fieldBytes: 65536, pathSteps: 8, answerBytes: 8 * 1024 * 1024});
 
 // Paths: dotted keys and [], own keys only; an object is absent; scalars keep their type; a list
 // of scalars stays a list; absent and null are undefined; more than 8 steps read nothing.
@@ -523,6 +523,268 @@ const issue = (number, extra = {}) => ({number, state: "OPEN", labels: ["ready"]
         reader.resume();
         assert.equal(fake.watches.length, 2);
         assert.equal(fake.watches[0].active, false);
+    }
+    // The web route (generic-tables.md, The web route): its URL, its paging, its refusals, its answers,
+    // the kept result and the reader, with fetch, storage and the clock handed in.
+    {
+        const [webRequest] = web.requests;
+        const SINCE = "2026-11-17T09:30:45Z";
+        const declared = live.webUrl(web, webRequest, SINCE);
+        assert.equal(declared, "https://api.example.test/repos/example-org/widgets/issues?state=all"
+            + "&since=2026-11-17T09%3A30%3A45Z&sort=updated&direction=asc&per_page=100");
+        assert.equal(live.webUrl(web, {url: "https://api.example.test/{repo}?since={since}", set: {repo: "a b"}}, SINCE),
+            "https://api.example.test/a%20b?since=2026-11-17T09%3A30%3A45Z");
+
+        // Link rel="next": followed only on the declared URL's origin; relative URLs resolve.
+        const next = header => plain(live.nextLink(header, declared, declared));
+        assert.deepEqual(next('<https://api.example.test/repos?page=2>; rel="next", <https://api.example.test/repos?page=9>; rel="last"'),
+            {url: "https://api.example.test/repos?page=2"});
+        assert.deepEqual(next('</repos?page=3>; rel="prev next"'), {url: "https://api.example.test/repos?page=3"});
+        assert.deepEqual(next('<https://elsewhere.example.test/repos?page=2>; rel="next"'), {foreign: true});
+        assert.deepEqual(next('<http://api.example.test/repos?page=2>; rel="next"'), {foreign: true});
+        assert.equal(live.nextLink('<https://api.example.test/repos?page=9>; rel="last"', declared, declared), undefined);
+        assert.equal(live.nextLink(null, declared, declared), undefined);
+
+        // Refusals: a rate limit with its reset or Retry-After waits, with neither it is a transient
+        // failure; 401 and 404 cannot be shown here; a header the page cannot read is null.
+        const headers = entries => name => Object.hasOwn(entries, name.toLowerCase()) ? entries[name.toLowerCase()] : null;
+        const NOW = Date.parse("2026-11-17T10:00:00Z");
+        assert.deepEqual(plain(live.refusal(403, headers({"x-ratelimit-remaining": "0", "x-ratelimit-reset": "1795431600"}), NOW)),
+            {key: "wait", until: 1795431600000});
+        assert.deepEqual(plain(live.refusal(429, headers({"retry-after": "120"}), NOW)), {key: "wait", until: NOW + 120000});
+        assert.deepEqual(plain(live.refusal(429, headers({"x-ratelimit-remaining": "0", "retry-after": "Tue, 17 Nov 2026 11:00:00 GMT"}), NOW)),
+            {key: "wait", until: Date.parse("2026-11-17T11:00:00Z")});
+        assert.deepEqual(plain(live.refusal(403, headers({"x-ratelimit-remaining": "0"}), NOW)), {key: "notNow"});
+        assert.deepEqual(plain(live.refusal(403, headers({"x-ratelimit-remaining": "7", "x-ratelimit-reset": "1795431600"}), NOW)), {key: "notNow"});
+        assert.deepEqual(plain(live.refusal(429, headers({"retry-after": "soon"}), NOW)), {key: "notNow"});
+        for (const status of [401, 404]) assert.deepEqual(plain(live.refusal(status, headers({}), NOW)), {key: "unavailable"});
+        for (const status of [500, 410, 302]) assert.deepEqual(plain(live.refusal(status, headers({}), NOW)), {key: "notNow"});
+
+        // Answers: a JSON content type only, parsed as data; the list is the top-level array or rows.
+        assert.deepEqual(plain(live.answerList("application/json; charset=utf-8", "[{\"number\": 1}]", web)), [{number: 1}]);
+        assert.deepEqual(plain(live.answerList("application/vnd.github+json", "[]", web)), []);
+        assert.deepEqual(plain(live.answerList("application/json", "{\"items\": [1]}", {...web, rows: "items"})), [1]);
+        for (const [type, text, route] of [["text/html", "[]", web], ["", "[]", web], ["application/json", "{\"items\": []}", web],
+            ["application/json", "not json", web], ["application/json", "[]", {...web, rows: "items"}],
+            ["application/jsonp", "[]", web]]) assert.equal(live.answerList(type, text, route), undefined, `${type} ${text}`);
+
+        // The body, counted while it streams: past answerBytes it is cancelled and gives nothing.
+        const stream = (chunks, cancelled = []) => new ReadableStream({
+            pull(controller) {
+                if (chunks.length) controller.enqueue(new TextEncoder().encode(chunks.shift()));
+                else controller.close();
+            },
+            cancel() { cancelled.push(true); },
+        });
+        assert.equal(await live.readBody(stream(["[1,", "2]"])), "[1,2]");
+        const cancelled = [];
+        const mib = "x".repeat(1024 * 1024);
+        assert.equal(await live.readBody(stream(Array.from({length: 9}, () => mib), cancelled)), undefined);
+        assert.deepEqual(cancelled, [true]);
+        assert.equal(await live.readBody(stream(["é".repeat(4 * 1024 * 1024)])), "é".repeat(4 * 1024 * 1024));
+        assert.equal(await live.readBody(stream(["é".repeat(4 * 1024 * 1024), "x"])), undefined);
+
+        // The kept result's key: the title and the declaration's canonical JSON, keys sorted; a
+        // changed declaration is another key.
+        const key = live.keptKey("Tracker", declaration);
+        assert.ok(key.startsWith("obs-live:Tracker{\"bodyPath\":\"body\",\"changes\":["));
+        const reordered = Object.fromEntries(Object.entries(declaration).reverse());
+        assert.equal(live.keptKey("Tracker", reordered), key);
+        assert.notEqual(live.keptKey("Tracker", {...declaration, refreshMinutes: 30}), key);
+        assert.notEqual(live.keptKey("Other", declaration), key);
+
+        // An extracted item holds only what the declaration maps, and merges as the item itself.
+        const answer = {number: 12, state: "closed", labels: [{name: "Ready"}], updated_at: "2026-11-17T10:00:00Z",
+            title: "Fixed", body: "Text", pull_request: null, user: {login: "someone"}};
+        const extracted = live.extract(declaration, web, webRequest, answer);
+        assert.deepEqual(plain(extracted), {path: "issues/widgets-12.md", set: {repo: "widgets"},
+            fields: {number: 12, state: "closed", labels: ["Ready"]}, derive: {}, fillNew: {where: "Fixed"}, body: "Text"});
+        assert.ok(!JSON.stringify(extracted).includes("2026"));
+        assert.ok(!JSON.stringify(extracted).includes("someone"));
+        const webSaved = new Map([["issues/widgets-12.md", savedRow]]);
+        const byItem = live.merge(declaration, web, webRequest, [answer, {...answer, number: 41}], webSaved);
+        const byExtracted = live.merge(declaration, web, webRequest, JSON.parse(JSON.stringify([extracted,
+            live.extract(declaration, web, webRequest, {...answer, number: 41})])), webSaved, {extracted: true});
+        assert.deepEqual(plain([...byExtracted.rows]), plain([...byItem.rows]));
+        assert.equal(live.extract(declaration, web, webRequest, "text"), null);
+
+        // The reader: fetch with no credentials, no referrer, no redirect, cors and JSON only.
+        const GENERATED = Date.parse("2026-11-17T10:30:45Z");
+        const respond = ({status = 200, body = [], type = "application/json", headers: extra = {}} = {}) =>
+            new Response(typeof body === "string" ? body : JSON.stringify(body), {status,
+                headers: {...(type ? {"content-type": type} : {}), ...extra}});
+        const site = ({answers = [], stored = {}, throws = false, blocked = false, clock = GENERATED + 60000} = {}) => {
+            const requests = [];
+            const store = new Map(Object.entries(stored));
+            let time = clock;
+            return {
+                requests, store, advance: ms => {time += ms;},
+                fetch: async (url, options) => {
+                    requests.push({url, options: plain(options)});
+                    const next = answers.length ? answers.shift() : {};
+                    if (next.error) throw new TypeError(next.error);
+                    return respond(next);
+                },
+                storage: {
+                    get: name => { if (throws) throw new Error("blocked"); return store.has(name) ? store.get(name) : null; },
+                    set: (name, value) => { if (throws) throw new Error("blocked"); store.set(name, value); },
+                },
+                blocked: async () => blocked,
+                now: () => time,
+            };
+        };
+        const openWeb = (fake, route = web) => {
+            const notices = [];
+            const reader = live.webReader({declaration, route, since: SINCE, generated: GENERATED, key,
+                fetch: fake.fetch, storage: fake.storage, blocked: fake.blocked, now: fake.now,
+                notice: text => notices.push(text), onChange: () => {}});
+            return {reader, notices, text: () => live.statusLine(reader.view(), declaration.name).text};
+        };
+        const second = "https://api.example.test/repos/example-org/widgets/issues?page=2";
+        {
+            const fake = site({answers: [{body: [answer], headers: {link: `<${second}>; rel="next"`}},
+                {body: [{...answer, number: 41}]}]});
+            const {reader, text} = openWeb(fake);
+            await reader.start();
+            assert.deepEqual(fake.requests.map(request => request.url), [declared, second]);
+            assert.deepEqual(fake.requests[0].options, {method: "GET", credentials: "omit", referrerPolicy: "no-referrer",
+                redirect: "error", mode: "cors", headers: {Accept: "application/json"}});
+            assert.equal(text(), "Showing current data");
+            const [result] = reader.view().results;
+            assert.equal(result.extracted, true);
+            assert.deepEqual(result.items.map(entry => entry.path), ["issues/widgets-12.md", "issues/widgets-41.md"]);
+            assert.equal(reader.view().refresh, "hidden");
+            assert.equal(reader.view().button, false);
+            // Kept: the mapped items and the read's time, nothing the declaration does not map.
+            const kept = JSON.parse(fake.store.get(key));
+            assert.deepEqual(Object.keys(kept).sort(), ["read", "results"]);
+            assert.equal(kept.read, fake.now());
+            assert.ok(!fake.store.get(key).includes("updated_at") && !fake.store.get(key).includes("someone"));
+            // Reopened within refreshMinutes: the kept result, no request.
+            const again = site({stored: Object.fromEntries(fake.store), clock: fake.now() + MINUTES - 1});
+            const reopened = openWeb(again);
+            await reopened.reader.start();
+            assert.deepEqual(again.requests, []);
+            assert.equal(reopened.text(), "Showing current data");
+            assert.deepEqual(plain(reopened.reader.view().results), plain(reader.view().results));
+            // Past refreshMinutes it reads again; a failure then shows the data read earlier.
+            const later = site({stored: Object.fromEntries(fake.store), clock: fake.now() + MINUTES + 1,
+                answers: [{status: 500}]});
+            const failing = openWeb(later);
+            await failing.reader.start();
+            assert.equal(later.requests.length, 1);
+            assert.equal(failing.text(), "Could not check for updates; showing the data read earlier");
+            assert.equal(failing.reader.view().results.length, 1);
+        }
+        // A kept result no newer than the generation timestamp is not applied, and is read again.
+        {
+            const stored = {[key]: JSON.stringify({read: GENERATED - 1, results: [{partial: false, items: [extracted]}]})};
+            const fake = site({stored, answers: [{body: []}]});
+            const {reader} = openWeb(fake);
+            await reader.start();
+            assert.equal(fake.requests.length, 1);
+            assert.deepEqual(plain(reader.view().results[0].items), []);
+        }
+        // A kept entry of another shape is ignored.
+        for (const value of ["not json", "null", "{\"read\": 1e15, \"results\": [1, 2]}", "{\"read\": \"x\", \"results\": []}"]) {
+            const fake = site({stored: {[key]: value}, answers: [{body: []}]});
+            const {reader, text} = openWeb(fake);
+            await reader.start();
+            assert.equal(fake.requests.length, 1, value);
+            assert.equal(text(), "Showing current data", value);
+        }
+        // Without a readable Link, and with maxPages, the read stops; a foreign next is not followed.
+        for (const [link, route, count, expected] of [
+            [undefined, web, 1, "Showing current data"],
+            [`<${second}>; rel="next"`, {...web, maxPages: 1}, 1, "Showing current data · showing the first 1 changes"],
+            ['<https://elsewhere.example.test/x>; rel="next"', web, 1, "Showing current data · showing the first 1 changes"],
+            [`<${second}>; rel="next"`, {...web, next: undefined}, 1, "Showing current data"]]) {
+            const fake = site({answers: [{body: [answer], headers: link ? {link} : {}}, {body: [answer]}]});
+            const {reader, text} = openWeb(fake, route);
+            await reader.start();
+            assert.equal(fake.requests.length, count, link);
+            assert.equal(text(), expected, link);
+        }
+        // Failed reads: each shows its line, and only a policy block posts the one notice.
+        const NOTICE = "Newer updates from Example Tracker cannot be shown on this page.";
+        const reset = String(Math.floor((GENERATED + 3600000) / 1000));
+        for (const [answers, options, expected, notices] of [
+            [[{error: "redirected"}], {}, "Could not check for updates now", []],
+            [[{type: "text/html", body: "<p>hi</p>"}], {}, "Could not check for updates now", []],
+            [[{body: "x".repeat(8 * 1024 * 1024 + 1), type: "application/json"}], {}, "Could not check for updates now", []],
+            [[{body: {message: "no list"}}], {}, "Could not check for updates now", []],
+            [[{status: 404}], {}, "Newer updates cannot be shown here", []],
+            [[{status: 401}], {}, "Newer updates cannot be shown here", []],
+            [[{status: 403}], {}, "Could not check for updates now", []],
+            [[{status: 403, headers: {"x-ratelimit-remaining": "0", "x-ratelimit-reset": reset}}], {},
+                "Example Tracker asks to wait before the next check", []],
+            [[{status: 429, headers: {"retry-after": "60"}}], {}, "Example Tracker asks to wait before the next check", []],
+            [[{error: "refused"}], {blocked: true}, "Newer updates cannot be shown here", [NOTICE]],
+        ]) {
+            const label = JSON.stringify(answers[0]).slice(0, 80);
+            const fake = site({answers, ...options});
+            const {reader, text, notices: posted} = openWeb(fake);
+            await reader.start();
+            assert.equal(text(), expected, label);
+            assert.deepEqual(posted, notices);
+            assert.deepEqual(plain(reader.view().results), []);
+            assert.ok(!/\d{1,2}:\d{2}|\d{4}-\d{2}-\d{2}/.test(text()));
+        }
+        // A rate limit is kept: a reopen before its time sends no request and says so; after it, reads.
+        {
+            const fake = site({answers: [{status: 403, headers: {"x-ratelimit-remaining": "0", "x-ratelimit-reset": reset}}]});
+            await openWeb(fake).reader.start();
+            assert.equal(JSON.parse(fake.store.get(key)).wait, Number(reset) * 1000);
+            const early = site({stored: Object.fromEntries(fake.store), clock: Number(reset) * 1000 - 1});
+            const opened = openWeb(early);
+            await opened.reader.start();
+            assert.deepEqual(early.requests, []);
+            assert.equal(opened.text(), "Example Tracker asks to wait before the next check");
+            const late = site({stored: Object.fromEntries(fake.store), clock: Number(reset) * 1000, answers: [{body: []}]});
+            const after = openWeb(late);
+            await after.reader.start();
+            assert.equal(late.requests.length, 1);
+            assert.equal(after.text(), "Showing current data");
+        }
+        // A rate limit after a kept read keeps showing it, and the kept read stays.
+        {
+            const stored = {[key]: JSON.stringify({read: GENERATED + 1, results: [{partial: false, items: [extracted]}]})};
+            const fake = site({stored, clock: GENERATED + 1 + MINUTES + 1,
+                answers: [{status: 429, headers: {"retry-after": "30"}}]});
+            const {reader, text} = openWeb(fake);
+            await reader.start();
+            assert.equal(text(), "Showing current data · Example Tracker asks to wait before the next check");
+            const kept = JSON.parse(fake.store.get(key));
+            assert.equal(kept.read, GENERATED + 1);
+            assert.equal(kept.wait, fake.now() + 30000);
+        }
+        // Storage blocked: the page still reads and shows the rows, and keeps nothing.
+        {
+            const fake = site({throws: true, answers: [{body: [answer]}]});
+            const {reader, text} = openWeb(fake);
+            await reader.start();
+            assert.equal(text(), "Showing current data");
+            assert.equal(reader.view().results[0].items.length, 1);
+        }
+        // Every request in turn, one after another; tables of one declaration share the reader.
+        {
+            const two = {...web, requests: [webRequest, {set: {repo: "gadgets"}, url: "https://api.example.test/gadgets?since={since}"}]};
+            let running = 0;
+            let most = 0;
+            const fake = site({answers: [{body: [answer]}, {body: []}]});
+            const fetch = fake.fetch;
+            fake.fetch = async (...args) => {
+                running += 1;
+                most = Math.max(most, running);
+                try { return await fetch(...args); } finally { running -= 1; }
+            };
+            const {reader} = openWeb(fake, two);
+            await reader.start();
+            assert.equal(most, 1);
+            assert.deepEqual(fake.requests.map(request => request.url), [declared,
+                "https://api.example.test/gadgets?since=2026-11-17T09%3A30%3A45Z"]);
+            assert.equal(reader.view().results.length, 2);
+        }
     }
 })().catch(error => {
     console.error(error);

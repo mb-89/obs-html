@@ -21,7 +21,7 @@ from obs_html import cli
 from obs_html.artifact_data import decode_artifact_data, same_artifact_content
 from obs_html.config import load_config
 from obs_html.errors import InputError
-from obs_html.live_source import live_publish
+from obs_html.live_source import live_publish, origin, web_origins
 from obs_html.render import render
 
 
@@ -323,3 +323,22 @@ def test_obs_html_prints_the_publish_declaration_after_generated(tmp_path, capfd
             continue
         assert len(lines) == 2 and json.dumps(PUBLISH) in lines[1]
         assert "outside" in lines[1] and "saved rows" in lines[1]
+
+
+def test_the_origins_a_page_declares_are_its_web_routes_read_from_its_data_island() -> None:
+    """generic-tables.md, The web route (Headless printing): a print aborts requests to these
+    origins only, so a page without a web route has none and prints as before."""
+    def built(document: dict) -> dict:
+        return decode_artifact_data(render(document, CONFIG))
+
+    assert web_origins(built(fence(base(DECLARATION)))) == {"https://api.example.test"}
+    assert web_origins(built(register(base(DECLARATION)))) == {"https://api.example.test"}
+    connector = edit(DECLARATION, lambda declaration: declaration.update(changes=declaration["changes"][:1]))
+    assert web_origins(built(fence(base(connector)))) == frozenset()
+    assert web_origins(built(fence(base()))) == frozenset()
+    assert web_origins({}) == frozenset()
+    assert origin("https://API.example.test:443/x?since=1") == "https://api.example.test"
+    assert origin("https://api.example.test:8443/x") == "https://api.example.test:8443"
+    assert origin("http://api.example.test:80/") == "http://api.example.test"
+    assert origin("file:///tmp/page.html") is None
+    assert origin("not a url") is None

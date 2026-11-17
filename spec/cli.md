@@ -127,6 +127,10 @@ another local file names its path from the HTML's folder ([[artifact-ui#Pages an
 Where `SOURCE_DATE_EPOCH` is set, both calls set the PDF's creation and change dates to the
 instant it names, else the PDF keeps the dates the browser printed ([[architecture#Build time]]).
 
+The page a PDF build and `--export-pdf` open reads no live data: a table with a live source prints
+its saved rows and no line under it, and the page makes no request to the origin a web route
+declares ([[generic-tables#Reading]]).
+
 ## Rendered check
 
 `--check` proves the source; `--check-rendered` proves that the delivered HTML opens
@@ -135,6 +139,9 @@ scripts, so callers can gate a build on its exit code.
 
 The page count comes from the print path that `--export-pdf` uses, so it equals the
 pages of an exported PDF and does not depend on the reader's scrolling container.
+
+The page `--check-rendered` opens reads no live data either, as in [[#PDF output]]; the check of a
+live source's declaration against its rows still runs ([[generic-tables#The check]]).
 
 ## Finding digests
 

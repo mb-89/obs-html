@@ -6,7 +6,7 @@
     // date: an item is compared with its saved row by value. Conditions are the page's one
     // evaluator's (obsQuery.compileConditions), over the mapped fields as a note's frontmatter.
     // Later pieces call these names; they stay stable.
-    const LIMITS = Object.freeze({items: 2000, fieldBytes: 65536, pathSteps: 8});
+    const LIMITS = Object.freeze({items: 2000, fieldBytes: 65536, pathSteps: 8, answerBytes: 8 * 1024 * 1024});
     const TEMPLATE = /\{([^{}]*)\}/g;
     const UNSAFE_NAMES = new Set(["__proto__", "constructor", "prototype"]);
 
@@ -70,12 +70,15 @@
         else fields[name] = value;
     };
 
-    // One fetched item as a row: the request's set, then fields with the route's own paths and
-    // lowercase, then exclude, derive and, for a new item, fillNew, its text and accept.
-    const mapItem = (declaration, route, request, item, shownFor = () => undefined) => {
+    // The values one fetched item gives the declaration, and nothing else of it: its note path and
+    // its set, fields (with the route's own paths and lowercase), derive path, fillNew and bodyPath
+    // values. It is what a web route keeps (generic-tables.md, The web route), so it holds no value
+    // the declaration does not map.
+    const extract = (declaration, route, request, item) => {
         if (!isObject(item)) return null;
+        const set = {};
+        Object.entries(request.set || {}).forEach(([name, value]) => assign(set, name, value));
         const fields = {};
-        Object.entries(request.set || {}).forEach(([name, value]) => assign(fields, name, value));
         Object.entries(declaration.fields).forEach(([name, spec]) => {
             const path = route.fields?.[name] ?? (typeof spec === "string" ? spec : spec.path);
             let value = readPath(item, path);
@@ -85,6 +88,31 @@
             }
             assign(fields, name, value);
         });
+        const derive = {};
+        Object.values(declaration.derive || {}).flat().filter(entry => "path" in entry)
+            .forEach(entry => assign(derive, entry.path, readPath(item, entry.path)));
+        const fillNew = {};
+        Object.entries(declaration.fillNew || {}).forEach(([name, from]) => assign(fillNew, name, readPath(item, from)));
+        const text = declaration.bodyPath ? readPath(item, declaration.bodyPath) : undefined;
+        const path = notePath(declaration, withoutUnset(declaration, set, fields));
+        return {...(path === undefined ? {} : {path}), set, fields, derive, fillNew,
+            ...(typeof text === "string" ? {body: text} : {})};
+    };
+    // The row's fields an item gives: the set values, then each mapped field, which an absent value
+    // removes.
+    const withoutUnset = (declaration, set, fields) => {
+        const merged = {...set};
+        Object.keys(declaration.fields).forEach(name => assign(merged, name, Object.hasOwn(fields, name) ? fields[name] : undefined));
+        return merged;
+    };
+    const own = (values, name) => isObject(values) && Object.hasOwn(values, name) ? values[name] : undefined;
+
+    // One extracted item as a row: then exclude, derive and, for a new item, fillNew, its text and accept.
+    const mapExtracted = (declaration, extracted, shownFor = () => undefined) => {
+        if (!isObject(extracted) || !isObject(extracted.set) || !isObject(extracted.fields)) return null;
+        const fields = {};
+        Object.entries(extracted.set).forEach(([name, value]) => assign(fields, name, value));
+        Object.keys(declaration.fields).forEach(name => assign(fields, name, own(extracted.fields, name)));
         const path = notePath(declaration, fields);
         if (path === undefined) return null;
         if (declaration.exclude && matches(declaration.exclude, fields)) return null;
@@ -100,20 +128,22 @@
                 if (!shown) return null;
                 assign(fields, name, rowValue(shown, name));
             } else {
-                assign(fields, name, "value" in chosen ? chosen.value : readPath(item, chosen.path));
+                assign(fields, name, "value" in chosen ? chosen.value : own(extracted.derive, chosen.path));
             }
         }
         let body;
         if (!shown) {
-            Object.entries(declaration.fillNew || {}).forEach(([name, from]) => assign(fields, name, readPath(item, from)));
-            if (declaration.bodyPath) {
-                const text = readPath(item, declaration.bodyPath);
-                if (typeof text === "string") body = lower(text);
-            }
+            Object.keys(declaration.fillNew || {}).forEach(name => assign(fields, name, own(extracted.fillNew, name)));
+            if (declaration.bodyPath && typeof extracted.body === "string") body = lower(extracted.body);
             if (declaration.accept && !matches(declaration.accept, fields)) return null;
         }
         return {path, fields, body};
     };
+
+    // One fetched item as a row: the request's set, then fields with the route's own paths and
+    // lowercase, then exclude, derive and, for a new item, fillNew, its text and accept.
+    const mapItem = (declaration, route, request, item, shownFor = () => undefined) =>
+        mapExtracted(declaration, extract(declaration, route, request, item), shownFor);
 
     // Raw text as safe content nodes: a blank line starts a paragraph, a newline is a line break
     // and a bare https URL a link; every other character stays text, Markdown markers included.
@@ -193,11 +223,12 @@
     // item whose compared values equal its saved row's changes nothing, so the saved row is shown as
     // built; one that differs is laid over it; one with no saved row is a new row. An item read more
     // than once keeps its last occurrence.
-    const merge = (declaration, route, request, items, saved) => {
+    const merge = (declaration, route, request, items, saved, {extracted = false} = {}) => {
         let partial = !Array.isArray(items) || items.length > LIMITS.items;
         const latest = new Map();
         (Array.isArray(items) ? items.slice(0, LIMITS.items) : []).forEach(item => {
-            const mapped = mapItem(declaration, route, request, item, path => saved.get(path));
+            const mapped = extracted ? mapExtracted(declaration, item, path => saved.get(path))
+                : mapItem(declaration, route, request, item, path => saved.get(path));
             if (!mapped) return;
             if (oversized(mapped)) {
                 partial = true;
@@ -332,8 +363,8 @@
         const slugs = new Map(assigned);
         const merged = new Map();
         let partial = false;
-        results.forEach(({request, items}) => {
-            const result = merge(declaration, route, request, items, saved);
+        results.forEach(({request, items, extracted}) => {
+            const result = merge(declaration, route, request, items, saved, {extracted: extracted === true});
             partial ||= result.partial;
             result.rows.forEach((row, path) => merged.set(path, row));
         });
@@ -550,6 +581,216 @@
         return {start, allow, refresh, resume, stop: unwatch, view};
     };
 
+    // The web route (generic-tables.md, The web route). A request's URL: its url with since and the
+    // request's set values filled in, each URL-encoded.
+    const webUrl = (route, request, sinceValue) => fillTemplate(request.url, {...(request.set || {}), since: sinceValue},
+        {url: true});
+    // A Link header's rel="next" URL, resolved against the answer's URL: {url} on the declared URL's
+    // origin, {foreign: true} on another, undefined where there is none.
+    const LINK = /<([^>]*)>\s*((?:;\s*[^;,]*)*)/g;
+    const nextLink = (header, current, declared) => {
+        if (typeof header !== "string") return undefined;
+        for (const [, target, params] of header.matchAll(LINK)) {
+            const rel = /;\s*rel\s*=\s*(?:"([^"]*)"|([^;,\s]*))/i.exec(params);
+            if (!rel || !(rel[1] ?? rel[2]).toLowerCase().split(/\s+/).includes("next")) continue;
+            let url;
+            try {
+                url = new globalThis.URL(target, current);
+            } catch {
+                return {foreign: true};
+            }
+            return url.origin === new globalThis.URL(declared).origin ? {url: url.href} : {foreign: true};
+        }
+        return undefined;
+    };
+    // A refusal by its status and the headers the page can read (header(name) is null for one it
+    // cannot): {key: "wait", until} for a rate limit with a time, {key: "unavailable"} for 401 and
+    // 404, else {key: "notNow"}.
+    const refusal = (status, header, now) => {
+        if (status === 401 || status === 404) return {key: "unavailable"};
+        if (status !== 403 && status !== 429) return {key: "notNow"};
+        const reset = header("x-ratelimit-reset");
+        if (header("x-ratelimit-remaining") === "0" && reset !== null && /^\d+$/.test(reset.trim())) {
+            return {key: "wait", until: Number(reset.trim()) * 1000};
+        }
+        const after = header("retry-after");
+        if (after !== null) {
+            const text = after.trim();
+            const until = /^\d+$/.test(text) ? now + Number(text) * 1000
+                : /[A-Za-z]/.test(text) ? Date.parse(text) : NaN;
+            if (Number.isFinite(until)) return {key: "wait", until};
+        }
+        return {key: "notNow"};
+    };
+    // An answer's list: with a JSON content type, the body parsed as data, its top-level array or the
+    // array at the route's rows path; else undefined.
+    const JSON_TYPE = /^\s*application\/(?:[A-Za-z0-9.!#$&^_-]+\+)?json\s*(?:;|$)/i;
+    const answerList = (contentType, text, route) => {
+        if (typeof contentType !== "string" || !JSON_TYPE.test(contentType) || typeof text !== "string") return undefined;
+        let value;
+        try {
+            value = JSON.parse(text);
+        } catch {
+            return undefined;
+        }
+        if (route.rows) return readList(value, route.rows);
+        return Array.isArray(value) ? value : undefined;
+    };
+    // A body's text, counted while it streams: past answerBytes the stream is cancelled and the
+    // answer gives undefined.
+    const readBody = async body => {
+        if (!body || typeof body.getReader !== "function") return undefined;
+        const reader = body.getReader();
+        const decoder = new TextDecoder();
+        let size = 0;
+        let text = "";
+        for (;;) {
+            const {done, value} = await reader.read();
+            if (done) return text + decoder.decode();
+            size += value.byteLength;
+            if (size > LIMITS.answerBytes) {
+                await reader.cancel().catch(() => {});
+                return undefined;
+            }
+            text += decoder.decode(value, {stream: true});
+        }
+    };
+    // Canonical JSON: object keys sorted at every level, lists in their order.
+    const canonicalJson = value => JSON.stringify(value, (_, entry) => isObject(entry)
+        ? Object.fromEntries(Object.keys(entry).sort().map(name => [name, entry[name]])) : entry);
+    // The kept result's storage key: the page's title and the declaration's canonical JSON. file:
+    // pages can share one storage origin, so it does not rely on the origin, and no digest is
+    // computed: crypto.subtle is missing on a plain http: page.
+    const keptKey = (title, declaration) => `obs-live:${title}${canonicalJson(declaration)}`;
+
+    // A live table's web route (generic-tables.md, The web route): fetch, storage ({get, set}, either
+    // of which may throw), blocked (whether the page's policy refused an origin), now and notice
+    // handed in; generated is the page's generation timestamp in milliseconds and key the kept
+    // result's key. start() reads once; view() is the reader's state, as reader's view() is.
+    const webReader = ({declaration, route, since: sinceValue, generated, key, fetch, storage = null,
+        blocked = async () => false, now = Date.now, notice = () => {}, onChange = () => {}}) => {
+        const age = (declaration.refreshMinutes ?? 10) * 60 * 1000;
+        const urls = route.requests.map(request => webUrl(route, request, sinceValue));
+        let results = null;
+        let issue = null;
+        let noticed = false;
+        const load = () => {
+            try {
+                const entry = JSON.parse(storage?.get(key) ?? "null");
+                if (!isObject(entry)) return null;
+                const read = Number.isFinite(entry.read) ? entry.read : undefined;
+                const kept = Array.isArray(entry.results) && entry.results.length === route.requests.length
+                    && entry.results.every(result => isObject(result) && typeof result.partial === "boolean"
+                        && Array.isArray(result.items)) ? entry.results : undefined;
+                return {read: kept ? read : undefined, results: read === undefined ? undefined : kept,
+                    wait: Number.isFinite(entry.wait) ? entry.wait : undefined};
+            } catch {
+                return null;
+            }
+        };
+        const keep = entry => {
+            try {
+                storage?.set(key, JSON.stringify(entry));
+            } catch {
+                // Storage is optional: the page shows what it read and keeps nothing.
+            }
+        };
+        const view = () => {
+            const shown = (results || []).map((result, index) => ({request: route.requests[index], items: result.items,
+                extracted: true}));
+            const read = results !== null;
+            const parts = [];
+            if (issue === "unavailable" || issue === "wait") parts.push({key: issue});
+            if (issue === "transient" && !read) parts.push({key: "notNow"});
+            if (read && results.some(result => result.partial)) {
+                parts.push({key: "first", n: results.reduce((count, result) => count + result.items.length, 0)});
+            }
+            return {shown: read ? (issue === "transient" ? "earlier" : "current") : "saved", parts, button: false,
+                refresh: "hidden", results: shown};
+        };
+        // One request's pages, one after another; {items, partial} or {failure}.
+        const readRequest = async (request, first) => {
+            const items = [];
+            let url = first;
+            for (let pageCount = 1; ; pageCount += 1) {
+                let response;
+                try {
+                    response = await fetch(url, {method: "GET", credentials: "omit", referrerPolicy: "no-referrer",
+                        redirect: "error", mode: "cors", headers: {Accept: "application/json"}});
+                } catch {
+                    return {failure: await blocked(new globalThis.URL(url).origin) ? {key: "policy"} : {key: "notNow"}};
+                }
+                const header = name => {
+                    try {
+                        return response.headers.get(name);
+                    } catch {
+                        return null;
+                    }
+                };
+                if (!response.ok) return {failure: refusal(response.status, header, now())};
+                let list;
+                try {
+                    list = answerList(header("content-type"), await readBody(response.body), route);
+                } catch {
+                    list = undefined;
+                }
+                if (!list) return {failure: {key: "notNow"}};
+                list.forEach(item => {
+                    const extracted = extract(declaration, route, request, item);
+                    if (extracted) items.push(extracted);
+                });
+                if (route.next !== "link") return {items, partial: false};
+                const link = nextLink(header("link"), response.url || url, first);
+                if (!link) return {items, partial: false};
+                if (link.foreign || pageCount >= route.maxPages) return {items, partial: true};
+                url = link.url;
+            }
+        };
+        const start = async () => {
+            const kept = load();
+            if (kept?.results && kept.read > generated) results = kept.results;
+            if (kept?.wait !== undefined && now() < kept.wait) {
+                issue = "wait";
+                onChange();
+                return;
+            }
+            if (results && now() - kept.read < age) {
+                onChange();
+                return;
+            }
+            const read = [];
+            for (const [index, request] of route.requests.entries()) {
+                const url = urls[index];
+                const outcome = url === undefined ? {failure: {key: "notNow"}} : await readRequest(request, url);
+                if (outcome.failure) {
+                    const {key: failure, until} = outcome.failure;
+                    if (failure === "wait") {
+                        issue = "wait";
+                        keep({...(results ? {read: kept.read, results} : {}), wait: until});
+                    } else if (failure === "notNow") {
+                        issue = "transient";
+                    } else {
+                        results = null;
+                        issue = "unavailable";
+                        if (failure === "policy" && !noticed) {
+                            noticed = true;
+                            notice(fillTemplate(READER_TEXT.notice, {name: declaration.name}));
+                        }
+                    }
+                    onChange();
+                    return;
+                }
+                read.push({partial: outcome.partial, items: outcome.items});
+            }
+            results = read;
+            issue = null;
+            keep({read: now(), results});
+            onChange();
+        };
+        return {start, view};
+    };
+
     globalThis.obsLiveData = {LIMITS, readPath, fillTemplate, notePath, mapItem, lower, validateNodes, since, merge,
-        check, READER_TEXT, statusLine, targetNames, requestInput, readList, project, reader};
+        check, READER_TEXT, statusLine, targetNames, requestInput, readList, project, reader, extract, webUrl, nextLink,
+        refusal, answerList, readBody, keptKey, webReader};
 })();

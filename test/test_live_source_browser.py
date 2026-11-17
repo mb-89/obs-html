@@ -7,8 +7,9 @@ When the page starts, the part checks each live table's declaration against the 
 whether or not its chapter is shown: a register's population is the core's rows of the views its
 entry carries, a fence's the note rows its Base-level filters select. A row the declaration does
 not reproduce logs one console error naming the table, the note, the check and the field; rows it
-reproduces log nothing. This piece reads nothing: no page that carries the part makes a request,
-the feature fixture included. The build's refusals are test_live_source.py's, the pure layer is
+reproduces log nothing. These tables declare the capability note's example with its connector
+route only, which a page outside Claude's artifact viewer does not read: no page here makes a
+request, the feature fixture included. The web route's reads are test_live_web_browser.py's. The build's refusals are test_live_source.py's, the pure layer is
 live-data.test.js's and the --check-rendered failure test_pdf.py's.
 """
 import copy
@@ -25,8 +26,11 @@ from documents import chapter, document as build, heading, node, paragraph
 
 
 pytestmark = pytest.mark.browser
-DECLARATION = yaml.safe_load(re.search(r"```yaml\n(.*?)```", (ROOT / "spec" / "capabilities" / "live-data.md")
-                                       .read_text(encoding="utf-8"), re.S)[1])["obsHtml"]["liveSource"]
+EXAMPLE = yaml.safe_load(re.search(r"```yaml\n(.*?)```", (ROOT / "spec" / "capabilities" / "live-data.md")
+                                   .read_text(encoding="utf-8"), re.S)[1])["obsHtml"]["liveSource"]
+# The capability note's example with its connector route only: a file: page reads a web route
+# (test_live_web_browser.py), and these checks are of the rows and the check, which read nothing.
+DECLARATION = {**EXAMPLE, "changes": [route for route in EXAMPLE["changes"] if route["provider"] == "connector"]}
 SHELL = "[data-active-chapter] .data-table-shell"
 IN_PAGE = ("blob:", "data:")
 ISSUES = {

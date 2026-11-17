@@ -646,11 +646,15 @@ page (below).
 function of it returns HTML, because fetched text is data. Later pieces call it by these names,
 which stay stable:
 
-- `LIMITS`: `{items: 2000, fieldBytes: 65536, pathSteps: 8}`.
+- `LIMITS`: `{items: 2000, fieldBytes: 65536, pathSteps: 8, answerBytes: 8 * 1024 * 1024}`.
 - `readPath(value, path)`: the value at a path, or `undefined` where it is absent.
 - `fillTemplate(template, values, {url})`: the filled text, or `undefined` where a name has no
   scalar value; with `url: true` each value is URL-encoded.
 - `notePath(declaration, fields)`: the note path the key fields give, or `undefined`.
+- `extract(declaration, route, request, item)`: what one item gives the declaration and nothing
+  else of it, `{path, set, fields, derive, fillNew, body?}`: its note path, its `set` and `fields`
+  values (with the route's own paths and `lowercase`), its `derive` path values by path, its
+  `fillNew` values and its `bodyPath` text; `null` for an item that is no object.
 - `mapItem(declaration, route, request, item, shownFor)`: one item as `{path, fields, body}`, or
   `null`. It takes the request's `set`, then `fields` with the route's own paths and
   `lowercase`, then `exclude`, then `derive` and, for a new item (`shownFor(path)` gives no row),
@@ -664,8 +668,8 @@ which stay stable:
   page's generation timestamp (`document.generation.timestamp`, which every page carries and the
   provenance check exempts by name) minus `lookbackHours`, in whole seconds, written
   `YYYY-MM-DDTHH:MM:SSZ` in UTC.
-- `merge(declaration, route, request, items, saved)`: the rows one request's latest result
-  changes, by note path, as `{rows, partial}`, computed from the saved rows and that result alone.
+- `merge(declaration, route, request, items, saved, {extracted})`: the rows one request's latest
+  result changes, its items fetched or, with `extracted: true`, as `extract` gave them, by note path, as `{rows, partial}`, computed from the saved rows and that result alone.
   An item is compared with its saved row: its `set` and `fields` targets and the saved note's
   frontmatter values of the same targets, each as canonical JSON (keys sorted, a list in its order,
   a target that is absent, `null` or an empty list left out). Equal, the saved row is shown as
@@ -677,6 +681,12 @@ which stay stable:
   items in a read, or a value over 64 KiB) the item is dropped and the read is `partial`.
 - `check(declaration, population)`: the failures of the check below, each `{notePath, check,
   field}`.
+- The web route's ([[#The web route]]): `webUrl(route, request, since)`, the filled URL;
+  `nextLink(header, current, declared)`, a `Link` header's next URL as `{url}`, or `{foreign: true}`
+  on another origin; `refusal(status, header, now)`, `{key: "wait", until}`, `{key: "unavailable"}`
+  or `{key: "notNow"}`; `answerList(contentType, text, route)`, an answer's list or `undefined`;
+  `readBody(body)`, a streamed body's text or `undefined` past `answerBytes`; `keptKey(title,
+  declaration)`; and `webReader(...)`, the route itself.
 
 A row is `{sourcePath, frontmatter}`, the shape conditions read.
 
@@ -709,10 +719,14 @@ fails on such a page ([[cli]]), so an author runs it after declaring a source.
 ### Reading
 
 The tables feature's `live-source` part reads a live table's first connector route in Claude's
-artifact viewer only; [[capabilities/live-data]] says what the viewer gives a page and how to
-publish one. A page opened anywhere else, or without `claude`, reads nothing and shows its saved
-rows with no line of its own. A table whose check failed reads nothing either. The web route is a
-later piece's.
+artifact viewer (where `claude.use` exists), and its first web route on an `http:`, `https:` or
+`file:` page outside it ([[#The web route]]); [[capabilities/live-data]] says what each host gives
+a page and how to publish one. In the viewer a web route makes no request, because the viewer
+refuses every connection a page opens itself: a table whose routes are all web routes shows
+"Newer updates cannot be shown here" there. Outside the viewer a connector route reads nothing. A
+page with neither route its host can read, or opened anywhere else, shows its saved rows with no
+line of its own. A table whose check failed reads nothing either, and a page that a headless
+print opens ([[cli#PDF output]], [[cli#Rendered check]]) reads nothing and shows no line.
 
 `obsLiveData.reader` is the route, with the viewer's namespaces handed in, so it is tested without
 a viewer. Its steps:
@@ -756,6 +770,76 @@ Each failure is read by its code:
 A retryable error on a later page is tried once more, after `retryAfterMs` where given. At most
 one notice per page is posted, through `obsNotices.post`, in reader words and only for
 `blocked_by_policy`.
+
+### The web route
+
+`obsLiveData.webReader` is the web route, with `fetch`, the page's storage and its clock handed in,
+so it is tested without a network. It runs once per open of the page. Its steps:
+
+- **Request:** each request's `url` with `{since}` and each `set` value filled in and URL-encoded,
+  asked with `fetch` and `credentials: "omit"`, `referrerPolicy: "no-referrer"`,
+  `redirect: "error"`, `mode: "cors"` and `Accept: application/json` only. The page sends no
+  other header, and so no token. Requests run one after another; tables of the same declaration
+  share one read.
+- **Paging:** with `next: link`, the page follows the answer's `Link` header's `rel="next"` URL,
+  up to `maxPages`, only where that URL has the origin of the declared `url`. A next page of
+  another origin is not followed: the read stops there as at `maxPages`, and the line adds
+  "showing the first <n> changes". A redirect is a failed read, wherever it leads.
+- **Headers:** across origins a page reads a response header other than the CORS-safelisted ones,
+  such as `Content-Type`, only where the answer names it in `Access-Control-Expose-Headers`. A
+  header the page cannot read counts as absent: without a readable `Link` a read stops after its
+  first page, and without a readable `x-ratelimit-reset` or `Retry-After` a refusal has no time.
+- **Answer:** an answer counts only with status 200 to 299, a JSON content type
+  (`application/json` or a `+json` type) and a body of at most 8 MiB, counted while the body
+  streams, `Content-Length` or not. It is parsed as JSON, as data. Its list is the top-level array,
+  or the value at the route's `rows` path where the route has one. Anything else is a failed read.
+
+Each answer that does not count is read by its status:
+
+| Answer | Rows | Line adds |
+|---|---|---|
+| 403 or 429 with `x-ratelimit-remaining: 0` and a readable `x-ratelimit-reset` (epoch seconds) | shown | "<name> asks to wait before the next check"; no request before that time |
+| 403 or 429 with a readable `Retry-After` (seconds or an HTTP date) and no readable reset | shown | the same, waiting until the `Retry-After` time |
+| 403 or 429 with neither readable | shown | as any other failure |
+| 401 or 404, such as from a private repository | saved | "newer updates cannot be shown here" |
+| a request the page's Content Security Policy refuses (a `securitypolicyviolation` event for the declared origin) | saved | "newer updates cannot be shown here", and one notice |
+| any other failure: another status, a redirect, a network error, a non-JSON or oversized answer, no list | shown | after a read, the line reads "Could not check for updates; showing the data read earlier"; else "could not check for updates now" |
+
+The one notice is posted through `obsNotices.post`, in reader words, at most once per page; every
+other failure is shown in the line only. The line never says when to check again: no text of it
+holds a time.
+
+**The kept result.** The page keeps the last good read in this browser's `localStorage`, so a
+reopened page stays within the endpoint's request limit:
+
+- **Key:** `obs-live:` followed by the page's title (the Document's title, else the page's
+  `<title>`, as bless.js keys its storage) and the declaration's canonical JSON (keys sorted). `file:` pages can share one
+  storage origin, so the key does not rely on the origin. No digest is computed, because
+  `crypto.subtle` is missing on a plain `http:` page. A changed declaration is a different key,
+  so its kept result is never applied.
+- **Entry:** `{read, wait?, results}`: the time of the read and any time the endpoint asked to
+  wait until, each in milliseconds, and per request its `partial` flag and its mapped items. A
+  mapped item holds its note path and its `set`, `fields`, `derive` path, `fillNew` and `bodyPath`
+  values, with `lowercase` applied, and nothing else: never the answer itself, so a value the
+  declaration does not map, such as `updated_at`, is never stored.
+- **Applying:** a kept result is applied only when its `read` is after the page's generation
+  timestamp, and then by `merge`'s rule: an item applies only where its values differ from its
+  saved row's. Its time stays in this browser's storage and never enters the page; a fresh read
+  replaces it.
+- **Reopening:** a page reopened within `refreshMinutes` of its last read applies the kept result,
+  sends no request, and its line reads "Showing current data"; one reopened before a kept `wait`
+  time sends no request and adds "<name> asks to wait before the next check". Otherwise the page
+  shows the kept result, reads again and, where that read fails, the line reads "Could not check
+  for updates; showing the data read earlier".
+- **Storage optional:** every storage access is wrapped in `try`/`catch`. Where storage is
+  blocked, the page still reads and shows the rows, and keeps nothing.
+
+**Headless printing.** pdf.py's `_browser_page` sets `globalThis.obsLiveOff` before the page loads,
+for a PDF build, `--export-pdf` and `--check-rendered` alike, and the flag turns every route of the
+page off: the tables show their saved rows and no line, and the check above still runs. As a
+backstop it aborts every request to an origin that a web route of the page declares, read from the
+page's data island (`live_source.web_origins`); every other request goes through as without a live
+source, so a page without a web route prints as before.
 
 ### Projection
 

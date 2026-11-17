@@ -503,7 +503,9 @@
             `fails the ${check} check of field ${field}, so the table shows its saved rows and reads nothing ` +
             "in this page. Remedy: correct the note or the Base's obsHtml.liveSource, rebuild, and run " +
             "obs-html --check-rendered (generic-tables.md, Current data)."));
-        return [table.key, {declaration: table.live, routes: failures.length ? "off" : "on", failures}];
+        // A headless print reads nothing (generic-tables.md, The web route: Headless printing).
+        return [table.key, {declaration: table.live, routes: failures.length ? "off"
+            : globalThis.obsLiveOff === true ? "print" : "on", failures}];
     }));
     // What a live table shows (generic-tables.md, Current data: Reading, Projection, Status line):
     // each table's reader view and projection, none while the Comments bar is open, and its line.
@@ -514,7 +516,7 @@
     const liveStatus = key => {
         const live = liveTables.get(key);
         const shown = liveShown.get(key);
-        const view = live?.routes === "off" ? {...NO_READ, parts: [{key: "unavailable"}]}
+        const view = live?.routes === "off" || live?.unreachable ? {...NO_READ, parts: [{key: "unavailable"}]}
             : !shown?.view ? NO_READ : commentsOpen ? {...shown.view, shown: "comments"} : shown.view;
         return globalThis.obsLiveData.statusLine(view, live?.declaration.name ?? "");
     };
@@ -577,16 +579,41 @@
     };
     new MutationObserver(settle).observe(document.documentElement, {attributes: true, attributeFilter: ["class"]});
     // One reader per declaration and route, which every table of it shares, so a watch is never
-    // registered twice; a table whose check failed reads nothing.
+    // registered twice and a web route is read once; a table whose check failed reads nothing. In
+    // Claude's artifact viewer (claude.use) the first connector route reads, and a table with web
+    // routes only shows that newer updates cannot be shown there; on an http(s) or file: page the
+    // first web route reads (generic-tables.md, Reading).
     const readers = new Map();
+    const inViewer = typeof globalThis.claude?.use === "function";
+    const webHost = ["http:", "https:", "file:"].includes(globalThis.location?.protocol);
     liveTables.forEach((live, key) => {
-        const route = live.declaration.changes.find(entry => entry.provider === "connector");
-        if (live.routes !== "on" || !route || typeof globalThis.claude?.use !== "function") return;
+        if (live.routes !== "on") return;
+        const routeOf = provider => live.declaration.changes.find(entry => entry.provider === provider);
+        const route = inViewer ? routeOf("connector") : webHost ? routeOf("web") : undefined;
+        if (!route) {
+            if (inViewer && routeOf("web")) live.unreachable = true;
+            return;
+        }
         const identity = JSON.stringify([live.declaration, route]);
         if (!readers.has(identity)) readers.set(identity, {declaration: live.declaration, route, keys: []});
         readers.get(identity).keys.push(key);
         liveShown.set(key, {view: undefined, projection: undefined, assigned: new Map()});
     });
+    // The origins this page's policy refused, from its securitypolicyviolation events; a refused
+    // request's event can follow its rejection, so the reader asks after one more task.
+    const refused = new Set();
+    document.addEventListener("securitypolicyviolation", event => {
+        try {
+            refused.add(new URL(event.blockedURI).origin);
+        } catch {
+            // A violation without a URL names no origin.
+        }
+    });
+    const blocked = origin => new Promise(resolve => setTimeout(() => resolve(refused.has(origin)), 0));
+    // The page's storage, which a page may not have: every access can throw, and webReader catches it.
+    const storage = {get: name => globalThis.localStorage.getItem(name),
+        set: (name, value) => globalThis.localStorage.setItem(name, value)};
+    const notice = title => globalThis.obsNotices?.post({id: "live-source", severity: "warning", title});
     readers.forEach(entry => {
         // A key's view and projection from the reader as it is now, then its arrival.
         const recompute = key => {
@@ -597,20 +624,29 @@
         };
         const update = () => entry.keys.forEach(key => preparing() ? waiting.add(key) : recompute(key));
         entry.keys.forEach(key => {
-            Object.assign(liveShown.get(key), {recompute, act: action => entry.reader?.[action]()});
+            Object.assign(liveShown.get(key), {recompute, act: action => entry.reader?.[action]?.()});
         });
-        Promise.all([globalThis.claude.use("mcp"), globalThis.claude.use("permissions")]).then(([mcp, permissions]) => {
-            entry.reader = globalThis.obsLiveData.reader({
-                declaration: entry.declaration, route: entry.route,
-                since: globalThis.obsLiveData.since(entry.declaration, artifactData.document.generation.timestamp),
-                mcp, permissions, onChange: update,
-                notice: title => globalThis.obsNotices?.post({id: "live-source", severity: "warning", title}),
+        const timestamp = artifactData.document.generation.timestamp;
+        const since = globalThis.obsLiveData.since(entry.declaration, timestamp);
+        const started = entry.route.provider === "web"
+            ? Promise.resolve().then(() => {
+                entry.reader = globalThis.obsLiveData.webReader({
+                    declaration: entry.declaration, route: entry.route, since, generated: Date.parse(timestamp),
+                    key: globalThis.obsLiveData.keptKey(artifactData.document?.title ?? document.title, entry.declaration),
+                    fetch: (...args) => globalThis.fetch(...args), storage, blocked, notice, onChange: update,
+                });
+                return entry.reader.start();
+            })
+            : Promise.all([globalThis.claude.use("mcp"), globalThis.claude.use("permissions")]).then(([mcp, permissions]) => {
+                entry.reader = globalThis.obsLiveData.reader({
+                    declaration: entry.declaration, route: entry.route, since, mcp, permissions, onChange: update, notice,
+                });
+                return entry.reader.start();
             });
-            return entry.reader.start();
-        }).catch(error => console.error(`Live source ${entry.declaration.name}: ${error?.message ?? error}`));
+        started.catch(error => console.error(`Live source ${entry.declaration.name}: ${error?.message ?? error}`));
     });
     document.addEventListener("visibilitychange", () => {
-        if (document.visibilityState === "visible") readers.forEach(entry => entry.reader?.resume());
+        if (document.visibilityState === "visible") readers.forEach(entry => entry.reader?.resume?.());
     });
     // While the Comments bar is open, live tables show their saved rows (generic-tables.md, Never saved).
     document.addEventListener("obs-bar-change", () => {
