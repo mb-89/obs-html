@@ -22,3 +22,9 @@ what each status needs.
 ## Browser tests
 
 A browser test takes its page and its artifact from the shared fixtures, runs on the headless shell unless the named full-Chromium set holds it, adds no init script and reads timings only from the artifact's own performance marks; [test/structure/test_quality.py](test/structure/test_quality.py) refuses one that does not.
+
+## Reader features
+
+A new reader feature, part, table view option or figure kind follows
+[Rendering and runtime](spec/architecture.md#rendering-and-runtime) and
+[Interactive engineering figures](spec/artifact-ui.md#interactive-engineering-figures).

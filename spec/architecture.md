@@ -105,6 +105,15 @@ a part is one line of its own whose value carries `"$comment": "part <key>"`, re
 part does not ship. Such an option works only in an artifact that ships its part: in any other
 artifact, the Query view refuses a definition that sets it as an unsupported property.
 
+A new table view option, a view's `obsHtml` key, ships as a part of the tables feature
+(`features.py`, the `tables` entry's `parts`), as `empty-groups`, `passing-rows` and
+`detail-fields` do, so an artifact whose views do not set it carries none of its code.
+
+Two parts' regions never nest. `feature_source` keeps or strips the outermost region it finds as
+a whole, so a kept outer region keeps an inner one whose part does not ship, and a stripped outer
+region strips an inner one whose part does. Regions of two parts in one file stand one after the
+other.
+
 The reader's own Base-table code (a note's tables, their saved presentation and their rows in
 search) is the tables feature's script, `tables.js`. The reader's core (`artifact.js`) reaches it
 through one hook: it calls `globalThis.obsTables.attach(core)` once, where `core` holds what the

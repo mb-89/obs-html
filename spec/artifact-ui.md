@@ -57,6 +57,15 @@ desktop paper width. They stack only when the available reader width cannot supp
 readable columns; the default single-column card layout is not imposed over that
 authored composition.
 
+The chapter scroll's width decides the stacking, never the viewport's: at 42rem or narrower, too
+narrow for two readable columns of about 20rem and their gap, the first column stands above the
+second (`columns.css`, one container query). A printed book stands in no such container, so on
+paper a block stays side by side.
+
+In review mode the two columns stand one below the other at every width, as card groups do,
+because the one review gutter left of the prose column holds every item's controls and no two
+items may share a gutter line.
+
 Content-card grids must not make a short metrics card as tall as an adjacent evidence-table
 card; cards follow their content height while retaining responsive columns. Embedded tables
 in cards use the shared table runtime with compact, readable row spacing, not the full-density
@@ -230,6 +239,29 @@ failures have their form in [[input-model#Chapter content]].
   A kind is one entry of the kind
   registry (`FIGURE_KINDS`): its body renderer, its view options and the reader features it
   needs (`features.py`); adding one never changes the frame.
+
+  Who places a figure. The page layout (`pages.js`, `placeNode`) calls `obsFigures.place` for
+  every figure it places, live or as a print copy, and for a decision figure's details and
+  Proposed winner box; a decision figure's `reveal` (`pugh-figure.js`) calls it for a figure not
+  drawn yet.
+
+  `place` draws at once a kind that draws its body in the page, so the layout measures the height
+  the reader will see: a timeline, a decision figure not drawn yet, and a decision figure's details
+  and Proposed winner box. A print copy is drawn as it prints. Every other kind `place` leaves to
+  `initialize` and `preparePrint`.
+
+  A page layout may move or copy a node it already drew, so such a kind checks what it drew before
+  and draws again where needed: `timeline-figure.js` `render` draws a reused node live again, and
+  `print` draws a print copy once.
+
+  Where a kind's calls sit. A kind drawn in the browser is reached from `figures.js` in
+  `initialize` (its live drawing), `place`, `preparePrint` (its print) and `FIGURE_OPTIONS` (its
+  view options), each where the kind needs it, the Sankey also through `projectSankeys`.
+
+  A kind whose script ships only with its own feature puts each of these calls in that feature's
+  `// part <key>` region (`features.py`, module docstring), as the timeline does, so an artifact
+  without the kind ships `figures.js` as it was; the Sankey, decision and equation calls sit
+  outside any region.
 
   A kind that registers view options gets the figure options menu below its expand button;
   a kind without options shows none. The menu is the tables' options menu, one component
