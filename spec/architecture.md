@@ -205,8 +205,8 @@ It is the one file of the package that reads the wall clock for what a build wri
 `test/structure/test_architecture.py` refuses a clock read in any other. The core writes no
 build time, and its own structure test refuses a clock read in `src/obs`.
 
-A set value is one or more ASCII digits, the whole seconds since 1970-01-01T00:00:00Z, at most
-`253402300799` (9999-12-31T23:59:59Z). The module adds them to the epoch rather than calling
+A set value is one or more ASCII digits, the whole seconds since the start of 1970 in UTC, at most
+`253402300799`, the last second of the year 9999. The module adds them to the epoch rather than calling
 `datetime.fromtimestamp`, which on Windows refuses years after 3000.
 
 Any other set value, an empty one included, is an input error of source `obs-html` and field

@@ -13,10 +13,10 @@ from typing import Callable, Mapping
 from obs_html.errors import InputError
 
 VARIABLE = "SOURCE_DATE_EPOCH"
-"""The standard variable that fixes a build's time, in whole seconds since 1970-01-01T00:00:00Z."""
+"""The standard variable that fixes a build's time, in whole seconds since the start of 1970 in UTC."""
 
 LATEST = 253402300799
-"""The last second the variable may name, 9999-12-31T23:59:59Z, the last a datetime holds."""
+"""The last second the variable may name, the last second of the year 9999, the last a datetime holds."""
 
 _EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
 _DIGITS = re.compile(r"[0-9]+")
@@ -36,7 +36,7 @@ def fixed(environment: Mapping[str, str]) -> datetime | None:
         return None
     if not _DIGITS.fullmatch(value) or int(value) > LATEST:
         raise InputError("obs-html", VARIABLE, f"is {value!r}, not a whole number of seconds since "
-                         f"1970 of at most {LATEST} (9999-12-31T23:59:59Z)",
+                         f"1970 of at most {LATEST} (the last second of the year 9999)",
                          "Set it to digits only, such as 1700000000, or unset it")
     return _EPOCH + timedelta(seconds=int(value))
 

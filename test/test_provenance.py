@@ -10,7 +10,7 @@ from pathlib import Path
 import pytest
 
 from artifacts import artifact_html
-from conftest import CORE_ROOT, ROOT
+from conftest import CORE_ROOT, ROOT, spec_build
 from documents import chapter, document, heading, paragraph
 from obs_html import cli, provenance
 from obs_html.errors import InputError
@@ -123,3 +123,10 @@ def test_with_refuse_provenance_the_build_refuses_naming_each_place(tmp_path: Pa
     assert stopped.value.code != 0 and not (tmp_path / "planted.html").exists()
     assert "obs-html artifact: artifact-data " in err and OWNER in err
     assert err.count("carries provenance") == 4
+
+
+def test_the_adapters_own_specification_carries_no_provenance(tmp_path_factory) -> None:
+    # The run's shared build of the adapter's specification, read only (test/spec_build.py).
+    folder = spec_build.built(spec_build.base(tmp_path_factory), "adapter-spec")
+    html = (folder / spec_build.adapter_spec_fence()[1]).read_text(encoding="utf-8")
+    assert reported(findings(html)) == []
