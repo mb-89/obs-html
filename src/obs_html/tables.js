@@ -736,6 +736,9 @@
                 // On screen only: the static view, from which print is drawn, never cuts.
                 rowsOneLine: !staticView,
                 // } part table-rows-one-line
+                // part detail-comments {
+                rowNote: (row) => row.noteId,
+                // } part detail-comments
                 screenPageBreaks: definition.screenPageBreaks,
                 pagination: definition.pagination,
                 columnSizing: definition.columnSizing,
@@ -811,6 +814,10 @@
                     if (!owner?.html.trim()) return;
                     const content = document.createElement("section");
                     content.className = "data-table-owner-content";
+                    // part detail-comments {
+                    // The row body is the row's note's part of its details (input-model.md, Comments and the core model).
+                    content.dataset.referenceNote = owner.slug;
+                    // } part detail-comments
                     appendTrustedHtml(content, owner.html);
                     container.append(content);
                     renderChapterTables(owner, content, staticView, respectFilter);

@@ -348,7 +348,10 @@ FEATURES: tuple[Feature, ...] = (
                 Part("table-rows-one-line", "a Base table in an artifact built with artifact.tableRowsOneLine on, "
                      "as packaged: on screen each collapsed row and group caption is one line until the reader "
                      "opens it (generic-tables.md, Columns and cells, One line per row)", _tables, (),
-                     option=("tableRowsOneLine",)))),
+                     option=("tableRowsOneLine",)),
+                Part("detail-comments", "a Base table: a selection in a row's note detail comments on the "
+                     "block of the note it starts in, the row's badge counts it and its Target opens the "
+                     "row's details (input-model.md, Comments and the core model)", _tables, ()))),
     Feature("pipe-tables", "a note with a pipe table (render.py, _table); it has nothing of its own, only its "
             "part", _pipe_tables, host=False, parts=(
                 Part("pipe-table-rows-one-line", "a pipe table in an artifact built with artifact.tableRowsOneLine "

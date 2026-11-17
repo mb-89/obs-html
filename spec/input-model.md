@@ -1069,6 +1069,14 @@ does; one in a keyed row stays in the row, or in its detail's record `field`. No
 chapter and a quote in place of a node. Saving, reopening and painting a highlight count the same
 text, so a reviewed copy reopens with each highlight on its quote, whether the bar is open or not.
 
+A selection in a row's note detail, outside every record-field panel, targets the block of the
+detail's note it starts in, under that note's chapter, as a selection on the note's own page does;
+the owning row body a `details: columns` view shows below its panels is such a detail. Its
+positions run on only inside that note's part of the detail, and one that starts in the detail's
+metadata list has no target. Each row of the open chapter whose note it is counts it on its comment
+badge, and choosing it opens the first such row's details; on the note's own page it is a comment
+on that block, as any is.
+
 A copy saved by release 3.9.0 or earlier counted the gutter's text too, where its bar was open:
 its positions are read corrected, never rewritten. Where the quote is not at its positions, the
 quote with every gutter text taken out is looked for one gutter's length earlier, then at its

@@ -29,6 +29,8 @@ CONFIG = load_config()
 SOURCE_FILES_OFF = dataclasses.replace(CONFIG, artifact={**CONFIG.artifact, "sourceFileLinks": False})
 ROWS_OFF = dataclasses.replace(CONFIG, artifact={**CONFIG.artifact, "tableRowsOneLine": False})
 """The packaged settings with artifact.tableRowsOneLine false: a page built so is byte for byte as before it."""
+TABLE_PAGE = ["detail-comments"]
+"""The tables feature's parts every page with a Base table ships, on the feature's own condition."""
 SOURCE = files("obs_html")
 DIALOG_CALL = re.compile(r"\b(?:alert|confirm|prompt)\s*\(")
 
@@ -271,9 +273,9 @@ def test_the_style_refit_part_ships_only_with_local_themes() -> None:
     local themes (artifact-ui.md, Styling); elsewhere table.js ships as it is without the part."""
     listener = 'window.addEventListener("resize"'
     plain_page = render(with_guided_card(), ROWS_OFF)
-    assert feature_source("table.js") in plain_page and listener not in feature_source("table.js")
+    assert feature_source("table.js", TABLE_PAGE) in plain_page and listener not in feature_source("table.js")
     themed = render(with_guided_card(), ROWS_OFF, **OPTIONS["style-choice"])
-    shipped = feature_source("table.js", ["style-refit"])
+    shipped = feature_source("table.js", ["style-refit", *TABLE_PAGE])
     assert shipped in themed and listener in shipped
 
 
@@ -444,7 +446,7 @@ def test_the_empty_groups_part_ships_only_where_a_view_sets_the_option_and_strip
     for label, source in (("off", _grouped_table()), ("false", _grouped_table(showEmptyGroups=False)),
                           ("on", _grouped_table(showEmptyGroups=True))):
         html = render(source, ROWS_OFF)
-        shipped[label] = [name for name in EMPTY_GROUPS_FILES if feature_source(name, ["empty-groups"]) in html]
+        shipped[label] = [name for name in EMPTY_GROUPS_FILES if feature_source(name, ["empty-groups", *TABLE_PAGE]) in html]
         assert not any(feature_source(name) in html for name in EMPTY_GROUPS_FILES) or label != "on", label
     assert shipped == {"off": [], "false": list(EMPTY_GROUPS_FILES), "on": list(EMPTY_GROUPS_FILES)}
 
@@ -468,7 +470,7 @@ def test_the_passing_rows_part_ships_only_where_a_view_sets_the_option_and_strip
     shipped = {}
     for label, source in (("off", _grouped_table()), ("on", _grouped_table(passing=passing))):
         html = render(source, ROWS_OFF)
-        shipped[label] = [name for name in PASSING_ROWS_FILES if feature_source(name, ["passing-rows"]) in html]
+        shipped[label] = [name for name in PASSING_ROWS_FILES if feature_source(name, ["passing-rows", *TABLE_PAGE]) in html]
     assert shipped == {"off": [], "on": list(PASSING_ROWS_FILES)}
 
 
@@ -492,8 +494,30 @@ def test_the_detail_fields_part_ships_where_a_view_sets_the_option_and_strips_wi
     shipped = {}
     for label, source in (("off", _grouped_table()), ("on", _grouped_table(detailFields=detail_fields))):
         html = render(source, ROWS_OFF)
-        shipped[label] = [name for name in DETAIL_FIELDS_FILES if feature_source(name, ["detail-fields"]) in html]
+        shipped[label] = [name for name in DETAIL_FIELDS_FILES if feature_source(name, ["detail-fields", *TABLE_PAGE]) in html]
     assert shipped == {"off": [], "on": list(DETAIL_FIELDS_FILES)}
+
+
+DETAIL_COMMENTS_FILES = ("bars/comments.js", "table.js", "tables.js")
+
+
+def test_the_detail_comments_part_ships_with_a_base_table_and_strips_without_it() -> None:
+    """features.py, the tables feature's part detail-comments: a selection in a row's note detail
+    comments on the note's block (input-model.md, Comments and the core model). It ships wherever a
+    Base table does, and a page without one ships the Comments bar's script, table.js and tables.js
+    without its regions, as each was before it."""
+    [tables] = [feature for feature in FEATURES if feature.key == "tables"]
+    part = next(part for part in tables.parts if part.key == "detail-comments")
+    assert part.option == () and part.code == ()
+    for name in DETAIL_COMMENTS_FILES:
+        assert feature_source(name, ["detail-comments"]) != feature_source(name), name
+    table, no_table = render(_grouped_table(), ROWS_OFF), render(plain(), ROWS_OFF)
+    shipped = [part.key for part in tables.shipped(decode_artifact_data(table), False, ROWS_OFF.artifact)]
+    assert "detail-comments" in shipped
+    for name in DETAIL_COMMENTS_FILES:
+        assert feature_source(name, shipped) in table, name
+    assert feature_source("bars/comments.js") in no_table
+    assert feature_source("bars/comments.js", ["detail-comments"]) not in no_table
 
 
 def test_a_detail_fields_value_its_schema_line_refuses_fails_the_build() -> None:
@@ -525,8 +549,8 @@ def test_the_live_source_part_ships_only_where_a_base_declares_it_and_strips_wit
     live = _grouped_table()
     live["chapters"][0]["content"][1]["attrs"]["spec"]["obsHtml"] = {"liveSource": LIVE_DECLARATION}
     off, on = render(_grouped_table(), ROWS_OFF), render(live, ROWS_OFF)
-    assert "obsLiveData" not in off and "live-source" not in off and plain_source in off
-    assert pure in on and kept in on and plain_source not in on
+    assert "obsLiveData" not in off and "live-source" not in off and feature_source("tables.js", TABLE_PAGE) in off
+    assert pure in on and feature_source("tables.js", ["live-source", *TABLE_PAGE]) in on and plain_source not in on
 
 
 LIVE_FILES = ("tables.js", "table.js", "artifact.js", "pages.js", "bars/comments.js", "tables.css")
@@ -553,7 +577,8 @@ def test_the_live_source_part_strips_from_every_file_that_holds_its_regions() ->
             region["line"] or region["inline"] or region["json"]) != "live-source" else "", source), name
         assert not [word for word in names if word in stripped], name
         assert kept != stripped and "part live-source" in kept, name
-        assert stripped in off and stripped not in on and kept in on, name
+        assert feature_source(name, TABLE_PAGE) in off and stripped not in on, name
+        assert feature_source(name, ["live-source", *TABLE_PAGE]) in on, name
     assert "obs-table-rows-change" not in off
 
 

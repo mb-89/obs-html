@@ -237,6 +237,24 @@
         .find((element) => element.dataset.nodeId === node);
 
     const navigateTo = async (annotation) => {
+        // part detail-comments {
+        // A block of a note a Base table of the open chapter has a row for opens that row's details,
+        // the first such table's in page order (input-model.md, Comments and the core model).
+        if (annotation.target.chapter !== activeChapter?.dataset.chapter &&
+                annotation.target.node !== undefined && !keyedRow(annotation.target)) {
+            const reveal = {note: annotation.target.chapter, details: true};
+            if ([...chapterBody.querySelectorAll("[data-data-table]")].some((table) => {
+                table.dispatchEvent(new CustomEvent("obs-table-reveal-row", {detail: reveal}));
+                return reveal.revealed;
+            })) {
+                requestAnimationFrame(() => {
+                    repaintHighlights();
+                    rangeForTarget(annotation.target)?.startContainer.parentElement?.scrollIntoView({block: "center"});
+                });
+                return;
+            }
+        }
+        // } part detail-comments
         const opened = await globalThis.obsArtifact?.activateChapter(annotation.target.chapter);
         if (opened === false) return;
         const keyed = keyedRow(annotation.target);
@@ -378,6 +396,14 @@
         }
     });
 
+    // part detail-comments {
+    // The note section of an expanded detail, outside every record-field panel, that shows a target
+    // of another chapter, the first in page order; null for the open chapter's own targets
+    // (input-model.md, Comments and the core model).
+    const detailSection = (target) => target.chapter === activeChapter?.dataset.chapter ? null :
+        [...chapterBody.querySelectorAll("tr[data-detail-owner] section[data-reference-note]")].find((section) =>
+            section.dataset.referenceNote === target.chapter && !section.closest("[data-detail-column]")) || null;
+    // } part detail-comments
     // The keyed row, and the record field of its detail panel, an element is in; {} outside one.
     const tableScope = (element) => {
         const row = element?.closest("tr[data-row-key], tr[data-detail-owner]");
@@ -392,6 +418,11 @@
     };
     // The element whose text a target's positions count in: its node's, or the chapter's.
     const targetRoot = (target) => {
+        // part detail-comments {
+        const detail = detailSection(target);
+        if (detail) return target.node === undefined || keyedRow(target) ? null
+            : detail.querySelector(`[data-node-id="${CSS.escape(target.node)}"]`);
+        // } part detail-comments
         if (target.node === undefined) return chapterBody;
         const keyed = keyedRow(target);
         if (!keyed) return chapterBody.querySelector(`[data-node-id="${CSS.escape(target.node)}"]`);
@@ -426,6 +457,10 @@
         const context = range.cloneRange();
         context.selectNodeContents(root);
         if (onward) context.setEnd(chapterBody, chapterBody.childNodes.length);
+        // part detail-comments {
+        // A block of a note's detail runs on only inside the note's section.
+        if (onward?.nodeType === Node.ELEMENT_NODE) context.setEnd(onward, onward.childNodes.length);
+        // } part detail-comments
         const complete = rangeText(context);
         return {
             chapter, quote,
@@ -448,6 +483,20 @@
         if (!rangeText(range).trim()) {
             return null;
         }
+        // part detail-comments {
+        // A selection in a row's note detail, outside its record-field panels, targets the block of the
+        // detail's note it starts in, under the note's chapter (input-model.md, Comments and the core model).
+        const start = range.startContainer.nodeType === Node.ELEMENT_NODE
+            ? range.startContainer : range.startContainer.parentElement;
+        const row = start?.closest("tr[data-row-key], tr[data-detail-owner]");
+        const panel = start?.closest("[data-detail-column]");
+        if (row?.hasAttribute("data-detail-owner") && !(panel && row.contains(panel))) {
+            const section = start.closest("section[data-reference-note]");
+            const block = section && row.contains(section) ? blockAt(start) : null;
+            return block && section.contains(block) && section.contains(range.endContainer)
+                ? {...marked(section.dataset.referenceNote, block, range, section), node: block.dataset.nodeId} : null;
+        }
+        // } part detail-comments
         // A selection in a keyed row targets the row; any other targets the block it starts in.
         const table = tableScope(range.startContainer.parentElement);
         if (table.node) {
@@ -484,7 +533,7 @@
         globalThis.obsArtifact?.records?.find((record) => record.slug === slug);
 
     const pageForTarget = (target) => {
-        if (target.chapter !== activeChapter?.dataset.chapter ||
+        if (target.chapter !== activeChapter?.dataset.chapter/* part detail-comments { */ && !detailSection(target)/* } part detail-comments */ ||
                 !document.documentElement.classList.contains("paged-mode")) return null;
         const range = rangeForTarget(target);
         if (!range || !target.quote || rangeText(range) !== target.quote) return null;
@@ -498,7 +547,8 @@
         if (!element?.getClientRects().length ||
                 ["hidden", "collapse"].includes(getComputedStyle(element).visibility)) return null;
         const sheet = element?.closest(".paper-sheet[data-page-chapter]");
-        if (!sheet || sheet.dataset.pageChapter !== target.chapter) return null;
+        if (!sheet || sheet.dataset.pageChapter !== target.chapter/* part detail-comments { */ &&
+                !(detailSection(target) && sheet.dataset.pageChapter === activeChapter?.dataset.chapter)/* } part detail-comments */) return null;
         const label = sheet.querySelector(".paper-page-number")?.textContent || "";
         return /^\s*Page (\d+) of \d+\s*$/.exec(label)?.[1] || null;
     };
@@ -524,7 +574,7 @@
 
     // Whether a target marks its whole item, which the item's text in the open chapter shows.
     const wholeItem = (target) => {
-        if (target.chapter !== activeChapter?.dataset.chapter || target.node === undefined) return false;
+        if (target.chapter !== activeChapter?.dataset.chapter/* part detail-comments { */ && !detailSection(target)/* } part detail-comments */ || target.node === undefined) return false;
         const root = targetRoot(target);
         return Boolean(root) && target.start === 0 && target.end === canonicalText(root).length;
     };
@@ -548,7 +598,7 @@
             const record = chapterRecord(target.chapter);
             const page = pageForTarget(target);
             const section = (() => {
-                if (target.chapter !== activeChapter?.dataset.chapter) return "";
+                if (target.chapter !== activeChapter?.dataset.chapter/* part detail-comments { */ && !detailSection(target)/* } part detail-comments */) return "";
                 const root = target.node === undefined ? null : targetRoot(target);
                 const range = root ? null : rangeForTarget(target);
                 const node = root || range?.startContainer;
@@ -681,14 +731,14 @@
     };
 
     const rangeForTarget = (target) => {
-        if (target.chapter !== activeChapter?.dataset.chapter ||
+        if (target.chapter !== activeChapter?.dataset.chapter/* part detail-comments { */ && !detailSection(target)/* } part detail-comments */ ||
                 !Number.isInteger(target.start) || !Number.isInteger(target.end)) {
             return null;
         }
         const root = targetRoot(target);
         if (!root) return null;
         // A block's positions may run on past it; a keyed row's and the chapter's stay inside their root.
-        const all = root === chapterBody || keyedRow(target) ? textNodes(root) : textNodes(chapterBody);
+        const all = root === chapterBody || keyedRow(target) ? textNodes(root) : textNodes(/* part detail-comments { */detailSection(target) || /* } part detail-comments */chapterBody);
         const first = all.findIndex((node) => root.contains(node));
         const nodes = first < 0 ? [] : all.slice(first);
         const span = commentModel.anchorSpan(nodes.map((node) => node.data).join(""), target, reviewGutterText());
@@ -755,7 +805,14 @@
         const inChapter = data.annotations.filter((annotation) =>
             !annotation.batch && annotation.target.chapter === chapter);
         let extent = null;
-        return associated + inChapter.reduce((total, annotation) => {
+        // part detail-comments {
+        // A keyed row counts the comments on blocks of its note where that note is another chapter.
+        const note = element.dataset.rowNote;
+        const onNote = note && note !== chapter ? data.annotations.filter((annotation) => !annotation.batch &&
+            annotation.target.chapter === note && annotation.target.node !== undefined && !keyedRow(annotation.target))
+            .reduce((total, annotation) => total + nodeCount(annotation), 0) : 0;
+        // } part detail-comments
+        return associated + /* part detail-comments { */onNote + /* } part detail-comments */inChapter.reduce((total, annotation) => {
             const target = annotation.target;
             let intersects = false;
             if (target.node !== undefined) {
@@ -1007,7 +1064,8 @@
 
     const annotationAtPoint = (event) => data.annotations.find((annotation) => {
         if (!hasOpenComment(annotation) ||
-                annotation.target.chapter !== activeChapter?.dataset.chapter) {
+                annotation.target.chapter !== activeChapter?.dataset.chapter/* part detail-comments { */ &&
+                !detailSection(annotation.target)/* } part detail-comments */) {
             return false;
         }
         const range = rangeForTarget(annotation.target);

@@ -245,7 +245,7 @@
             document.querySelector("[data-artifact-data]").textContent,
         )[compact ? "tableCompactColumnMinimumPixels" : "tableColumnMinimumPixels"],
         showEmptyDetailTabs = false, /* part empty-groups { */showEmptyGroups = false, /* } part empty-groups *//* part table-rows-one-line { */rowsOneLine = false, /* } part table-rows-one-line */screenPageBreaks = true,
-        initialRowKeys, onRowKeysChange,/* part passing-rows { */ passing, initialPassingOpen = false, onPassingChange,/* } part passing-rows *//* part live-source { */ live,/* } part live-source */
+        initialRowKeys, onRowKeysChange,/* part passing-rows { */ passing, initialPassingOpen = false, onPassingChange,/* } part passing-rows *//* part live-source { */ live,/* } part live-source *//* part detail-comments { */ rowNote,/* } part detail-comments */
         columnSizing, detailFontSize = JSON.parse(
             document.querySelector("[data-artifact-data]").textContent,
         ).tableDetailFontSizePoints,
@@ -1301,6 +1301,12 @@
         const appendDataRow = (item, childKeys) => {
             const row = document.createElement("tr");
             row.dataset.rowKey = item.key;
+            // part detail-comments {
+            // The note the row's details show, whose blocks' comments its badge counts (input-model.md,
+            // Comments and the core model).
+            const note = rowNote?.(item);
+            if (note) row.dataset.rowNote = note;
+            // } part detail-comments
             row.hidden = item.hidden;
             rowGroupParents.set(row, [...activeGroupRows]);
             const hasChildren = childKeys.has(item.key);
@@ -1914,6 +1920,16 @@
             publishPresentation();
         });
         shell.addEventListener("obs-table-reveal-row", (event) => {
+            // part detail-comments {
+            // A reveal by note opens the table's first row of it in its row order, drawn or not, and
+            // says so on the event (input-model.md, Comments and the core model).
+            if (event.detail.note !== undefined) {
+                const first = [...orderedRows(), ...baseRows].find((row) => rowNote?.(row) === event.detail.note);
+                if (!first) return;
+                event.detail.key = first.key;
+                event.detail.revealed = true;
+            }
+            // } part detail-comments
             const byKey = new Map(baseRows.map((row) => [row.key, row]));
             let target = byKey.get(event.detail.key);
             if (!target) return;

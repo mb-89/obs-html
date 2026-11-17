@@ -122,8 +122,8 @@ consume the same applied global Filter; a table's local query remains independen
   during the open session. This stores only row/column identities, not subject payloads;
   ordinary note tables retain their existing collapsed print default.
 
-  Selection comments inside a subject panel include its column key in the existing
-  table/row/detail target, so navigating a comment reopens that subject even after
+  Selection comments inside a subject panel include its column key as the keyed
+  row's record field, so navigating a comment reopens that subject even after
   switching or hiding the column. This is projection identity, not another source record.
 
   An authored, nonempty owning row body remains below its subject panels, without
@@ -258,7 +258,8 @@ adapter's browser evaluator runs the same conformance fixture.
   Projected details share their owning row's review decision.
 
   Selection comments remain
-  available inside details without introducing independent paragraph checkmarks.
+  available inside details without introducing independent paragraph checkmarks. A selection in a
+  note detail comments on the block of the note it starts in, and the owning row's badge counts it.
 - A declarative column-detail mode may expose an expanded row as accessible tabs
   corresponding to its displayed subject columns. Tabs render referenced canonical
   records' meaningful metadata/body through the existing note renderer, without copied
@@ -418,7 +419,8 @@ adapter's browser evaluator runs the same conformance fixture.
   A Search hit or a chosen comment in a cut cell opens its row, so the highlight shows. Every
   row the reader is taken to, by a Search hit, a chosen comment or a mark icon's link to its tag
   row, opens to its cells in full, wherever the hit lies; it opens its details only where the hit
-  lies in them or the comment targets a detail's record field, as with the option off. On
+  lies in them, or the comment targets a detail's record field or a block of the row's note, as
+  with the option off. On
   screen means the continuous view and the sheets shown as pages, where opening a row grows its
   sheet as opening details does; the static view, from which the print book and PDF are drawn
   and their pages counted, never cuts, and shows details as the print default has them. Which

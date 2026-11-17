@@ -1187,6 +1187,40 @@ async function verifyComments() {
     click(row.querySelector(".review-action--accept"));
     row = body.querySelector('tr[data-row-key="glossary:bluf"]');
     assert.equal(row.dataset.reviewState, "accepted");
+    // Input-model.md "Comments and the core model": a selection in a row's note detail targets the
+    // block of the detail's note it starts in, under that note's chapter, and the row's badge counts it.
+    const detailToggle = ".data-table-tree-toggle, [data-table-detail-toggle]";
+    {
+        click(row.querySelector(detailToggle));
+        const plainRange = new TextRange();
+        plainRange.selectNodeContents(body.querySelector(
+            'tr[data-detail-owner="glossary:bluf"] [data-node-id="paragraph-5e2c6006"]'));
+        selection = {rangeCount: 1, isCollapsed: false, getRangeAt: () => plainRange, removeAllRanges() {}};
+        document.dispatchEvent(new window.Event("selectionchange"));
+        const add = document.querySelector("[data-comment-add]");
+        assert.equal(add.disabled, false);
+        click(add);
+        const plainTarget = context.obsComments.data.annotations.at(-1).target;
+        assert.equal(plainTarget.chapter, "bluf");
+        assert.equal(plainTarget.node, "paragraph-5e2c6006");
+        assert.equal(plainTarget.field, undefined);
+        row = body.querySelector('tr[data-row-key="glossary:bluf"]');
+        assert.equal(row.dataset.reviewState, "accepted");
+        assert.equal(row.querySelector(".review-action--comment").dataset.count, "1");
+        click(row.querySelector(detailToggle));
+        assert.equal(body.querySelector('tr[data-detail-owner="glossary:bluf"]'), null);
+        row = body.querySelector('tr[data-row-key="glossary:bluf"]');
+        assert.equal(row.dataset.reviewState, "accepted");
+        assert.equal(row.querySelector(".review-action--comment").dataset.count, "1");
+        click(document.querySelector(".comment-target"));
+        await context.obsArtifact.whenChapterReady();
+        assert.equal(document.querySelector("[data-active-chapter]").dataset.chapter, "glossary");
+        assert.ok(body.querySelector('tr[data-detail-owner="glossary:bluf"]'));
+        row = body.querySelector('tr[data-row-key="glossary:bluf"]');
+        click(row.querySelector(detailToggle));
+        assert.equal(body.querySelector('tr[data-detail-owner="glossary:bluf"]'), null);
+        row = body.querySelector('tr[data-row-key="glossary:bluf"]');
+    }
     // Input-model.md "Comments and the core model": a selection in a keyed row's detail targets the
     // detail's record field, the reference panel a `details: columns` view opens (input-model.md,
     // obsHtml.details); the BLUF entry's source is such a reference.
@@ -1237,18 +1271,32 @@ async function verifyComments() {
     assert.equal(typeof annotation.target.field, "string");
     assert.ok(annotation.target.end > annotation.target.start);
     assert.equal(row.dataset.reviewState, "accepted");
-    assert.equal(row.querySelector(".review-action--comment").dataset.count, "1");
+    assert.equal(row.querySelector(".review-action--comment").dataset.count, "2");
     click(row.querySelector("[data-table-detail-toggle]"));
     assert.equal(body.querySelector('tr[data-detail-owner="glossary:bluf"]'), null);
     row = body.querySelector('tr[data-row-key="glossary:bluf"]');
     assert.equal(row.dataset.reviewState, "accepted");
-    assert.equal(row.querySelector(".review-action--comment").dataset.count, "1");
-    click(document.querySelector(".comment-target"));
+    assert.equal(row.querySelector(".review-action--comment").dataset.count, "2");
+    click(document.querySelectorAll(".comment-target")[1]);
     await context.obsArtifact.whenChapterReady();
     assert.ok(body.querySelector('tr[data-detail-owner="glossary:bluf"]'));
     row = body.querySelector('tr[data-row-key="glossary:bluf"]');
     assert.equal(row.dataset.reviewItem, reviewId);
     assert.equal(row.querySelectorAll("[data-review-gutter]").length, 1);
+    // The owning row body below a `details: columns` view's panels is the row's note detail too.
+    const ownerRange = new TextRange();
+    ownerRange.selectNodeContents(body.querySelector(
+        'tr[data-detail-owner="glossary:bluf"] .data-table-owner-content [data-node-id="paragraph-5e2c6006"]'));
+    selection = {rangeCount: 1, isCollapsed: false, getRangeAt: () => ownerRange, removeAllRanges() {}};
+    document.dispatchEvent(new window.Event("selectionchange"));
+    assert.equal(document.querySelector("[data-comment-add]").disabled, false);
+    click(document.querySelector("[data-comment-add]"));
+    const ownerTarget = context.obsComments.data.annotations.at(-1).target;
+    assert.equal(ownerTarget.chapter, "bluf");
+    assert.equal(ownerTarget.node, "paragraph-5e2c6006");
+    assert.equal(ownerTarget.field, undefined);
+    row = body.querySelector('tr[data-row-key="glossary:bluf"]');
+    assert.equal(row.querySelector(".review-action--comment").dataset.count, "3");
     const glossaryShell = row.closest("[data-data-table]");
     click(glossaryShell.querySelector("th[data-column-key='term']"));
     row = body.querySelector('tr[data-row-key="glossary:bluf"]');

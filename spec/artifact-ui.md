@@ -1971,9 +1971,10 @@ separate from artifact presentation.
 
   Expanded details inherit their owning row's checkmark, with no independent paragraph checks.
 
-  Normal text-selection comments are supported inside details; their anchors record the keyed
-  row, the detail's record field and detail-local text offsets so collapse/re-expansion does not
-  invalidate them.
+  Normal text-selection comments are supported inside details: one in a record-field panel
+  records the keyed row and its record field, and one in a note's detail records the block of that
+  note it starts in, as on the note's own page. Collapse and re-expansion invalidate neither
+  ([[input-model#Comments and the core model]]).
 - The Comment control creates a blank whole-item comment card.
 
   Its badge counts every root

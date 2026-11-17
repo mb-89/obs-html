@@ -13,7 +13,8 @@ import pytest
 
 from artifacts import artifact_html
 from conftest import FIXTURE, ROOT
-from core_calls import unresolved_targets
+from core_calls import unresolved_targets, with_ids
+from documents import chapter, document as build_document, heading, node, paragraph
 
 pytestmark = pytest.mark.browser
 DOCUMENTS = sorted((ROOT / "test" / "fixtures" / "documents").glob("*.json"))
@@ -265,3 +266,116 @@ def test_a_copy_saved_by_3_9_0_reopens_with_each_highlight_on_its_quote(tmp_path
             assert page.evaluate(PAINTED, {"chapter": chapter, "bar": False}) == [quote], chapter
             assert page.evaluate(PAINTED, {"chapter": chapter, "bar": True}) == [quote], chapter
     assert errors == loaded_errors == []
+
+
+QUOTE = "detail prose sits in"
+GLOSSARY_ROW = "[data-active-chapter] tr[data-row-key='note:alpha']"
+ALPHA_DETAIL = "[data-active-chapter] tr[data-detail-owner='note:alpha']"
+
+
+def _term(identifier: str, summary: str, *body: dict) -> dict:
+    metadata = {"kind": "term", "summary": summary}
+    return {**chapter(identifier, identifier.title(), *body, metadata=metadata), "toc": False}
+
+
+def _glossary() -> dict:
+    """A chapter glossary whose Base selects two unlisted kind: term notes, as in the issue's vault."""
+    base = node("bases", source="", spec={"filters": 'kind == "term"', "views": [
+        {"type": "table", "name": "Terms", "order": ["file.name", "summary"]}]})
+    terms = {"alpha": ("The first term.", paragraph("Alpha detail prose sits in the note body."),
+                       paragraph("A second paragraph of alpha.")),
+             "beta": ("The second term.", paragraph("Beta prose."))}
+    return with_ids(build_document(
+        "Glossary", chapter("glossary", "Glossary", heading(1, "Glossary"), base),
+        *(_term(name, summary, *body) for name, (summary, *body) in terms.items()),
+        records=tuple({"id": name, "type": "note", "path": f"{name}.md", "fields": {"kind": "term", "summary": summary}}
+                      for name, (summary, *_body) in terms.items())))
+
+
+QUOTE_RECTS = """([selector, quote]) => {
+    const section = document.querySelector(selector);
+    const walker = document.createTreeWalker(section, NodeFilter.SHOW_TEXT);
+    while (walker.nextNode() && !walker.currentNode.data.includes(quote));
+    const text = walker.currentNode, at = text.data.indexOf(quote);
+    const rect = (offset) => { const range = document.createRange();
+        range.setStart(text, offset); range.setEnd(text, offset + 1); return range.getBoundingClientRect(); };
+    const first = rect(at), last = rect(at + quote.length - 1);
+    return {x0: first.left + 1, y0: first.top + first.height / 2, x1: last.right - 1, y1: last.top + last.height / 2};
+}"""
+SELECT_IN = """async ([node, quote]) => {
+    const block = document.querySelector(`[data-chapter-body] [data-node-id="${node}"]`);
+    const walker = document.createTreeWalker(block, NodeFilter.SHOW_TEXT);
+    while (walker.nextNode() && !walker.currentNode.data.includes(quote));
+    const text = walker.currentNode, range = document.createRange();
+    range.setStart(text, text.data.indexOf(quote));
+    range.setEnd(text, text.data.indexOf(quote) + quote.length);
+    getSelection().removeAllRanges();
+    getSelection().addRange(range);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    document.querySelector("[data-comment-add]").click();
+    return obsComments.data.annotations.at(-1).target;
+}"""
+SETTLED = "new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))"
+HIGHLIGHTS = "[...(CSS.highlights.get('obs-comments') || [])].map((painted) => painted.toString())"
+EXPAND = f"""async () => {{
+    await obsArtifact.activateChapter("glossary");
+    await obsArtifact.whenChapterReady();
+    document.querySelector("{GLOSSARY_ROW} .data-table-tree-toggle").click();
+    await {SETTLED};
+}}"""
+
+
+def _badge(page) -> str:
+    return page.locator(f"{GLOSSARY_ROW} .review-action--comment").get_attribute("data-count")
+
+
+def test_a_selection_in_a_note_detail_comments_on_the_notes_block(tmp_path, reader_browser) -> None:
+    """A selection in a row's note detail targets the block of the note it starts in, under the
+    note's chapter, as on the note's own page; the row's badge counts it, open or collapsed, and its
+    Target opens the row's details on the quote, also in a reviewed copy (input-model.md, Comments
+    and the core model)."""
+    document = _glossary()
+    [alpha] = [item for item in document["chapters"] if item["id"] == "alpha"]
+    paragraph_id = next(item["id"] for item in alpha["content"] if item["type"] == "paragraph")
+    page, errors = _open(reader_browser, _artifact(tmp_path, document))
+    page.evaluate("""async () => { await obsArtifact.activateChapter("glossary");
+        await obsArtifact.whenChapterReady(); obsArtifact.openBar("comments", "right"); }""")
+    page.evaluate(EXPAND)
+    page.locator(ALPHA_DETAIL).wait_for()
+    drag = page.evaluate(QUOTE_RECTS, [f"{ALPHA_DETAIL} section[data-reference-note='alpha']", QUOTE])
+    page.mouse.move(drag["x0"], drag["y0"])
+    page.mouse.down()
+    page.mouse.move(drag["x1"], drag["y1"], steps=5)
+    page.mouse.up()
+    assert page.evaluate("getSelection().toString()") == QUOTE
+    page.evaluate(SETTLED)
+    add = page.locator("[data-comment-add]")
+    assert add.is_enabled(), add.get_attribute("title")
+    add.click()
+    target = page.evaluate("obsComments.data.annotations.at(-1).target")
+    assert target == {"chapter": "alpha", "node": paragraph_id, "quote": QUOTE, "prefix": "Alpha ",
+                      "suffix": " the note body.\nA second paragraph of al", "start": 6, "end": 26}
+    assert unresolved_targets([target], document) == []
+    assert _badge(page) == "1"
+    page.locator(f"{GLOSSARY_ROW} .data-table-tree-toggle").click()
+    page.locator(ALPHA_DETAIL).wait_for(state="detached")
+    assert _badge(page) == "1"
+    page.locator("[data-comment-list] .comment-target").first.click()
+    page.locator(ALPHA_DETAIL).wait_for()
+    page.evaluate(SETTLED)
+    assert page.evaluate("document.querySelector('[data-active-chapter]').dataset.chapter") == "glossary"
+    assert page.evaluate(HIGHLIGHTS) == [QUOTE]
+    copy_path = tmp_path / "reviewed.html"
+    copy_path.write_text(page.evaluate("obsComments.reviewedHtml()"), encoding="utf-8")
+    assert page.evaluate(PAINTED, {"chapter": "alpha", "bar": True}) == [QUOTE]
+    own = page.evaluate(SELECT_IN, [paragraph_id, QUOTE])
+    assert {key: own[key] for key in ("chapter", "node", "quote", "start", "end")} == {
+        key: target[key] for key in ("chapter", "node", "quote", "start", "end")}
+    reopened, reopened_errors = _open(reader_browser, copy_path)
+    reopened.evaluate(EXPAND)
+    reopened.locator(ALPHA_DETAIL).wait_for()
+    assert reopened.evaluate(HIGHLIGHTS) == [QUOTE]
+    reopened.evaluate("""async () => { obsArtifact.openBar("comments", "right");
+        await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))); }""")
+    assert reopened.evaluate(HIGHLIGHTS) == [QUOTE]
+    assert errors == reopened_errors == []

@@ -127,6 +127,11 @@ A new table view option, a view's `obsHtml` key, ships as a part of the tables f
 (`features.py`, the `tables` entry's `parts`), as `empty-groups`, `passing-rows` and
 `detail-fields` do, so an artifact whose views do not set it carries none of its code.
 
+A reader behaviour only a Base table shows ships as a part of the tables feature on the feature's
+own condition, as `detail-comments` does: a selection in a row's note detail comments on the
+note's block ([[input-model#Comments and the core model]]). Its regions sit in the Comments bar's
+script, `table.js` and `tables.js`, so a page without a Base table ships each of them as it did.
+
 Two parts' regions never nest. `feature_source` keeps or strips the outermost region it finds as
 a whole, so a kept outer region keeps an inner one whose part does not ship, and a stripped outer
 region strips an inner one whose part does. Regions of two parts in one file stand one after the
