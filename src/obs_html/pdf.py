@@ -10,7 +10,7 @@ from typing import Iterator, NamedTuple
 from playwright.sync_api import (
     ConsoleMessage, Error as BrowserError, Page, TimeoutError as BrowserTimeoutError, sync_playwright,
 )
-from pypdf import PdfReader
+from pypdf import PdfReader, PdfWriter
 
 from obs_html.errors import InputError
 from obs_html.timings import stage
@@ -57,6 +57,16 @@ def _print(page: Page) -> bytes:
     page.evaluate("window.print = () => {}; globalThis.obsPages?.exportPDF()")
     page.emulate_media(media="print")
     return page.pdf(print_background=True, prefer_css_page_size=True)
+
+
+def dated(pdf: bytes, date: str) -> bytes:
+    """``pdf`` with its document information ``/CreationDate`` and ``/ModDate`` set to ``date``, a PDF
+    date (spec/architecture.md, Build time), written by pypdf as source_archive.attach writes a PDF."""
+    writer = PdfWriter(clone_from=PdfReader(BytesIO(pdf)))
+    writer.add_metadata({"/CreationDate": date, "/ModDate": date})
+    output = BytesIO()
+    writer.write(output)
+    return output.getvalue()
 
 
 @stage("print")

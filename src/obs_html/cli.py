@@ -8,6 +8,7 @@ import re
 import subprocess
 import sys
 import tempfile
+from datetime import datetime
 from importlib.resources import as_file, files
 from pathlib import Path
 from time import perf_counter
@@ -18,7 +19,7 @@ from obs_html.config import load_config, with_vault_settings
 from obs_html.errors import InputError, Parser, diagnostics, in_vault, vault_naming, warn
 from obs_html.exposure import check_artifact
 from obs_html.figure_svg import document_figures, figure_svg
-from obs_html import provenance, serve, verdicts
+from obs_html import build_time, provenance, serve, verdicts
 from obs_html.render import render
 from obs_html.source_archive import attach, embedded
 from obs_html.artifact_data import chapter_html, html_text, same_artifact_content
@@ -122,6 +123,13 @@ Timings:
   The stages: {', '.join(STAGES)}. It warns on stderr about a stage slower than its baseline
   (the packaged timing-baselines.json) by both timings.relativeThreshold and
   timings.absoluteThresholdSeconds of the settings; the warning never fails the call.
+
+Build time:
+  SOURCE_DATE_EPOCH, where the environment sets it, fixes every build time obs-html writes: the
+  page's generation timestamp and a PDF's creation and change dates are that instant, so two builds
+  of one input give the same bytes. It takes whole seconds since 1970-01-01T00:00:00Z, digits
+  only, up to 253402300799; any other value fails the call. A DESTINATION, --check,
+  --build-own-spec and --export-pdf read it; unset, the build records the clock as before.
 
 Examples:
   obs-html document.json artifact.html
@@ -269,14 +277,16 @@ def _render(options: argparse.Namespace, config) -> None:
 
 
 def _write_artifact(document: dict, options: argparse.Namespace, config, destination: Path | None) -> None:
-    """Render ``document`` and write it to ``destination``, a PDF for a .pdf name; with --check, nothing."""
+    """Render ``document`` and write it to ``destination``, a PDF for a .pdf name; with --check, nothing.
+    ``SOURCE_DATE_EPOCH``, where set, is the build's instant (spec/architecture.md, Build time)."""
+    fixed = build_time.fixed(os.environ)
     paths = _vault_paths(document)
     try:
         with vault_naming(options.vault_root, paths):
             config = with_vault_settings(config, document)
             artifact = render(document, config, style_folder=options.style,
                               trusted_runtime=_trusted_runtime(options.trusted_runtime_bundle),
-                              embed_attachments=options.embed_attachments)
+                              embed_attachments=options.embed_attachments, built=fixed)
     except InputError as error:
         raise in_vault(error, options.vault_root, paths) from error
     check_artifact(artifact)
@@ -297,12 +307,12 @@ def _write_artifact(document: dict, options: argparse.Namespace, config, destina
             temporary.write(artifact)
         html = Path(temporary.name)
         try:
-            pdf = _printed(html, artifact, destination)
+            pdf = _printed(html, artifact, destination, fixed)
         finally:
             html.unlink()
         _write_if_changed(destination, pdf)
     else:
-        existing = _read_existing(destination)
+        existing = None if fixed is not None else _read_existing(destination)  # A fixed instant keeps only the same bytes.
         if existing is None or not same_artifact_content(artifact, existing):
             _write_if_changed(destination, artifact.encode("utf-8"))
     print(f"Generated {destination}.")
@@ -376,11 +386,14 @@ def _attach_source(options: argparse.Namespace) -> None:
     print(f"Generated PDF {output.resolve()} with {html.name}'s source ZIP.")
 
 
-def _printed(html: Path, artifact: str, source: object) -> bytes:
-    """``html`` printed, with the source ZIP its ``artifact`` text embeds attached when it has one;
-    ``source`` names the artifact in errors."""
-    from obs_html.pdf import export_pdf
+def _printed(html: Path, artifact: str, source: object, fixed: datetime | None) -> bytes:
+    """``html`` printed, dated ``fixed`` where it is set (the instant of ``SOURCE_DATE_EPOCH``), with the
+    source ZIP its ``artifact`` text embeds attached when it has one; ``source`` names the artifact in
+    errors."""
+    from obs_html.pdf import dated, export_pdf
     pdf = export_pdf(html)
+    if fixed is not None:
+        pdf = dated(pdf, build_time.pdf_date(fixed))
     archive = embedded(artifact, source)
     return pdf if archive is None else attach(pdf, archive, source)
 
@@ -391,6 +404,7 @@ def _browser_operation(options: argparse.Namespace, config) -> None:
            "embed_attachments", "vault_root", *(["check_rendered"] if options.export_pdf else []))
     from obs_html.pdf import check_rendered
     if options.export_pdf:
+        fixed = build_time.fixed(os.environ)  # Before a browser starts.
         output = options.output
         if output is None or output.suffix.lower() != ".pdf":
             raise InputError(PROG, "--output", "is missing or names no .pdf file",
@@ -402,7 +416,7 @@ def _browser_operation(options: argparse.Namespace, config) -> None:
         except (OSError, UnicodeError) as error:
             raise InputError(PROG, "--export-pdf", f"cannot read its HTML ({error})",
                              "Name an existing HTML artifact") from error
-        _write_if_changed(output.resolve(), _printed(options.export_pdf, artifact, options.export_pdf))
+        _write_if_changed(output.resolve(), _printed(options.export_pdf, artifact, options.export_pdf, fixed))
         print(f"Generated PDF {output.resolve()}.")
         return
     if options.output:

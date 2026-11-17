@@ -204,6 +204,7 @@ the gate reads only the code spans.
 | Figure lints | Warns about a figure without a block id and about any lone `[...]`. | No block-id warning; the lone-image lint covers image files. | known difference | #300 |
 | Exposure check | Refuses an artifact naming the command root, the home folder or the user name. | Refuses the home folder and user name; the command root is the core's. | known difference | #186; `adapters/html/test/test_commands.py::test_a_artifact_exposing_the_build_machine_fails_naming_where_and_the_remedy` |
 | Errors name place and remedy | Some non-schema messages lack field and remedy. | Every adapter error names its place and remedy. | same | `adapters/html/test/test_errors.py::test_every_raise_in_the_adapter_goes_through_the_formatter` |
+| `SOURCE_DATE_EPOCH` | — | Where set, the page's build time and a PDF's two dates are the instant it names, so two builds of one input are equal; a value that is not digits up to 9999-12-31 stops the build naming the variable; unset, every build is as before. | added | `adapters/html/test/test_build_time.py::test_two_builds_under_one_value_are_byte_for_byte_equal`, `adapters/html/test/test_build_time.py::test_an_invalid_value_stops_the_build_and_writes_nothing`, `adapters/html/test/test_pdf.py::test_two_pdf_prints_under_one_build_time_are_equal_and_carry_its_date` |
 
 ## Output forms
 

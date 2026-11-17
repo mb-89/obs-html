@@ -178,6 +178,47 @@ Command execution is owned by a separate runner boundary. Markdown parsing suppl
 command and receives escaped output; it does not own process invocation, timeout policy,
 or authorization.
 
+## Build time
+
+A build writes its time in two places: the page's `document.generation.timestamp`, in the ISO form
+`2023-11-14T22:13:20+00:00`, and a PDF's `/CreationDate` and `/ModDate`, in the PDF date form
+`D:20231114221320+00'00'`.
+
+One module, `src/obs_html/build_time.py`, answers what time a build is. Given the environment and
+a clock, it returns the instant the standard `SOURCE_DATE_EPOCH` names where it is set, the
+clock's UTC reading otherwise, and gives both forms. It reads no global state.
+
+It is the one file of the package that reads the wall clock for what a build writes:
+`test/structure/test_architecture.py` refuses a clock read in any other. The core writes no
+build time, and its own structure test refuses a clock read in `src/obs`.
+
+A set value is one or more ASCII digits, the whole seconds since 1970-01-01T00:00:00Z, at most
+`253402300799` (9999-12-31T23:59:59Z). The module adds them to the epoch rather than calling
+`datetime.fromtimestamp`, which on Windows refuses years after 3000.
+
+Any other set value, an empty one included, is an input error of source `obs-html` and field
+`SOURCE_DATE_EPOCH` that quotes the value. The call exits 2 and writes nothing, and a PDF call
+fails before a browser starts.
+
+The calls that write a build time read the variable: every call that renders a Document (a
+DESTINATION, `--check`, `--build-own-spec`, and `obs-document --adapter html`, which passes its
+environment to the adapter) and `--export-pdf`.
+
+The calls that write none never read it, so an invalid value does not fail them:
+`--extract-comments`, `--print-chapter`, `--print-verdicts`, `--export-figures`,
+`--attach-source-to-pdf`, `--check-rendered`, `obs-html serve` and `obs-html-inspect`.
+
+The variable is the switch. Unset, every build is as it was: the page records the clock, a
+rebuild whose content equals the existing page keeps that page (`same_artifact_content`), and a
+PDF keeps the dates the browser printed.
+
+Set, the page records the instant, and a rebuild writes the page unless the destination already
+holds the same bytes, so a written page always carries the instant. A PDF's two dates are set to
+it before the source ZIP is attached, so two prints of one page under one value are equal.
+
+A `.pdf` DESTINATION is printed from a temporary page beside it, whose name its internal links
+carry, so two such PDFs still differ there; that is no time.
+
 ## Opt-in page shell parts
 
 Decided by the user, 14 Nov 2026 (work issue `feat/page-shell-limited-host-and-provenance-check-20261114`),
@@ -232,7 +273,8 @@ each named on the finding it covers, which then neither warns nor refuses:
 
 - `generation-timestamp`: `document.generation.timestamp` of the data island, the build time obs
   records on purpose; `same_artifact_content` keeps an unchanged rebuild because of it. The check
-  reports it and leaves it as it is.
+  reports it and leaves it as it is, and the instant `SOURCE_DATE_EPOCH` names there
+  ([[architecture#Build time]]) is exempt alike.
 - `vendored-library:<element id>`: a line of a script element that embeds a third-party library as
   its release ships it (`plotly-script`, `maths-script`, `pdf-library-script`, `yaml-script`),
   whose own text, such as Plotly's example dates, says nothing of the build.

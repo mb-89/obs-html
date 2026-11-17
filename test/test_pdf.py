@@ -46,3 +46,19 @@ def test_rendered_check_fails_on_console_errors(pdf_browser, tmp_path, capsys) -
     error = capsys.readouterr().err
     assert "Console error: bad" in error  # The console's own error, as the check reports it.
     assert f"\n{html}: --check-rendered: " in f"\n{error}", error
+
+
+@pytest.mark.browser
+def test_two_pdf_prints_under_one_build_time_are_equal_and_carry_its_date(
+        pdf_browser, fixture_artifact, tmp_path, monkeypatch) -> None:
+    """SOURCE_DATE_EPOCH sets both document information dates (architecture.md, Build time)."""
+    monkeypatch.setenv("SOURCE_DATE_EPOCH", "1700000000")
+    dated = ("D:20231114221320+00'00'",) * 2
+    for name in ("a.pdf", "b.pdf"):
+        cli.main(["--export-pdf", str(fixture_artifact), "--output", str(tmp_path / name)])
+    assert (tmp_path / "a.pdf").read_bytes() == (tmp_path / "b.pdf").read_bytes()
+    destination = tmp_path / "built.pdf"
+    cli.main([str(FIXTURE), str(destination)])
+    for pdf in (tmp_path / "a.pdf", destination):
+        metadata = PdfReader(pdf).metadata
+        assert (metadata["/CreationDate"], metadata["/ModDate"]) == dated, pdf

@@ -120,6 +120,9 @@ A DESTINATION ending in `.pdf` prints the rendered HTML to PDF in the same call,
 `--export-pdf` prints an HTML built before. The PDF row of the
 [parity table](../test/parity/features.md) records the issue that decided it.
 
+Where `SOURCE_DATE_EPOCH` is set, both calls set the PDF's creation and change dates to the
+instant it names, else the PDF keeps the dates the browser printed ([[architecture#Build time]]).
+
 ## Rendered check
 
 `--check` proves the source; `--check-rendered` proves that the delivered HTML opens

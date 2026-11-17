@@ -82,3 +82,43 @@ def test_the_check_names_each_direct_reach_with_its_file_and_line(tmp_path: Path
         "figure.js:3", "figure.js:4", "figure.js:4", "figure.js:5", "figure.js:6",
         "figure.js:7", "figure.js:8", "figure.js:9", "render.py:1", "render.py:3"], found
     assert "call the library's door, pdf-door.js" in found[7] and "ask libraries.py for it" in found[8]
+
+
+CLOCK_READ = re.compile(r"\b(?:datetime\.(?:now|utcnow|today)|date\.today|"
+                        r"time\.(?:time_ns|time|gmtime|localtime|ctime))\(")
+CLOCK_DOOR = "build_time.py"
+
+
+def clock_reads(package: Path) -> list[str]:
+    """Each wall clock read outside a comment in a Python file of ``package`` but the build-time
+    module, by its file and line."""
+    found = []
+    for module in sorted(package.rglob("*.py")):
+        if module.name == CLOCK_DOOR:
+            continue
+        for number, line in enumerate(module.read_text(encoding="utf-8").splitlines(), start=1):
+            for match in CLOCK_READ.finditer(line.split("#")[0]):
+                found.append(f"{module.relative_to(package).as_posix()}:{number} reads the clock with "
+                             f"{match.group()!r}; take the build's instant from {CLOCK_DOOR}")
+    return found
+
+
+def test_only_the_build_time_module_reads_the_clock_for_what_a_build_writes() -> None:
+    found = clock_reads(PACKAGE)
+    assert found == [], "test/structure/test_architecture.py (architecture.md, Build time):\n" + "\n".join(found)
+
+
+def test_the_clock_check_names_each_read_with_its_file_and_line(tmp_path: Path) -> None:
+    """The check is not vacuous: each clock call it refuses is named, and a comment, perf_counter
+    and the build-time module itself are no read."""
+    calls = ["datetime.now(", "datetime.utcnow(", "datetime.today(", "date.today(", "time.time(",
+             "time.time_ns(", "time.gmtime(", "time.localtime(", "time.ctime("]
+    (tmp_path / "render.py").write_text("".join(f"x = {call})\n" for call in calls) +
+                                        "# datetime.now() in a comment\nstart = perf_counter()\n"
+                                        "y = 1  # time.time()\n", encoding="utf-8")
+    (tmp_path / CLOCK_DOOR).write_text("now = datetime.now(timezone.utc)\n", encoding="utf-8")
+
+    found = clock_reads(tmp_path)
+
+    assert [line.split(" reads ")[0] for line in found] == [f"render.py:{number}" for number in range(1, 10)], found
+    assert all(repr(call) in line for call, line in zip(calls, found))
