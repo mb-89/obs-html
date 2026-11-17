@@ -1146,8 +1146,17 @@ decision in a deck can carry a comment, and a comment the reader typed is never 
   verdict and 2 comments sent."); it names no file, command or sink id.
 
   Where the passing line is on, it says the same in short ("Sent to Claude.", or "Sent."). Where
-  the sink fails, or sending is not available on the page, the drafts stay and the notice says so;
-  the passing line is for a confirmed send only.
+  the sink fails, or sending is not available on the page, the drafts stay and the notice says so
+  in plain words, naming no file, command or sink id; where the sink fails, its message goes to the
+  browser console; the passing line is for a confirmed send only.
+
+  The plain entries keep [[#Reader-facing text]]'s rule in the reader's terms. The answers entry
+  names the source: the place the answers were meant to go where the sink gave a name ("They did
+  not reach Claude."), this page otherwise ("They could not be sent from this page."), or, where
+  sending is not available, its title, "Answers: sending is not available here". Its remedy is
+  copying the answers. Send's entry beside it says what was not sent, and its remedy is sending
+  again ("1 verdict and 2 comments were not sent. Your verdicts and comments are kept in the deck;
+  send again.").
 
 ## Screens
 

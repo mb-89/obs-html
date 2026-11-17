@@ -763,6 +763,8 @@ def test_a_failed_send_keeps_the_draft_and_says_so(built, reader_browser, tmp_pa
         page.locator("[data-bless-comment]").press("Enter")
     finally:
         served.stop()  # The sink fails: the server is gone.
+    console: list = []
+    page.on("console", lambda message: console.append((message.type, message.text)))
     page.locator("[data-bless-send]").click()
     notice = page.locator('[data-notice="bless-send"]')
     expect(notice).to_contain_text("Not sent")
@@ -771,6 +773,18 @@ def test_a_failed_send_keeps_the_draft_and_says_so(built, reader_browser, tmp_pa
     assert _typed(page) == TYPED
     assert page.evaluate(DRAFTS)["record"]["comment"] == TYPED
     assert errors == []
+    # Plain words for the reader (artifact-ui.md, Sent means sent); the failure's message goes to the console.
+    expect(notice.locator("[data-notice-details] > p")).to_have_text(
+        "1 verdict and 1 comment were not sent. Your verdicts and comments are kept in the deck; send again.")
+    answers = page.locator('[data-notice="answers"]')
+    expect(answers.locator("[data-notice-details] > p").first).to_have_text(
+        "They could not be sent from this page. Copy the answers and hand them over.")
+    address = served.url.split("#")[0].split("?")[0].lower()
+    for entry in (notice, answers.locator("[data-notice-title], [data-notice-details] > p")):
+        text = " ".join(entry.all_text_contents()).lower()
+        assert "obs-html" not in text and address not in text and "server" not in text, text
+    warnings = [text for kind, text in console if kind == "warning"]  # The browser logs the refused fetch itself.
+    assert len(warnings) == 1 and warnings[0].startswith("obsHtml.answers: obs-html serve at "), console
 
 
 @pytest.mark.parametrize("viewport", WIDTHS, ids=["phone", "desktop"])

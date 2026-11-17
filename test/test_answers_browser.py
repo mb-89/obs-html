@@ -13,6 +13,7 @@ import pytest
 
 import serving
 from artifacts import artifact_html
+from test_bless_browser import WIDTHS
 from test_features import with_bless
 
 pytestmark = pytest.mark.browser
@@ -38,12 +39,15 @@ def _write(tmp_path: Path, html: str) -> Path:
     return artifact
 
 
-def _open(reader_browser, url: str):
+def _open(reader_browser, url: str, viewport: dict | None = None, console: list | None = None):
+    """Open the page at the viewport given, collecting every console message into ``console`` where given."""
     from playwright.sync_api import expect
 
-    page = reader_browser.new_page()
+    page = reader_browser.new_page(viewport=viewport)
     errors: list[str] = []
     page.on("pageerror", lambda error: errors.append(str(error)))
+    if console is not None:
+        page.on("console", lambda message: console.append((message.type, message.text)))
     page.goto(url)
     expect(page.locator("html")).to_have_attribute("data-artifact-status", "ready")
     assert errors == []
@@ -110,10 +114,12 @@ def test_a_bundle_without_an_actions_array_is_refused_and_names_its_owner(tmp_pa
     expect(page.get_by_role("alert")).to_contain_text("obsArtifact.registerApplication")
 
 
-def test_elsewhere_the_answers_are_shown_as_text_with_a_copy_key(tmp_path: Path, reader_browser) -> None:
+@pytest.mark.parametrize("viewport", WIDTHS, ids=["phone", "desktop"])
+def test_elsewhere_the_answers_are_shown_as_text_with_a_copy_key(tmp_path: Path, reader_browser, viewport: dict) -> None:
     from playwright.sync_api import expect
 
-    page = _open(reader_browser, _write(tmp_path, artifact_html(with_bless())).as_uri())
+    console: list = []
+    page = _open(reader_browser, _write(tmp_path, artifact_html(with_bless())).as_uri(), viewport, console)
     canary = page.evaluate(CANARY)
     assert canary["decided"] is False and page.locator('[data-notice="capability-answers"]').count() == 0
     untrusted = page.evaluate("""() => { try { globalThis.obsArtifact.trustedExtension("obsHtml.answers"); }
@@ -127,6 +133,9 @@ def test_elsewhere_the_answers_are_shown_as_text_with_a_copy_key(tmp_path: Path,
     expect(notice.locator("[data-answers-text]")).to_be_visible()
     assert json.loads(notice.locator("[data-answers-text]").text_content()) == PAYLOAD
     expect(notice.locator("[data-answers-copy]")).to_have_text("Copy answers")
+    # Plain words: the title says what happened, the first detail only the remedy (answers.md, Sinks).
+    expect(notice.locator("[data-notice-details] > p").first).to_have_text("Copy the answers and hand them over.")
+    assert console == []  # Sending is not available: nothing failed, so nothing goes to the console.
 
 
 NAMED = """globalThis.received = [];
@@ -156,3 +165,51 @@ def test_a_malformed_sink_name_is_refused_with_its_remedy(tmp_path: Path, reader
     assert refused.startswith("Trusted extension obsHtml.answers: register: name"), refused
     assert "; " in refused, refused  # The remedy follows what is wrong.
     assert page.evaluate(REGISTER, "Claude") == "registered"
+
+
+FAILING = """globalThis.obsArtifact.trustedExtension("obsHtml.answers").register({id: "host-save", %s
+    send: async () => { throw new Error("quota_exceeded: no room"); }});"""
+"""A registered sink, named or not, whose send rejects."""
+MACHINERY = ("obshtml", "obs-html", "host-save", "quota_exceeded", "sink", "bundle", "registered", "server", "http",
+             "127.0.0.1", "localhost")
+"""What no reader entry names (answers.md, Contract; artifact-ui.md, Sent means sent), lowercased."""
+REJECTED = "obsHtml.answers: registered sink host-save: send failed (quota_exceeded: no room)"
+"""The start of the rejection's message, the caller's and the console's."""
+
+
+@pytest.mark.parametrize("viewport", WIDTHS, ids=["phone", "desktop"])
+@pytest.mark.parametrize(("name", "words"), [
+    ("Claude", "They did not reach Claude. Copy the answers and give them to Claude."),
+    (None, "They could not be sent from this page. Copy the answers and hand them over.")], ids=["named", "unnamed"])
+def test_a_failing_sink_tells_the_reader_in_plain_words_and_the_console_its_message(
+        tmp_path: Path, reader_browser, viewport: dict, name: str | None, words: str) -> None:
+    """Where a registered sink fails, the rejection keeps the builder's message, the console gets it
+    once, and the reader's two entries say in plain words what was not sent and where it was meant to
+    go, naming no machinery."""
+    from playwright.sync_api import expect
+
+    bundle = APPLICATION + FAILING % (f"name: {json.dumps(name)}," if name else "")
+    console: list = []
+    page = _open(reader_browser, _write(tmp_path, artifact_html(with_bless(), trusted_runtime=(
+        "sink-v1", bundle))).as_uri() + "#one", viewport, console)
+
+    rejected = page.evaluate(SEND, PAYLOAD)["error"]
+    assert rejected.startswith(REJECTED), rejected
+    assert console == [("warning", rejected)]
+    console.clear()
+
+    page.locator('[data-bless-key="bless"]').click()
+    page.locator("[data-bless-send]").click()
+    sent = page.locator('[data-notice="bless-send"]')
+    expect(sent.locator("[data-notice-details] > p")).to_have_text(
+        "1 verdict and 0 comments were not sent. Your verdicts and comments are kept in the deck; send again.")
+    assert [kind for kind, _ in console] == ["warning"] and console[0][1].startswith(REJECTED), console
+    answers = page.locator('[data-notice="answers"]')
+    expect(answers.locator("[data-notice-title]")).to_have_text("Answers were not sent")
+    expect(answers.locator("[data-notice-details] > p").first).to_have_text(words)
+    assert json.loads(answers.locator("[data-answers-text]").text_content()) == {
+        "verdicts": [{"chapter": "one", "version": "0" * 64, "verdict": "bless"}]}
+    expect(answers.locator("[data-answers-copy]")).to_have_text("Copy answers")
+    for entry in (sent, answers.locator("[data-notice-title], [data-notice-details] > p")):
+        text = " ".join(entry.all_text_contents()).lower()
+        assert not [word for word in MACHINERY if word in text], text

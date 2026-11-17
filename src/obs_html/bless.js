@@ -282,6 +282,9 @@ globalThis.obsBless = (() => {
   }
   /** Pure: Send's entry, what was sent ("1 verdict and 2 comments") and, where the sink gives its name, where. */
   const sentRecord = (what, name) => `${what} sent${name ? ` to ${name}` : ""}.`;
+  /** Pure: Send's entry where the sink failed, what was not sent and that it is kept, never the failure's
+      message (answers.js gives that to the console). */
+  const unsentRecord = (what, kept) => `${what} were not sent. ${kept}`;
   /** Say in the notice center what Send did (artifact-ui.md, Comments that are never lost). */
   const tell = (severity, title, detail) => {
     globalThis.obsNotices?.post({id: "bless-send", severity, title, details: [detail]});
@@ -310,9 +313,9 @@ globalThis.obsBless = (() => {
       // } part brief-notice
       for (const entry of answers.verdicts) document.dispatchEvent(new CustomEvent("obs-bless-change",
         {detail: {chapter: entry.chapter, verdict: null}}));
-    } catch (error) {
-      // answers.js shows the payload as text and names the failure too.
-      tell("error", "Not sent", `${error?.message || error} ${kept}`);
+    } catch {
+      // answers.js shows the payload as text and says in plain words where it did not get to.
+      tell("error", "Not sent", unsentRecord(what, kept));
     } finally {
       update();
     }

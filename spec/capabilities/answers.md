@@ -29,7 +29,8 @@ The first that applies takes the payload:
 2. **The local server**: where `obs-html serve` served the page. The page posts the payload to its
    own URL, and the server writes `answers.json` beside the artifact.
 3. **The text**: elsewhere, the notice center shows the payload as text with a Copy answers key,
-   saying that sending is not available here.
+   under the title "Answers: sending is not available here", and its words say only "Copy the
+   answers and hand them over.", naming no command or bundle.
 
 The feature ships only where the Document has a chapter that asks for a bless, as the feature
 `bless` does ([[capabilities/bless]]), whose Send hands its payload here; an artifact without one
@@ -84,6 +85,13 @@ obsArtifact.trustedExtension("obsHtml.answers").register({
   <remedy>.`, the sink being `obsArtifact.sendAnswers` for a payload that is no object, the
   server's address, or the registered sink's id. A failing sink also shows the payload as text,
   so no answer is lost, and `sendAnswers` rejects.
+  - The message is the caller's and the console's: `sendAnswers` rejects with it, and where a sink
+    fails it is written once to the browser console with `console.warn` before the rejection.
+  - The reader's entries say in plain words that the answers were not sent, where they were meant
+    to go where the sink gave a name ("They did not reach Claude. Copy the answers and give them
+    to Claude."), and offer them to copy; they name no file, command, module or sink id. A sink
+    without a name, and the local server, read "They could not be sent from this page. Copy the
+    answers and hand them over."
 
 [`answers.js`](../../src/obs_html/answers.js) implements the sinks and the extension;
 `test/test_answers_browser.py` tests them with `obs-html serve` and a test bundle.

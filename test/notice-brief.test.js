@@ -1,7 +1,8 @@
 "use strict";
 
 // The notice center's passing line, its pure core (src/obs_html/notices.js, obsNoticeBrief; artifact-ui.md,
-// Dock menu), and the sink's name it says (src/obs_html/answers.js, readerName; answers.md, Contract):
+// Dock menu), and the sink's name it says and the answers entry's words where nothing was sent
+// (src/obs_html/answers.js, readerName and unsent; answers.md, Contract):
 // values in, values out, no page.
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -36,3 +37,14 @@ for (const name of ["Claude", "x", "x".repeat(40), "Claude · review"]) assert.e
 for (const name of ["", " Claude", "Claude ", "x".repeat(41), "Two\nlines", "tab\there", "\u0085", 7, null, {}]) {
     assert.equal(answers.readerName(name), false, JSON.stringify(name));
 }
+
+// The answers entry's first detail where nothing was sent (answers.md, Contract; artifact-ui.md, Sent means
+// sent): plain words, the sink only by its name, never its id or the failure's message.
+assert.equal(answers.unsent({failed: true, name: "Claude"}),
+    "They did not reach Claude. Copy the answers and give them to Claude.");
+for (const name of [undefined, ""]) {
+    assert.equal(answers.unsent({failed: true, name}),
+        "They could not be sent from this page. Copy the answers and hand them over.", JSON.stringify(name));
+}
+assert.equal(answers.unsent({failed: false}), "Copy the answers and hand them over.");
+assert.equal(answers.unsent({failed: false, name: "Claude"}), "Copy the answers and hand them over.");
