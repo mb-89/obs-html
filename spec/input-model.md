@@ -515,7 +515,11 @@ nested under it. The omission rules above still apply, so a listed field the not
 not shown. `detailFields: []` shows no field block at all, only the note's text. The list holds
 unique non-blank field names; any other value fails the view's validation at its own field,
 `views[i].obsHtml.detailFields`, as the other view options fail at theirs. It changes ordinary note
-details only: the tabs of `details: columns` keep their reference metadata. Omitted, an opened row
+details only: the tabs of `details: columns` keep their reference metadata. In such a view a bare search word, in Search and in a table's own filter box alike,
+finds a row that opens its note in place by its cells, its group heading, the fields its opened
+row lists and its note's text, not by a field of the note the opened row leaves out and the view
+neither shows as a column nor groups by; a `field: value` term still reads every field, and the
+note's own result, its page, is unchanged. Omitted, an opened row
 shows every field as before; its code ships only in an artifact with a view that sets it
 ([[architecture#Rendering and runtime]]).
 `screenPageBreaks: false` under the view's `obsHtml` keeps the current table page,

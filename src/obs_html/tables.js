@@ -358,7 +358,8 @@
         ...[...node.querySelectorAll("input, textarea")].map(field => field.value)].join(" "));
     const rowSearchText = (definition, tableKey, row) => {
         const columns = definition.columns.filter(column => !column.fixed);
-        const cacheKey = JSON.stringify([tableKey, columns.map(column => column.key), row.key]);
+        const cacheKey = JSON.stringify([tableKey, columns.map(column => column.key), row.key/* part detail-fields { */,
+            definition.detailFields, definition.initialGroup.map(group => group.property)/* } part detail-fields */]);
         if (rowTextCache.has(cacheKey)) return rowTextCache.get(cacheKey);
         const cells = columns.map(column => {
             const cell = document.createElement("td");
@@ -367,6 +368,11 @@
         });
         const details = [];
         const owner = recordsBySlug.get(row.noteId);
+        // part detail-fields {
+        // A row that opens its note in place in a view that chooses its detail fields reads, as its own
+        // text, its values without the fields it hides (input-model.md, obsHtml.detailFields).
+        let own;
+        // } part detail-fields
         if (owner) {
             definition.columns.filter(column => column.detail).forEach(column => {
                 const profile = definition.properties?.[column.key]?.obsHtml?.reference?.metadata;
@@ -380,8 +386,18 @@
             const ownerDetails = definition.columnDetails ? Boolean(owner.html.trim())
                 : !tocSlugs.has(owner.slug) && isDocument(owner);
             if (ownerDetails) {
+                // part detail-fields {
+                if (definition.detailFields && !definition.columnDetails) {
+                    own = globalThis.obsDataTable.shownRowText(row.values, globalThis.obsDataTable.hiddenDetailFields(
+                        owner.metadataEntries.map(([field]) => field), definition.detailFields,
+                        [...definition.columns.map(column => column.key),
+                            ...definition.initialGroup.map(group => group.property)]));
+                }
+                // } part detail-fields
                 const text = plainText([
-                    ...(definition.columnDetails ? [] : permittedMetadata(owner).map(([, value]) => value)),
+                    ...(definition.columnDetails ? [] : /* part detail-fields { */globalThis.obsDataTable.chosenDetailEntries(
+                        /* } part detail-fields */permittedMetadata(owner)/* part detail-fields { */,
+                        definition.detailFields)/* } part detail-fields */.map(([, value]) => value)),
                     owner.text,
                 ].join(" "));
                 if (text) details.push({column: undefined, text});
@@ -389,14 +405,14 @@
         }
         const label = cells.map(cell => cell.text).find(text => /[\p{L}\p{N}]/u.test(text)) || row.key;
         const all = [...cells, ...details].map(item => item.text).join(" ");
-        const result = {cells, details, label, all};
+        const result = {cells, details, label, all/* part detail-fields { */, own/* } part detail-fields */};
         rowTextCache.set(cacheKey, result);
         return result;
     };
     const searchableRows = (definition, tableKey, rows) => rows.map(row => {
         if (!definition.baseQuery.match(row)) return row;
-        const {all} = rowSearchText(definition, tableKey, row);
-        return {...row, haystack: `${row.haystack} ${all}`, detail: `${row.detail} ${all}`};
+        const {all/* part detail-fields { */, own/* } part detail-fields */} = rowSearchText(definition, tableKey, row);
+        return {...row, haystack: `${/* part detail-fields { */own ?? /* } part detail-fields */row.haystack} ${all}`, detail: `${/* part detail-fields { */own ?? /* } part detail-fields */row.detail} ${all}`};
     });
     const tableSearchHits = (record, table) => {
         const state = tableStates.get(table.key);
@@ -419,7 +435,7 @@
                 return {
                     kind: "row", slug: record.slug, chapter: record, table: table.key,
                     tableName: definition.name, row, text,
-                    target: {haystack: `${row.haystack} ${text.all}`, detail: text.all, fields},
+                    target: {haystack: `${/* part detail-fields { */text.own ?? /* } part detail-fields */row.haystack} ${text.all}`, detail: text.all, fields},
                 };
             });
     };

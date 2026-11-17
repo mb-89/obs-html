@@ -207,6 +207,21 @@
         return fields.flatMap(name => entries.filter(([field]) =>
             (field === name || field.startsWith(`${name}.`)) && !chosen.has(field) && chosen.add(field)));
     };
+    // The fields a bare search word does not read in such a row (input-model.md, the same option): its
+    // note's field names, the view's list and the fields the view shows as columns or groups by in;
+    // out, the note's fields the opened row leaves out, by the rule above, that are no shown column's or
+    // group's (a name keeps the fields nested under it). Without a list, none.
+    const hiddenDetailFields = (fields, detailFields, shown) => {
+        if (!detailFields) return [];
+        const listed = new Set(chosenDetailEntries(fields.map(field => [field]), detailFields).map(([field]) => field));
+        const kept = shown.map(name => name.replace(/^note\./, ""));
+        return fields.filter(field => !listed.has(field) &&
+            !kept.some(name => field === name || field.startsWith(`${name}.`)));
+    };
+    // A row's own text, as a table record joins its values, without the values of the hidden fields
+    // (a value's field named with or without its note. prefix).
+    const shownRowText = (values, hidden) => Object.entries(values)
+        .filter(([field]) => !hidden.includes(field.replace(/^note\./, ""))).map(([, value]) => value).join(" ");
 
     // } part detail-fields
     const render = ({
@@ -1734,5 +1749,5 @@
         };
     };
 
-    globalThis.obsDataTable = {render, fitStaticTable, compareGroupLabels/* part empty-groups { */, emptyGroupLabels/* } part empty-groups *//* part passing-rows { */, foldPassingRows, passingCaption/* } part passing-rows *//* part detail-fields { */, chosenDetailEntries/* } part detail-fields */};
+    globalThis.obsDataTable = {render, fitStaticTable, compareGroupLabels/* part empty-groups { */, emptyGroupLabels/* } part empty-groups *//* part passing-rows { */, foldPassingRows, passingCaption/* } part passing-rows *//* part detail-fields { */, chosenDetailEntries, hiddenDetailFields, shownRowText/* } part detail-fields */};
 })();

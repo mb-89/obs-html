@@ -8,6 +8,12 @@ metadata; and a value that is not a list of unique non-blank names fails the vie
 ``views.<i>.obsHtml.detailFields``. Without the option a row opens as before (the part strips:
 test_features.py). The choice's pure layer, chosenDetailEntries, is tested in Node
 (detail-fields.test.js).
+
+Search and a table's own filter box read in such a view what the row shows: its cells, its group
+heading, the fields its opened row lists and its note's text, not a field the opened row leaves out
+and the view neither shows as a column nor groups by (input-model.md, the same option). A
+``field: value`` term still reads every field, and the note's own result, its page, stays. The
+choice of what search leaves out, hiddenDetailFields, is tested in Node beside chosenDetailEntries.
 """
 import json
 
@@ -38,8 +44,8 @@ def _view(**options: object) -> dict:
     return view
 
 
-def _base(view: dict, **properties: dict) -> dict:
-    spec = {"filters": 'kind == "task"', "views": [view], **({"properties": properties} if properties else {})}
+def _base(*views: dict, **properties: dict) -> dict:
+    spec = {"filters": 'kind == "task"', "views": list(views), **({"properties": properties} if properties else {})}
     return node("bases", source="", spec=spec)
 
 
@@ -57,6 +63,8 @@ TABLES = build(
     _table_chapter("date", _base(_view(detailFields=["date"]))),
     _table_chapter("ordered", _base(_view(detailFields=["date", "blocker", "missing", "status"]))),
     _table_chapter("columns", _base({**COLUMNS, "obsHtml": {"details": "columns"}}, **REFERENCE)),
+    _table_chapter("grouped", _base({**_view(detailFields=[]), "groupBy": {"property": "date", "direction": "ASC"}})),
+    _table_chapter("switch", _base(_view(), {**_view(detailFields=[]), "name": "Text"})),
     _table_chapter("columns-chosen", _base({**COLUMNS, "obsHtml": {"details": "columns", "detailFields": []}},
                                            **REFERENCE)),
     _note("t1", FIELDS, "The first task's text.", {"lead": [LINK]}),
@@ -150,3 +158,80 @@ def test_the_query_view_refuses_a_value_that_is_no_list_of_unique_names_at_its_f
     assert alert.inner_text().startswith("root.views.0.obsHtml.detailFields")
     # The last valid table stays.
     assert page.locator(f"{SHELL} tbody tr[data-row-key]").count() == 1
+
+
+DATE = "2026-11-16"
+
+
+def _search(page, query: str) -> list[dict]:
+    """Searches the artifact and returns each listed result: its page, its kind and its preview."""
+    page.evaluate("obsArtifact.openBar('search')")
+    page.locator("[data-search-input]").fill(query)
+    return page.evaluate("""() => obsSearch.hits.map((hit, index) => ({slug: hit.slug, kind: hit.kind,
+        preview: document.querySelector(`[data-search-hit="${index}"]`).nextElementSibling.textContent}))""")
+
+
+def _row_results(results: list[dict], slug: str) -> list[dict]:
+    return [result for result in results if result["kind"] == "row" and result["slug"] == slug]
+
+
+def _filtered_rows(page, expression: str) -> int:
+    """Types the expression into the shown table's own filter box, as its input event delivers the
+    reader's typing, and counts the rows it keeps."""
+    page.locator(f"{SHELL} input[aria-label='Filter table']").evaluate(
+        "(input, value) => { input.value = value; input.dispatchEvent(new Event('input')); }", expression)
+    return page.locator(f"{SHELL} tbody tr[data-row-key]").count()
+
+
+def test_a_word_only_in_a_hidden_field_finds_the_note_but_not_its_row(open_chapter) -> None:
+    page = open_chapter("text-only")
+    results = _search(page, DATE)
+    assert _row_results(results, "text-only") == []
+    notes = [index for index, result in enumerate(results) if result["slug"] == "t1" and result["kind"] != "row"]
+    assert notes
+    page.locator(f"[data-search-hit='{notes[0]}']").click()
+    # The note's page shows every field, its date in its frontmatter panel, highlighted.
+    page.locator("[data-active-chapter]#t1").wait_for()
+    page.locator("#frontmatter-panel .search-highlight", has_text=DATE).wait_for()
+
+
+def test_a_row_preview_in_a_text_only_view_prints_no_hidden_value(open_chapter) -> None:
+    [row] = _row_results(_search(open_chapter("text-only"), "first task"), "text-only")
+    assert DATE not in row["preview"] and "[[ada]]" not in row["preview"]
+
+
+@pytest.mark.parametrize("query", ["Needs you", f"date:{DATE}"])
+def test_a_shown_column_and_a_named_field_still_find_the_row_of_a_text_only_view(open_chapter, query) -> None:
+    assert len(_row_results(_search(open_chapter("text-only"), query), "text-only")) == 1
+
+
+@pytest.mark.parametrize("field", ["text", "content", "body", "detail", "details"])
+def test_the_row_text_fields_read_the_narrowed_text_as_a_bare_word_does(open_chapter, field) -> None:
+    page = open_chapter("text-only")
+    assert _row_results(_search(page, f"{field}:{DATE}"), "text-only") == []
+    assert len(_row_results(_search(page, f"{field}:first"), "text-only")) == 1
+
+
+def test_a_listed_field_finds_the_row_and_its_preview_shows_it(open_chapter) -> None:
+    [row] = _row_results(_search(open_chapter("date"), DATE), "date")
+    assert DATE in row["preview"]
+
+
+@pytest.mark.parametrize("slug", ["grouped", "plain", "columns-chosen"])
+def test_a_grouped_field_a_view_without_the_option_and_column_details_still_find_the_row(open_chapter, slug) -> None:
+    assert len(_row_results(_search(open_chapter(slug), DATE), slug)) == 1
+
+
+def test_the_filter_box_keeps_a_row_for_a_shown_word_and_drops_it_for_a_hidden_one(open_chapter) -> None:
+    page = open_chapter("text-only")
+    assert _filtered_rows(page, DATE) == 0
+    assert _filtered_rows(page, "first task") == 1
+
+
+def test_the_filter_box_reads_the_shown_view_after_a_switch_to_a_text_only_view(open_chapter) -> None:
+    page = open_chapter("switch")
+    assert _filtered_rows(page, DATE) == 1
+    page.locator("[data-active-chapter] [data-table-views] .filter-pill", has_text="Text").click()
+    page.locator("[data-active-chapter] [data-table-views] .filter-pill[aria-pressed='true']",
+                 has_text="Text").wait_for()
+    assert _filtered_rows(page, DATE) == 0
