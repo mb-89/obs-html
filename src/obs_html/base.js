@@ -31,27 +31,25 @@
                 (node, key) => node[key.replaceAll("~1", "/").replaceAll("~0", "~")], owner);
             return validateNode(value, target, path, owner);
         }
-        if (rule.oneOf) {
-            const matches = rule.oneOf.filter((choice) => {
-                try {
-                    validateNode(value, choice, path, owner);
-                    return true;
-                } catch (error) {
-                    if (!(error instanceof TypeError)) throw error;
-                    return false;
-                }
-            });
-            if (matches.length !== 1) throw new TypeError(`${path}: unsupported definition value.`);
-        }
-        if (rule.not) {
-            let matches = true;
+        const passes = (choice) => {
             try {
-                validateNode(value, rule.not, path, owner);
+                validateNode(value, choice, path, owner);
+                return true;
             } catch (error) {
                 if (!(error instanceof TypeError)) throw error;
-                matches = false;
+                return false;
             }
-            if (matches) throw new TypeError(`${path}: unsupported combination of properties.`);
+        };
+        if (rule.oneOf) {
+            const matches = rule.oneOf.filter(passes);
+            if (matches.length !== 1) throw new TypeError(`${path}: unsupported definition value.`);
+        }
+        if (rule.not && passes(rule.not)) throw new TypeError(`${path}: unsupported combination of properties.`);
+        // JSON Schema 2020-12's conditional: a value that passes if must pass then, any other value
+        // else; a missing branch accepts.
+        if (rule.if) {
+            const branch = passes(rule.if) ? rule.then : rule.else;
+            if (branch) validateNode(value, branch, path, owner);
         }
         if (rule.type) {
             const valid = rule.type === "object" ? isObject(value)

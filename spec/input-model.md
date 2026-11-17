@@ -423,7 +423,8 @@ synthetic subject documents. Existing `displayName` labels apply to group captio
 
 Icon slots use `properties.<slot>.obsHtml.icon` with a catalog resource `name`
 and accessible `label`, plus one of `linkProperty` with `unavailable`,
-`action: sourceArchive`, a fixed action ID registered by the explicitly selected
+`action: sourceArchive` (optionally with `unavailable`, shown on its disabled slot when the
+artifact holds no source archive), a fixed action ID registered by the explicitly selected
 trusted runtime (with `unavailable` when its `card` declares a `link`, see
 [Trusted floating-content actions](#trusted-floating-content-actions)), `help`
 (plain text), or `unavailable` alone.
@@ -682,7 +683,9 @@ subject and instructions, because the reader opens the source before following t
 A declared `link` is a precondition of the card: a row whose `link` field renders no
 safe link gets no card, and its action slot is disabled (not dispatched) with the
 icon's authored `unavailable` reason, like other unavailable slots. An action icon
-whose card declares `link` therefore requires `unavailable`.
+whose card declares `link` therefore requires `unavailable`. Any other action icon, one without
+a card `link`, takes no `unavailable`, since the page never shows it; `action: sourceArchive` is
+the exception named under the icon forms.
 
 The author decides which rows qualify through the row data and this declaration; the
 generator does not recognise particular rows. Choosing or dropping a file only stages it.

@@ -538,7 +538,7 @@ def _data_table(definition: dict[str, object], rows: list[list[str]] | None, con
 BASE_SCHEMA = json.loads(files("obs_html").joinpath("base.schema.json").read_text(encoding="utf-8"))
 COMPARISON = re.compile(BASE_SCHEMA["$defs"]["comparison"]["pattern"])
 BROWSER_KEYWORDS = frozenset({
-    "$ref", "oneOf", "not", "type", "minimum", "maximum", "enum", "const", "minLength", "maxLength", "pattern",
+    "$ref", "oneOf", "not", "if", "then", "else", "type", "minimum", "maximum", "enum", "const", "minLength", "maxLength", "pattern",
     "minItems", "maxItems", "uniqueItems", "items", "minProperties", "maxProperties", "dependentRequired",
     "required", "properties", "additionalProperties"})
 """The JSON Schema keywords base.js's validator implements (validateNode); test_registers.py holds

@@ -258,3 +258,20 @@ def test_the_adapter_prints_the_document_diagnostics_only_when_run_directly(
 
     lines = [line for line in capsys.readouterr().err.splitlines() if "chapter.md:3:" in line]
     assert [line.split(": ")[:3] for line in lines] == printed
+
+
+def test_a_not_over_one_required_key_names_that_key_and_over_two_names_the_mapping(tmp_path) -> None:
+    """errors.py's _describe: a ``not`` whose schema is only ``required`` with one key reports at
+    that key (a settings file's paper size that gives its own margin); over two keys it reports at
+    the mapping that holds both, as before."""
+    settings = tmp_path / "settings.json"
+    settings.write_text(json.dumps({"artifact": {"print": {"paperSizes": {
+        "Letter": {"widthMillimeters": 200, "heightMillimeters": 250, "marginMillimeters": 10}}}}}), encoding="utf-8")
+    with pytest.raises(InputError) as failure:
+        load_config(settings)
+    assert failure.value.field == "artifact.print.paperSizes.Letter.marginMillimeters"
+    assert "cfg.schema.json" in failure.value.remedy
+    from jsonschema import Draft202012Validator
+    both = Draft202012Validator({"properties": {"slot": {"not": {"required": ["icon", "icons"]}}}})
+    error = errors.schema_error(list(both.iter_errors({"slot": {"icon": 1, "icons": 2}})), "x.json", "x.schema.json")
+    assert error.field == "slot"

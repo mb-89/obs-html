@@ -1,0 +1,27 @@
+{
+  "$comment": "The one list of table icons that base.js's check (base-schema.test.js) and the build's (test_registers.py) must answer alike for base.schema.json's rules on an action icon's unavailable reason (input-model.md, Trusted floating-content actions). Each refused icon breaks one rule at its unavailable field.",
+  "refused": [
+    {"name": "card link without unavailable",
+     "icon": {"name": "upload", "label": "Run", "action": "app.run", "card": {"title": "Run", "submit": "Go", "link": "x"}}},
+    {"name": "unavailable without card",
+     "icon": {"name": "upload", "label": "Run", "action": "app.run", "unavailable": "No file"}},
+    {"name": "unavailable with a card without link",
+     "icon": {"name": "upload", "label": "Run", "action": "app.run", "card": {"title": "Run", "submit": "Go"}, "unavailable": "No file"}}
+  ],
+  "accepted": [
+    {"name": "card link with unavailable",
+     "icon": {"name": "upload", "label": "Run", "action": "app.run", "card": {"title": "Run", "submit": "Go", "link": "x"}, "unavailable": "No source"}},
+    {"name": "plain action",
+     "icon": {"name": "upload", "label": "Run", "action": "app.run"}},
+    {"name": "card without link",
+     "icon": {"name": "upload", "label": "Run", "action": "app.run", "card": {"title": "Run", "submit": "Go"}}},
+    {"name": "sourceArchive",
+     "icon": {"name": "download", "label": "Source", "action": "sourceArchive"}},
+    {"name": "sourceArchive with unavailable",
+     "icon": {"name": "download", "label": "Source", "action": "sourceArchive", "unavailable": "No source archive"}},
+    {"name": "linkProperty with unavailable",
+     "icon": {"name": "download", "label": "Open", "linkProperty": "file", "unavailable": "No file"}},
+    {"name": "unavailable alone",
+     "icon": {"name": "download", "label": "Open", "unavailable": "Not yet"}}
+  ]
+}

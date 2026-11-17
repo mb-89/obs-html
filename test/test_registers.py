@@ -261,15 +261,43 @@ def test_base_definition_error_names_the_field_in_a_fence_and_in_a_base_file() -
     assert (top.source, top.field) == ("points.base", "filter")
 
 
-@pytest.mark.parametrize("icon", [
-    {"name": "upload", "label": "Run", "action": "app.run", "card": {"title": "Run", "submit": "Go", "link": "x"}},
-    {"name": "upload", "label": "Run", "action": "app.run", "unavailable": "No file"},
-], ids=["card-link-without-unavailable", "unavailable-without-card-link"])
-def test_base_definition_error_holds_only_the_keywords_base_js_implements(icon: dict) -> None:
-    """base.js's validator implements no if/then/else, so the browser accepts an action icon the
-    schema's conditional would refuse; the build refuses nothing the browser accepts."""
-    definition = {"properties": {"run": {"obsHtml": {"icon": icon}}}, "views": [VIEW]}
-    assert base_definition_error(definition, "chapter one") is None
+ACTION_ICONS = json.loads((ROOT / "test" / "fixtures" / "action-icons.json").read_text(encoding="utf-8"))
+
+
+def _icon_slot(icon: dict, many: bool) -> dict:
+    """A Base definition whose slot run shows ``icon``, alone or second in an icons list."""
+    slot = {"icons": [{"name": "upload", "label": "Run", "action": "app.run"}, icon]} if many else {"icon": icon}
+    return {"properties": {"run": {"obsHtml": slot}}, "views": [VIEW]}
+
+
+def test_base_definition_error_holds_an_action_icon_to_its_unavailable_rules() -> None:
+    """base.schema.json's rules for an action icon's unavailable reason (input-model.md, Trusted
+    floating-content actions; fixtures/action-icons.json, which base-schema.test.js runs through
+    base.js): a card link requires it, any other action but sourceArchive refuses it, at the icon's
+    unavailable field, in a fence and in a .base file, under icon and under icons."""
+    for case in ACTION_ICONS["refused"]:
+        for many, slot in ((False, "icon"), (True, "icons[1]")):
+            definition = _icon_slot(case["icon"], many)
+            fence = base_definition_error(definition, "chapter one")
+            assert fence is not None, case["name"]
+            assert (fence.source, fence.field) == ("chapter one", f"base.properties.run.obsHtml.{slot}.unavailable")
+            assert "base.schema.json" in fence.remedy
+            dotbase = base_definition_error(definition, "points.base")
+            assert dotbase is not None, case["name"]
+            assert (dotbase.source, dotbase.field) == ("points.base", f"properties.run.obsHtml.{slot}.unavailable")
+    for case in ACTION_ICONS["accepted"]:
+        for many in (False, True):
+            assert base_definition_error(_icon_slot(case["icon"], many), "chapter one") is None, case["name"]
+    both = {"properties": {"run": {"obsHtml": {"icon": ACTION_ICONS["accepted"][1]["icon"],
+                                               "icons": [ACTION_ICONS["accepted"][1]["icon"]]}}}, "views": [VIEW]}
+    assert base_definition_error(both, "chapter one").field == "base.properties.run.obsHtml"
+
+
+def test_a_base_fence_whose_card_link_icon_has_no_unavailable_fails_the_build() -> None:
+    spec = _icon_slot(ACTION_ICONS["refused"][0]["icon"], many=False)
+    with pytest.raises(InputError) as failure:
+        render(build("Doc", chapter("one", "One", node("bases", source="", spec=spec))), CONFIG)
+    assert (failure.value.source, failure.value.field) == ("chapter one", "base.properties.run.obsHtml.icon.unavailable")
 
 
 def test_the_builds_base_keywords_are_those_base_js_implements() -> None:

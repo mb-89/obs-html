@@ -176,6 +176,13 @@
       }
     },
     "icon": {
+      "$comment": "An action icon's unavailable reason: required when its card declares link, which disables a row without a safe link; refused on any other action but sourceArchive, whose page never shows it (input-model.md, Trusted floating-content actions).",
+      "if": {"required": ["action", "card"], "properties": {"card": {"required": ["link"]}}},
+      "then": {"required": ["unavailable"]},
+      "else": {
+        "if": {"required": ["action"], "properties": {"action": {"not": {"const": "sourceArchive"}}}},
+        "then": {"not": {"required": ["unavailable"]}}
+      },
       "oneOf": [
         {
           "type": "object", "required": ["name", "label", "linkProperty", "unavailable"],
@@ -196,10 +203,7 @@
             "helpProperty": {"$ref": "#/$defs/text"},
             "card": {"$ref": "#/$defs/guidedCard"},
             "unavailable": {"$ref": "#/$defs/text"}
-          },
-          "if": {"required": ["card"], "properties": {"card": {"required": ["link"]}}},
-          "then": {"required": ["unavailable"]},
-          "else": {"not": {"required": ["unavailable"]}}
+          }
         },
         {
           "type": "object", "required": ["name", "label", "help"],

@@ -131,6 +131,10 @@ def _describe(error: ValidationError) -> tuple[list[object], str, str]:
     if keyword == "required":
         missing = next(name for name in expected if name not in value)
         return [missing], "is missing", f"Add {missing}"
+    if keyword == "not" and isinstance(expected, dict) and list(expected) == ["required"] \
+            and len(expected["required"]) == 1:
+        refused = expected["required"][0]
+        return [refused], "is not allowed here", f"Remove {refused}"
     if keyword == "additionalProperties":
         known = set(error.schema.get("properties", {}))
         extra = sorted(name for name in value if name not in known)[0]
