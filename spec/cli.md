@@ -132,9 +132,16 @@ false in its `cfg.json`, since the site does not serve the linked notes.
 
 ## Running from another folder
 
-The one-call build reads the adapter registry `adapters.json` from the current folder, the
-repository root, so it runs from there. From another folder, a call names the checkout's project
-and its registry:
+The one-call build reads the adapter registry `adapters.json` from the current folder unless
+`--adapter-config` names it. RUNME names obs's registry, so a call through RUNME runs from any
+folder, and a relative path resolves from the folder it is run in; a later `--adapter-config`
+overrides it:
+
+```sh
+/path/to/obs/RUNME.sh --adapter html --source vault/manifest.md --destination document.html
+```
+
+Without RUNME, a call from another folder names the checkout's project and its registry:
 
 ```powershell
 uv run --project C:\path\to\obs obs-document --adapter-config C:\path\to\obs\adapters.json `
@@ -278,14 +285,13 @@ The project's PowerShell scripts and wrappers follow this rule for every native 
 
 ## Setup
 
-`RUNME.ps1` declares the tools a contributor or agent needs once, each with its winget id and
-its check (a command on `PATH` or known install paths): uv, Git, Node.js, GitHub CLI (`gh`)
-and Chrome for the browser tests. Every run installs uv when it is missing.
+`RUNME.conf` at the repository root declares, once, what obs needs on a machine with only its
+package manager, Git, curl, uv and npm, each with the ways to install it, and obs's command line;
+the header of `RUNME.sh` owns its format. npm is there because the core's first build fetches its
+diagram renderers with it. No browser is declared: a diagram or a PDF uses an installed Chrome,
+Edge or Chromium, and a build without one names the command that installs Playwright's.
 
-- `.\RUNME.ps1 -Setup` installs each missing declared tool with winget, reports every tool as
-  present, installed or missing, and exits; the exit code is 0 only when all are present.
-- `.\RUNME.ps1 -Tools` lists the declared tools with their resolved paths and installs nothing.
-  No other script repeats a tool id or path.
-
-Without either switch, `RUNME.ps1` and `RUNME.sh` pass their arguments to `uv run obs-document`;
-both switches take none. `RUNME.sh` has no setup mode; winget is Windows-only.
+`RUNME.sh` and `RUNME.ps1` are se's generic pair, byte for byte se's at obs's se pin. They install
+what `RUNME.conf` declares and the machine lacks, then hand every argument to `uv run
+obs-document` in the caller's folder. Neither has an option of its own: `--help` prints
+obs-document's help.
