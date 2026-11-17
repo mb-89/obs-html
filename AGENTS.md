@@ -19,6 +19,13 @@ docstring is their reference: `uv run pytest test/test_parity_browser.py`.
 differs from the interim adapter it replaced; its gate, `test/parity/test_parity_table.py`, says
 what each status needs.
 
+After `cmp` finds two builds of the same source different, run this to name what changed in a
+field report:
+
+```powershell
+uv run python test/compare_builds.py BEFORE.html AFTER.html
+```
+
 ## Browser tests
 
 A browser test takes its page and its artifact from the shared fixtures, runs on the headless shell unless the named full-Chromium set holds it, adds no init script and reads timings only from the artifact's own performance marks; [test/structure/test_quality.py](test/structure/test_quality.py) refuses one that does not.

@@ -97,6 +97,9 @@ feature's part may need an option of the adapter's configuration (`Part.option`)
 (`false`, or 0) says; the code a feature's own script runs only with such a part sits in
 that part's marked regions, which the renderer strips where the part does not ship
 (`features.py`, `feature_source`). Without the option an artifact is byte for byte what it was.
+Two builds of one source under one `SOURCE_DATE_EPOCH` show it with `cmp`; where they differ,
+`test/compare_builds.py` names the page's lines and the parts of its data, note by note, that
+changed, and builds and changes nothing.
 
 A part may instead turn on with what the Document asks for, as `empty-groups` of the tables
 feature does with a view's `obsHtml.showEmptyGroups`. Its regions may also sit in the scripts,
