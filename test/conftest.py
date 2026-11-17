@@ -110,7 +110,8 @@ def feature_artifact(tmp_path_factory) -> str:
     from obs_html import cli
 
     def build(folder: Path) -> None:
-        assert cli.main([str(FEATURE_FIXTURE), str(folder / "artifact.html")]) == 0, \
+        # With its notes' way from the page, so the source file row is a link (spec/cli.md, Source file links).
+        assert cli.main([str(FEATURE_FIXTURE), str(folder / "artifact.html"), "--vault-link", "../vault"]) == 0, \
             "test/conftest.py: obs-html could not render the feature fixture test/fixtures/documents/features.json"
 
     return (built_once(tmp_path_factory, "feature-artifact", build) / "artifact.html").read_text(encoding="utf-8")

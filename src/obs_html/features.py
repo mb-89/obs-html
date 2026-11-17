@@ -229,6 +229,12 @@ def _live_source(model: dict, _trusted_runtime: bool) -> bool:
     return any("live" in table for note in model["notes"] for table in note["tables"])
 
 
+def _source_file(model: dict, _trusted_runtime: bool) -> bool:
+    """A note with a `Source file` row (source_files.py, note_fields): with the packaged settings, every
+    artifact, since home always has one."""
+    return any("sourceFilePath" in note for note in model["notes"])
+
+
 def _marked(marker: str) -> Callable[[dict, bool], bool]:
     """Whether the artifact's model holds ``marker``, the attribute the renderer writes on the
     element a feature's script finds (a figure, a record card, a property editor)."""
@@ -318,6 +324,9 @@ FEATURES: tuple[Feature, ...] = (
             elements=("property-editor-script",), host=False),
     Feature("columns", "a two-column block (obs capabilities/columns): its side-by-side and stacking rules",
             _marked("data-content-columns"), host=False, base_styles=("columns.css",)),
+    Feature("source-file", "a note with a Source file row (artifact.sourceFileLinks): the frontmatter table's "
+            "last row, the note's vault path, a link where the core passed --vault-link (cli.md, Source file "
+            "links); the panel's own rules lay it out", _source_file, ("source-file.js",), host=False),
 )
 
 

@@ -25,6 +25,7 @@ from obs_html.render import render
 
 
 CONFIG = load_config()
+SOURCE_FILES_OFF = dataclasses.replace(CONFIG, artifact={**CONFIG.artifact, "sourceFileLinks": False})
 SOURCE = files("obs_html")
 DIALOG_CALL = re.compile(r"\b(?:alert|confirm|prompt)\s*\(")
 
@@ -116,7 +117,8 @@ def fixture(name: str) -> dict:
     return json.loads((ROOT / "test" / "fixtures" / "documents" / f"{name}.json").read_text(encoding="utf-8"))
 
 
-# Feature key -> Documents that meet its condition and Documents that do not.
+# Feature key -> Documents that meet its condition and Documents that do not; a case is a Document,
+# rendered with the packaged settings, or a Document and the settings it is rendered with.
 CASES = {
     "history": ([plain()], []),
     "storage": ([plain()], []),
@@ -140,7 +142,13 @@ CASES = {
     "cards": ([fixture("cards")], [plain(), with_figure("pugh", PUGH)]),
     "property-editor": ([fixture("property-editor-projection")], [plain(), with_guided_card()]),
     "columns": ([fixture("columns")], [plain(), fixture("cards")]),
+    "source-file": ([plain()], [(plain(), SOURCE_FILES_OFF)]),
 }
+
+
+def _case(case: dict | tuple[dict, object]) -> tuple[dict, object]:
+    """A case's Document and the settings it is rendered with."""
+    return case if isinstance(case, tuple) else (case, CONFIG)
 
 
 def test_a_figure_kind_declares_what_it_needs_only_through_the_feature_registry() -> None:
@@ -231,14 +239,14 @@ def test_the_inclusion_condition_decides_whether_code_elements_and_canary_ship(f
     # A script as it ships without any option's part (features.py, feature_source): CONFIG turns none on.
     code = [feature_source(name).strip() for name in (*feature.code, *feature.styles, *feature.base_styles)]
     elements = [f'id="{element}"' for element in feature.elements]
-    for source in included:
-        html, title = render(source, CONFIG), source["manifest"]["title"]
+    for source, config in map(_case, included):
+        html, title = render(source, config), source["manifest"]["title"]
         assert canary is None or f'id="canary-{feature.key}"' in html and canary in html, (
             f"{feature.key}: {title} meets '{feature.condition}' but lacks its canary")
         assert all(part in html for part in code), f"{feature.key}: code missing from {title}"
         assert all(element in html for element in elements), f"{feature.key}: elements missing from {title}"
-    for source in excluded:
-        html, title = render(source, CONFIG), source["manifest"]["title"]
+    for source, config in map(_case, excluded):
+        html, title = render(source, config), source["manifest"]["title"]
         assert f'id="canary-{feature.key}"' not in html and (canary is None or canary not in html), (
             f"{feature.key}: {title} does not meet '{feature.condition}' but ships its canary")
         assert not any(part in html for part in code), f"{feature.key}: code shipped in {title}"

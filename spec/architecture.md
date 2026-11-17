@@ -97,6 +97,9 @@ feature's part may need an option of the adapter's configuration (`Part.option`)
 (`false`, or 0) says; the code a feature's own script runs only with such a part sits in
 that part's marked regions, which the renderer strips where the part does not ship
 (`features.py`, `feature_source`). Without the option an artifact is byte for byte what it was.
+The source file row is the one exception, decided by the owner on 17 Nov 2026: its option
+`artifact.sourceFileLinks` is on by default, so with it on every page changes by the row and its
+code ([[artifact-ui#Reading shell]]), and with it off a page is byte for byte what it was.
 Two builds of one source under one `SOURCE_DATE_EPOCH` show it with `cmp`; where they differ,
 `test/compare_builds.py` names the page's lines and the parts of its data, note by note, that
 changed, and builds and changes nothing. `test/unchanged_output.py` builds obs's reference pages
@@ -236,6 +239,10 @@ not that page ([[artifact-ui#Pages and PDF]]): their local paths are made relati
 are set. So two prints under one value to one file name are equal in whatever folder they are made,
 for a `.pdf` DESTINATION and `--export-pdf` alike.
 
+A page built through the core in two folders at different depths below the vault's parent differs
+only in its source file links' `../` ([[cli#Source file links]]); a page built without
+`--vault-link` is the same in any folder.
+
 ## Opt-in page shell parts
 
 Decided by the user, 14 Nov 2026 (work issue `feat/page-shell-limited-host-and-provenance-check-20261114`),
@@ -295,6 +302,10 @@ each named on the finding it covers, which then neither warns nor refuses:
 - `vendored-library:<element id>`: a line of a script element that embeds a third-party library as
   its release ships it (`plotly-script`, `maths-script`, `pdf-library-script`, `yaml-script`),
   whose own text, such as Plotly's example dates, says nothing of the build.
+
+A source file link ([[cli#Source file links]]) raises no finding: it is relative and climbs with
+`..` alone to the vault folder, which the path detectors do not match, and obs-html gives no link
+where a term of a local list matches the vault folder's name, so the row then shows the plain path.
 
 #### Exceptions
 
@@ -523,4 +534,5 @@ Flow, step 8).
 
 ### Safety boundaries
 
-Generated HTML never refers to source-machine local files.
+Generated HTML names no path of the source machine, and refers to local files only by relative
+links, the author's and the source file links ([[cli#Source file links]]).

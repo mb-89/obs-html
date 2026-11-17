@@ -111,6 +111,11 @@
           "default": [],
           "description": "The committed exceptions of the build's checks: each names a finding by its label and the digest of the text it matched, never by the text, and an excepted finding neither warns nor refuses; session-url and session-id exceptions only, the others belong in the local file (architecture.md, Exceptions). Optional and empty where absent: the packaged cfg.json leaves it out."
         },
+        "sourceFileLinks": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether each page's frontmatter table ends with the Source file row, the vault path of the note the page shows, a link where the core passed --vault-link (cli.md, Source file links). The packaged cfg.json turns it on by the owner's decision of 17 Nov 2026; false builds a page byte for byte as it was built without the row, with or without --vault-link."
+        },
         "agentNote": {
           "type": "boolean",
           "default": false,

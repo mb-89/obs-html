@@ -20,7 +20,7 @@ from obs_html.errors import InputError, Parser, diagnostics, in_vault, vault_nam
 from obs_html.exposure import check_artifact
 from obs_html.figure_svg import document_figures, figure_svg
 from obs_html.live_source import live_publish
-from obs_html import build_time, provenance, serve, verdicts
+from obs_html import build_time, provenance, serve, source_files, verdicts
 from obs_html.render import render
 from obs_html.pdf_links import portable
 from obs_html.source_archive import attach, embedded
@@ -35,6 +35,12 @@ EPILOG = f"""Rendering:
   --vault-root ROOT when it built the Document, and the options adapter.json declares.
   --vault-root ROOT names the Document's vault-relative paths below ROOT in messages
   (ROOT/manifest.md: ...); the Document and the artifact never carry it.
+  Every page's frontmatter table ends with a Source file row, the vault path of the note it
+  shows, while artifact.sourceFileLinks is true, as the packaged cfg.json sets it; false builds
+  the page without it. --vault-link LINK, the vault folder's place from DESTINATION's folder
+  such as ../notes, makes the path a link that opens the note in a new tab; the core passes it
+  where DESTINATION lies in the vault's parent folder or below it. Where the local list
+  (.public-check.local) names the vault folder, the page gets no link (spec/cli.md, Source file links).
   obs-html never runs a command: a command fence shows the output the core captured while it
   built the Document (obs-document --execute-commands), and a Document without it fails.
   An artifact that names the build machine's home folder or user name fails before writing
@@ -175,6 +181,8 @@ def build_parser() -> argparse.ArgumentParser:
                         help="Output file: .pdf for PDF, otherwise HTML.")
     parser.add_argument("--vault-root", metavar="ROOT",
                         help="The vault root as the core's user gave it, for messages only.")
+    parser.add_argument("--vault-link", metavar="LINK",
+                        help="The vault's place from DESTINATION's folder, as the core passes it.")
     parser.add_argument("--config", type=Path, help="Settings JSON merged over the packaged cfg.json.")
     parser.add_argument("--check", action="store_true", help="Render without writing output.")
     parser.add_argument("--style", type=Path, metavar="FOLDER",
@@ -285,6 +293,8 @@ def _render(options: argparse.Namespace, config) -> None:
                          "Name the output file, or pass --check to render without output")
     if options.destination and options.destination.resolve() == options.document.resolve():
         raise InputError(PROG, "DESTINATION", "names DOCUMENT itself", "Name another output file")
+    if options.vault_link is not None:
+        source_files.checked(options.vault_link)
     _write_artifact(_read_document(options.document), options, config, options.destination)
 
 
@@ -293,19 +303,20 @@ def _write_artifact(document: dict, options: argparse.Namespace, config, destina
     ``SOURCE_DATE_EPOCH``, where set, is the build's instant (spec/architecture.md, Build time)."""
     fixed = build_time.fixed(os.environ)
     paths = _vault_paths(document)
+    start = (Path(options.vault_root) if options.vault_root
+             else options.document.resolve().parent if options.document else Path.cwd())
+    link = None if options.vault_link is None else _source_file_link(options.vault_link, start, destination)
     try:
         with vault_naming(options.vault_root, paths):
             config = with_vault_settings(config, document)
             artifact = render(document, config, style_folder=options.style,
                               trusted_runtime=_trusted_runtime(options.trusted_runtime_bundle),
-                              embed_attachments=options.embed_attachments, built=fixed)
+                              embed_attachments=options.embed_attachments, built=fixed, vault_link=link)
     except InputError as error:
         raise in_vault(error, options.vault_root, paths) from error
     check_artifact(artifact)
     try:
-        _check_provenance(artifact, config, Path(options.vault_root) if options.vault_root
-                          else options.document.resolve().parent if options.document else Path.cwd(),
-                          options.finding_digests)
+        _check_provenance(artifact, config, start, options.finding_digests)
     except InputError as error:  # The vault's settings are named below the vault root.
         raise in_vault(error, options.vault_root, paths) from error
     if options.vault_root is None:  # The core, which passes it, printed its diagnostics already.
@@ -339,6 +350,22 @@ def _write_artifact(document: dict, options: argparse.Namespace, config, destina
               "to show current data; viewers outside your organization see the saved rows.")
 
 
+def _source_file_link(link: str, start: Path, destination: Path | None) -> str | None:
+    """``link``, or None where a term of a local list matches the vault folder's name: the list nearest
+    ``start``, the one the provenance check reads, and, given ``destination``, the one nearest the folder
+    ``link`` names from its folder, which finds the vault's own list where ROOT is relative to the
+    caller's folder. A list that does not read gives no link either (spec/cli.md, Source file links)."""
+    starts = [start.resolve(), *([(destination.resolve().parent / link).resolve()] if destination else [])]
+    for folder in starts:
+        try:
+            terms = provenance.local_terms(provenance.local_list(folder))
+        except (InputError, OSError, UnicodeError):
+            return None
+        if source_files.usable(link, terms) is None:
+            return None
+    return link
+
+
 def _check_provenance(artifact: str, config, start: Path, digests: bool = False) -> None:
     """Warn of each provenance finding of ``artifact`` that no exception covers, or refuse it with them
     where the configuration says so (artifact.refuseProvenance), naming their digests with ``digests``;
@@ -368,7 +395,7 @@ OWN_SPEC = "spec"
 
 def _build_own_spec(options: argparse.Namespace, config) -> None:
     """Build the packaged specification with the core of this environment, then render it."""
-    _alone("--build-own-spec", options, "document", "destination", "check", "vault_root", "output")
+    _alone("--build-own-spec", options, "document", "destination", "check", "vault_root", "vault_link", "output")
     with as_file(files("obs_html") / OWN_SPEC) as vault, \
             tempfile.TemporaryDirectory(prefix="obs-html-own-spec-") as work:
         manifest = Path(vault) / "manifest.md"
@@ -394,7 +421,7 @@ def _build_own_spec(options: argparse.Namespace, config) -> None:
 
 def _attach_source(options: argparse.Namespace) -> None:
     _alone("--attach-source-to-pdf", options, "document", "destination", "check", "style",
-           "trusted_runtime_bundle", "embed_attachments", "vault_root", "export_pdf", "check_rendered")
+           "trusted_runtime_bundle", "embed_attachments", "vault_root", "vault_link", "export_pdf", "check_rendered")
     output, pdf, html = options.output, options.attach_source_to_pdf, options.source_artifact
     if html is None:
         raise InputError(PROG, "--source-artifact", "is missing",
@@ -433,7 +460,7 @@ def _printed(html: Path, artifact: str, source: object, fixed: datetime | None, 
 def _browser_operation(options: argparse.Namespace, config) -> None:
     operation = "--export-pdf" if options.export_pdf else "--check-rendered"
     _alone(operation, options, "document", "destination", "check", "style", "trusted_runtime_bundle",
-           "embed_attachments", "vault_root", *(["check_rendered"] if options.export_pdf else []))
+           "embed_attachments", "vault_root", "vault_link", *(["check_rendered"] if options.export_pdf else []))
     from obs_html.pdf import check_rendered
     if options.export_pdf:
         fixed = build_time.fixed(os.environ)  # Before a browser starts.
@@ -486,7 +513,7 @@ def _trusted_runtime(bundle: str | None) -> tuple[str, str] | None:
 
 def _export_figures(options: argparse.Namespace) -> None:
     _alone("--export-figures", options, "destination", "check", "style", "trusted_runtime_bundle",
-           "embed_attachments", "vault_root", "export_pdf", "check_rendered", "output")
+           "embed_attachments", "vault_root", "vault_link", "export_pdf", "check_rendered", "output")
     if options.document is None:
         raise InputError(PROG, "DOCUMENT", "is missing",
                          "Name the Document whose figures to export: obs-html DOCUMENT --export-figures FOLDER")
@@ -504,14 +531,14 @@ def _export_figures(options: argparse.Namespace) -> None:
 
 def _extract(options: argparse.Namespace) -> None:
     _alone("--extract-comments", options, "document", "destination", "check", "style",
-           "trusted_runtime_bundle", "embed_attachments", "vault_root", "export_pdf", "check_rendered", "output",
+           "trusted_runtime_bundle", "embed_attachments", "vault_root", "vault_link", "export_pdf", "check_rendered", "output",
            "export_figures")
     print(extract_comments(options.extract_comments.resolve(), options.comments_output and options.comments_output.resolve()), end="")
 
 
 def _print_chapter(options: argparse.Namespace) -> None:
     _alone("--print-chapter", options, "document", "destination", "check", "style",
-           "trusted_runtime_bundle", "embed_attachments", "vault_root", "export_pdf", "check_rendered", "output",
+           "trusted_runtime_bundle", "embed_attachments", "vault_root", "vault_link", "export_pdf", "check_rendered", "output",
            "export_figures", "extract_comments", "timings")
     path, chapter = Path(options.print_chapter[0]), options.print_chapter[1]
     try:
@@ -528,7 +555,7 @@ def _print_chapter(options: argparse.Namespace) -> None:
 
 def _print_verdicts(options: argparse.Namespace) -> None:
     """Print the verdict of each decision of DOCUMENT (cli.md, Printing the verdicts); writes nothing."""
-    _alone("--print-verdicts", options, "destination", "check", "style", "trusted_runtime_bundle",
+    _alone("--print-verdicts", options, "destination", "check", "vault_link", "style", "trusted_runtime_bundle",
            "embed_attachments", "export_pdf", "check_rendered", "output", "export_figures", "extract_comments",
            "print_chapter", "attach_source_to_pdf", "build_own_spec")
     if options.document is None:

@@ -30,7 +30,7 @@ from obs_html.base_rules import FILE_PROPERTIES, first_breach, unsupported_prope
 from obs_html.bars import BarDefinition, discover_bars
 from obs_html.config import Config, paper
 from obs_html.errors import DOCUMENT_OF, InputError, field_path, schema_error, warn
-from obs_html import build_time, libraries
+from obs_html import build_time, libraries, source_files
 from obs_html.agent_note import agent_note_markup
 from obs_html.features import feature_source, included as included_features, pugh_engine, strip_parts
 from obs_html.live_source import live_source_error
@@ -895,11 +895,13 @@ def render(document: dict[str, object], config: Config,
            trusted_runtime: tuple[str, str] | None = None,
            embed_attachments: bool = False,
            styles: DeclaredStyles | None = None,
-           built: datetime | None = None) -> str:
+           built: datetime | None = None,
+           vault_link: str | None = None) -> str:
     """The artifact of ``document``, styled by ``style_folder``, else by the style the Document
     declares (fetched through ``styles``, by default git into the user's cache), else by the packaged
     generic module (spec/configuration.md, Declared style). ``built`` is the build's instant, by
-    default the clock's (spec/architecture.md, Build time)."""
+    default the clock's (spec/architecture.md, Build time). ``vault_link`` is the vault folder's way
+    from the page's folder, which makes each source file row a link (spec/cli.md, Source file links)."""
     if document.get("schemaVersion") != 1:
         raise InputError("Document", "schemaVersion", f"is {document.get('schemaVersion')!r}, not 1, the "
                          "version obs-html renders", "Build the Document with an obs core of schema version 1")
@@ -930,7 +932,7 @@ def render(document: dict[str, object], config: Config,
     _index_headings(HOME, document["manifest"].get("abstract", []), context)
     context.chapters[HOME] = document["manifest"]["title"]  # The core links the manifest as home.
     built = build_time.instant({}) if built is None else built
-    model = _resolve_icons(_model(document, config, context, built), assets)
+    model = _resolve_icons(_model(document, config, context, built, vault_link), assets)
     archive = source_archive.package(document, embed_attachments)
     if archive is not None:
         model = source_archive.share(model, archive)
@@ -1002,7 +1004,8 @@ def _profile(manifest: dict[str, object], chapters: list[dict[str, object]]) -> 
     return resolved
 
 
-def _model(document: dict[str, object], config: Config, context: Context, built: datetime) -> dict[str, object]:
+def _model(document: dict[str, object], config: Config, context: Context, built: datetime,
+           vault_link: str | None = None) -> dict[str, object]:
     """The artifact-data island: the runtime's only model of the artifact."""
     manifest = document["manifest"]
     profile = _profile(manifest, document["chapters"])
@@ -1020,6 +1023,10 @@ def _model(document: dict[str, object], config: Config, context: Context, built:
     notes = [_note(0, title, HOME, HOME, {}, home_html, context)]
     notes.extend(_chapter_notes(document["chapters"], context, 0, ["chapters"]))
     _attach_records(document["records"], notes, context)
+    if settings.get("sourceFileLinks", True):  # Each page's Source file row (source_files.py).
+        rows = source_files.note_fields(document, vault_link, HOME)
+        for note in notes:
+            note.update(rows.get(note["slug"], {}))
     for note in notes:
         if note["frontmatter"].get("kind") == "quantity" and "value" in note["frontmatter"]:
             note["valueLabel"] = _quantity_label(note["frontmatter"])  # Its hover card shows it.

@@ -74,6 +74,15 @@ def _input_error(capsys, source: object, field: str) -> None:
     ([FIXTURE, FIXTURE], "DESTINATION"),
     (["--build-own-spec", "x.html", FIXTURE], "DOCUMENT"),
     (["--build-own-spec", "x.html", "--vault-root", "vault"], "--vault-root"),
+    (["--build-own-spec", "x.html", "--vault-link", "../vault"], "--vault-link"),
+    ([FIXTURE, "--print-verdicts", "--vault-link", "../vault"], "--vault-link"),
+    (["--print-chapter", "a.html", "intro", "--vault-link", "../vault"], "--vault-link"),
+    (["--extract-comments", "a.html", "--vault-link", "../vault"], "--vault-link"),
+    (["--check-rendered", "a.html", "--vault-link", "../vault"], "--vault-link"),
+    (["--export-pdf", "a.html", "--output", "a.pdf", "--vault-link", "../vault"], "--vault-link"),
+    ([FIXTURE, "--export-figures", "figures", "--vault-link", "../vault"], "--vault-link"),
+    (["--attach-source-to-pdf", "a.pdf", "--vault-link", "../vault"], "--vault-link"),
+    ([FIXTURE, "x.html", "--vault-link", "../a:b"], "--vault-link"),
 ])
 def test_invalid_option_combinations_fail(arguments, field, capsys) -> None:
     with pytest.raises(SystemExit) as exit_info:

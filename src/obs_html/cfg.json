@@ -16,6 +16,7 @@
       "heightPixels": 640
     },
     "dataCompression": "gzip",
+    "sourceFileLinks": true,
     "reading": {
       "codeFontPoints": 8,
       "headingSpaceBeforeEm": 0.9,

@@ -1062,9 +1062,19 @@ row order; this section owns how this adapter draws it.
   alongside manifest child chapters. All branches start collapsed. Heading links open the
   chapter, expand the target's collapsed content ancestors, and scroll to that heading.
 - Touch layouts keep chapter controls visible enough to discover without hover.
-- A small top-center chevron follows the side controls' restrained visual behavior when the
-  active chapter has frontmatter. It toggles a field/value table above the chapter body and
-  reports its expanded state; changing chapters closes the table.
+- A small top-center chevron follows the side controls' restrained visual behavior where the
+  active page's note has frontmatter or a `Source file` row. It toggles a field/value table above
+  the chapter body and reports its expanded state; changing chapters closes the table.
+- The table's last row, after the fields, is `Source file`: the note's vault path, wherever the
+  Document names it, and the manifest note's on home. It is a relative link that opens in a new
+  tab where the build knew where the vault lies from the page ([[cli#Source file links]]), and
+  plain text elsewhere. The label is `Source file`, not `Source`, because notes carry an authored
+  `source` field. A copy the reader saves holds the row empty, and the reopened copy fills it for
+  the active note again.
+
+  Decided by the owner, 17 Nov 2026 (work issue `metadata-caret-source-link`): on by default
+  (`artifact.sourceFileLinks`), an exception to the rule of [[architecture#Rendering and runtime]]
+  that new behaviour ships off. With the option false a page is byte for byte as before.
 
 ## Bless verdicts
 

@@ -100,6 +100,36 @@ Callers that start `obs-document` or `obs-html` repeatedly use one `uv sync` and
 environment's `.venv\Scripts\obs-document.exe` (or `uv run --no-sync`), which skips uv's
 per-start check. `uv run --frozen` only skips lock resolution and saves little.
 
+## Source file links
+
+While `artifact.sourceFileLinks` is true, as the packaged `cfg.json` sets it, every page's
+frontmatter table ends with a `Source file` row: the vault path of the note the page shows, as the
+Document names it, and `manifest.md`'s on home ([[artifact-ui#Reading shell]]). A note the Document
+names no path for gets no row. Printed pages and PDFs carry no row.
+
+`--vault-link LINK` is the vault folder's place from DESTINATION's folder, such as `../notes`. The
+core passes it by the rule of its adapter call (obs's architecture, Adapter call:
+[[obs-specification|obs's specification]]) only where DESTINATION lies in the vault's parent or
+below it; a direct call passes it by hand. With it, the row's path is a link, LINK and the vault
+path joined with `/`, each part percent-encoded, that opens the note in a new tab. In a viewer, on a
+website or in a moved copy, the link opens nothing and the page stays. Without it, the row shows
+the plain path.
+
+obs-html accepts LINK only where it renders DOCUMENT into DESTINATION or with `--check`, and refuses
+it with every other operation. LINK is zero or more `..` parts, then one part that is not `.` or
+`..`, does not start with `-` and holds no `/`, `\`, `:` or control character; any other value is an
+input error of field `--vault-link`. Where a term of a local list `.public-check.local` matches
+LINK's last part, the vault folder's name, the page is built as without LINK, and the build neither
+warns nor fails for it. The lists read are the one nearest ROOT, which the provenance check reads,
+and, given DESTINATION, the one nearest the folder LINK names from DESTINATION's folder, which finds
+the vault's list where ROOT is relative to the caller's folder.
+
+With `artifact.sourceFileLinks` false a page is byte for byte as it was without the row, with or
+without `--vault-link`. A vault whose page is published from the vault's parent folder sets it
+false in its `cfg.json`, since the site does not serve the linked notes.
+
+`source_files.py` holds the rules, pure; `source-file.js` writes the row.
+
 ## Running from another folder
 
 The one-call build reads the adapter registry `adapters.json` from the current folder, the
