@@ -26,6 +26,14 @@ field report:
 uv run python test/compare_builds.py BEFORE.html AFTER.html
 ```
 
+For a change that must leave obs's other pages as they were, run this and quote its output in the
+field report; obs's spec fetches its two remote badge images on each side, so a fetch that fails on
+one side only shows in that page's report:
+
+```powershell
+uv run python test/unchanged_output.py [--base REF] [--head REF] [--keep FOLDER]
+```
+
 ## Browser tests
 
 A browser test takes its page and its artifact from the shared fixtures, runs on the headless shell unless the named full-Chromium set holds it, adds no init script and reads timings only from the artifact's own performance marks; [test/structure/test_quality.py](test/structure/test_quality.py) refuses one that does not.
