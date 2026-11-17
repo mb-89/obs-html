@@ -141,17 +141,19 @@ failures have their form in [[input-model#Chapter content]].
   a white page with black text; Dark is a near-black page with white headings, light grey body
   text and thin grey rules. The token values are owned by [[semantic-assets]].
 
-  Every opening starts in Light appearance and in the manifest's declared `obsHtml.layout`
-  (paged by default; [[#Screens]] for a deck), regardless of the operating-system theme or previously selected reader
-  appearance. Reader controls may switch appearance and viewing mode during the current
-  session; those choices do not override the next opening's Light/declared-layout starting state.
+  Every opening starts in the manifest's declared `obsHtml.appearance`, System by default, and in
+  its declared `obsHtml.layout` (paged by default; [[#Screens]] for a deck), regardless of a
+  previously selected reader appearance. System follows the operating-system theme; a declared
+  Light or Dark holds whatever that theme is. Reader controls may switch appearance and viewing
+  mode during the current session; those choices do not override the next opening's declared
+  appearance and layout.
 
   Appearance is session-only: do not read or write the old remembered appearance
   key or show an appearance-storage warning. Reviewer-name persistence is unchanged.
 
   The removed `artifact.reading.theme` and `artifact.reading.paged` configuration keys are
-  rejected with a diagnostic naming the replacement (Light is not configurable; the layout is
-  the manifest's `obsHtml.layout`). Other reading settings retain their meaning.
+  rejected with a diagnostic naming the replacement (the starting appearance is the manifest's
+  `obsHtml.appearance`, the layout its `obsHtml.layout`). Other reading settings retain their meaning.
 - Typography, spacing, borders, focus states, and control sizes are shared stylesheet
   rules rather than inline styles.
 - Generated markup uses semantic elements and purpose-based class names.
@@ -2184,7 +2186,7 @@ separate from artifact presentation.
   visible with its error rather than disappearing.
 
   Fresh artifacts remain unfiltered. Restoring a query does not restore session appearance:
-  every opening still starts Light with Pages. Filtering is never a
+  every opening still starts in its declared appearance and layout. Filtering is never a
   [[#What counts as a change|change]]; persistence belongs to [[input-model]].
 
   On reopen, rebuild Filter presets and attribute controls once from their canonical data;

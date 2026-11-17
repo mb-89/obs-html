@@ -49,6 +49,7 @@ contains no front-page titles, labels or opening mode of its own.
 
 ```yaml
 obsHtml:
+  appearance: system         # or light, dark
   layout: paged              # or scrolling, screens
   heading: cover             # or compact
   pages:
@@ -60,6 +61,10 @@ obsHtml:
   cssSnippets: [house-style] # .obsidian/snippets/house-style.css
 ```
 
+- `appearance` chooses the appearance every opening starts in: `system` (default), which follows
+  the operating-system theme (`prefers-color-scheme`), `light` or `dark`. Readers can still switch
+  during the session; that choice is not saved as the next opening's state.
+  [[artifact-ui#Styling]] owns the appearances and their look.
 - `layout` chooses the view every opening starts in: `paged` (paper sheets), `scrolling`
   (continuous reading) or `screens` (one chapter per screen). Readers can still switch during
   the session; that choice is not saved as the next opening's state. It replaces the removed
@@ -127,10 +132,12 @@ obsHtml:
   vault has; one that contains `</style` names its snippet file. The default is none.
 - Generated abstract sections are [register](#registers) embeds in the abstract Markdown.
 - Vaults that declare none of these keys keep the packaged defaults shown above, which reproduce
-  the established cover, "Abstract", "Contents", and paged opening.
+  the established cover, "Abstract", "Contents", and paged opening, and open in System
+  appearance.
 
   The default is compatibility: an existing vault keeps its artifact unchanged until its author
-  decides otherwise. Attachments are not a profile key; see the attachment rule under
+  decides otherwise. The starting appearance is the one exception, by the owner's decision: an
+  existing vault opens in System until its author declares `appearance: light`. Attachments are not a profile key; see the attachment rule under
   [Document home and abstract](#document-home-and-abstract).
 - The profile is presentation configuration, not document metadata: it is neither a Document
   metadata row nor shown in Home's frontmatter.
@@ -939,8 +946,8 @@ Filter input and open bar. Empty or closed filters reopen unfiltered with the ba
 
 Invalid input drafts never replace the last valid expression in saved state.
 If a stored expression cannot compile, show it and its error in the open Filter bar rather
-than silently discarding it. Fresh generation remains unfiltered; appearance always starts
-Light with Pages. [[artifact-ui#What counts as a change]] owns whether reader state marks
+than silently discarding it. Fresh generation remains unfiltered; every opening still starts
+in its declared appearance and layout. [[artifact-ui#What counts as a change]] owns whether reader state marks
 the artifact changed.
 
 An absent trusted view selection means an empty selection. Registering that empty

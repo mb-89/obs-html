@@ -52,6 +52,7 @@ STRUCTURAL = frozenset(json.loads(files("obs").joinpath("document.schema.json").
                        ["$defs"]["structuralType"]["enum"])
 """The node types every adapter renders, as the core's Document schema lists them (structuralType)."""
 PROFILE_DEFAULTS = {
+    "appearance": "system",
     "heading": "cover",
     "pages": [{"page": "cover"}, {"page": "abstract", "title": "Abstract"},
               {"page": "contents", "title": "Contents"}],
@@ -1047,7 +1048,7 @@ def _model(document: dict[str, object], config: Config, context: Context, built:
         "paper": paper({**config.print_default, **profile["print"]}, config, lambda key: (
             (manifest["path"], f"obsHtml.print.{key}") if key in profile["print"]
             else (config.source("artifact", "print", "default", key), f"artifact.print.default.{key}"))),
-        "reading": {"theme": "light", "layout": profile["layout"], **settings["reading"]},
+        "reading": {"theme": profile["appearance"], "layout": profile["layout"], **settings["reading"]},
         "figures": settings["figures"],
         "printReadyTimeoutMilliseconds": settings["printReadyTimeoutMilliseconds"],
         "hoverCard": settings["hoverCard"],

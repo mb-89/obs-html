@@ -29,10 +29,12 @@ COLOURS = """() => {
 }"""
 
 
-def appearance_artifact() -> str:
+def appearance_artifact(appearance: str | None = None) -> str:
+    """The test page; `appearance`, where given, is its manifest's obsHtml.appearance."""
     return artifact_html(document(
         "Appearance",
         chapter("one", "One", heading(1, "One"), paragraph("First chapter text.")),
+        metadata={"obsHtml": {"appearance": appearance}} if appearance else None,
     ))
 
 
@@ -64,25 +66,100 @@ def choose(frame, appearance: str) -> None:
     }""", appearance)
 
 
-def open_chapter(tmp_path, reader_browser, errors, host_scheme):
-    _page, frame = open_viewer(tmp_path, reader_browser, errors, appearance_artifact(), host_scheme)
+def open_chapter(tmp_path, reader_browser, errors, host_scheme, appearance: str | None = None):
+    _page, frame = open_viewer(tmp_path, reader_browser, errors, appearance_artifact(appearance), host_scheme)
     frame.locator('[data-step="1"]').first.click()
     frame.locator("[data-chapter-body] p").wait_for()
     return frame
 
 
+def selected(frame) -> str:
+    """The value the Settings bar's Appearance select shows."""
+    return frame.evaluate('() => document.querySelector("[data-theme-select]").value')
+
+
+def assert_white_page(colours: dict) -> None:
+    for element in ("html", "body"):
+        assert rgba(colours[element]["background"]) == (255, 255, 255, 1), f"{element} {colours[element]}"
+        assert rgba(colours[element]["color"])[:3] == (0, 0, 0), f"{element} text {colours[element]}"
+
+
+def assert_near_black_page(colours: dict) -> None:
+    for element in ("html", "body"):
+        page = rgba(colours[element]["background"])
+        assert page[3] == 1, f"{element} {colours[element]}"
+        assert all(abs(channel - 0x1f) <= 8 for channel in page[:3]), f"{element} {colours[element]}"
+        assert luminance(colours[element]["color"]) > 0.5, f"{element} text {colours[element]}"
+
+
 @pytest.mark.browser
-def test_opening_in_a_dark_host_shows_light(tmp_path, reader_browser) -> None:
-    """Every opening starts in Light: an opaque light page and dark text, whatever the host paints."""
+def test_opening_follows_a_dark_system_scheme(tmp_path, reader_browser) -> None:
+    """A page that declares no obsHtml.appearance opens in System: near-black in a dark scheme."""
     errors: list[str] = []
     frame = open_chapter(tmp_path, reader_browser, errors, "dark")
     colours = frame.evaluate(COLOURS)
 
-    for element in ("html", "body"):
-        assert rgba(colours[element]["background"])[3] == 1, f"{element} background {colours[element]}"
-        assert luminance(colours[element]["background"]) > 0.8, f"{element} background {colours[element]}"
-        assert luminance(colours[element]["color"]) < 0.05, f"{element} text {colours[element]}"
+    assert_near_black_page(colours)
+    assert colours["html"]["scheme"] == "light dark"
+    assert selected(frame) == "system"
+    assert errors == []
+
+
+@pytest.mark.browser
+def test_opening_follows_a_light_system_scheme(tmp_path, reader_browser) -> None:
+    """The same page in a light scheme is white with black text."""
+    errors: list[str] = []
+    frame = open_chapter(tmp_path, reader_browser, errors, "light")
+    colours = frame.evaluate(COLOURS)
+
+    assert_white_page(colours)
+    assert colours["html"]["scheme"] == "light dark"
+    assert selected(frame) == "system"
+    assert errors == []
+
+
+@pytest.mark.browser
+def test_a_declared_light_appearance_opens_light_in_a_dark_host(tmp_path, reader_browser) -> None:
+    errors: list[str] = []
+    frame = open_chapter(tmp_path, reader_browser, errors, "dark", "light")
+    colours = frame.evaluate(COLOURS)
+
+    assert_white_page(colours)
     assert colours["html"]["scheme"] == "light"
+    assert selected(frame) == "light"
+    assert errors == []
+
+
+@pytest.mark.browser
+def test_a_declared_dark_appearance_opens_dark_in_a_light_host(tmp_path, reader_browser) -> None:
+    errors: list[str] = []
+    frame = open_chapter(tmp_path, reader_browser, errors, "light", "dark")
+    colours = frame.evaluate(COLOURS)
+
+    assert_near_black_page(colours)
+    assert colours["html"]["scheme"] == "dark"
+    assert selected(frame) == "dark"
+    choose(frame, "light")
+    assert_white_page(frame.evaluate(COLOURS))
+    assert errors == []
+
+
+@pytest.mark.browser
+@pytest.mark.parametrize("host_scheme", HOST_SCHEMES)
+def test_printing_is_light_in_every_appearance_and_scheme(tmp_path, reader_browser, host_scheme) -> None:
+    """artifact-ui.md: printing always uses light colours, whatever the appearance and the system scheme."""
+    errors: list[str] = []
+    page, frame = open_viewer(tmp_path, reader_browser, errors, appearance_artifact(), host_scheme)
+    page.emulate_media(media="print")
+    for appearance in APPEARANCES:
+        choose(frame, appearance)
+        colours = frame.evaluate("""() => Object.fromEntries(["html", "body"].map((selector) => {
+            const computed = getComputedStyle(document.querySelector(selector));
+            return [selector, {background: computed.backgroundColor, color: computed.color}];
+        }))""")
+        for element in ("html", "body"):
+            assert rgba(colours[element]["background"]) == (255, 255, 255, 1), f"{appearance}: {element} {colours[element]}"
+            assert rgba(colours[element]["color"])[:3] == (0, 0, 0), f"{appearance}: {element} {colours[element]}"
     assert errors == []
 
 
@@ -113,6 +190,7 @@ def test_each_appearance_paints_its_own_opaque_readable_colours(tmp_path, reader
 def test_switching_appearance_recolours_at_once_with_native_controls(tmp_path, reader_browser) -> None:
     errors: list[str] = []
     frame = open_chapter(tmp_path, reader_browser, errors, "light")
+    choose(frame, "light")
     light = frame.evaluate(COLOURS)
 
     choose(frame, "dark")
@@ -129,6 +207,7 @@ def test_dark_is_a_near_black_page_with_white_headings_and_light_grey_text(tmp_p
     """Dark is the look the owner chose; Light keeps the white page with black text."""
     errors: list[str] = []
     frame = open_chapter(tmp_path, reader_browser, errors, "light")
+    choose(frame, "light")
     light = frame.evaluate(COLOURS)
     choose(frame, "dark")
     dark = frame.evaluate(COLOURS)

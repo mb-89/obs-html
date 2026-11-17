@@ -83,6 +83,7 @@ def test_defaults_apply_without_a_profile(document) -> None:
     ({"layout": "sideways"}, "obsHtml.layout"),
     ({"heading": "huge"}, "obsHtml.heading"),
     ({"query": {"scope": "everything"}}, "obsHtml.query.scope"),
+    ({"appearance": "black"}, "obsHtml.appearance"),
 ])
 def test_an_invalid_presentation_profile_names_the_manifest_field_and_the_remedy(document, profile, field) -> None:
     """The adapter checks its own namespace; the obs core does not read it."""
@@ -90,6 +91,23 @@ def test_an_invalid_presentation_profile_names_the_manifest_field_and_the_remedy
     with pytest.raises(InputError) as failure:
         _model(document)
     assert (failure.value.source, failure.value.field) == (document["manifest"]["path"], field) == ("manifest.md", field)
+
+
+@pytest.mark.parametrize("appearance", ["system", "light", "dark", None])
+def test_the_declared_appearance_is_where_every_opening_starts(document, appearance) -> None:
+    """adapters/html input-model, Artifact presentation profile: obsHtml.appearance, System without it.
+    The data's reading.theme, the root's data-theme and the startup line all carry it before any script runs."""
+    if appearance is None:
+        document["manifest"]["metadata"]["obsHtml"].pop("appearance", None)
+    else:
+        document["manifest"]["metadata"]["obsHtml"]["appearance"] = appearance
+    opens = appearance or "system"
+    html = _render(document)
+    assert decode_artifact_data(html)["reading"]["theme"] == opens
+    root = re.search(r"<html [^>]*>", html).group(0)
+    assert f'data-theme="{opens}"' in root, root
+    startup = re.search(r'<script id="reader-startup-script">(.*?)</script>', html, re.S).group(1)
+    assert f"document.documentElement.dataset.theme = \"{opens}\";" in startup, startup
 
 
 @pytest.mark.parametrize(("choice", "field"), [({"paper": "B5"}, "obsHtml.print.paper"),

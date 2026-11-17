@@ -1104,9 +1104,10 @@ async function verifyComments() {
     let selection = null;
     context.getSelection = () => selection;
     const appearance = document.querySelector("[data-theme-select]");
-    Object.defineProperty(appearance, "value", {configurable: true, writable: true, value: "system"});
+    Object.defineProperty(appearance, "value", {configurable: true, writable: true, value: "dark"});
     vm.runInContext(fs.readFileSync(process.argv[5], "utf8"), context, {filename: "settings.js"});
-    assert.equal(document.documentElement.dataset.theme, "light");
+    assert.equal(document.documentElement.dataset.theme, "system");
+    assert.equal(appearance.value, "system");
     appearance.value = "system";
     trigger(appearance, "change");
     assert.equal(document.documentElement.dataset.theme, "system");

@@ -5,6 +5,7 @@
   "type": "object",
   "additionalProperties": true,
   "properties": {
+    "appearance": {"enum": ["system", "light", "dark"]},
     "layout": {"enum": ["paged", "scrolling", "screens"]},
     "heading": {"enum": ["cover", "compact"]},
     "cssSnippets": {"type": "array", "items": {"type": "string", "minLength": 1}},
