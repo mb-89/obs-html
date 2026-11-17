@@ -1122,9 +1122,16 @@
             renderScreen(event.detail?.reason === "row-details" ? "row-details" : "");
         } else refreshSheets("table-change");
     });
-    document.addEventListener("obs-table-definition-change", () => {
+    // part live-source {
+    // A live table's rows lay out again as a new query's do (generic-tables.md, Projection).
+    let tableRowsChange;
+    // } part live-source
+    document.addEventListener("obs-table-definition-change", /* part live-source { */tableRowsChange = /* } part live-source */() => {
         renderScreen();
     });
+    // part live-source {
+    document.addEventListener("obs-table-rows-change", tableRowsChange);
+    // } part live-source
     document.addEventListener("obs-section-toggle", refreshSheets);
     reader.addEventListener("load", (event) => {
         if (event.target.tagName === "IMG" && !event.target.closest(".resource-icon") && paged) {

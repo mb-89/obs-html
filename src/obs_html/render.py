@@ -32,7 +32,7 @@ from obs_html.config import Config, paper
 from obs_html.errors import DOCUMENT_OF, InputError, field_path, schema_error, warn
 from obs_html import build_time, libraries
 from obs_html.agent_note import agent_note_markup
-from obs_html.features import feature_source, included as included_features, pugh_engine
+from obs_html.features import feature_source, included as included_features, pugh_engine, strip_parts
 from obs_html.live_source import live_source_error
 from obs_html.figure_links import FigureLink
 from obs_html.page_pattern import matches as page_pattern_matches
@@ -1582,7 +1582,7 @@ def _shell(model: dict[str, object], limits: list[dict[str, str]], overlay: str,
     pdf_library = ""
     if any(part.key == "source-archive" for part in parts):
         pdf_library = libraries.element("pdf")
-    bar_scripts = "\n".join(f"\n{bar.script}" for bar in bars if bar.script)
+    bar_scripts = "\n".join(f"\n{strip_parts(bar.script, shipped_parts)}" for bar in bars if bar.script)
     title = model["document"]["title"]
     figure_assets = ""
     if "figure-script" in elements:
@@ -1736,14 +1736,14 @@ def _shell(model: dict[str, object], limits: list[dict[str, str]], overlay: str,
   <script id="artifact-script">
 {read("filter-fields.js")}
 {read("hover-card.js")}
-{feature_code}{read("artifact.js")}
+{feature_code}{feature_source("artifact.js", shipped_parts)}
   </script>
   {figure_assets}
   {snippets}
   {card_assets}
   {property_assets}
   <script id="pages-script">
-{read("pages.js")}
+{feature_source("pages.js", shipped_parts)}
   </script>
   <script id="storage-script">
 

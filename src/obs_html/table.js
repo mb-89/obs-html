@@ -232,7 +232,7 @@
             document.querySelector("[data-artifact-data]").textContent,
         )[compact ? "tableCompactColumnMinimumPixels" : "tableColumnMinimumPixels"],
         showEmptyDetailTabs = false, /* part empty-groups { */showEmptyGroups = false, /* } part empty-groups */screenPageBreaks = true,
-        initialRowKeys, onRowKeysChange,/* part passing-rows { */ passing, initialPassingOpen = false, onPassingChange,/* } part passing-rows */
+        initialRowKeys, onRowKeysChange,/* part passing-rows { */ passing, initialPassingOpen = false, onPassingChange,/* } part passing-rows *//* part live-source { */ live,/* } part live-source */
         columnSizing, detailFontSize = JSON.parse(
             document.querySelector("[data-artifact-data]").textContent,
         ).tableDetailFontSizePoints,
@@ -482,6 +482,47 @@
         });
         if (passing) scroller.after(passingLine);
         // } part passing-rows
+        // part live-source {
+        // A live table's one line under it, outside its controls, and its refresh key beside the menu
+        // (generic-tables.md, Status line); live.status is obsLiveData.statusLine's.
+        const liveLine = document.createElement("p");
+        liveLine.className = "data-table-live-status";
+        liveLine.dataset.tableLiveStatus = "";
+        liveLine.setAttribute("aria-live", "polite");
+        liveLine.hidden = true;
+        const liveText = document.createElement("span");
+        liveText.dataset.tableLiveText = "";
+        const liveButton = document.createElement("button");
+        liveButton.type = "button";
+        liveButton.className = "filter-pill data-table-live-show";
+        liveButton.hidden = true;
+        liveButton.addEventListener("click", () => live.onShow());
+        liveLine.append(liveText, liveButton);
+        const liveRefresh = document.createElement("button");
+        liveRefresh.type = "button";
+        liveRefresh.className = "data-table-live-refresh";
+        liveRefresh.dataset.tableLiveRefresh = "";
+        liveRefresh.textContent = "\u21bb";
+        liveRefresh.hidden = true;
+        liveRefresh.addEventListener("click", () => live.onRefresh());
+        const setLive = status => {
+            liveText.textContent = status.text;
+            liveButton.textContent = status.button;
+            liveButton.hidden = !status.button;
+            liveLine.hidden = !status.text && !status.button;
+            if (status.warning) liveLine.dataset.warning = "true";
+            else delete liveLine.dataset.warning;
+            liveRefresh.hidden = !status.refresh.shown;
+            liveRefresh.disabled = status.refresh.disabled;
+            liveRefresh.title = status.refresh.label;
+            liveRefresh.setAttribute("aria-label", status.refresh.label);
+        };
+        if (live) {
+            footer.before(liveLine);
+            controls.prepend(liveRefresh);
+            setLive(live.status);
+        }
+        // } part live-source
         // Several authored views of one base: a pill per view name; the owner remounts the chosen view.
         if (views.length > 1) {
             const selector = document.createElement("div");
@@ -1733,19 +1774,35 @@
             element: shell,
             columnPlan,
             fittedWidths: () => [...fittedWidths],
-            setRows: (updated) => {
+            setRows: (updated/* part live-source { */, {baseQuery: selection} = {}/* } part live-source */) => {
                 detailAvailability.clear();
+                // part live-source {
+                // A new selection is adopted; a row key the table did not have opens as the others did,
+                // and content widths are measured again (generic-tables.md, Projection).
+                if (selection) baseQuery = selection;
+                const known = new Set(rows.map(row => row.key));
+                updated.forEach(row => {
+                    if (!known.has(row.key)) expanded.add(row.key);
+                });
+                measuredStyle = "";
+                // } part live-source
                 rows = updated;
                 baseRows = retainMatchesAndAncestors(scopedRows(), baseQuery);
                 visibleRows = retainMatchesAndAncestors(baseRows, appliedQuery);
                 renderBody();
                 renderFacets();
+                // part live-source {
+                renderColumnWidths();
+                // } part live-source
             },
             setExpression: (value) => {
                 input.value = value;
                 filterProjection = "";
                 apply();
             },
+            // part live-source {
+            setLive,
+            // } part live-source
         };
     };
 

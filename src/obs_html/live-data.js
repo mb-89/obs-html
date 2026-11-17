@@ -262,6 +262,294 @@
         return failures;
     };
 
+    // The texts a reader sees of a live table (generic-tables.md, Status line), in one frozen table:
+    // no date or time in any of them, and no word for how the page is made. {name} is the source's
+    // name as the declaration says it, {n} a count.
+    const READER_TEXT = Object.freeze({
+        current: "Showing current data",
+        earlier: "Could not check for updates; showing the data read earlier",
+        comments: "Showing the saved version while comments are open",
+        unavailable: "newer updates cannot be shown here",
+        notNow: "could not check for updates now",
+        first: "showing the first {n} changes",
+        off: "current data is turned off for this page",
+        connect: "connect {name} in Claude to see current data",
+        reauth: "sign in to {name} again in Claude",
+        wait: "{name} asks to wait before the next check",
+        show: "Show current data",
+        refresh: "Check for updates",
+        notice: "Newer updates from {name} cannot be shown on this page.",
+    });
+    const WARNINGS = new Set(["notNow", "connect", "reauth", "wait"]);
+    // The line under a live table from the reader's view (reader().view()): its text, whether it
+    // tells of a failure, the button's label (empty without one) and the refresh key.
+    const statusLine = (view, name) => {
+        const word = (key, n) => fillTemplate(READER_TEXT[key], {name, n: n ?? 0});
+        const head = {current: READER_TEXT.current, earlier: READER_TEXT.earlier,
+            comments: READER_TEXT.comments}[view.shown] || "";
+        const parts = view.shown === "comments" ? [] : view.parts.map(part => word(part.key, part.n));
+        const text = head ? [head, ...parts].join(" · ")
+            : parts.length ? (line => line.charAt(0).toUpperCase() + line.slice(1))(parts.join(" · ")) : "";
+        return {
+            text,
+            warning: view.shown === "earlier" || (view.shown !== "comments" && view.parts.some(part => WARNINGS.has(part.key))),
+            button: view.button && view.shown !== "comments" ? READER_TEXT.show : "",
+            refresh: {label: READER_TEXT.refresh, shown: view.refresh !== "hidden", disabled: view.refresh === "busy"},
+        };
+    };
+
+    // Every target the declaration writes, whose columns its table always knows (generic-tables.md,
+    // Projection, Known columns): each request's set, fields, derive and fillNew.
+    const targetNames = declaration => [...new Set([
+        ...declaration.changes.flatMap(route => route.requests.flatMap(request => Object.keys(request.set || {}))),
+        ...Object.keys(declaration.fields), ...Object.keys(declaration.derive || {}),
+        ...Object.keys(declaration.fillNew || {})])].sort();
+    const ONE_TEMPLATE = /^\{([^{}]*)\}$/;
+    // A connector request's input: each value that is one template alone takes the value as it is,
+    // any other string is text with its templates filled, from the request's set and since.
+    const requestInput = (request, sinceValue) => {
+        const values = {...(request.set || {}), since: sinceValue};
+        return Object.fromEntries(Object.entries(request.input || {}).flatMap(([name, value]) => {
+            if (typeof value !== "string") return [[name, value]];
+            const whole = ONE_TEMPLATE.exec(value);
+            const filled = whole ? (Object.hasOwn(values, whole[1]) ? values[whole[1]] : undefined) : fillTemplate(value, values);
+            return filled === undefined ? [] : [[name, filled]];
+        }));
+    };
+    // The list at a result's dotted path, own keys only, or undefined.
+    const readList = (value, path) => {
+        const found = path.split(".").reduce((current, key) => isObject(current) && Object.hasOwn(current, key)
+            ? current[key] : undefined, value);
+        return Array.isArray(found) ? found : undefined;
+    };
+
+    // The pseudo-notes of one table key (generic-tables.md, Projection) from every request's latest
+    // items, the saved rows by note path ({slug, sourcePath, frontmatter}) and the slugs new rows
+    // were given before (a Map of note path to slug). A changed saved row keeps its slug, takes the
+    // merged values and drops the built HTML of every target it maps, sets or derives; a new row
+    // gets a slug no chapter can take, its path's file name as title and its lowered text.
+    const project = (declaration, route, results, saved, tableKey, assigned) => {
+        const slugs = new Map(assigned);
+        const merged = new Map();
+        let partial = false;
+        results.forEach(({request, items}) => {
+            const result = merge(declaration, route, request, items, saved);
+            partial ||= result.partial;
+            result.rows.forEach((row, path) => merged.set(path, row));
+        });
+        const drop = [...new Set(results.flatMap(({request}) => [...liveTargets(declaration, request)]))].sort();
+        const matched = [];
+        const added = [];
+        merged.forEach((row, path) => {
+            if (!row.added) {
+                matched.push({slug: saved.get(path).slug, frontmatter: row.frontmatter, drop});
+                return;
+            }
+            if (!slugs.has(path)) slugs.set(path, `live~${tableKey}~${slugs.size + 1}`);
+            added.push({slug: slugs.get(path), sourcePath: path, title: path.split("/").at(-1).replace(/\.md$/i, ""),
+                frontmatter: row.frontmatter, body: row.body || []});
+        });
+        return {matched, added, partial, assigned: slugs};
+    };
+
+    // A live table's route in Claude's artifact viewer (generic-tables.md, Reading): mcp and
+    // permissions are the viewer's namespaces (mcp null where this view cannot reach the source),
+    // now and wait its clock and timer, notice posts the one notice, onChange tells of each change.
+    // view() is the reader's state: what is shown, the line's parts, the button, the refresh key
+    // and each request's latest items.
+    const RESET = {needs_reauth: "reauth", server_not_connected: "connect", selection_required: "connect",
+        server_not_found: "connect", blocked_by_policy: "unavailable"};
+    const ABSENT = new Set(["not_granted", "capability_disabled", "capability_removed"]);
+    const reader = ({declaration, route, since: sinceValue, mcp, permissions, now = Date.now,
+        wait = ms => new Promise(resolve => setTimeout(resolve, ms)), notice = () => {}, onChange = () => {}}) => {
+        const {server, tool} = route;
+        const age = (declaration.refreshMinutes ?? 10) * 60 * 1000;
+        const cache = {staleTime: age, gcTime: age};
+        const requests = route.requests.map(request => ({request, input: requestInput(request, sinceValue),
+            freshness: -Infinity, items: null, partial: false, token: 0, unsubscribe: null}));
+        // consent: unknown, prompt, granted or closed (no key); issue: the line's own part.
+        let consent = "unknown";
+        let issue = null;
+        let busy = false;
+        let noticed = false;
+        let waitUntil = -Infinity;
+        const changed = () => onChange();
+        const view = () => {
+            const results = requests.filter(entry => entry.items).map(({request, items}) => ({request, items}));
+            const read = results.length > 0;
+            const parts = [];
+            if (["unavailable", "off", "reauth", "connect", "wait"].includes(issue)) parts.push({key: issue});
+            if (issue === "transient" && !read) parts.push({key: "notNow"});
+            if (read && requests.some(entry => entry.items && entry.partial)) {
+                parts.push({key: "first", n: results.reduce((count, result) => count + result.items.length, 0)});
+            }
+            return {shown: read ? (issue === "transient" ? "earlier" : "current") : "saved", parts,
+                button: consent === "prompt", refresh: consent === "closed" || consent === "unknown" ? "hidden"
+                    : busy ? "busy" : "enabled", results};
+        };
+        const unwatch = () => requests.forEach(entry => {
+            entry.unsubscribe?.();
+            entry.unsubscribe = null;
+        });
+        const drop = () => requests.forEach(entry => {
+            entry.items = null;
+            entry.partial = false;
+            entry.freshness = -Infinity;
+            entry.token += 1;
+        });
+        const close = part => {
+            consent = "closed";
+            issue = part;
+            unwatch();
+            drop();
+            changed();
+        };
+        const consentState = async () => {
+            try {
+                return permissions ? await permissions.state(`mcp:${server}`) : "unavailable";
+            } catch {
+                return "unavailable";
+            }
+        };
+        const fail = async error => {
+            const code = error?.code;
+            if (ABSENT.has(code)) return close("unavailable");
+            if (code in RESET) {
+                drop();
+                issue = RESET[code];
+                if (code === "blocked_by_policy" && !noticed) {
+                    noticed = true;
+                    notice(fillTemplate(READER_TEXT.notice, {name: declaration.name}));
+                }
+            } else if (code === "approval_required") {
+                drop();
+                issue = null;
+                consent = "prompt";
+            } else if (code === "not_in_manifest") {
+                drop();
+                if (await consentState() === "denied") return close("off");
+                issue = "unavailable";
+            } else if (code === "rate_limited" && Number.isFinite(error.retryAfterMs)) {
+                issue = "wait";
+                waitUntil = now() + error.retryAfterMs;
+            } else issue = "transient";
+            changed();
+        };
+        // One call, and for a retryable error one more after retryAfterMs.
+        const call = async (input, options) => {
+            try {
+                return await mcp.callTool(server, tool, input, options);
+            } catch (error) {
+                if (error?.retryable !== true) throw error;
+                await wait(Number.isFinite(error.retryAfterMs) ? error.retryAfterMs : 0);
+                return mcp.callTool(server, tool, input, options);
+            }
+        };
+        // A request's first page and the pages after it, one after another, up to maxPages.
+        const accept = async (entry, result) => {
+            const freshness = result?.cache?.storedAt ?? now();
+            if (freshness < entry.freshness) return;
+            const token = ++entry.token;
+            const pages = [];
+            let current = result;
+            let more = false;
+            try {
+                for (;;) {
+                    const items = readList(current?.payload, route.rows);
+                    if (!items) throw {code: "upstream_error"};
+                    pages.push(items);
+                    more = Boolean(route.next) && readPath(current.payload, route.next.more) === true;
+                    const cursor = more ? readPath(current.payload, route.next.cursor) : undefined;
+                    if (!more || pages.length >= route.maxPages || !isScalar(cursor)) break;
+                    current = await call({...entry.input, [route.next.input]: cursor}, {cache});
+                    if (token !== entry.token) return;
+                }
+            } catch (error) {
+                if (token === entry.token) await fail(error);
+                return;
+            }
+            if (token !== entry.token || consent === "closed") return;
+            entry.freshness = freshness;
+            entry.items = pages.flat();
+            entry.partial = more;
+            if (issue !== "wait" || now() >= waitUntil) issue = null;
+            changed();
+        };
+        const watch = () => requests.forEach(entry => {
+            entry.unsubscribe?.();
+            entry.unsubscribe = mcp.watchTool(server, tool, entry.input, event => {
+                if (event?.type === "data") accept(entry, event.result);
+                else if (event?.type === "error") fail(event.error);
+            }, {cache});
+        });
+        // Whether the viewer reports the route's tool as a read; a tool that is not is never called again.
+        const reads = async () => {
+            try {
+                const listed = await mcp.listTools(server);
+                const info = listed?.servers?.find(entry => entry.server === server)?.tools?.find(entry => entry.name === tool);
+                if (info?.annotations?.readOnlyHint === true) return true;
+                close("unavailable");
+            } catch (error) {
+                await fail(error);
+            }
+            return false;
+        };
+        const start = async () => {
+            if (!mcp) return close("unavailable");
+            const state = await consentState();
+            if (state === "granted") {
+                if (!await reads()) return;
+                consent = "granted";
+                watch();
+                changed();
+            } else if (state === "prompt") {
+                consent = "prompt";
+                changed();
+            } else close(state === "denied" ? "off" : "unavailable");
+        };
+        // The button's click: the first call with callTool, the one call that asks the viewer.
+        const allow = async () => {
+            if (consent !== "prompt" || busy) return;
+            busy = true;
+            changed();
+            try {
+                const [first, ...rest] = requests;
+                const result = await mcp.callTool(server, tool, first.input, {cache});
+                if (!await reads()) return;
+                consent = "granted";
+                await accept(first, result);
+                await Promise.all(rest.map(entry => call(entry.input, {cache}).then(answer => accept(entry, answer))));
+                watch();
+            } catch (error) {
+                await fail(error);
+            } finally {
+                busy = false;
+                changed();
+            }
+        };
+        // The refresh key: every request again at once, past refreshMinutes.
+        const refresh = async () => {
+            if (consent === "prompt") return allow();
+            if (consent !== "granted" || busy || now() < waitUntil) return;
+            busy = true;
+            changed();
+            try {
+                await Promise.all(requests.map(entry => mcp.callTool(server, tool, entry.input,
+                    {cache: {...cache, refresh: true}}).then(result => accept(entry, result), fail)));
+            } finally {
+                busy = false;
+                changed();
+            }
+        };
+        // The page shown again: past refreshMinutes, its watches are registered again.
+        const resume = () => {
+            if (consent !== "granted" || now() < waitUntil) return;
+            const oldest = Math.min(...requests.map(entry => entry.freshness));
+            if (now() - oldest > age) watch();
+        };
+        return {start, allow, refresh, resume, stop: unwatch, view};
+    };
+
     globalThis.obsLiveData = {LIMITS, readPath, fillTemplate, notePath, mapItem, lower, validateNodes, since, merge,
-        check};
+        check, READER_TEXT, statusLine, targetNames, requestInput, readList, project, reader};
 })();

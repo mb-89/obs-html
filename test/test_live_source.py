@@ -21,6 +21,7 @@ from obs_html import cli
 from obs_html.artifact_data import decode_artifact_data, same_artifact_content
 from obs_html.config import load_config
 from obs_html.errors import InputError
+from obs_html.live_source import live_publish
 from obs_html.render import render
 
 
@@ -287,3 +288,38 @@ def test_the_capability_notes_authoring_example_builds_without_warnings_even_ref
     capfd.readouterr()
     assert cli.main(["--config", str(config), str(tmp_path / "live-data.json"), str(tmp_path / "live-data.html")]) == 0
     assert "Warning" not in capfd.readouterr().err
+
+
+PUBLISH = {"mcp": {"servers": [{"server": "Example Tracker", "tools": ["list_issues"]}]}}
+"""The declaration the capability note's example is published with (live-data.md, Reading in
+Claude's artifact viewer)."""
+
+
+@pytest.mark.parametrize("document", [fence(base(DECLARATION)), register(base(DECLARATION))], ids=["fence", "register"])
+def test_a_page_with_a_connector_route_names_the_declaration_to_publish_it_with(document) -> None:
+    assert live_publish(document) == PUBLISH
+    twice = build("Tracker", *document["chapters"], *fence(base(edit(DECLARATION, lambda d: d.update(
+        name="Other"))))["chapters"], records=RECORDS)
+    assert live_publish(twice) == PUBLISH
+
+
+def test_a_page_without_a_connector_route_names_none() -> None:
+    web = edit(DECLARATION, lambda declaration: declaration.update(changes=declaration["changes"][1:]))
+    assert live_publish(fence(base(web))) is None
+    assert live_publish(fence(base())) is None
+
+
+def test_obs_html_prints_the_publish_declaration_after_generated(tmp_path, capfd) -> None:
+    """Publisher words, not reader words: the line names the declaration and says what viewers
+    outside the organization see; a page without a connector route prints only "Generated"."""
+    for name, document in (("live", fence(base(DECLARATION))), ("plain", fence(base()))):
+        (tmp_path / f"{name}.json").write_text(json.dumps(document), encoding="utf-8")
+        capfd.readouterr()
+        assert cli.main([str(tmp_path / f"{name}.json"), str(tmp_path / f"{name}.html")]) == 0
+        lines = capfd.readouterr().out.splitlines()
+        assert lines[0] == f"Generated {(tmp_path / f'{name}.html').resolve()}."
+        if name == "plain":
+            assert lines == lines[:1]
+            continue
+        assert len(lines) == 2 and json.dumps(PUBLISH) in lines[1]
+        assert "outside" in lines[1] and "saved rows" in lines[1]

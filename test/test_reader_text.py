@@ -12,9 +12,15 @@ ALLOWED lists the only phrases that may still contain one of the words, each wit
 
 An HTML whose embedded data is damaged says, when opened, that the error comes from its embedded
 data and how to recover: rebuild it or open the original file.
+
+A live table's texts name nothing of how the page is made (generic-tables.md, Status line): no value
+of live-data.js's READER_TEXT, and no status or notice text a live browser test reads
+(test_live_rows_browser.py, test_live_connector_browser.py, through ``technical_words``), holds one of
+TECHNICAL's words.
 """
 import json
 import re
+import subprocess
 from html.parser import HTMLParser
 from pathlib import Path
 
@@ -39,6 +45,14 @@ ALLOWED: dict[str, str] = {
     "document.schema.json": "the core's schema file a limited-function notice names as its source",
     "obs-document": "the core's command an error's remedy names",
 }
+
+
+TECHNICAL = re.compile(r"snapshot|build|fetch|file|json|connector|mcp|api|cache|html", re.IGNORECASE)
+
+
+def technical_words(text: str) -> list[str]:
+    """The words of TECHNICAL a live table's reader text holds, in order; none is allowed."""
+    return TECHNICAL.findall(text)
 
 
 def _hits(strings: dict[str, str]) -> list[str]:
@@ -205,3 +219,14 @@ def test_an_html_whose_embedded_data_is_damaged_says_so_and_how_to_recover(
     # The source: this HTML's embedded data; the remedy: rebuild, or open the original file.
     assert message.startswith("HTML could not be opened: The HTML's embedded data "), message
     assert "Rebuild it with obs-html or open the original file." in message, message
+
+
+def test_no_live_table_text_names_how_the_page_is_made() -> None:
+    """Every value of READER_TEXT, as the page loads live-data.js, is reader words."""
+    script = ("const vm = require('node:vm'); const fs = require('node:fs');"
+              f"vm.runInThisContext(fs.readFileSync({json.dumps(str(RUNTIME / 'live-data.js'))}, 'utf8'));"
+              "process.stdout.write(JSON.stringify(globalThis.obsLiveData.READER_TEXT));")
+    texts = json.loads(subprocess.run(["node", "-e", script], check=True, capture_output=True, text=True).stdout)
+    assert len(texts) >= 12
+    assert {name: technical_words(text) for name, text in texts.items() if technical_words(text)} == {}
+    assert technical_words("Showing the cached JSON file") == ["cache", "JSON", "file"]

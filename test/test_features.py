@@ -19,7 +19,7 @@ from obs_html import features
 from obs_html.artifact_data import decode_artifact_data
 from obs_html.config import load_config
 from obs_html.errors import InputError
-from obs_html.features import FEATURES, Feature, Part, feature_source
+from obs_html.features import FEATURES, PART_REGION, Feature, Part, feature_source
 from obs_html.figures import FIGURE_KINDS
 from obs_html.render import render
 
@@ -468,3 +468,46 @@ def test_the_live_source_part_ships_only_where_a_base_declares_it_and_strips_wit
     off, on = render(_grouped_table(), CONFIG), render(live, CONFIG)
     assert "obsLiveData" not in off and "live-source" not in off and plain_source in off
     assert pure in on and kept in on and plain_source not in on
+
+
+LIVE_FILES = ("tables.js", "table.js", "artifact.js", "pages.js", "bars/comments.js", "tables.css")
+"""The files whose live-source regions the part ships: the table code, the page's own scripts that
+listen to a table's rows and the status line's styles (generic-tables.md, Projection)."""
+
+
+def test_the_live_source_part_strips_from_every_file_that_holds_its_regions() -> None:
+    """Without obsHtml.liveSource the page ships no live-source region, artifact.js included: each
+    file as feature_source gives it, which is the file with the part's regions removed, holds none of
+    the part's names, and the rendered page holds each file exactly so (features.py, Part)."""
+    names = ("part live-source", "ownerOf", "obs-table-rows-change", "liveRevision", "data-table-live-status",
+             "liveNoteRow", "tableRowsChange")
+    plain, live = _grouped_table(), _grouped_table()
+    live["chapters"][0]["content"][1]["attrs"]["spec"]["obsHtml"] = {"liveSource": LIVE_DECLARATION}
+    off, on = render(plain, CONFIG), render(live, CONFIG)
+    for name in LIVE_FILES:
+        source = SOURCE.joinpath(*name.split("/")).read_text(encoding="utf-8")
+        stripped, kept = feature_source(name), feature_source(name, ["live-source"])
+        assert "part live-source" in source, name
+        others = sorted({key for match in PART_REGION.finditer(source)
+                         for key in [match["line"] or match["inline"] or match["json"]]} - {"live-source"})
+        assert feature_source(name, others) == PART_REGION.sub(lambda region: region[0] if (
+            region["line"] or region["inline"] or region["json"]) != "live-source" else "", source), name
+        assert not [word for word in names if word in stripped], name
+        assert kept != stripped and "part live-source" in kept, name
+        assert stripped in off and stripped not in on and kept in on, name
+    assert "obs-table-rows-change" not in off
+
+
+def test_every_row_owner_site_of_the_tables_reads_through_owner_of() -> None:
+    """generic-tables.md, Projection, One owner lookup: with the part shipped, every lookup of a
+    row's canonical note in tables.js is the canonical argument of ownerOf, so a live table's
+    projected note wins wherever its row is read. The two exceptions read the build's own rows on
+    purpose: livePopulation, the check of a declaration, and savedLiveRows, the rows a read is laid over."""
+    source = feature_source("tables.js", TABLES_PARTS)
+    canonical = [re.search(rf"const {name} = \(?\)?.*?\n    \}}\)?\)?;\n", source, re.S).span()
+                 for name in ("livePopulation", "savedLiveRows")]
+    lookups = [match.start() for match in re.finditer(re.escape("recordsBySlug.get(row.noteId)"), source)]
+    outside = [source.count("\n", 0, start) + 1 for start in lookups
+               if not re.search(r"ownerOf\(row, [\w.]+, (?:/\* \} part live-source \*/)?$", source[:start])
+               and not any(begin <= start < end for begin, end in canonical)]
+    assert len(lookups) >= 14 and outside == []

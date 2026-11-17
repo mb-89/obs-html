@@ -323,7 +323,51 @@
 .data-table-passing--all {
     color: var(--color-positive);
     font-weight: 600;
-}/* } part passing-rows */
+}/* } part passing-rows *//* part live-source { */
+
+/* A live table's one line under it and its refresh key (generic-tables.md, Status line): the line
+   reads as the footer does, a failure in the warning tone; a line without text takes no space. */
+.data-table-live-status {
+    color: var(--color-text-muted);
+    font-family: var(--font-interface);
+    font-size: 0.8rem;
+    margin-block: 0.4rem 0;
+}
+
+.data-table-live-status[data-warning="true"] {
+    color: var(--color-warning);
+}
+
+.data-table-live-status[hidden],
+.data-table-live-status [hidden],
+.data-table-live-refresh[hidden] {
+    display: none;
+}
+
+.data-table-live-status .data-table-live-show {
+    font-family: var(--font-interface);
+    margin-inline-start: 0.4rem;
+}
+
+.data-table-live-status [data-table-live-text]:empty + .data-table-live-show {
+    margin-inline-start: 0;
+}
+
+.data-table-live-refresh {
+    background: none;
+    border: 0;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    font-family: var(--font-interface);
+    font-size: 1rem;
+    line-height: 1;
+    padding: 0 0.25rem;
+}
+
+.data-table-live-refresh:disabled {
+    cursor: default;
+    opacity: 0.5;
+}/* } part live-source */
 
 .data-table-shell[data-filter-active="true"] {
     outline: var(--border-width) solid var(--color-warning);

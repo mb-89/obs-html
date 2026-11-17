@@ -31,7 +31,8 @@ A feature script holds the code it runs only with a part inside that part's regi
 <key> { */`` to ``/* } part <key> */``); ``feature_source`` strips every region of a part that does
 not ship, so where it does not, the script ships as it would without the part. A part may instead
 turn on with what the Document asks for (its condition alone), and its regions may sit in the files
-the renderer embeds whole as well (base.js, table.js, the structural styles and base.schema.json).
+the renderer embeds whole as well (base.js, table.js, artifact.js, pages.js, the dock bars' scripts, the
+structural styles and base.schema.json).
 JSON has no comments, so a schema property of a part is a JSON line region: one line of its own,
 ``"<name>": {..., "$comment": "part <key>"},``, removed where the part does not ship.
 The figure frame's script, figures.js, holds a figure kind's calls into its feature's script the
@@ -71,12 +72,17 @@ PART_REGION = re.compile(
 """A part's region in a feature script: a line region, an inline one or a JSON line one (the module docstring)."""
 
 
-def feature_source(name: str, parts: Iterable[str] = ()) -> str:
-    """The package script ``name`` as an artifact ships it: every region of a part not in ``parts`` stripped."""
+def strip_parts(source: str, parts: Iterable[str] = ()) -> str:
+    """``source`` with every region of a part not in ``parts`` stripped."""
     kept = set(parts)
-    source = files("obs_html").joinpath(name).read_text(encoding="utf-8")
     return PART_REGION.sub(lambda region: region[0] if (
         region["line"] or region["inline"] or region["json"]) in kept else "", source)
+
+
+def feature_source(name: str, parts: Iterable[str] = ()) -> str:
+    """The package script ``name`` (a path under the package, ``/`` between its parts) as an artifact
+    ships it: every region of a part not in ``parts`` stripped."""
+    return strip_parts(files("obs_html").joinpath(*name.split("/")).read_text(encoding="utf-8"), parts)
 
 
 @dataclass(frozen=True)

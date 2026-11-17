@@ -832,7 +832,11 @@
         sourcePath: record.sourcePath,
     });
 
-    const noteTableRows = () => records.filter((record) => !record.generated && selectable(record)).map((record) => {
+    // part live-source {
+    // The row builder of one note, which a live table's pseudo-notes reach (generic-tables.md, Projection).
+    let liveNoteRow;
+    // } part live-source
+    const noteTableRows = () => records.filter((record) => !record.generated && selectable(record)).map(/* part live-source { */liveNoteRow = /* } part live-source */(record) => {
         const ownFields = noteOwnFields(record);
         return tableRecord(`note:${record.slug}`, {
             ...Object.fromEntries(record.metadataEntries),
@@ -1251,10 +1255,24 @@
         get visibleIndices() {
             return visibleIndices;
         },
+        // part live-source {
+        // A live table builds its pseudo-notes and their rows as the page builds its own; the safe
+        // content renderer is declared below, so only a getter reaches it.
+        get makeRecord() {
+            return makeRecord;
+        },
+        get liveNoteRow() {
+            artifactTableRows();
+            return liveNoteRow;
+        },
+        get renderSafeCanonicalContent() {
+            return renderSafeCanonicalContent;
+        },
+        // } part live-source
     });
     const tableStates = tables?.states ?? new Map();
     let searchIndex = null;
-    ["obs-canonical-property-change", "obs-table-definition-change"].forEach(type =>
+    ["obs-canonical-property-change", "obs-table-definition-change"/* part live-source { */, "obs-table-rows-change"/* } part live-source */].forEach(type =>
         document.addEventListener(type, () => {
             searchIndex = null;
         }));

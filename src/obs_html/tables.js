@@ -120,6 +120,12 @@
         return container.textContent.trim() ? container : null;
     };
 
+    // part live-source {
+    // A row's note (generic-tables.md, Current data, Projection): the pseudo-note of the table key's
+    // projection, or of the projection the row was built for, else the canonical note handed in.
+    const ownerOf = (row, tableKey, canonical) =>
+        liveProjection(tableKey ?? row.liveTable)?.notes.get(row.noteId) ?? canonical;
+    // } part live-source
     // Each register's definition as rendered: a different one is the reader's edited query.
     const authoredDefinitions = new Map(records.flatMap(record => (record.tables || [])
         .filter(table => table.rows).map(table => [table.key, JSON.stringify(table.definition)])));
@@ -141,6 +147,13 @@
             view[key] = Array.isArray(view[key]) ? view[key].map(normalize) : normalize(view[key]);
         }
         const allRows = artifactTableRows();
+        // part live-source {
+        // The projection this definition shows, none for its saved rows, and those rows' definition,
+        // whose columns the table knows (generic-tables.md, Projection).
+        const liveKey = table.savedRows ? undefined : table.key;
+        const projection = liveKey === undefined ? undefined : liveProjection(liveKey);
+        const savedDefinition = projection && tableDefinition({...table, savedRows: true}, staticView);
+        // } part live-source
         const parts = [definition.filters, view.filters]
             .filter((item) => item !== undefined && item !== null);
         const filters = parts.length ? {and: parts} : undefined;
@@ -154,7 +167,7 @@
         // } part passing-rows
         // Projected rows resolve their own fields first, then the owner note (generic-tables).
         const compiled = globalThis.obsBases.compileFilter(filters, /* part passing-rows { */fieldValue = /* } part passing-rows */(row, field) => {
-            const owner = recordsBySlug.get(row.noteId);
+            const owner = /* part live-source { */ownerOf(row, liveKey, /* } part live-source */recordsBySlug.get(row.noteId)/* part live-source { */)/* } part live-source */;
             if (nativeNotes && owner) return globalThis.obsBases.recordValue(owner, field);
             if (Object.hasOwn(row.ownFields, field)) return row.ownFields[field];
             return owner ? globalThis.obsBases.recordValue(owner, field) : undefined;
@@ -163,7 +176,7 @@
         // under a reader-edited query, all of the register's, which that query narrows. A fence's
         // rows are selected here. Generation provenance is the adapter's own documentMetadata.
         const edited = table.rows && JSON.stringify(table.definition) !== authoredDefinitions.get(table.key);
-        const coreKeys = !table.rows ? undefined : edited ? [...new Set(table.rows.flat())] : table.rows[viewIndex];
+        const coreKeys = !table.rows ? undefined : edited/* part live-source { */ || projection/* } part live-source */ ? [...new Set(table.rows.flat())] : table.rows[viewIndex];
         const rowsByKey = coreKeys && new Map(allRows.map(row => [row.key, row]));
         let rows = coreKeys ? coreKeys.map(key => {
             if (!rowsByKey.has(key)) throw new Error(`Register ${table.key}: row ${key} is not in the HTML's embedded data; the HTML was built from inputs that disagree. Rebuild it with obs-document and obs-html.`);
@@ -172,9 +185,13 @@
         if (coreKeys && recordType === "documentMetadata") {
             rows.push(...allRows.filter(row => row.key.startsWith("generation:") && compiled.match(row)));
         }
-        const selection = coreKeys && !edited ? {empty: true, match: () => true} : compiled;
+        // part live-source {
+        // A projected row replaces the build's row of its note, and new rows join; one selection runs over all.
+        if (projection) rows = [...rows.map(row => projection.rows.get(row.key) ?? row), ...projection.added];
+        // } part live-source
+        const selection = coreKeys && !edited/* part live-source { */ && !projection/* } part live-source */ ? {empty: true, match: () => true} : compiled;
         if (nativeNotes) rows = rows.map(row => {
-            const owner = recordsBySlug.get(row.noteId);
+            const owner = /* part live-source { */ownerOf(row, liveKey, /* } part live-source */recordsBySlug.get(row.noteId)/* part live-source { */)/* } part live-source */;
             const values = Object.fromEntries(Object.keys(row.values).flatMap(field => {
                 const value = globalThis.obsBases.recordValue(owner, field);
                 return value === undefined ? [] : [[field, formatMetadataValue(value)]];
@@ -188,7 +205,7 @@
         // them in member order, so a member names a row here or nothing, and the order stays.
         const members = view.obs?.members;
         if (coreKeys && members) {
-            const notePath = (row) => recordsBySlug.get(row.noteId)?.sourcePath ?? row.values.sourcePath;
+            const notePath = (row) => /* part live-source { */ownerOf(row, liveKey, /* } part live-source */recordsBySlug.get(row.noteId)/* part live-source { */)/* } part live-source */?.sourcePath ?? row.values.sourcePath;
             const byPath = new Map(members.map(member => [member.path, member]));
             rows = rows.map(row => {
                 const member = byPath.get(notePath(row));
@@ -210,7 +227,8 @@
         const matched = rows.filter((row) => selection.match(row));
         const fields = [...new Set([
             ...view.order,
-            ...matched.flatMap((row) => Object.keys(row.values)),
+            ...matched.flatMap((row) => Object.keys(row.values)),/* part live-source { */
+            ...(table.live ? globalThis.obsLiveData.targetNames(table.live) : []),/* } part live-source */
         ])];
         const column = (key) => {
             const presentation = properties[key]?.obsHtml || {};
@@ -224,7 +242,7 @@
                 detail: presentation.detail === true,
                 hasDetail: (row) => {
                     if (!presentation.detail) return false;
-                    const owner = recordsBySlug.get(row.noteId);
+                    const owner = /* part live-source { */ownerOf(row, liveKey, /* } part live-source */recordsBySlug.get(row.noteId)/* part live-source { */)/* } part live-source */;
                     return Boolean(owner && globalThis.obsBases.referenceRecords(
                         owner, key, recordsBySlug,
                     ).some(({record}) => hasSubjectContent(record, metadata)));
@@ -238,7 +256,7 @@
                         icons.forEach(icon => appendIconCell(cell, icon, row));
                         return;
                     }
-                    const owner = recordsBySlug.get(row.noteId);
+                    const owner = /* part live-source { */ownerOf(row, liveKey, /* } part live-source */recordsBySlug.get(row.noteId)/* part live-source { */)/* } part live-source */;
                     leadingLines.forEach(field => {
                         let value = row.values[field];
                         if (value === undefined && owner) {
@@ -260,7 +278,7 @@
                         }
                     }
                     if (presentation.reference) {
-                        const owner = recordsBySlug.get(row.noteId);
+                        const owner = /* part live-source { */ownerOf(row, liveKey, /* } part live-source */recordsBySlug.get(row.noteId)/* part live-source { */)/* } part live-source */;
                         const targets = owner ? globalThis.obsBases.referenceRecords(owner, key, recordsBySlug) : [];
                         targets.forEach(({record, href}, index) => {
                             if (index) cell.append(document.createElement("br"));
@@ -289,7 +307,7 @@
                         }
                     }
                     const descriptor = row.cells[key];
-                    appendTableCell(cell, staticView && descriptor?.type === "detail"
+                    appendTableCell(cell, staticView && descriptor?.type === "detail"/* part live-source { */ && !row.liveAdded/* } part live-source */
                         ? {...descriptor, type: "link"} : descriptor, row.values[key]);
                 },
             };
@@ -324,14 +342,14 @@
             pageSize: view.obsHtml?.pageSize ?? artifactData.tablePageSize,
             columnSizing: view.obsHtml?.columnSizing,
             detailFontSize: view.obsHtml?.detailFontSize ?? artifactData.tableDetailFontSizePoints,
-            fieldCatalog: queryProfile.scope === "records" && queryProfile.fields && matched.length &&
-                matched.every(row => queryPopulation.match(recordsBySlug.get(row.noteId) || row))
+            fieldCatalog: /* part live-source { */savedDefinition ? savedDefinition.fieldCatalog?.map(item => ({...column(item.key), label: item.label})) : /* } part live-source */queryProfile.scope === "records" && queryProfile.fields && matched.length &&
+                matched.every(row => queryPopulation.match(/* part live-source { */ownerOf(row, liveKey, /* } part live-source */recordsBySlug.get(row.noteId)/* part live-source { */)/* } part live-source */ || row))
                 ? queryProfile.fields.map(({field, label}) => ({
                     ...column(field), label: label || properties[field]?.displayName || field,
                 }))
                 : undefined,
             columns: view.order.map(column),
-            availableColumns: fields.map(column),
+            availableColumns: /* part live-source { */savedDefinition ? savedDefinition.availableColumns.map(item => column(item.key)) : /* } part live-source */fields.map(column),
             initialGroup: directives(view.groupBy).map(group => view.obsHtml?.groupOrder
                 ? {...group, order: view.obsHtml.groupOrder} : group),
             initialSort: directives(view.sort),
@@ -343,13 +361,13 @@
 
     const filterTableRows = (rows, respectFilter = true) => !respectFilter || queryProfile.scope !== "records"
         ? rows : rows.filter((row) => {
-            const note = recordsBySlug.get(row.noteId);
+            const note = /* part live-source { */ownerOf(row, row.liveTable, /* } part live-source */recordsBySlug.get(row.noteId)/* part live-source { */)/* } part live-source */;
             return !note || !queryPopulation.match(note) || core.activeFilter.match(note);
         });
     // Search and table filters read every row's reader-visible text from the model,
     // independent of which page, group or detail panel is currently rendered.
     let rowTextCache = new Map();
-    ["obs-canonical-property-change", "obs-table-definition-change"].forEach(type =>
+    ["obs-canonical-property-change", "obs-table-definition-change"/* part live-source { */, "obs-table-rows-change"/* } part live-source */].forEach(type =>
         document.addEventListener(type, () => {
             rowTextCache = new Map();
         }));
@@ -367,7 +385,7 @@
             return {column: column.key, text: renderedText(cell)};
         });
         const details = [];
-        const owner = recordsBySlug.get(row.noteId);
+        const owner = /* part live-source { */ownerOf(row, tableKey, /* } part live-source */recordsBySlug.get(row.noteId)/* part live-source { */)/* } part live-source */;
         // part detail-fields {
         // A row that opens its note in place in a view that chooses its detail fields reads, as its own
         // text, its values without the fields it hides (input-model.md, obsHtml.detailFields).
@@ -487,6 +505,120 @@
             "obs-html --check-rendered (generic-tables.md, Current data)."));
         return [table.key, {declaration: table.live, routes: failures.length ? "off" : "on", failures}];
     }));
+    // What a live table shows (generic-tables.md, Current data: Reading, Projection, Status line):
+    // each table's reader view and projection, none while the Comments bar is open, and its line.
+    let commentsOpen = false;
+    const liveShown = new Map();
+    const liveProjection = key => commentsOpen ? undefined : liveShown.get(key)?.projection;
+    const NO_READ = {shown: "saved", parts: [], button: false, refresh: "hidden"};
+    const liveStatus = key => {
+        const live = liveTables.get(key);
+        const shown = liveShown.get(key);
+        const view = live?.routes === "off" ? {...NO_READ, parts: [{key: "unavailable"}]}
+            : !shown?.view ? NO_READ : commentsOpen ? {...shown.view, shown: "comments"} : shown.view;
+        return globalThis.obsLiveData.statusLine(view, live?.declaration.name ?? "");
+    };
+    // The saved rows a read is laid over: every canonical note, by its path.
+    const savedLiveRows = () => new Map(artifactTableRows().filter(row => row.values.recordType === "note" &&
+        recordsBySlug.has(row.noteId)).map(row => {
+        const owner = recordsBySlug.get(row.noteId);
+        return [owner.sourcePath, {slug: owner.slug, sourcePath: owner.sourcePath, frontmatter: owner.frontmatter || {}}];
+    }));
+    const notesBySlug = new Map(notes.map(note => [note.slug, note]));
+    const kept = (entries, drop) => Object.fromEntries(Object.entries(entries || {}).filter(([field]) =>
+        !drop.some(name => field === name || field.startsWith(`${name}.`))));
+    // One table's projection from its reader's latest items: pseudo-notes built as the page builds its
+    // notes, and their rows by the row builder of noteTableRows; none carries an editor or a table.
+    const projectLive = (key, route, shown) => {
+        const live = liveTables.get(key);
+        const result = globalThis.obsLiveData.project(live.declaration, route, shown.view.results, savedLiveRows(), key,
+            shown.assigned);
+        shown.assigned = result.assigned;
+        const projected = {notes: new Map(), rows: new Map(), added: []};
+        const build = (note, added) => {
+            const record = core.makeRecord(note);
+            projected.notes.set(record.slug, record);
+            return {...core.liveNoteRow(record), liveTable: key, ...(added ? {liveAdded: true} : {})};
+        };
+        result.matched.forEach(({slug, frontmatter, drop}) => {
+            const {editableProperties: _editors, tables: _tables, safeContent: _content, ...note} =
+                structuredClone(notesBySlug.get(slug));
+            const row = build({...note, frontmatter, frontmatterHtml: kept(note.frontmatterHtml, drop),
+                definitionHtml: kept(note.definitionHtml, drop)});
+            projected.rows.set(row.key, row);
+        });
+        result.added.forEach(({slug, sourcePath, title, frontmatter, body}) => projected.added.push(build({
+            depth: 0, title, slug, sourcePath, generated: "", cssClasses: [], frontmatter, frontmatterHtml: {},
+            definitionHtml: {}, marks: [], html: core.renderSafeCanonicalContent(body,
+                {note: {slug}, candidateNotes: [], assetKeys: new Set()}),
+        }, true)));
+        return projected;
+    };
+    // An arrival: the table's state moves, so print rebuilds it, its row texts are read again and
+    // every mounted instance takes its rows; it waits while a print or an export is prepared.
+    const preparing = () => document.documentElement.classList.contains("preparing-print");
+    const waiting = new Set();
+    const arrive = key => {
+        if (preparing()) {
+            waiting.add(key);
+            return;
+        }
+        const state = tableStates.get(key);
+        if (state) state.liveRevision = (state.liveRevision || 0) + 1;
+        rowTextCache = new Map();
+        document.dispatchEvent(new CustomEvent("obs-table-rows-change", {detail: {key}}));
+    };
+    const settle = () => {
+        if (preparing()) return;
+        [...waiting].forEach(key => {
+            waiting.delete(key);
+            (liveShown.get(key)?.recompute ?? arrive)(key);
+        });
+    };
+    new MutationObserver(settle).observe(document.documentElement, {attributes: true, attributeFilter: ["class"]});
+    // One reader per declaration and route, which every table of it shares, so a watch is never
+    // registered twice; a table whose check failed reads nothing.
+    const readers = new Map();
+    liveTables.forEach((live, key) => {
+        const route = live.declaration.changes.find(entry => entry.provider === "connector");
+        if (live.routes !== "on" || !route || typeof globalThis.claude?.use !== "function") return;
+        const identity = JSON.stringify([live.declaration, route]);
+        if (!readers.has(identity)) readers.set(identity, {declaration: live.declaration, route, keys: []});
+        readers.get(identity).keys.push(key);
+        liveShown.set(key, {view: undefined, projection: undefined, assigned: new Map()});
+    });
+    readers.forEach(entry => {
+        // A key's view and projection from the reader as it is now, then its arrival.
+        const recompute = key => {
+            const shown = liveShown.get(key);
+            shown.view = entry.reader.view();
+            shown.projection = shown.view.results.length ? projectLive(key, entry.route, shown) : undefined;
+            arrive(key);
+        };
+        const update = () => entry.keys.forEach(key => preparing() ? waiting.add(key) : recompute(key));
+        entry.keys.forEach(key => {
+            Object.assign(liveShown.get(key), {recompute, act: action => entry.reader?.[action]()});
+        });
+        Promise.all([globalThis.claude.use("mcp"), globalThis.claude.use("permissions")]).then(([mcp, permissions]) => {
+            entry.reader = globalThis.obsLiveData.reader({
+                declaration: entry.declaration, route: entry.route,
+                since: globalThis.obsLiveData.since(entry.declaration, artifactData.document.generation.timestamp),
+                mcp, permissions, onChange: update,
+                notice: title => globalThis.obsNotices?.post({id: "live-source", severity: "warning", title}),
+            });
+            return entry.reader.start();
+        }).catch(error => console.error(`Live source ${entry.declaration.name}: ${error?.message ?? error}`));
+    });
+    document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") readers.forEach(entry => entry.reader?.resume());
+    });
+    // While the Comments bar is open, live tables show their saved rows (generic-tables.md, Never saved).
+    document.addEventListener("obs-bar-change", () => {
+        const open = Boolean(globalThis.obsArtifact?.isBarOpen("comments"));
+        if (open === commentsOpen) return;
+        commentsOpen = open;
+        liveShown.forEach((_, key) => arrive(key));
+    });
     // } part live-source
     const renderChapterTables = (
         record, root = chapterBody, staticView = false, respectFilter = true, firstTableFilter = "",
@@ -557,13 +689,20 @@
                     else delete state.passingOpen;
                 },
                 // } part passing-rows
+                // part live-source {
+                live: table.live ? {
+                    status: liveStatus(table.key),
+                    onShow: () => liveShown.get(table.key)?.act?.("allow"),
+                    onRefresh: () => liveShown.get(table.key)?.act?.("refresh"),
+                } : undefined,
+                // } part live-source
                 screenPageBreaks: definition.screenPageBreaks,
                 pagination: definition.pagination,
                 columnSizing: definition.columnSizing,
                 detailFontSize: definition.detailFontSize,
                 hasDetails: (row) => {
                     if (!row.noteId) return false;
-                    const owner = recordsBySlug.get(row.noteId);
+                    const owner = /* part live-source { */ownerOf(row, table.key, /* } part live-source */recordsBySlug.get(row.noteId)/* part live-source { */)/* } part live-source */;
                     if (definition.columnDetails) {
                         return Boolean(owner?.html.trim() || definition.columns.some(
                             column => column.detail && column.hasDetail(row),
@@ -573,7 +712,7 @@
                         (typeof isDocument !== "function" || isDocument(owner));
                 },
                 renderDetails: (row, container, columnKey) => {
-                    const owner = recordsBySlug.get(row.noteId);
+                    const owner = /* part live-source { */ownerOf(row, table.key, /* } part live-source */recordsBySlug.get(row.noteId)/* part live-source { */)/* } part live-source */;
                     if (!owner) throw new Error(`Missing canonical note: ${row.noteId}`);
                     const profile = columnKey === undefined ? undefined
                         : definition.properties?.[columnKey]?.obsHtml?.reference?.metadata;
@@ -628,7 +767,7 @@
                     });
                 },
                 renderOwnerDetails: definition.columnDetails ? (row, container) => {
-                    const owner = recordsBySlug.get(row.noteId);
+                    const owner = /* part live-source { */ownerOf(row, table.key, /* } part live-source */recordsBySlug.get(row.noteId)/* part live-source { */)/* } part live-source */;
                     if (!owner?.html.trim()) return;
                     const content = document.createElement("section");
                     content.className = "data-table-owner-content";
@@ -675,14 +814,26 @@
                         if (!rendered.element.isConnected) {
                             document.removeEventListener("obs-canonical-property-change", refreshRows);
                             document.removeEventListener("obs-artifact-filter", refreshRows);
+                            // part live-source {
+                            document.removeEventListener("obs-table-rows-change", refreshRows);
+                            // } part live-source
                             return;
                         }
                         if (queryProfile.scope === "records" && event.type === "obs-canonical-property-change") return;
+                        // part live-source {
+                        if (event.type === "obs-table-rows-change" && event.detail?.key !== table.key) return;
+                        // } part live-source
                         const refreshed = tableDefinition({...table, definition: state.definition, view: state.view});
                         rendered.setRows(filterTableRows(
-                            searchableRows(refreshed, table.key, refreshed.rows), respectFilter));
+                            searchableRows(refreshed, table.key, refreshed.rows), respectFilter)/* part live-source { */, {baseQuery: refreshed.baseQuery}/* } part live-source */);
+                        // part live-source {
+                        if (table.live) rendered.setLive(liveStatus(table.key));
+                        // } part live-source
                     };
                     document.addEventListener("obs-canonical-property-change", refreshRows);
+                    // part live-source {
+                    if (table.live) document.addEventListener("obs-table-rows-change", refreshRows);
+                    // } part live-source
                     if (queryProfile.scope === "records") {
                         document.addEventListener("obs-artifact-filter", refreshRows);
                     }
@@ -731,6 +882,18 @@
                         } else button.replaceWith(document.createTextNode(button.textContent));
                     });
                     rendered.element.replaceWith(plainTable);
+                    // part live-source {
+                    // The line prints as text, without its button.
+                    const liveLine = table.live && liveStatus(table.key);
+                    if (liveLine?.text) {
+                        const line = document.createElement("p");
+                        line.className = "data-table-live-status";
+                        line.dataset.tableLiveStatus = "";
+                        if (liveLine.warning) line.dataset.warning = "true";
+                        line.textContent = liveLine.text;
+                        plainTable.after(line);
+                    }
+                    // } part live-source
                     // part passing-rows {
                     // A folded table prints its line or its sentence, and an opened one its rows.
                     const passingLine = rendered.element.querySelector(":scope > .data-table-passing");

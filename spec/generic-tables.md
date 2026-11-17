@@ -705,3 +705,117 @@ It also proves that each request's `set` values occur in at least one row (`set`
 logs one console error naming the table, the note path, the check and the field, and turns that
 table's routes off for this page; its saved rows are shown as they are. `obs-html --check-rendered`
 fails on such a page ([[cli]]), so an author runs it after declaring a source.
+
+### Reading
+
+The tables feature's `live-source` part reads a live table's first connector route in Claude's
+artifact viewer only; [[capabilities/live-data]] says what the viewer gives a page and how to
+publish one. A page opened anywhere else, or without `claude`, reads nothing and shows its saved
+rows with no line of its own. A table whose check failed reads nothing either. The web route is a
+later piece's.
+
+`obsLiveData.reader` is the route, with the viewer's namespaces handed in, so it is tested without
+a viewer. Its steps:
+
+- **Reaching the source:** it awaits `claude.use("mcp")` and `claude.use("permissions")`. A `null`
+  from `use("mcp")` leaves the saved rows and adds "newer updates cannot be shown here".
+- **Consent:** it reads `permissions.state("mcp:<server>")`, a rejected read counting as
+  `unavailable`. `granted` reads at once. `prompt` offers the button "Show current data", whose
+  click makes the first call with `callTool`, the one call that asks the viewer; a watch never
+  asks. `denied` adds "current data is turned off for this page". `unavailable` adds "newer
+  updates cannot be shown here". The page never asks by itself.
+- **Read tools only:** once the viewer has allowed the source, `listTools(server)` must report the
+  route's tool with `readOnlyHint: true`; otherwise the tool is not called again on this page.
+- **Pages:** each request's first page is a `watchTool` with `cache {staleTime, gcTime}` both
+  `refreshMinutes` in milliseconds and no `refetchInterval`, its input the request's `input` with
+  `{since}` filled. Later pages follow `next` with `callTool` and the same cache, one after
+  another, up to `maxPages`. A read that stops there while more remain adds "showing the first
+  <n> changes".
+- **Return:** when the page is shown again and its newest read is older than `refreshMinutes`, it
+  unsubscribes its watches and registers them again.
+- **Freshness** is a result's `cache.storedAt`, or else the time it arrived. A result older than
+  the one shown for the same request is dropped. Freshness stays in memory and is never shown.
+- **Refresh:** the table's options hold the key "Check for updates" beside the menu. It reads every
+  request again at once with `callTool` and `cache.refresh`. In `prompt` it does what "Show
+  current data" does; where consent is `denied` or `unavailable`, or `use("mcp")` gave `null`, the
+  key is not shown. It is disabled while a read runs.
+
+Each failure is read by its code:
+
+| Code | Rows | Line adds |
+|---|---|---|
+| `needs_reauth` | saved | "sign in to <name> again in Claude" |
+| `server_not_connected`, `selection_required`, `server_not_found` | saved | "connect <name> in Claude to see current data" |
+| `blocked_by_policy` | saved | "newer updates cannot be shown here", and one notice |
+| `not_in_manifest` | saved | consent read again: `denied` "current data is turned off for this page", else "newer updates cannot be shown here" |
+| `approval_required` | saved | the button again |
+| `not_granted`, `capability_disabled`, `capability_removed` | saved | as a `null` from `use("mcp")` |
+| `rate_limited` with `retryAfterMs` | shown | "<name> asks to wait before the next check"; no call before that time |
+| any other code | shown | after a read, the line reads "Could not check for updates; showing the data read earlier"; else "could not check for updates now" |
+
+A retryable error on a later page is tried once more, after `retryAfterMs` where given. At most
+one notice per page is posted, through `obsNotices.post`, in reader words and only for
+`blocked_by_policy`.
+
+### Projection
+
+Each arrival merges every request's latest items over the saved rows (`merge`), and
+`obsLiveData.project` turns the result into pseudo-notes for that one table key:
+
+- **A matched row** keeps its note's `slug`, `sourcePath`, `title`, marks and expanded text and
+  takes the merged values as its frontmatter. Its `frontmatterHtml` keeps only fields no target
+  maps, sets or derives; a target's entry goes with its flattened children (`labels.0` ...).
+- **A new row** gets a slug no chapter can take, `live~<table key>~<n>`, kept for its path while the
+  page is open, the file name of its path as its title, and as expanded text
+  `renderSafeCanonicalContent` over the nodes `lower` gave.
+- **No editing:** a pseudo-note carries no `editableProperties`, `tables` or `safeContent`.
+
+The page builds each pseudo-note with `makeRecord` and its row with the row builder `noteTableRows`
+uses, so cells, values, label and search text all come from it; a matched row keeps its row key
+`note:<slug>`, so opened rows, collapsed groups and the page stay. A new row's label is text in the
+static view, never a link. Chapters, hover cards, record cards, counts, figures, global facets and
+the page's chapter search keep the canonical notes; reference targets resolve to them too.
+
+- **One owner lookup:** `ownerOf(row, tableKey, canonical)` gives the table's pseudo-note for the
+  row, or `canonical`, the row's canonical note. Every site of tables.js that reads a row's note
+  reads through it.
+- **One selection:** once a projection is active, one compiled filter, the Base's `filters` and the
+  view's together, runs over the population and the new rows, as an edited register's query does,
+  and `setRows(rows, {baseQuery})` hands the mounted table that selection.
+- **Known columns:** the Properties picker and the field catalog come from the build's rows and the
+  declared targets (`set`, `fields`, `derive` and `fillNew`), never from rows read later, so a
+  column a reader adds and saves is known whenever the page reopens.
+- **Arrival:** it bumps the table state's `liveRevision`, so print rebuilds the table, resets the
+  row text cache, calls `setRows` on every mounted instance and dispatches
+  `obs-table-rows-change {key}`. The search index, comments, pages and each mounted table listen to
+  it as to `obs-table-definition-change`, which still means "the reader applied a new query". An
+  arrival waits while a print or an export is being prepared.
+
+### Never saved
+
+Nothing read goes through `stageCanonicalTransaction`, and `readerState` does not change: Download
+HTML and Save reviewed HTML hold the saved rows, byte for byte as without a read, the generation
+timestamp does not move and no changed-HTML notice appears.
+
+While the Comments bar is open, live tables show their saved rows with the line "Showing the saved
+version while comments are open", and return to the current rows when it closes. A comment
+therefore always anchors to saved text, which survives Save reviewed HTML and reopening.
+
+### Status line
+
+Each live table has one line under it, outside its controls, which the static view and print keep
+without the button. `READER_TEXT` in live-data.js holds every text it shows, and
+`obsLiveData.statusLine` composes them from the reader's state. No text of the line holds a date or
+a time, of the page, of its rows or of a read: the owner considers dates private (17 Nov 2026).
+
+- before a read, or without one, the line has no text of its own and takes no space;
+- after a read: "Showing current data";
+- after a later check fails while an earlier read's rows are shown: "Could not check for updates;
+  showing the data read earlier";
+- each further part follows " · "; with nothing before it the line starts with the part, its first
+  letter capitalised, as in "Newer updates cannot be shown here";
+- a table whose check failed shows "Newer updates cannot be shown here".
+
+The line uses `--color-text-muted`, and `--color-warning` where a check failed or the source asks
+for an action. No reader text names a declaration, a connector, a capability or how the page is
+made.

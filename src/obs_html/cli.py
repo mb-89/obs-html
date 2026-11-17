@@ -19,6 +19,7 @@ from obs_html.config import load_config, with_vault_settings
 from obs_html.errors import InputError, Parser, diagnostics, in_vault, vault_naming, warn
 from obs_html.exposure import check_artifact
 from obs_html.figure_svg import document_figures, figure_svg
+from obs_html.live_source import live_publish
 from obs_html import build_time, provenance, serve, verdicts
 from obs_html.render import render
 from obs_html.pdf_links import portable
@@ -331,6 +332,11 @@ def _write_artifact(document: dict, options: argparse.Namespace, config, destina
         if existing is None or not same_artifact_content(artifact, existing):
             _write_if_changed(destination, artifact.encode("utf-8"))
     print(f"Generated {destination}.")
+    publish = live_publish(document)
+    if publish is not None and destination.suffix.lower() != ".pdf":
+        # Publisher words (generic-tables.md, Reading): what to publish with, and who sees the saved rows.
+        print(f"Publish it in Claude's artifact viewer with the capabilities {json.dumps(publish)} for its tables "
+              "to show current data; viewers outside your organization see the saved rows.")
 
 
 def _check_provenance(artifact: str, config, start: Path, digests: bool = False) -> None:

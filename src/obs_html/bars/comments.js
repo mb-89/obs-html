@@ -1220,7 +1220,11 @@
         updateReviewMode();
         repaintHighlights();
     });
-    document.addEventListener("obs-table-definition-change", (event) => {
+    // part live-source {
+    // A live table's rows change its review items as a new query does (generic-tables.md, Projection).
+    let tableRowsChange;
+    // } part live-source
+    document.addEventListener("obs-table-definition-change", /* part live-source { */tableRowsChange = /* } part live-source */(event) => {
         globalThis.obsArtifact.records.forEach((record) => {
             if (record.tables?.some((table) => table.key === event.detail?.key)) {
                 reviewItemsCache.delete(record.slug);
@@ -1231,6 +1235,9 @@
         updateReviewMode();
         globalThis.obsFilter?.refresh();
     });
+    // part live-source {
+    document.addEventListener("obs-table-rows-change", tableRowsChange);
+    // } part live-source
     document.addEventListener("obs-pages-layout", (event) => {
         if (["table-change", "row-details"].includes(event.detail?.reason)) return;
         updateReviewMode();

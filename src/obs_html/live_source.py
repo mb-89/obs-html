@@ -251,3 +251,30 @@ def _url_problem(url: str) -> str | None:
     if secret is not None:
         return f"has the query name {secret!r}, which reads as a credential; a live source carries none"
     return None
+
+
+def _declarations(value: object) -> Iterator[dict]:
+    """Every live-source declaration a Document's Bases carry, in document order."""
+    if isinstance(value, dict):
+        options = value.get("obsHtml")
+        if isinstance(options, dict) and isinstance(options.get("liveSource"), dict):
+            yield options["liveSource"]
+        for item in value.values():
+            yield from _declarations(item)
+    elif isinstance(value, list):
+        for item in value:
+            yield from _declarations(item)
+
+
+def live_publish(document: dict) -> dict | None:
+    """The capability declaration a page with a connector route is published with in Claude's
+    artifact viewer (live-data.md, Reading in Claude's artifact viewer): each route's server once,
+    with every tool its routes call, or None where no Base reads through a connector."""
+    servers: dict[str, list[str]] = {}
+    for declaration in _declarations(document):
+        for route in declaration.get("changes") or []:
+            if isinstance(route, dict) and route.get("provider") == "connector":
+                tools = servers.setdefault(route["server"], [])
+                if route["tool"] not in tools:
+                    tools.append(route["tool"])
+    return {"mcp": {"servers": [{"server": server, "tools": tools} for server, tools in servers.items()]}} if servers else None

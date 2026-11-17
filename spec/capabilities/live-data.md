@@ -89,3 +89,27 @@ declaration fits the rows is told only in the page: after declaring a source, bu
 run `obs-html --check-rendered` on it. A row whose key, note path or derived value the declaration
 does not reproduce fails that check with one console error naming the table, the note, the check
 and the field, and the table keeps its saved rows.
+
+## Reading in Claude's artifact viewer
+
+A connector route is read only in Claude's artifact viewer, through the viewer's own connection to
+the source, after the reader allows it once with the button "Show current data" or in the
+artifact's permissions; [[generic-tables#Reading]] owns the steps. The page carries no token and
+reaches no other host: the viewer blocks every request a page makes itself.
+
+Publish the page with exactly this declaration, one entry per connector route, `server` and `tool`
+as the route names them:
+
+```json
+{"mcp": {"servers": [{"server": "Example Tracker", "tools": ["list_issues"]}]}}
+```
+
+`obs-html` prints it after "Generated ..." for a page that has a connector route. A viewer outside
+the publisher's organization, an artifact opened top-level and a page opened from disk see the
+saved rows; in the viewer the line under the table says "Newer updates cannot be shown here".
+
+### A gap the source leaves
+
+The connector's issue list carries no closed date and no close reason. An issue closed since the
+page was made therefore shows as its `derive` says, `Done` in the example, even when it was closed
+as not planned, until the next build.
