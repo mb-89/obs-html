@@ -733,8 +733,8 @@ def test_a_comment_with_no_verdict_is_sent_and_a_confirmed_send_clears_the_draft
         {"chapter": "record", "version": versions["record"], "comment": "Only a thought."},
         {"chapter": "swipe", "version": versions["swipe"], "verdict": "bless", "comment": "Reads well."}]}
     notice = page.locator('[data-notice="bless-send"]')
-    expect(notice).to_contain_text("Sent 1 verdict and 2 comments to obs-html serve")
-    expect(notice).to_contain_text("answers.json")
+    expect(notice.locator("[data-notice-details]")).to_have_text("1 verdict and 2 comments sent.", use_inner_text=False)
+    assert "answers.json" not in notice.text_content() and "obs-html serve" not in notice.text_content()
     assert page.evaluate(DRAFTS) == {}
     expect(page.locator("[data-bless-pill]")).to_have_text("Blessed · sent")
     assert _typed(page) == ""

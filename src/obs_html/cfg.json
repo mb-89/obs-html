@@ -24,7 +24,8 @@
       "pingPeriodMilliseconds": 250,
       "pingCount": 4,
       "pingScale": 6,
-      "swipePixels": 60
+      "swipePixels": 60,
+      "briefNoticeMilliseconds": 0
     },
     "figureReferences": {
       "conjunctions": ["and", "or", "&", "und", "oder", "sowie"]

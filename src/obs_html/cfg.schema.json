@@ -149,7 +149,8 @@
             "pingPeriodMilliseconds",
             "pingCount",
             "pingScale",
-            "swipePixels"
+            "swipePixels",
+            "briefNoticeMilliseconds"
           ]
         },
         "figureReferences": {
@@ -355,6 +356,13 @@
           "minimum": 30,
           "maximum": 200,
           "description": "On touch, the horizontal distance a swipe covers to walk to the previous or next chapter (artifact-ui.md, Reading shell)."
+        },
+        "briefNoticeMilliseconds": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 60000,
+          "default": 0,
+          "description": "How long the notice center's passing line, such as Send's \"Sent to Claude.\", shows under the top band before it fades (artifact-ui.md, Dock menu: the notice center). 0, the default, keeps the line off: obsNotices.brief does nothing and the notice entry alone says what happened."
         },
         "pingPeriodMilliseconds": {
           "type": "integer",

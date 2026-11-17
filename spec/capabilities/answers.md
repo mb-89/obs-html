@@ -45,7 +45,7 @@ be registered and the text always works.
 ```js
 const result = await obsArtifact.sendAnswers({verdicts: [{chapter: "one", version: "<sha256>", verdict: "bless"},
     {chapter: "two", version: "<sha256>", comment: "Only a thought."}]});
-// result: {sink: "host-save", result} | {sink: "server", written: "answers.json"} | {sink: "text"}
+// result: {sink: "host-save", name: "Claude", result} | {sink: "server", written: "answers.json"} | {sink: "text"}
 ```
 
 Decided by the owner, 11 Nov 2026 (work issue `fix/decision-comments-never-lost-20261111`): sent
@@ -61,9 +61,17 @@ A trusted runtime bundle registers a sink once, after `obsArtifact.registerAppli
 obsArtifact.trustedExtension("obsHtml.answers").register({
     id: "host-save",                 // lowercase letters, digits and hyphens
     send: async payload => save(payload), // its result is the result's result
+    name: "Claude",                  // optional: where the answers go, in the reader's words
 });
 ```
 
+- Name: optional plain text of 1 to 40 characters, without control characters or space at either
+  end, that tells the reader where the answers went ("Sent to Claude."). A malformed name is
+  refused as a malformed id is, naming the remedy. `sendAnswers` returns a registered sink's name
+  as `name` where it gave one; the local server has none.
+- Telling the reader: a bundle tells the reader through the notice center, an entry with
+  `obsNotices.post` or the passing line with `obsNotices.brief`
+  ([[artifact-ui#Dock menu|the notice center]]), never with an element of its own in the top band.
 - Trust: the namespace and its trust rule are those of
   [[capabilities/attachment-replacement#Namespace and trust|attachment replacement]]; without a
   registered bundle `trustedExtension("obsHtml.answers")` throws and names

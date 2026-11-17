@@ -301,8 +301,10 @@ globalThis.obsBless = (() => {
       for (const entry of given) writeSent(entry.chapter, entry);
       for (const entry of answers.verdicts) store(entry.chapter);
       if (answers.verdicts.some(entry => entry.chapter === active)) { comment.value = ""; closeEntry(); }
-      const where = result.sink === "server" ? `obs-html serve, ${result.written}` : `the sink ${result.sink}`;
-      tell("information", "Sent", `Sent ${what} to ${where}.`);
+      // Plain words: where the sink gives its name, it says where; never a file, command or sink id.
+      const brief = globalThis.obsNoticeBrief;
+      tell("information", "Sent", brief.sentRecord(what, result.name));
+      globalThis.obsNotices?.brief(brief.sent(result.name));
       for (const entry of answers.verdicts) document.dispatchEvent(new CustomEvent("obs-bless-change",
         {detail: {chapter: entry.chapter, verdict: null}}));
     } catch (error) {

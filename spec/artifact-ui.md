@@ -1009,6 +1009,9 @@ row order; this section owns how this adapter draws it.
   At 360 px and wider the row holds every control the band shows, fully visible, without
   sideways scrolling. Where the squares at full size do not fit, they all shrink to one size
   that fits; no control is dropped.
+
+  No notice takes a place in the band's row: the notice center's passing line
+  ([[#Dock menu]]) shows under the band, so a control keeps its size and place while it shows.
 - Each table-options icon shows a small, top-right funnel bubble while its interactive
   filter is active, even if it matches every record. Its label/tooltip expose that state.
   The notice center's applied-filter entry is the sole artifact-wide indicator: no
@@ -1138,9 +1141,13 @@ decision in a deck can carry a comment, and a comment the reader typed is never 
   asking chapters, then "✎2", the chapters with a comment, where there is one; its label says
   both ("Send 1 of 2 verdicts and 2 comments"). It is enabled while either count is above none.
 - **Sent means sent:** once the sink confirms ([[capabilities/answers#Contract]]), the sent
-  chapters' drafts are cleared and the notice center says what was sent and where ("Sent 1
-  verdict and 2 comments to obs-html serve, answers.json"). Where the sink fails, or sending is not
-  available on the page, the drafts stay and the notice says so.
+  chapters' drafts are cleared and the notice center's entry says, in plain words, what was sent
+  and, where the sink gives its name, where ("1 verdict and 2 comments sent to Claude.", or "1
+  verdict and 2 comments sent."); it names no file, command or sink id.
+
+  Where the passing line is on, it says the same in short ("Sent to Claude.", or "Sent."). Where
+  the sink fails, or sending is not available on the page, the drafts stay and the notice says so;
+  the passing line is for a confirmed send only.
 
 ## Screens
 
@@ -1961,6 +1968,19 @@ separate from artifact presentation.
   Notices are transient UI, not printed
   content or a dirty warning embedded into a newly reopened saved HTML. The entries, icons
   and layout are owned by obs-html's `notices.js`, not repeated here.
+
+  Besides the entries, the notice center has one passing line, `obsNotices.brief(text)`, for a
+  short confirmation such as Send's: plain text directly under the [[#Reading shell|top band]], as
+  wide as the band's content and no wider, wrapping onto more lines where it needs them, never
+  covering the band's controls or what opens from them.
+
+  The line fades after `artifact.reading.briefNoticeMilliseconds` (`cfg.json`) and then leaves the
+  layout and the accessibility tree; a new line replaces the shown one and restarts its time, and
+  with reduced motion it goes without the fade. It is transient and never printed.
+
+  Where a figure overlay holds the notice icons, the line shows there with them. The setting's
+  default, 0, keeps the line off: `brief` does nothing and the entry alone says what happened. The
+  entry stays the record of what the line said.
 
   The changed-HTML information entry is present whenever the artifact holds a
   [[#What counts as a change|change]] since the last confirmed saved snapshot. It says that this HTML has changed, and its

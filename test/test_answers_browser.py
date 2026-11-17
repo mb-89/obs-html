@@ -127,3 +127,32 @@ def test_elsewhere_the_answers_are_shown_as_text_with_a_copy_key(tmp_path: Path,
     expect(notice.locator("[data-answers-text]")).to_be_visible()
     assert json.loads(notice.locator("[data-answers-text]").text_content()) == PAYLOAD
     expect(notice.locator("[data-answers-copy]")).to_have_text("Copy answers")
+
+
+NAMED = """globalThis.received = [];
+globalThis.obsArtifact.trustedExtension("obsHtml.answers").register({id: "host-save", name: "Claude",
+    send: async payload => { globalThis.received.push(payload); return "saved by the host"; }});"""
+REGISTER = """(name) => { try { globalThis.obsArtifact.trustedExtension("obsHtml.answers")
+    .register({id: "host-save", name, send: () => null}); return "registered"; }
+    catch (error) { return error.message; } }"""
+
+
+def test_a_named_sink_gives_its_name_in_the_result(tmp_path: Path, reader_browser) -> None:
+    """Requirement 4: a registered sink's name, the reader's words for where the answers go, comes
+    back with the sink's confirmation."""
+    page = _open(reader_browser, _write(tmp_path, artifact_html(with_bless(), trusted_runtime=(
+        "sink-v1", APPLICATION + NAMED))).as_uri())
+    assert page.evaluate(SEND, PAYLOAD) == {"sink": "host-save", "name": "Claude", "result": "saved by the host"}
+
+
+@pytest.mark.parametrize("name", ["", " Claude", "x" * 41, "Two\nlines", 7], ids=[
+    "empty", "padded", "too-long", "control", "number"])
+def test_a_malformed_sink_name_is_refused_with_its_remedy(tmp_path: Path, reader_browser, name) -> None:
+    """Requirement 4: a name that is not plain text of 1 to 40 characters is refused, as a malformed
+    id is: the message names the extension, register's name and the remedy."""
+    page = _open(reader_browser, _write(tmp_path, artifact_html(with_bless(), trusted_runtime=(
+        "sink-v1", APPLICATION))).as_uri())
+    refused = page.evaluate(REGISTER, name)
+    assert refused.startswith("Trusted extension obsHtml.answers: register: name"), refused
+    assert "; " in refused, refused  # The remedy follows what is wrong.
+    assert page.evaluate(REGISTER, "Claude") == "registered"

@@ -21,6 +21,11 @@
         return served ? `${location.origin}${location.pathname}${location.search}` : null;
     };
 
+    // Pure: whether a sink's name is plain text for the reader, 1 to 40 characters with no control
+    // character and no space at either end (answers.md, Contract: Name).
+    const readerName = name => typeof name === "string" && name.length >= 1 && name.length <= 40 &&
+        name.trim() === name && !/[\u0000-\u001f\u007f-\u009f]/.test(name);
+
     const create = ({trusted}) => {
         if (typeof trusted !== "function") throw new TypeError(`Trusted extension ${namespace} needs the trust owner.`);
         if (!trusted()) {
@@ -28,16 +33,21 @@
                 "build it with --trusted-runtime-bundle ID=PATH and call the extension from that bundle.");
         }
         return Object.freeze({
-            register({id, send} = {}) {
+            register({id, send, name} = {}) {
                 if (typeof id !== "string" || !/^[a-z][a-z0-9-]{0,63}$/.test(id) || typeof send !== "function") {
                     throw new Error(`Trusted extension ${namespace}: register takes {id, send}, id of lowercase ` +
                         "letters, digits and hyphens and send(payload) a function; correct the bundle's call.");
+                }
+                if (name !== undefined && !readerName(name)) {
+                    throw new Error(`Trusted extension ${namespace}: register: name is ${JSON.stringify(name)}, not ` +
+                        "plain text of 1 to 40 characters for the reader; give a short name such as \"Claude\", " +
+                        "or leave it out, and correct the bundle's call.");
                 }
                 if (registered) {
                     throw new Error(`Trusted extension ${namespace}: sink ${registered.id} is registered already; ` +
                         "a page has one sink, so register it once.");
                 }
-                registered = Object.freeze({id, send});
+                registered = Object.freeze({id, send, ...(name === undefined ? {} : {name})});
             },
         });
     };
@@ -112,7 +122,8 @@
             if (registered) {
                 const sink = registered;
                 try {
-                    return {sink: sink.id, result: await sink.send(structuredClone(payload))};
+                    const result = await sink.send(structuredClone(payload));
+                    return {sink: sink.id, ...(sink.name ? {name: sink.name} : {}), result};
                 } catch (error) {
                     throw failure(`registered sink ${sink.id}`, `send failed (${error?.message || error})`,
                         "Fix the trusted bundle's sink, or copy the answers shown");
@@ -125,5 +136,5 @@
         }
     };
 
-    return Object.freeze({namespace, create, send, server});
+    return Object.freeze({namespace, create, send, server, readerName});
 });
