@@ -251,3 +251,44 @@ def test_a_whole_note_self_link_scrolls_back_to_its_heading(tmp_path: Path, read
     assert frame.evaluate(HEADING_IN_VIEW) == at_heading
     assert frame.locator("[data-floating-window]:visible").count() == 0
     assert errors == []
+
+
+# The active chapter's heading entries in the contents, its collapsible headings, and the text of its
+# shown copies (artifact-ui.md, Content sections).
+CHAPTER_HEADINGS = """async (slug) => {
+    obsPages.setPaged(false);
+    await obsArtifact.activateChapter(slug);
+    await obsArtifact.whenChapterReady();
+    const body = document.querySelector("[data-chapter-body]");
+    return {
+        contents: [...document.querySelectorAll(`[data-toc-tree] a[href^="#${slug}/"]`)]
+            .map((link) => link.getAttribute("href")),
+        collapsible: [...body.querySelectorAll("[data-heading-toggle]")].map((button) => button.dataset.label),
+        copies: [...body.querySelectorAll("div.embed")].map((copy) => copy.textContent.replace(/\\s+/g, " ").trim()),
+    };
+}"""
+
+
+def test_a_shown_section_adds_no_heading_to_its_embedding_chapter(tmp_path: Path, reader_browser) -> None:
+    """m1 with and without an embed of vision's section Pitch, whose heading has a subheading:
+    the copy shows, and m1's contents and collapsible headings are the same."""
+    def built(*shown: dict) -> str:
+        pitch = [{**heading(2, "Pitch"), "id": "section-pitch"}, paragraph("For owners."),
+                 {**heading(3, "Detail"), "id": "section-detail"}, paragraph("Detail of the pitch.")]
+        return artifact_html(document(
+            "Shown", chapter("m1", "Milestone 1", heading(1, "Milestone 1"), heading(2, "Own"), paragraph("Own."),
+                             *shown, heading(2, "Next"), paragraph("Next.")),
+            chapter("vision", "Vision", heading(1, "Vision"), *pitch)))
+
+    embed = {"type": "embeds", "attrs": {"target": "vision", "chapter": "vision", "heading": "Pitch",
+                                         "block": "section-pitch"}, "children": []}
+    seen = []
+    for artifact in (built(), built(embed)):
+        errors: list[str] = []
+        _page, frame = open_viewer(tmp_path, reader_browser, errors, artifact, "light")
+        seen.append(frame.evaluate(CHAPTER_HEADINGS, "m1"))
+        assert errors == []
+    without, shown = seen
+    assert without["copies"] == [] and shown["copies"] == ["Pitch For owners. Detail Detail of the pitch. Vision"]
+    assert shown["contents"] == without["contents"] == ["#m1/own", "#m1/next"]
+    assert shown["collapsible"] == without["collapsible"] == ["Own", "Next"]

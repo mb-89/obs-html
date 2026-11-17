@@ -271,6 +271,15 @@ def _options_menu(model: dict, trusted_runtime: bool) -> bool:
     return _tables(model, trusted_runtime) or _figures(model, trusted_runtime)
 
 
+SHOWN_COPY = '<div class="embed" data-embed-chapter="'
+"""The opening of the element render.py's _embed writes for a block or section embed shown in place."""
+
+
+def _shown_copies(model: dict, _trusted_runtime: bool) -> bool:
+    """A note shows a copy of a block or section (render.py, _embed; artifact-ui.md, Content sections)."""
+    return any(SHOWN_COPY in note["html"] for note in model["notes"])
+
+
 def _cards(model: dict, trusted_runtime: bool) -> bool:
     """Record cards, or a quantity note that counts by a query (cards.js)."""
     return _marked("data-record-cards")(model, trusted_runtime) or any(
@@ -354,6 +363,11 @@ FEATURES: tuple[Feature, ...] = (
             elements=("cards-script",), host=False, base_styles=("cards.css",)),
     Feature("property-editor", "a property editor", _marked("data-property-editor"),
             elements=("property-editor-script",), host=False),
+    Feature("shown-copies", "a block or section embed shown in place (obs capabilities/embeds); it has nothing "
+            "of its own, only its part", _shown_copies, host=False, parts=(
+                Part("shown-copy", "a block or section embed shown in place: the copy's rules in the structural "
+                     "styles, and its headings left out of the embedding chapter's collapsible sections and of "
+                     "its comment sections (artifact-ui.md, Content sections)", _shown_copies, ()),)),
     Feature("columns", "a two-column block (obs capabilities/columns): its side-by-side and stacking rules",
             _marked("data-content-columns"), host=False, base_styles=("columns.css",)),
     Feature("source-file", "a note with a Source file row (artifact.sourceFileLinks): the frontmatter table's "

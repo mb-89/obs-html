@@ -2389,6 +2389,23 @@ change since it was opened or last saved.
 - Collapsing a heading hides its content through the next heading of the same or higher
   level while preserving nested section state.
 - Section controls default to expanded and do not affect the Markdown source.
+- An embed of a block or a section (obs capabilities/embeds, Block and section embeds) shows
+  it in place: an `embeds` node with `block` renders as one `div` of class `embed`, with
+  `data-embed-chapter` and `data-embed-block`. It holds the shown nodes as their own chapter
+  renders them, then a quiet link to where they live, titled by the note's title: for a block
+  (`^name`), the block link `#<chapter>/block-<name>`, and the block then carries its anchor, as
+  the target of a block link does; for a section, the heading link `#<chapter>/<heading anchor>`.
+  A link inside the shown nodes goes where it goes in its own chapter. Where the adapter renders
+  an embed inline, in a field value or a table cell, it renders the link alone. A node without
+  `block` renders as before: a whole-note embed is a link to its chapter.
+- The copy is no second original. Inside the `div` no element carries `data-node-id`, an `id`, a
+  heading anchor or a mark anchor, so comments, links and the contents reach the block where it
+  lives. A heading in the copy is no collapsible section of the embedding chapter, no section of
+  its comments, and not in its contents. A figure in the copy keeps the number it has where it
+  lives. A mark in the copy adds no second entry to the page's marks.
+- The paged view and the PDF show the copy as the screen does.
+- A Document whose embed names a `block` its `chapter` lacks, or whose embeds show each other, is
+  refused as a stale Document is, naming the node.
 
 ## Accessibility
 

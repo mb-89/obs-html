@@ -754,7 +754,8 @@ def features(root: Path) -> None:
     sweep reads beside pages, for screens; a note outside the reading order,
     opened as context, needs popups; the plot figure needs plotting, the Sankey figure sankey, the
     timeline figure timeline, the equation figure equations and the decision figure pugh; the prose chapter, with the decision figure, asks for a
-    bless, which needs answers and bless; the overview's two-column block needs columns. Its chapters also hold what those checks read in obs's spec: prose with
+    bless, which needs answers and bless; the overview's two-column block needs columns, and its block
+    embed of the aside's paragraph shown-copies. Its chapters also hold what those checks read in obs's spec: prose with
     links, marks, an image, a callout and nested headings; a paged table of notes outside the contents,
     whose second view lists a kind no row has, for empty-groups, whose third folds its passing rows,
     for passing-rows, and whose fourth opens a row with only its rank, for detail-fields; a second table,
@@ -771,8 +772,8 @@ def features(root: Path) -> None:
         "- [[prose]]\n- [[references]]\n", encoding="utf-8")
     (root / "overview.md").write_text(
         "# Overview\n\nEvery reader feature once: [[figures]], [[tables]], [[prose]] and an "
-        "[[aside]] outside the reading order.\n\n||| 1:2\nA claim.\n|||\nIts evidence.\n|||\n", encoding="utf-8")
-    (root / "aside.md").write_text("# Aside\n\nA note a link opens as context.\n", encoding="utf-8")
+        "[[aside]] outside the reading order.\n\n![[aside#^aside-note]]\n\n||| 1:2\nA claim.\n|||\nIts evidence.\n|||\n", encoding="utf-8")
+    (root / "aside.md").write_text("# Aside\n\nA note a link opens as context. ^aside-note\n", encoding="utf-8")
     (root / "drawing.svg").write_text(GALLERY_SVG, encoding="utf-8")
     (root / "figures.md").write_text(
         "# Figures\n\n## Image\n\n```figure\nversion: 1\nkind: image\ncaption: The image figure.\nsource: drawing.svg\n```\n"

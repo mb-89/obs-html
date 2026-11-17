@@ -821,7 +821,7 @@
         let headings = [];
         let headingIndex = 0;
         root.querySelectorAll("h1, h2, h3, h4, h5, h6, p, li, tr, pre, figure").forEach((element) => {
-            if (/^H[1-6]$/.test(element.tagName)) {
+            if (/^H[1-6]$/.test(element.tagName)/* part shown-copy { */ && !element.closest("div.embed")/* } part shown-copy */) {
                 const level = Number(element.tagName.slice(1));
                 headings = headings.filter((heading) => heading.level < level);
                 headings.push({key: `heading-${headingIndex++}`, level});

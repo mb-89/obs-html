@@ -109,6 +109,13 @@ class Context:
     """The number of each figure with a block id, by chapter and block id, "" for none."""
     block_targets: set[tuple[str, str]] = field(default_factory=set)
     """The chapter and block id of each block link's target (_block_targets)."""
+    contents: dict[str, tuple[list[dict[str, object]], list[object]]] = field(default_factory=dict)
+    """Each chapter's content and its path in the Document, by chapter id, the home page's as home."""
+    inline: bool = False
+    """Whether the node being rendered sits in a field value or a table cell, where an embed of a
+    block or section renders its link alone (artifact-ui, Content sections)."""
+    showing: list[tuple[str, str]] = field(default_factory=list)
+    """The chapter and block of each embed whose copy is being rendered, outermost first."""
     conjunctions: tuple[str, ...] = ()
     """The words that may separate merged figure references (cfg.json artifact.figureReferences)."""
     bordered_tags: tuple[str, ...] = ()
@@ -160,7 +167,7 @@ def _frontmatter(node: dict[str, object], context: Context) -> str:
     fields = context.fields[context.chapter or HOME] = {}
     for index, child in enumerate(node["children"]):
         if child["type"] == "field":
-            with _at(context, "children", index):
+            with _at(context, "children", index), _inlined(context):
                 fields[child["attrs"]["name"]] = _nodes(child["children"], context)
     return ""
 
@@ -310,14 +317,126 @@ def _check_series(series: dict[str, object], context: Context) -> None:
 
 def _embed(node: dict[str, object], context: Context) -> str:
     """An embedded note links to its chapter, titled like an unaliased wikilink; an embedded
-    file (one that names a Document asset) renders like an attachment."""
+    file (one that names a Document asset) renders like an attachment. An embed of a block or a
+    section (one with ``block``) shows a copy of it (_shown_copy), or its link alone in a field
+    value or a table cell."""
     target, chapter = node["attrs"]["target"], node["attrs"]["chapter"]
     if "asset" in node["attrs"]:
         identifier = node["attrs"]["asset"]
         return _file(_document_asset(identifier, context), "", context)
     if chapter is None:
         return f'<span class="unresolved embed" title="{escape(target, quote=True)}">{escape(target)}</span>'
-    return f'<a class="internal-link embed" href="#{chapter}">{escape(_chapter_title(chapter, context))}</a>'
+    title = escape(_chapter_title(chapter, context))
+    if "block" not in node["attrs"]:
+        return f'<a class="internal-link embed" href="#{chapter}">{title}</a>'
+    link = f'<a class="internal-link embed" href="{_embed_href(node["attrs"], context)}">{title}</a>'
+    if context.inline or context.phrasing:
+        return link
+    return (f'<div class="embed" data-embed-chapter="{escape(chapter, quote=True)}" '
+            f'data-embed-block="{escape(node["attrs"]["block"], quote=True)}">\n'
+            f'{_shown_copy(node, context)}<p class="embed-source">{link}</p>\n</div>\n')
+
+
+def _embed_href(attrs: dict[str, object], context: Context) -> str:
+    """Where a block or section embed's copy lives: the block link of a ``^name``, else the heading
+    link of its heading."""
+    chapter, heading = attrs["chapter"], attrs["heading"]
+    if heading.startswith("^"):
+        return f"#{chapter}/block-{escape(heading[1:], quote=True)}"
+    return _internal_href(chapter, heading, context)
+
+
+COPY_IDS = re.compile(r'(<[A-Za-z][^<>]*?)\s(?:id|data-node-id)="[^"]*"')
+"""An id or a core id on an element of a shown copy, which names the block where it lives instead."""
+
+
+def _shown_copy(node: dict[str, object], context: Context) -> str:
+    """The nodes a block or section embed shows, rendered as their own chapter renders them, with no
+    id, anchor or mark entry of their own (artifact-ui, Content sections). A Document whose embed
+    names a block its chapter lacks, or whose embeds show each other, is refused as stale."""
+    chapter, block = node["attrs"]["chapter"], node["attrs"]["block"]
+    content, where = context.contents.get(chapter, ([], []))
+    located = _located(content, block, where)
+    if located is None:
+        raise _stale(context, ["attrs", "block"], f"names the block {block!r}, which chapter {chapter!r} "
+                     "of the Document does not contain")
+    if (chapter, block) in context.showing:
+        raise _stale(context, ["attrs", "block"], f"shows the block {block!r} of chapter {chapter!r}, "
+                     "whose copy shows this embed again: the Document's embeds show each other")
+    siblings, index, path = located
+    shown = _section_nodes(siblings, index) if siblings[index]["type"] == "section" else [siblings[index]]
+    outer = (context.chapter, context.where, context.figure_position, context.marks)
+    context.chapter, context.marks = "" if chapter == HOME else chapter, []
+    context.figure_position = _figures_before(content, shown[0])
+    context.where = path
+    context.showing.append((chapter, block))
+    try:
+        html = "".join(_child_at(context, at, child) for at, child in enumerate(shown, index))
+    finally:
+        context.showing.pop()
+        context.chapter, context.where, context.figure_position, context.marks = outer
+    while COPY_IDS.search(html):
+        html = COPY_IDS.sub(r"\1", html)
+    return html
+
+
+def _child_at(context: Context, index: int, node: dict[str, object]) -> str:
+    with _at(context, index):
+        return _node(node, context)
+
+
+def _located(nodes: list[dict[str, object]], block: str, where: list[object]
+             ) -> tuple[list[dict[str, object]], int, list[object]] | None:
+    """The sibling list, index and Document path of that list of the block node with id ``block``."""
+    for index, node in enumerate(nodes):
+        if node.get("id") == block:
+            return nodes, index, where
+        if node["type"] in COPY_CONTAINERS:
+            found = _located(node["children"], block, [*where, index, "children"])
+            if found:
+                return found
+    return None
+
+
+COPY_CONTAINERS = frozenset({"list", "list-item", "quote", "callouts", "table", "cards-metrics", "document", "columns"})
+"""The block nodes whose children are blocks in turn, where a shown block may sit (obs node_ids.py, CONTAINERS)."""
+
+
+def _section_nodes(siblings: list[dict[str, object]], index: int) -> list[dict[str, object]]:
+    """A heading and the blocks after it, up to the next heading of the same or a higher level."""
+    def level(node: dict[str, object]) -> int:
+        return int(node["attrs"].get("level", 1))
+    end = next((at for at in range(index + 1, len(siblings)) if siblings[at]["type"] == "section"
+                and level(siblings[at]) <= level(siblings[index])), len(siblings))
+    return siblings[index:end]
+
+
+def _figures_before(nodes: list[dict[str, object]], first: dict[str, object]) -> int:
+    """How many figures its chapter renders before ``first``, so a copied figure keeps its number."""
+    count = 0
+
+    def walk(items: list[dict[str, object]]) -> bool:
+        nonlocal count
+        for item in items:
+            if item is first:
+                return True
+            if item["type"] == "figures":
+                count += 1
+            elif walk(item["children"]):
+                return True
+        return False
+    walk(nodes)
+    return count
+
+
+@contextmanager
+def _inlined(context: Context) -> Iterator[None]:
+    """Render a field value or a table cell, where an embed of a block or section is its link alone."""
+    outer, context.inline = context.inline, True
+    try:
+        yield
+    finally:
+        context.inline = outer
 
 
 def _attachment(node: dict[str, object], context: Context) -> str:
@@ -1023,6 +1142,8 @@ def _model(document: dict[str, object], config: Config, context: Context, built:
     context.conjunctions = tuple(config.artifact["figureReferences"]["conjunctions"])
     _number_figures(document["chapters"], context)
     context.block_targets = set(_block_targets(document))
+    context.contents = {HOME: (manifest.get("abstract", []), ["manifest", "abstract"]),
+                        **_contents(document["chapters"], ["chapters"])}
     settings = config.artifact
     context.bordered_tags = tuple(settings["borderedTags"])
     title = manifest["title"]
@@ -1199,7 +1320,7 @@ def _attach_records(records: list[dict[str, object]], notes: list[dict[str, obje
         rendered = context.fields.setdefault(record["id"], {})  # A chapter's frontmatter node rendered first.
         for index, child in enumerate(record.get("fieldNodes", [])):
             if child["attrs"]["name"] not in rendered:
-                with _at(context, "records", position, "fieldNodes", index):
+                with _at(context, "records", position, "fieldNodes", index), _inlined(context):
                     rendered[child["attrs"]["name"]] = _nodes(child["children"], context)
         source_path = record.get("path") or f"{record['id']}.md"
         if note is not None and record.get("ignored"):
@@ -1303,7 +1424,7 @@ def _identified(node: dict[str, object], html: str, context: Context) -> str:
     that a block link targets also carries its anchor, on an empty span where the element has an
     id already, as a heading does (artifact-ui, Figures)."""
     tag = REVIEW_ELEMENTS.get(node["type"])
-    if tag is None or "id" not in node:
+    if tag is None or "id" not in node or context.showing:  # A shown copy names no block (_shown_copy).
         return html
     chapter = context.chapter or HOME
     anchor = (escape(f"{chapter}--block-{node['id']}", quote=True)
@@ -1317,6 +1438,16 @@ def _identified(node: dict[str, object], html: str, context: Context) -> str:
     return re.sub(rf"<{tag}(?=[\s>])[^>]*", identify, html, count=1)
 
 
+def _contents(chapters: list[dict[str, object]], where: list[object]
+              ) -> dict[str, tuple[list[dict[str, object]], list[object]]]:
+    """Each chapter's content and its path in the Document, its children's included."""
+    found = {}
+    for index, chapter in enumerate(chapters):
+        found[chapter["id"]] = (chapter["content"], [*where, index, "content"])
+        found.update(_contents(chapter["children"], [*where, index, "children"]))
+    return found
+
+
 def _block_targets(value: object) -> Iterator[tuple[str, str]]:
     """The chapter and block id of every resolved block link in ``value``, a Document or part of one."""
     if isinstance(value, list):
@@ -1324,6 +1455,9 @@ def _block_targets(value: object) -> Iterator[tuple[str, str]]:
             yield from _block_targets(item)
     elif isinstance(value, dict):
         if value.get("type") == "wikilinks" and "block" in value.get("attrs", {}) and value["attrs"]["chapter"]:
+            yield value["attrs"]["chapter"], value["attrs"]["block"]
+        elif (value.get("type") == "embeds" and value.get("attrs", {}).get("heading", "").startswith("^")
+              and "block" in value["attrs"] and value["attrs"]["chapter"]):  # Its copy links to the block.
             yield value["attrs"]["chapter"], value["attrs"]["block"]
         for item in value.values():
             yield from _block_targets(item)
@@ -1384,7 +1518,8 @@ def _table_cell(node: dict[str, object], context: Context) -> str:
     tag = "th" if node["attrs"].get("header") else "td"
     align = node["attrs"].get("align")
     style = f' style="text-align:{escape(str(align), quote=True)}"' if align else ""
-    return f"<{tag}{style}>{_nodes(node['children'], context)}</{tag}>"
+    with _inlined(context):
+        return f"<{tag}{style}>{_nodes(node['children'], context)}</{tag}>"
 
 
 MATH_ERRORS = tuple(error for error in vars(math_exceptions).values()
@@ -1408,8 +1543,9 @@ def _math(node: dict[str, object], context: Context) -> str:
 
 def _field(node: dict[str, object], context: Context) -> str:
     """A frontmatter field outside its frontmatter node (which renders it in the panel): its text."""
-    return (f'<span class="frontmatter-field" data-field="{escape(node["attrs"]["name"], quote=True)}">'
-            f"{_nodes(node['children'], context)}</span>")
+    with _inlined(context):
+        return (f'<span class="frontmatter-field" data-field="{escape(node["attrs"]["name"], quote=True)}">'
+                f"{_nodes(node['children'], context)}</span>")
 
 
 def _unknown(node: dict[str, object], context: Context) -> str:

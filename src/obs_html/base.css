@@ -328,7 +328,26 @@ a:focus-visible {
     color: var(--color-text-muted);
     margin-inline: 0;
     padding-inline-start: 1rem;
+}/* part shown-copy { */
+
+/* A block or section embed shown in place (artifact-ui.md, Content sections): the copy reads as
+   its own chapter renders it, set off by a quiet rule, and ends with a small link to where it
+   lives; screen, the paged view and the PDF show it alike. */
+div.embed {
+    border-inline-start: 0.2rem solid var(--color-border);
+    margin-block: 1rem;
+    padding-inline-start: 1rem;
 }
+
+div.embed > .embed-source {
+    font-size: 0.875em;
+    margin-block: 0.25rem 0;
+    text-align: end;
+}
+
+div.embed > .embed-source a {
+    color: var(--color-text-muted);
+}/* } part shown-copy */
 
 .content-card {
     background: var(--color-accent-soft);

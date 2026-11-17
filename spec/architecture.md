@@ -113,7 +113,10 @@ at a change's base and at its head this way and names, with that comparison, eac
 the same and what changed in the others.
 
 A part may instead turn on with what the Document asks for, as `empty-groups` of the tables
-feature does with a view's `obsHtml.showEmptyGroups`. Its regions may also sit in the scripts,
+feature does with a view's `obsHtml.showEmptyGroups`. The `shown-copies` feature (a block or section
+embed shown in place, [[artifact-ui#Content sections]]) has nothing of its own but its part of the
+same name, whose regions sit in `base.css`, `artifact.js` and the Comments bar's script; they ship
+only on a page that shows a copy, so a page without one is byte for byte what it was. Its regions may also sit in the scripts,
 stylesheets and schema the renderer embeds whole (`base.js`, `table.js`, the structural styles,
 `base.schema.json`), which it strips the same way. JSON has no comments, so a schema property of
 a part is one line of its own whose value carries `"$comment": "part <key>"`, removed where the

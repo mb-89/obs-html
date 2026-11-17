@@ -188,6 +188,17 @@
           "id": "paragraph-4b8c420c"
         },
         {
+          "type": "embeds",
+          "attrs": {
+            "target": "aside",
+            "chapter": "aside",
+            "heading": "^aside-note",
+            "block": "aside-note"
+          },
+          "children": [],
+          "id": "embeds-47e55ac6"
+        },
+        {
           "type": "columns",
           "attrs": {
             "weights": [
@@ -2043,7 +2054,7 @@
               "text": "A note a link opens as context."
             }
           ],
-          "id": "paragraph-f462740a"
+          "id": "aside-note"
         }
       ],
       "children": [],
@@ -5973,6 +5984,7 @@
     "chapter-inclusion",
     "columns",
     "count-query",
+    "embeds",
     "equation-figures",
     "figure-descriptor",
     "figures",
@@ -5995,7 +6007,7 @@
     "files": [
       {
         "path": "aside.md",
-        "data": "IyBBc2lkZQoKQSBub3RlIGEgbGluayBvcGVucyBhcyBjb250ZXh0Lgo="
+        "data": "IyBBc2lkZQoKQSBub3RlIGEgbGluayBvcGVucyBhcyBjb250ZXh0LiBeYXNpZGUtbm90ZQo="
       },
       {
         "path": "counts/items.md",
@@ -6143,7 +6155,7 @@
       },
       {
         "path": "overview.md",
-        "data": "IyBPdmVydmlldwoKRXZlcnkgcmVhZGVyIGZlYXR1cmUgb25jZTogW1tmaWd1cmVzXV0sIFtbdGFibGVzXV0sIFtbcHJvc2VdXSBhbmQgYW4gW1thc2lkZV1dIG91dHNpZGUgdGhlIHJlYWRpbmcgb3JkZXIuCgp8fHwgMToyCkEgY2xhaW0uCnx8fApJdHMgZXZpZGVuY2UuCnx8fAo="
+        "data": "IyBPdmVydmlldwoKRXZlcnkgcmVhZGVyIGZlYXR1cmUgb25jZTogW1tmaWd1cmVzXV0sIFtbdGFibGVzXV0sIFtbcHJvc2VdXSBhbmQgYW4gW1thc2lkZV1dIG91dHNpZGUgdGhlIHJlYWRpbmcgb3JkZXIuCgohW1thc2lkZSNeYXNpZGUtbm90ZV1dCgp8fHwgMToyCkEgY2xhaW0uCnx8fApJdHMgZXZpZGVuY2UuCnx8fAo="
       },
       {
         "path": "prose.md",

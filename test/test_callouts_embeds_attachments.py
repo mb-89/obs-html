@@ -17,7 +17,7 @@ from obs_html.render import render
 from obs_html.artifact_data import decode_artifact_data
 
 from conftest import PIXEL
-from documents import chapter, document as build, node, paragraph, text, without_node_ids
+from documents import chapter, document as build, heading, node, paragraph, text, without_node_ids
 
 
 CONFIG = load_config()
@@ -211,3 +211,112 @@ def test_callout_tones_are_distinct_titled_cards_in_the_reader(tmp_path, reader_
         assert len({card["fill"] for card in cards}) == len(kinds)
         assert all(card["titleColor"] == card["border"] for card in cards)
     assert errors == []
+
+
+def _identified(block: dict, identifier: str) -> dict:
+    """``block`` with the core id the core's node_ids gives it."""
+    return {**block, "id": identifier}
+
+
+VISION = (
+    _identified(heading(1, "Vision"), "section-title"),
+    _identified(paragraph("The statement, see ", node("wikilinks", target="", chapter="vision", heading="Pitch",
+                                                       label="Pitch"), "."), "statement"),
+    _identified(heading(2, "Pitch"), "section-pitch"),
+    _identified(paragraph("For owners."), "paragraph-owners"),
+    _identified(heading(3, "Detail"), "section-detail"),
+    _identified(paragraph("Detail of the pitch."), "paragraph-detail"),
+    _identified(heading(2, "Later"), "section-later"),
+    _identified(paragraph("Not part of the pitch."), "paragraph-later"),
+)
+
+
+def _embed(fragment: str, block: str) -> dict:
+    return node("embeds", target="vision", chapter="vision", heading=fragment, block=block)
+
+
+def _embedding(*content: dict, vision: tuple[dict, ...] = VISION) -> dict:
+    """Each note's html, of a Document whose chapter one holds ``content`` and whose chapter vision ``vision``."""
+    document = build("Doc", chapter("one", "One", _identified(heading(1, "One"), "section-one"), *content),
+                     chapter("vision", "Vision", *vision))
+    return {note["slug"]: note for note in decode_artifact_data(render(document, CONFIG))["notes"]}
+
+
+def _copies(html: str) -> list[str]:
+    return re.findall(r'<div class="embed" .*?\n</div>\n', html, re.S)
+
+
+def test_a_block_embed_shows_the_block_and_links_to_where_it_lives() -> None:
+    notes = _embedding(_embed("^statement", "statement"))
+
+    assert _copies(notes["one"]["html"]) == [
+        '<div class="embed" data-embed-chapter="vision" data-embed-block="statement">\n'
+        '<p>The statement, see <a class="internal-link" href="#vision/pitch">Pitch</a>.</p>\n'
+        '<p class="embed-source"><a class="internal-link embed" href="#vision/block-statement">Vision</a></p>\n'
+        '</div>\n']
+    # Where it lives, the block carries its anchor, as the target of a block link does.
+    assert '<p data-node-id="statement" id="vision--block-statement">' in notes["vision"]["html"]
+
+
+def test_a_section_embed_shows_its_heading_up_to_the_next_of_its_level() -> None:
+    [copy] = _copies(_embedding(_embed("Pitch", "section-pitch"))["one"]["html"])
+
+    assert copy == (
+        '<div class="embed" data-embed-chapter="vision" data-embed-block="section-pitch">\n'
+        '<h2>Pitch</h2>\n<p>For owners.</p>\n<h3>Detail</h3>\n<p>Detail of the pitch.</p>\n'
+        '<p class="embed-source"><a class="internal-link embed" href="#vision/pitch">Vision</a></p>\n</div>\n')
+
+
+def test_links_in_a_shown_block_go_where_they_go_in_its_chapter() -> None:
+    [copy] = _copies(_embedding(_embed("^statement", "statement"))["one"]["html"])
+
+    assert re.findall(r'href="([^"]+)"', copy) == ["#vision/pitch", "#vision/block-statement"]
+
+
+def test_a_shown_copy_carries_no_id_and_no_anchor() -> None:
+    marked = _identified(paragraph("Marked. ", node("marks", category="risk", id="watch")), "marked")
+    linked = paragraph(node("wikilinks", target="vision", chapter="vision", heading="^statement",
+                            label="Vision > ^statement", block="statement"))
+    vision = (*VISION[:3], marked, *VISION[3:])
+    notes = _embedding(_embed("Pitch", "section-pitch"), linked, vision=vision)
+    [copy] = _copies(notes["one"]["html"])
+
+    assert "Marked." in copy and "<h2>Pitch</h2>" in copy
+    assert not re.search(r'\s(?:id|data-node-id)="', copy)
+    assert notes["one"]["marks"] == []  # The mark has its one entry where it lives.
+    assert [mark["anchor"] for mark in notes["vision"]["marks"]] == ["mark-vision-risk-watch"]
+
+
+def test_a_block_embed_in_a_table_cell_is_its_link_alone() -> None:
+    cell = {"type": "table-cell", "attrs": {}, "children": [_embed("^statement", "statement")]}
+    table = {"type": "table", "attrs": {}, "children": [{"type": "table-row", "attrs": {}, "children": [cell]}]}
+    html = _embedding(table)["one"]["html"]
+
+    assert _copies(html) == []
+    assert '<td><a class="internal-link embed" href="#vision/block-statement">Vision</a></td>' in html
+
+
+@pytest.mark.parametrize("vision", [
+    VISION[:1],  # The block is not in its chapter.
+    (*VISION[:2], _identified(heading(2, "Pitch"), "section-pitch"),  # The embeds show each other.
+     node("embeds", target="one", chapter="one", heading="One", block="section-one")),
+], ids=["missing", "cycle"])
+def test_an_embed_whose_block_is_not_in_its_chapter_is_refused(vision: tuple[dict, ...]) -> None:
+    with pytest.raises(InputError) as failure:
+        _embedding(_embed("Pitch", "section-pitch"), vision=vision)
+
+    assert failure.value.source == "Document of manifest.md"
+    assert re.fullmatch(r"chapters\[\d+\]\.content\[\d+\]\.attrs\.block", failure.value.field)
+    assert "obs-document" in failure.value.remedy
+
+
+def test_a_shown_figure_keeps_the_number_it_has_where_it_lives() -> None:
+    document = json.loads((ROOT / "test" / "fixtures" / "documents" / "figure-references.json").read_text(encoding="utf-8"))
+    chapters = {chapter_["id"]: chapter_ for chapter_ in document["chapters"]}
+    chapters["one"]["content"].append(node("embeds", target="two", chapter="two", heading="^d", block="d"))
+    notes = {note["slug"]: note["html"] for note in decode_artifact_data(render(document, CONFIG))["notes"]}
+    [copy] = _copies(notes["one"])
+
+    assert '<span class="figure-number">Figure 2.4:</span> Figure d.' in copy
+    assert '<span class="figure-number">Figure 2.4:</span> Figure d.' in notes["two"]
+    assert not re.search(r'\s(?:id|data-node-id)="', copy)

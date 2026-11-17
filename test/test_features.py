@@ -159,6 +159,7 @@ CASES = {
     "cards": ([fixture("cards")], [plain(), with_figure("pugh", PUGH)]),
     "property-editor": ([fixture("property-editor-projection")], [plain(), with_guided_card()]),
     "columns": ([fixture("columns")], [plain(), fixture("cards")]),
+    "shown-copies": ([fixture("features")], [plain(), fixture("columns")]),
     "source-file": ([plain()], [(plain(), SOURCE_FILES_OFF)]),
     "style-choice": ([plain()], [plain()]),
 }

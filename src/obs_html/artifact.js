@@ -555,7 +555,9 @@
     };
 
     const initializeHeadingSections = () => {
-        const headings = [...chapterBody.querySelectorAll("h2, h3, h4, h5, h6")];
+        const headings = [...chapterBody.querySelectorAll("h2, h3, h4, h5, h6")]/* part shown-copy { */
+            // A heading in a shown copy is no section of the embedding chapter (artifact-ui.md, Content sections).
+            .filter((heading) => !heading.closest("div.embed"))/* } part shown-copy */;
         [...headings].reverse().forEach((heading) => {
             const level = Number(heading.tagName.slice(1));
             const section = document.createElement("div");
