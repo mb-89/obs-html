@@ -52,6 +52,10 @@
     "trusted-runtime-bundle": {
       "type": "vault-file",
       "summary": "ID=PATH: explicitly trust the vault's JavaScript file PATH and embed it as application runtime ID (obs-html --trusted-runtime-bundle)."
+    },
+    "finding-digests": {
+      "type": "boolean",
+      "summary": "Name the digest of each provenance finding no exception covers in its warning, to copy into an exception (obs-html --finding-digests)."
     }
   }
 }

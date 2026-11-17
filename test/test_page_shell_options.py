@@ -13,7 +13,7 @@ from obs_html.limited_host import limited_host_markup
 from obs_html.render import render
 
 PAGE = document("Shell", chapter("one", "One", heading(1, "One"), paragraph("Text.")))
-DEFAULTS = {"limitedHostNeeds": [], "refuseProvenance": False, "agentNote": False}
+DEFAULTS = {"limitedHostNeeds": [], "refuseProvenance": False, "agentNote": False, "checkExceptions": []}
 
 
 def built(tmp_path: Path, settings: dict) -> str:

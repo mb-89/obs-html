@@ -296,6 +296,73 @@ each named on the finding it covers, which then neither warns nor refuses:
   its release ships it (`plotly-script`, `maths-script`, `pdf-library-script`, `yaml-script`),
   whose own text, such as Plotly's example dates, says nothing of the build.
 
+#### Exceptions
+
+An author whose page carries such text on purpose, such as a meeting's date and time in a note,
+adds an exception for its finding, which then neither warns nor refuses. An exception names its
+finding by the finding's label and a digest of the text it matched, never by the text, so a
+committed list of exceptions does not spell what it covers.
+
+- **The digest**: each finding carries `digest`, `sha256:` followed by the 64 lowercase hex digits
+  of SHA-256 over the UTF-8 bytes of the text its pattern matched: the whole match, for a timestamp
+  the date and the hours and minutes it matched. The check reads every match of a place and gives
+  one finding per place, label and digest, so two different timestamps in one place are two
+  findings, and an exception for the first does not hide the second. A session URL's id is still
+  not reported a second time.
+- **An exception** is `{check, label, digest, where, reason}`, `where` optional and no other key:
+  - `check` is `provenance`, the only check that takes exceptions; adding one is a reviewed change
+    of `cfg.schema.json`. The exposure check, which refuses the build machine's home folder and its
+    user name, takes none.
+  - `label` is a detector's label (`session-url`, `session-id`, `absolute-path`, `timestamp`) or
+    `local-term`, which covers a local term on any line, because a term's line moves as the list is
+    edited.
+  - `digest` is the finding's digest.
+  - `where` is a place exactly as a finding names it, and only one of the data island
+    (`artifact-data ...`): an HTML line moves with every edit, a place of the data island only when
+    a note or a list item is added before it. An exception whose place moved stops covering, and
+    its finding warns again. Without `where`, it covers its label and digest at every place.
+  - `reason` says why the text may stay, as se's allow entries carry one.
+- **Two layers**, as se's public check has an allow list in the repository and a private local
+  list:
+  - The committed layer is `artifact.checkExceptions` of the settings, empty where absent
+    ([[configuration#Vault settings]]). It travels in the source archive with the vault's
+    `cfg.json`, which is why it holds digests only. It takes `session-url` and `session-id`
+    exceptions only: a `timestamp`, `absolute-path` or `local-term` one fails the build, naming
+    the settings file, the entry (`artifact.checkExceptions[<n>]`) and the remedy of moving it to
+    the local file, never the text. The build runs the detectors and the local list's terms over
+    each committed exception's `reason` and `where`; a hit fails the build naming
+    `artifact.checkExceptions[<n>].reason` (or `.where`), never the text, with the remedy of
+    rewording it or moving the exception to the local file.
+  - The local file is `.check-exceptions.local.json`, found as the local list is: the nearest one
+    up from the vault root, else from the Document's folder. It holds `{"checkExceptions": [...]}`
+    with the same exceptions, every label allowed; a file that is not JSON or breaks that form
+    fails the build, naming the file, the field path and the remedy. Its exceptions add to the
+    committed ones and never remove one. No setting or other file of a vault points to it: obs
+    finds it by its fixed name, so the committed layer never says where private exceptions live
+    or whether any exist. Its name starts with a dot, so the source archive leaves it out; it is
+    never checked in, and obs's own `.gitignore` lists it beside `.public-check.local`.
+- **Matching**: a finding is excepted where an exception has its label (`local-term` matching
+  every `local-term:<line>`), its digest and, where the exception names one, its place. The
+  finding then carries the exemption `exception:settings` or `exception:local`, the committed
+  layer's where both cover it. The two exemptions above come first: an exception never renames the
+  generation timestamp's finding or a vendored line's.
+- **Unused exceptions** are not reported. One `--config` file serves several Documents and a
+  vault's settings serve each of its builds, so an exception one build does not use is not stale;
+  se reports unused allow entries because its one check sees the whole repository.
+- **What a build says**: it warns once per place and label among the findings nothing covers, so
+  without exceptions it says what it said before, line for line. With `--finding-digests`
+  ([[cli#Finding digests]]) each warning and each place of a refusal also names every digest of
+  its uncovered findings (`timestamp, sha256:..., sha256:...`), for the author to copy into
+  exceptions on their own machine. Without it no output names a digest, so a build's log in CI
+  holds none. Exceptions change only what the build reports, never the page.
+- **What a digest hides**: a digest keeps the text out of the list, but someone who tries
+  candidates can still find it: a date, a user name or a short term has few, and each try is one
+  hash. This is why the committed layer refuses `timestamp`, `absolute-path` and `local-term`
+  exceptions. A committed exception for a session URL or id covers text that is public anyway,
+  because it is in the published page and in the committed notes it comes from; one for any other
+  text belongs in the local file. A `where` spells the data island's keys, which can be a note's
+  property names, so a committed exception leaves `where` out where a key is itself private.
+
 ### Agent note
 
 With `artifact.agentNote` true, the page carries a short note for agents, `<script id="agent-note"

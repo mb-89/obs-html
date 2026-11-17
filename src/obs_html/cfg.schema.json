@@ -105,6 +105,12 @@
           "default": false,
           "description": "Whether the build refuses an artifact in which the provenance check finds an absolute path, a session id or URL, a build timestamp or a private term of the local list, instead of warning of each (architecture.md, Provenance check). Optional and off where absent: the packaged cfg.json leaves it out."
         },
+        "checkExceptions": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/checkException"},
+          "default": [],
+          "description": "The committed exceptions of the build's checks: each names a finding by its label and the digest of the text it matched, never by the text, and an excepted finding neither warns nor refuses; session-url and session-id exceptions only, the others belong in the local file (architecture.md, Exceptions). Optional and empty where absent: the packaged cfg.json leaves it out."
+        },
         "agentNote": {
           "type": "boolean",
           "default": false,
@@ -247,6 +253,18 @@
     }
   },
   "$defs": {
+    "checkException": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["check", "label", "digest", "reason"],
+      "properties": {
+        "check": {"enum": ["provenance"], "description": "The check the exception is of; only the provenance check takes exceptions."},
+        "label": {"enum": ["session-url", "session-id", "absolute-path", "timestamp", "local-term"], "description": "The label of the findings it covers; local-term covers a local term on any line."},
+        "digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$", "description": "sha256: and the SHA-256 of the text the finding matched, in lowercase hex (--finding-digests prints it)."},
+        "where": {"type": "string", "pattern": "^artifact-data ", "description": "The one place of the data island it covers, as a finding names it; absent, every place."},
+        "reason": {"type": "string", "minLength": 1, "description": "Why the text may stay."}
+      }
+    },
     "choice": {
       "type": "object",
       "additionalProperties": false,

@@ -63,7 +63,9 @@ arrays and scalar values replace):
 
 `--config` is an override of the packaged file, and the vault's file wins over it. A
 project-specific `artifact.filterPresets` array therefore replaces the packaged presets and those
-of `--config`.
+of `--config`. `artifact.checkExceptions` merges like every array, the vault's list replacing that
+of `--config`; the local file of exceptions is no layer of the settings but adds its exceptions to
+them ([[architecture#Exceptions]]).
 
 The merged settings are validated against
 `cfg.schema.json`: a key it does not know, or a value outside its limits, fails the build naming

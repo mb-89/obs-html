@@ -209,6 +209,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--build-own-spec", type=Path, metavar="DESTINATION",
                         help="Build the adapter's packaged specification with the core into DESTINATION.")
     parser.add_argument("--timings", action="store_true", help="Print the duration of each stage.")
+    parser.add_argument("--finding-digests", action="store_true",
+                        help="Name the digest of each provenance finding no exception covers in its warning.")
     return parser
 
 
@@ -234,6 +236,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         if options.verdict_format and not options.print_verdicts:
             raise InputError(PROG, "--verdict-format", "is only used with --print-verdicts",
                              "Add --print-verdicts, or drop --verdict-format")
+        if options.finding_digests and any((options.print_verdicts, options.print_chapter, options.extract_comments,
+                                            options.export_figures, options.attach_source_to_pdf,
+                                            options.check_rendered, options.export_pdf)):
+            raise InputError(PROG, "--finding-digests", "is only used with a call that renders a Document",
+                             "Drop --finding-digests, or render DOCUMENT to DESTINATION (or --check) with it")
         with recording() as recorded:
             if options.print_verdicts:
                 _print_verdicts(options)
@@ -294,8 +301,12 @@ def _write_artifact(document: dict, options: argparse.Namespace, config, destina
     except InputError as error:
         raise in_vault(error, options.vault_root, paths) from error
     check_artifact(artifact)
-    _check_provenance(artifact, config, Path(options.vault_root) if options.vault_root
-                      else options.document.resolve().parent if options.document else Path.cwd())
+    try:
+        _check_provenance(artifact, config, Path(options.vault_root) if options.vault_root
+                          else options.document.resolve().parent if options.document else Path.cwd(),
+                          options.finding_digests)
+    except InputError as error:  # The vault's settings are named below the vault root.
+        raise in_vault(error, options.vault_root, paths) from error
     if options.vault_root is None:  # The core, which passes it, printed its diagnostics already.
         diagnostics(document)
     if options.check:
@@ -322,11 +333,21 @@ def _write_artifact(document: dict, options: argparse.Namespace, config, destina
     print(f"Generated {destination}.")
 
 
-def _check_provenance(artifact: str, config, start: Path) -> None:
-    """Warn of each provenance finding of ``artifact``, or refuse it with them where the configuration
-    says so (artifact.refuseProvenance); the local list is the one nearest ``start``."""
-    found = provenance.findings(artifact, provenance.local_terms(provenance.local_list(start.resolve())))
-    errors = [provenance.problem(finding) for finding in provenance.reported(found)]
+def _check_provenance(artifact: str, config, start: Path, digests: bool = False) -> None:
+    """Warn of each provenance finding of ``artifact`` that no exception covers, or refuse it with them
+    where the configuration says so (artifact.refuseProvenance), naming their digests with ``digests``;
+    the local list and the local file of exceptions are the ones nearest ``start``. A committed
+    exception the settings may not hold fails first (architecture.md, Exceptions)."""
+    start = start.resolve()
+    terms = provenance.local_terms(provenance.local_list(start))
+    committed = config.artifact.get("checkExceptions", [])
+    failed = provenance.committed_problems(committed, config.source("artifact", "checkExceptions"), terms)
+    if failed:
+        raise InputError(failed[0].source, failed[0].field, "; ".join(
+            [failed[0].problem, *(f"{error.field}: {error.problem}" for error in failed[1:])]), failed[0].remedy)
+    exceptions = (*provenance.check_exceptions(committed, "settings"),
+                  *provenance.local_exceptions(provenance.local_list(start, provenance.EXCEPTIONS_FILE)))
+    errors = provenance.problems(provenance.findings(artifact, terms, exceptions), digests)
     if errors and config.artifact.get("refuseProvenance", False):
         first = errors[0]
         raise InputError(first.source, first.field, "; ".join(

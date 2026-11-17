@@ -1,22 +1,30 @@
 """The provenance check of a built artifact: built HTML in, findings out, each naming its place.
 
-Reader: whoever changes what the provenance check looks for, how a build reacts to it, or its
-exemption.
+Reader: whoever changes what the provenance check looks for, how a build reacts to it, its
+exemptions, or its exceptions and the files that hold them.
 
-spec/architecture.md, Provenance check, owns the design. The module is pure: ``findings`` takes the
-artifact's text and the local list's terms and returns what it found, and the CLI (cli.py,
-``_write_artifact``) warns of each, or refuses the build where ``artifact.refuseProvenance`` is true.
-A finding names its place (an HTML line, or a field path of the decoded data island, as the
-exposure check names them: exposure.py, ``artifact_texts``) and the label of what it found, never the
-matched text, as se's public check reports a hit.
+spec/architecture.md, Provenance check, owns the design, and its Exceptions the exceptions. The
+module is pure where it can be: ``findings`` takes the artifact's text, the local list's terms and
+the exceptions and returns what it found, each finding covered or not, and the CLI (cli.py,
+``_check_provenance``) warns of the uncovered ones, or refuses the build where
+``artifact.refuseProvenance`` is true. A finding names its place (an HTML line, or a field path of
+the decoded data island, as the exposure check names them: exposure.py, ``artifact_texts``), the
+label of what it found and the digest of the text it matched, never the text, as se's public check
+reports a hit. The readers of files, ``local_terms`` and ``local_exceptions``, find their file as
+``local_list`` finds se's local list.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
+import hashlib
+import json
 from pathlib import Path
 import re
 
-from obs_html.errors import InputError
+from jsonschema import Draft202012Validator
+
+from obs_html.config import SCHEMA_PATH
+from obs_html.errors import InputError, schema_error
 from obs_html.exposure import artifact_html, artifact_texts
 from obs_html.libraries import LIBRARIES
 
@@ -28,6 +36,14 @@ REMEDY = ("Remove it from the source note it comes from, or from what wrote it t
 
 LOCAL_FILE = ".public-check.local"
 """se's local list of private terms, at the root of a repository or vault, never checked in."""
+
+EXCEPTIONS_FILE = ".check-exceptions.local.json"
+"""The local file of exceptions, found as the local list is and never checked in (architecture.md,
+Exceptions)."""
+EXCEPTIONS_OWNER = "architecture.md, Exceptions"
+LOCAL_ONLY = ("timestamp", "absolute-path", "local-term")
+"""The labels an exception of the committed layer may not take: a digest of a date, a path or a
+name can be found by trying candidates, and a local term is private by definition."""
 
 GENERATION_TIMESTAMP = "artifact-data document.generation.timestamp"
 """The one place obs writes its own build time on purpose (render.py, the model's ``generation``)."""
@@ -72,9 +88,11 @@ holds none, and plain substring tests read most places far faster than the detec
 @dataclass(frozen=True)
 class Finding:
     """One provenance hit: ``where`` in the artifact, ``label`` what (a detector or ``local-term:N``),
-    and ``exemption`` the name of the documented exemption that covers it, or None."""
+    ``digest`` the digest of the text it matched, and ``exemption`` the name of the documented
+    exemption or of the exception that covers it, or None."""
     where: str
     label: str
+    digest: str
     exemption: str | None = None
 
     def __str__(self) -> str:
@@ -82,20 +100,61 @@ class Finding:
         return f"{self.where}: {self.label}{covered}"
 
 
-def findings(artifact: str, local_terms: tuple[tuple[str, re.Pattern[str]], ...] = ()) -> list[Finding]:
+@dataclass(frozen=True)
+class CheckException:
+    """An exception of the provenance check: the ``label`` (a detector's, or ``local-term`` for a
+    local term on any line) and ``digest`` of the findings it covers, the ``layer`` that holds it
+    (``settings`` or ``local``) and, where it names one, the one place ``where`` it covers them."""
+    label: str
+    digest: str
+    layer: str
+    where: str | None = None
+
+
+def digest(text: str) -> str:
+    """The digest of a matched text: ``sha256:`` and SHA-256 over its UTF-8 bytes in lowercase hex."""
+    return "sha256:" + hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def findings(artifact: str, local_terms: tuple[tuple[str, re.Pattern[str]], ...] = (),
+             exceptions: tuple[CheckException, ...] = ()) -> list[Finding]:
     """Every provenance hit of the built ``artifact``: each detector's, then each local term's, per
-    place. ``local_terms`` are labelled patterns, as ``local_terms`` reads them."""
+    place, one per place, label and digest, each covered as ``excepted`` says. ``local_terms`` are
+    labelled patterns, as ``local_terms`` reads them."""
     found: list[Finding] = []
     vendored = _vendored_lines(artifact_html(artifact))
     for where, text in artifact_texts(artifact):
         exemption = EXEMPTIONS.get(where) or vendored.get(where)
-        detectors = tuple((label, pattern) for label, pattern in DETECTORS if _MAY_HOLD[label](text))
-        for label, pattern in (*detectors, *local_terms):
-            if pattern.search(text):
-                found.append(Finding(where, label, exemption))
-                if label == "session-url":  # its session id is the same hit
-                    text = pattern.sub("", text)
-    return found
+        found += (Finding(where, label, hashed, exemption) for label, hashed in _hits(text, local_terms))
+    return excepted(found, exceptions)
+
+
+def _hits(text: str, local_terms: tuple[tuple[str, re.Pattern[str]], ...]) -> list[tuple[str, str]]:
+    """Each label and digest the detectors, then the local terms, find in one ``text``, in the order
+    the text first holds each."""
+    hits: dict[tuple[str, str], None] = {}
+    detectors = tuple((label, pattern) for label, pattern in DETECTORS if _MAY_HOLD[label](text))
+    for label, pattern in (*detectors, *local_terms):
+        for match in pattern.finditer(text):
+            hits[label, digest(match[0])] = None
+        if label == "session-url":  # its session id is the same hit
+            text = pattern.sub("", text)
+    return list(hits)
+
+
+def excepted(found: list[Finding], exceptions: tuple[CheckException, ...]) -> list[Finding]:
+    """``found``, each finding no exemption covers marked ``exception:<layer>`` where an exception
+    has its label (``local-term`` covering every ``local-term:N``), its digest and, where it names
+    one, its place; the committed layer's (``settings``) where both cover it."""
+    def covering(finding: Finding) -> str | None:
+        label = "local-term" if finding.label.startswith("local-term:") else finding.label
+        layers = {exception.layer for exception in exceptions
+                  if (exception.label, exception.digest) == (label, finding.digest)
+                  and exception.where in (None, finding.where)}
+        return next((f"exception:{layer}" for layer in ("settings", "local") if layer in layers), None)
+
+    return [finding if finding.exemption else replace(finding, exemption=covering(finding))
+            for finding in found]
 
 
 def _vendored_lines(html: str) -> dict[str, str]:
@@ -116,18 +175,81 @@ def reported(found: list[Finding]) -> list[Finding]:
     return [finding for finding in found if finding.exemption is None]
 
 
-def problem(finding: Finding) -> InputError:
-    """A reported finding as the error a build warns of, or refuses with (cli.py)."""
-    return InputError(SOURCE, finding.where, f"carries provenance ({finding.label})", REMEDY)
+def problems(found: list[Finding], digests: bool = False) -> list[InputError]:
+    """The errors a build warns of, or refuses with (cli.py): one per place and label among the
+    findings nothing covers, naming every digest of them there with ``digests`` (--finding-digests)."""
+    places: dict[tuple[str, str], list[str]] = {}
+    for finding in reported(found):
+        places.setdefault((finding.where, finding.label), []).append(finding.digest)
+    return [problem(where, label, named if digests else []) for (where, label), named in places.items()]
 
 
-def local_list(start: Path) -> Path | None:
-    """The local list nearest ``start``: in it or the first of its parents that has one."""
+def problem(where: str, label: str, digests: list[str]) -> InputError:
+    """The error of the findings of ``label`` at ``where``, naming ``digests``."""
+    return InputError(SOURCE, where, f"carries provenance ({', '.join([label, *digests])})", REMEDY)
+
+
+def check_exceptions(entries: list[dict], layer: str) -> tuple[CheckException, ...]:
+    """The exceptions of one layer's valid ``entries`` (cfg.schema.json, ``checkException``)."""
+    return tuple(CheckException(entry["label"], entry["digest"], layer, entry.get("where"))
+                 for entry in entries if entry["check"] == "provenance")
+
+
+def committed_problems(entries: list[dict], source: object,
+                       local_terms: tuple[tuple[str, re.Pattern[str]], ...]) -> list[InputError]:
+    """What fails the committed layer's ``entries`` (``artifact.checkExceptions`` of ``source``): an
+    exception of a label only the local file takes, and a ``reason`` or ``where`` that carries
+    provenance or a local term; each named by its field path, never by its text."""
+    failed = []
+    for number, entry in enumerate(entries):
+        field = f"artifact.checkExceptions[{number}]"
+        if entry["label"] in LOCAL_ONLY:
+            failed.append(committed_problem(source, field, f"is a {entry['label']} exception, which the "
+                                            "committed settings may not hold", "Move the entry"))
+            continue
+        failed += (committed_problem(source, f"{field}.{key}", "carries provenance", "Reword it, or move the entry")
+                   for key in ("reason", "where") if key in entry and _hits(entry[key], local_terms))
+    return failed
+
+
+def committed_problem(source: object, field: str, issue: str, remedy: str) -> InputError:
+    return InputError(source, field, issue, f"{remedy} to the local file {EXCEPTIONS_FILE}, which is never "
+                      f"checked in; {EXCEPTIONS_OWNER}, says why")
+
+
+def local_list(start: Path, name: str = LOCAL_FILE) -> Path | None:
+    """The local list nearest ``start``, or the local file ``name``: in it or the first of its parents
+    that has one."""
     for folder in (start, *start.parents):
-        candidate = folder / LOCAL_FILE
+        candidate = folder / name
         if candidate.is_file():
             return candidate
     return None
+
+
+def local_exceptions(path: Path | None) -> tuple[CheckException, ...]:
+    """The exceptions of the local file at ``path``, ``{"checkExceptions": [...]}``, every label
+    allowed; one that is not JSON or breaks that form fails naming the file and the field path."""
+    if path is None:
+        return ()
+    try:
+        content = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as error:
+        raise InputError(path, "", f"is not JSON ({error.msg} at line {error.lineno}, column {error.colno})",
+                         f"Correct the JSON there; {EXCEPTIONS_OWNER}, says what the file holds") from None
+    error = schema_error(list(_local_validator().iter_errors(content)), path, EXCEPTIONS_OWNER)
+    if error:
+        raise error
+    return check_exceptions(content["checkExceptions"], "local")
+
+
+def _local_validator() -> Draft202012Validator:
+    """The local file's form: the settings' exceptions (cfg.schema.json, ``checkException``)."""
+    schema = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
+    return Draft202012Validator({
+        "$defs": schema["$defs"], "type": "object", "additionalProperties": False,
+        "required": ["checkExceptions"],
+        "properties": {"checkExceptions": {"type": "array", "items": {"$ref": "#/$defs/checkException"}}}})
 
 
 def local_terms(path: Path | None) -> tuple[tuple[str, re.Pattern[str]], ...]:

@@ -136,6 +136,15 @@ scripts, so callers can gate a build on its exit code.
 The page count comes from the print path that `--export-pdf` uses, so it equals the
 pages of an exported PDF and does not depend on the reader's scrolling container.
 
+## Finding digests
+
+`--finding-digests` makes each provenance warning, and each place of a refusal, also name the
+digest of every finding there that no exception covers (`timestamp, sha256:...`), so an author
+copies it into an exception on their own machine ([[architecture#Exceptions]]). A one-call build
+passes it with `obs-document --adapter html --adapter-option finding-digests=true`. It is off by
+default, so no build's log names a digest, and a call that renders no Document refuses it, naming
+the remedy.
+
 ## Printing a chapter
 
 `--print-chapter HTML CHAPTER` prints one chapter of a built artifact to stdout, as HTML or, with
