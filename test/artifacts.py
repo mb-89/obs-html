@@ -21,9 +21,11 @@ from obs_html.render import render
 _RENDERED: dict[str, str] = {}
 
 
-def artifact_html(document: dict, **options) -> str:
-    """The artifact this adapter renders from the Document with the packaged configuration and ``options``."""
-    key = json.dumps([library_fakes.mode(), document, sorted(options.items())], sort_keys=True, default=repr)
+def artifact_html(document: dict, config=None, **options) -> str:
+    """The artifact this adapter renders from the Document with ``config``, the packaged configuration
+    where it is None, and ``options``."""
+    key = json.dumps([library_fakes.mode(), document, repr(config), sorted(options.items())], sort_keys=True,
+                     default=repr)
     if key not in _RENDERED:
-        _RENDERED[key] = render(document, load_config(), **options)
+        _RENDERED[key] = render(document, config or load_config(), **options)
     return _RENDERED[key]

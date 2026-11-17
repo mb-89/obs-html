@@ -250,6 +250,11 @@
         }
         requestAnimationFrame(() => {
             repaintHighlights();
+            // part pipe-table-rows-one-line {
+            // A pipe table's row whose cut cell holds the comment's text opens first (generic-tables.md, Pipe tables).
+            const opening = rangeForTarget(annotation.target);
+            if (opening && globalThis.obsPipeTables?.reveal([opening.startContainer])) repaintHighlights();
+            // } part pipe-table-rows-one-line
             const range = rangeForTarget(annotation.target);
             range?.startContainer.parentElement?.scrollIntoView({block: "center"});
         });
@@ -402,7 +407,8 @@
     // The text a target's positions never count: the running page header and footer, and the review
     // gutter's controls, which the bar inserts only while it is open (spec/input-model.md, Comments
     // and the core model).
-    const notCounted = ".paper-header, .paper-footer, [data-review-gutter]";
+    const notCounted = ".paper-header, .paper-footer, [data-review-gutter]"/* part pipe-table-rows-one-line { */ +
+        ", [data-pipe-row-toggle]"/* } part pipe-table-rows-one-line */;
     const canonicalText = (node) => {
         const copy = node.cloneNode(true);
         copy.querySelectorAll(notCounted).forEach((item) => item.remove());

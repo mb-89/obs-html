@@ -116,6 +116,11 @@
           "default": true,
           "description": "Whether each page's frontmatter table ends with the Source file row, the vault path of the note the page shows, a link where the core passed --vault-link (cli.md, Source file links). The packaged cfg.json turns it on by the owner's decision of 17 Nov 2026; false builds a page byte for byte as it was built without the row, with or without --vault-link."
         },
+        "tableRowsOneLine": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether, on screen, every collapsed row of a Base table or a pipe table and every group caption is one line until the reader opens it: each cut cell ends in an ellipsis and keeps its whole text as its hover title, a row with a cut cell has a disclosure, and print and PDF show every cell in full (generic-tables.md, Columns and cells, One line per row; Pipe tables). The packaged cfg.json turns it on by the owner's decision of 17 Nov 2026; false builds a page byte for byte as it was built before the option."
+        },
         "agentNote": {
           "type": "boolean",
           "default": false,

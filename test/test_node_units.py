@@ -25,7 +25,7 @@ def test_node_unit_tests_are_present():
         "canonical-transaction.test.js", "comment-model.test.js", "detail-fields.test.js", "empty-groups.test.js",
         "equations.test.js", "limited-host.test.js", "live-data.test.js", "notice-brief.test.js", "passing-rows.test.js",
         "pattern-conformance.test.js",
-        "pugh-engine.test.mjs", "pugh-verdict.test.js", "pugh.test.js", "style-choice.test.js",
+        "pugh-engine.test.mjs", "pugh-verdict.test.js", "pugh.test.js", "style-choice.test.js", "table-rows-one-line.test.js",
         "timeline.test.js", "zip-rewrite.test.js"}
 
 

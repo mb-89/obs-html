@@ -27,6 +27,8 @@ from obs_html.style_choice import local_style_choice
 
 CONFIG = load_config()
 SOURCE_FILES_OFF = dataclasses.replace(CONFIG, artifact={**CONFIG.artifact, "sourceFileLinks": False})
+ROWS_OFF = dataclasses.replace(CONFIG, artifact={**CONFIG.artifact, "tableRowsOneLine": False})
+"""The packaged settings with artifact.tableRowsOneLine false: a page built so is byte for byte as before it."""
 SOURCE = files("obs_html")
 DIALOG_CALL = re.compile(r"\b(?:alert|confirm|prompt)\s*\(")
 
@@ -91,6 +93,19 @@ def with_guided_card() -> dict:
     return document("Guided", chapter("one", "One", heading(1, "One"), base))
 
 
+def _cell(value: str, header: bool = False) -> dict:
+    return {"type": "table-cell", "attrs": {"header": True} if header else {}, "children": [
+        {"type": "text", "attrs": {}, "children": [], "text": value}]}
+
+
+def with_pipe_table() -> dict:
+    """A note with a pipe table (render.py, _table): a header row and a body row."""
+    table = {"type": "table", "attrs": {}, "children": [
+        {"type": "table-row", "attrs": {}, "children": [_cell("Key", True), _cell("Meaning", True)]},
+        {"type": "table-row", "attrs": {}, "children": [_cell("pipe"), _cell("A long meaning.")]}]}
+    return document("Pipe", chapter("one", "One", heading(1, "One"), table))
+
+
 def with_figure(kind: str, body: dict) -> dict:
     """One figure of ``kind`` (figures.py, FIGURE_KINDS) whose body attrs are ``body``."""
     figure = {"type": "figures", "attrs": {"kind": kind}, "children": [node(kind, **body)]}
@@ -138,6 +153,7 @@ CASES = {
     "sankey": ([with_figure("sankey", SANKEY)], [plain(), with_figure("pugh", PUGH)]),
     "timeline": ([with_figure("timeline", TIMELINE)], [plain(), with_figure("sankey", SANKEY)]),
     "tables": ([with_guided_card()], [plain(), with_figure("pugh", PUGH)]),
+    "pipe-tables": ([with_pipe_table()], [plain(), with_guided_card()]),
     "options-menu": ([with_guided_card(), with_figure("image", IMAGE)], [plain(), with_bless()]),
     "figures": ([with_figure("image", IMAGE), with_figure("pugh", PUGH)], [plain(), with_guided_card()]),
     "cards": ([fixture("cards")], [plain(), with_figure("pugh", PUGH)]),
@@ -253,9 +269,9 @@ def test_the_style_refit_part_ships_only_with_local_themes() -> None:
     """A table's columns are measured again when the reader chooses a theme only on a page that carries
     local themes (artifact-ui.md, Styling); elsewhere table.js ships as it is without the part."""
     listener = 'window.addEventListener("resize"'
-    plain_page = render(with_guided_card(), load_config())
+    plain_page = render(with_guided_card(), ROWS_OFF)
     assert feature_source("table.js") in plain_page and listener not in feature_source("table.js")
-    themed = render(with_guided_card(), load_config(), **OPTIONS["style-choice"])
+    themed = render(with_guided_card(), ROWS_OFF, **OPTIONS["style-choice"])
     shipped = feature_source("table.js", ["style-refit"])
     assert shipped in themed and listener in shipped
 
@@ -264,20 +280,26 @@ def test_the_style_refit_part_ships_only_with_local_themes() -> None:
 def test_the_inclusion_condition_decides_whether_code_elements_and_canary_ship(feature) -> None:
     included, excluded = CASES[feature.key]
     canary = SOURCE.joinpath(feature.canary).read_text(encoding="utf-8").strip() if feature.canary else None
-    # A script as it ships without any option's part (features.py, feature_source): CONFIG turns none on.
-    code = [feature_source(name).strip() for name in (*feature.code, *feature.styles, *feature.base_styles)]
+    names = (*feature.code, *feature.styles, *feature.base_styles)
     elements = [f'id="{element}"' for element in feature.elements]
+
+    def code(html: str, config) -> list[str]:
+        """Each script as the case ships it (features.py, feature_source): with the parts the case
+        carries (Feature.shipped), as the packaged settings turn an option's parts on."""
+        shipped = [part.key for part in feature.shipped(decode_artifact_data(html), False, config.artifact)]
+        return [feature_source(name, shipped).strip() for name in names]
+
     for source, config in map(_case, included):
         html, title = render(source, config, **OPTIONS.get(feature.key, {})), source["manifest"]["title"]
         assert canary is None or f'id="canary-{feature.key}"' in html and canary in html, (
             f"{feature.key}: {title} meets '{feature.condition}' but lacks its canary")
-        assert all(part in html for part in code), f"{feature.key}: code missing from {title}"
+        assert all(part in html for part in code(html, config)), f"{feature.key}: code missing from {title}"
         assert all(element in html for element in elements), f"{feature.key}: elements missing from {title}"
     for source, config in map(_case, excluded):
         html, title = render(source, config), source["manifest"]["title"]
         assert f'id="canary-{feature.key}"' not in html and (canary is None or canary not in html), (
             f"{feature.key}: {title} does not meet '{feature.condition}' but ships its canary")
-        assert not any(part in html for part in code), f"{feature.key}: code shipped in {title}"
+        assert not any(part in html for part in code(html, config)), f"{feature.key}: code shipped in {title}"
         assert not any(element in html for element in elements), f"{feature.key}: elements shipped in {title}"
 
 
@@ -420,7 +442,7 @@ def test_the_empty_groups_part_ships_only_where_a_view_sets_the_option_and_strip
     shipped = {}
     for label, source in (("off", _grouped_table()), ("false", _grouped_table(showEmptyGroups=False)),
                           ("on", _grouped_table(showEmptyGroups=True))):
-        html = render(source, CONFIG)
+        html = render(source, ROWS_OFF)
         shipped[label] = [name for name in EMPTY_GROUPS_FILES if feature_source(name, ["empty-groups"]) in html]
         assert not any(feature_source(name) in html for name in EMPTY_GROUPS_FILES) or label != "on", label
     assert shipped == {"off": [], "false": list(EMPTY_GROUPS_FILES), "on": list(EMPTY_GROUPS_FILES)}
@@ -444,7 +466,7 @@ def test_the_passing_rows_part_ships_only_where_a_view_sets_the_option_and_strip
     passing = {"filters": 'status == "verified"', "label": "verified"}
     shipped = {}
     for label, source in (("off", _grouped_table()), ("on", _grouped_table(passing=passing))):
-        html = render(source, CONFIG)
+        html = render(source, ROWS_OFF)
         shipped[label] = [name for name in PASSING_ROWS_FILES if feature_source(name, ["passing-rows"]) in html]
     assert shipped == {"off": [], "on": list(PASSING_ROWS_FILES)}
 
@@ -468,7 +490,7 @@ def test_the_detail_fields_part_ships_where_a_view_sets_the_option_and_strips_wi
         assert kept != plain_source and "showEmptyGroups" not in kept and "passing" not in kept.lower(), name
     shipped = {}
     for label, source in (("off", _grouped_table()), ("on", _grouped_table(detailFields=detail_fields))):
-        html = render(source, CONFIG)
+        html = render(source, ROWS_OFF)
         shipped[label] = [name for name in DETAIL_FIELDS_FILES if feature_source(name, ["detail-fields"]) in html]
     assert shipped == {"off": [], "on": list(DETAIL_FIELDS_FILES)}
 
@@ -501,7 +523,7 @@ def test_the_live_source_part_ships_only_where_a_base_declares_it_and_strips_wit
     pure = feature_source("live-data.js")
     live = _grouped_table()
     live["chapters"][0]["content"][1]["attrs"]["spec"]["obsHtml"] = {"liveSource": LIVE_DECLARATION}
-    off, on = render(_grouped_table(), CONFIG), render(live, CONFIG)
+    off, on = render(_grouped_table(), ROWS_OFF), render(live, ROWS_OFF)
     assert "obsLiveData" not in off and "live-source" not in off and plain_source in off
     assert pure in on and kept in on and plain_source not in on
 
@@ -519,7 +541,7 @@ def test_the_live_source_part_strips_from_every_file_that_holds_its_regions() ->
              "liveNoteRow", "tableRowsChange")
     plain, live = _grouped_table(), _grouped_table()
     live["chapters"][0]["content"][1]["attrs"]["spec"]["obsHtml"] = {"liveSource": LIVE_DECLARATION}
-    off, on = render(plain, CONFIG), render(live, CONFIG)
+    off, on = render(plain, ROWS_OFF), render(live, ROWS_OFF)
     for name in LIVE_FILES:
         source = SOURCE.joinpath(*name.split("/")).read_text(encoding="utf-8")
         stripped, kept = feature_source(name), feature_source(name, ["live-source"])
@@ -547,3 +569,36 @@ def test_every_row_owner_site_of_the_tables_reads_through_owner_of() -> None:
                if not re.search(r"ownerOf\(row, [\w.]+, (?:/\* \} part live-source \*/)?$", source[:start])
                and not any(begin <= start < end for begin, end in canonical)]
     assert len(lookups) >= 14 and outside == []
+
+
+ROWS_PARTS = {"table-rows-one-line": (("table.js", "tables.js", "tables.css"), with_guided_card),
+              "pipe-table-rows-one-line": (("pipe-tables.js", "base.css", "artifact.js", "bars/comments.js"),
+                                           with_pipe_table)}
+"""Each part artifact.tableRowsOneLine turns on, the files that hold its code or regions and a page with its kind
+of table (generic-tables.md, Columns and cells, One line per row; Pipe tables)."""
+
+
+@pytest.mark.parametrize("key", sorted(ROWS_PARTS))
+def test_a_one_line_part_ships_as_packaged_with_its_kind_of_table_and_strips_with_the_option_false(key) -> None:
+    """features.py: artifact.tableRowsOneLine, on in the packaged cfg.json by the owner's decision of 17 Nov
+    2026, ships each part on a page with its kind of table; false, the page carries none of its regions
+    (pipe-tables.js not at all), and a page with neither kind of table ships neither part."""
+    part = next(part for feature in FEATURES for part in feature.parts if part.key == key)
+    assert part.option == ("tableRowsOneLine",)
+    assert CONFIG.artifact["tableRowsOneLine"] is True and part.enabled(CONFIG.artifact)
+    assert not part.enabled(ROWS_OFF.artifact)
+    names, source = ROWS_PARTS[key]
+    on, off, neither = render(source(), CONFIG), render(source(), ROWS_OFF), render(plain(), CONFIG)
+    model = decode_artifact_data(on)
+    shipped = [item.key for feature in FEATURES for item in feature.shipped(model, False, CONFIG.artifact)]
+    assert key in shipped
+    for name in names:
+        whole, stripped = feature_source(name, shipped), feature_source(name, [item for item in shipped if item != key])
+        assert f"part {key}" in SOURCE.joinpath(*name.split("/")).read_text(encoding="utf-8") or part.code == (name,)
+        assert whole != stripped or name in part.code, name
+        assert whole in on, name
+        if name in part.code:
+            assert whole not in off and whole not in neither, name
+        else:
+            assert stripped in off and whole not in off and f"part {key}" not in off, name
+    assert f"part {key}" not in neither and "obsPipeTables" not in neither and "data-rows-one-line" not in neither

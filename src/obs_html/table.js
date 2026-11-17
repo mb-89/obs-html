@@ -224,6 +224,19 @@
         .filter(([field]) => !hidden.includes(field.replace(/^note\./, ""))).map(([, value]) => value).join(" ");
 
     // } part detail-fields
+    // part table-rows-one-line {
+    // One line per row (artifact.tableRowsOneLine; generic-tables.md, Columns and cells): whether a
+    // clamped box is cut, its content overflowing it (its scroll and client sizes in, a boolean out).
+    const isCut = ({scrollHeight, clientHeight, scrollWidth, clientWidth}) =>
+        scrollHeight - clientHeight > 1 || scrollWidth - clientWidth > 1;
+    // Whether a row carries the disclosure a cut adds: never where children or details give it one;
+    // else an open row keeps it, a closed row has it exactly while a cell is cut, and a closed row that
+    // could not be measured (cut null) keeps what it had.
+    const rowCutToggle = ({structural, open, cut, had}) => !structural && (open || (cut === null ? had : cut));
+    // The controls of a cell, which keep their height (an editor holds no text to cut).
+    const cellControls = "input, textarea, select, [data-property-editor]";
+
+    // } part table-rows-one-line
     const render = ({
         key, columns: initialColumns, availableColumns = initialColumns, fieldCatalog, rows,
         views = [], activeView = 0, onViewChange,
@@ -231,7 +244,7 @@
         compact = false, minimumColumnWidth = JSON.parse(
             document.querySelector("[data-artifact-data]").textContent,
         )[compact ? "tableCompactColumnMinimumPixels" : "tableColumnMinimumPixels"],
-        showEmptyDetailTabs = false, /* part empty-groups { */showEmptyGroups = false, /* } part empty-groups */screenPageBreaks = true,
+        showEmptyDetailTabs = false, /* part empty-groups { */showEmptyGroups = false, /* } part empty-groups *//* part table-rows-one-line { */rowsOneLine = false, /* } part table-rows-one-line */screenPageBreaks = true,
         initialRowKeys, onRowKeysChange,/* part passing-rows { */ passing, initialPassingOpen = false, onPassingChange,/* } part passing-rows *//* part live-source { */ live,/* } part live-source */
         columnSizing, detailFontSize = JSON.parse(
             document.querySelector("[data-artifact-data]").textContent,
@@ -265,6 +278,9 @@
         if (wide) shell.dataset.tableWide = "true";
         if (!screenPageBreaks) shell.dataset.screenPageBreaks = "false";
         if (compact) shell.dataset.compact = "true";
+        // part table-rows-one-line {
+        if (rowsOneLine) shell.dataset.rowsOneLine = "";
+        // } part table-rows-one-line
         const iconColumn = availableColumns.find(column => column.fixed);
         if (iconColumn) shell.style.setProperty("--table-icon-width", `${iconColumn.width}px`);
 
@@ -647,6 +663,12 @@
         const collapsedGroups = new Set();
         const expandedDetails = new Set(initialDetailState?.expanded || []);
         const selectedDetailColumns = new Map(Object.entries(initialDetailState?.selected || {}));
+        // part table-rows-one-line {
+        // Rows opened to show their cells in full, and rows a cut gave a disclosure: session state only.
+        const openRows = new Set();
+        const cutRows = new Set();
+        let replanning = false;
+        // } part table-rows-one-line
         const publishDetailState = () => onDetailStateChange?.({
             expanded: [...expandedDetails], selected: Object.fromEntries(selectedDetailColumns),
         });
@@ -692,7 +714,7 @@
                         ? widestLine(lines, metrics.editorFont) + metrics.editorChrome
                         : widestLine(lines, metrics.font)) + metrics.padding;
                     const controls = (row.depth || 0) * metrics.indent +
-                        (parentKeys.has(row.key) || hasDetails(row) ? metrics.toggle : 0);
+                        (parentKeys.has(row.key) || hasDetails(row)/* part table-rows-one-line { */ || cutRows.has(row.key)/* } part table-rows-one-line */ ? metrics.toggle : 0);
                     plain = Math.max(plain, width);
                     nested = Math.max(nested, width + controls);
                 });
@@ -939,6 +961,9 @@
                 table.style.minWidth = `${Math.ceil(totalWidth + borderWidth)}px`;
                 table.style.width = columns.every(column => column.fixed) ? `${totalWidth}px` : "100%";
                 syncContinuationWidths();
+                // part table-rows-one-line {
+                measureCuts();
+                // } part table-rows-one-line
                 return;
             }
             // The flexible (last non-icon) column has no <col> width so it absorbs later changes.
@@ -959,6 +984,9 @@
             table.style.minWidth = `${Math.ceil(requiredWidth + borderWidth)}px`;
             table.style.width = flexible < 0 ? `${totalWidth}px` : "100%";
             syncContinuationWidths();
+            // part table-rows-one-line {
+            measureCuts();
+            // } part table-rows-one-line
         };
         // Static (print) projections refit this plan inside their actual paper container.
         const columnPlan = () => ({
@@ -1150,6 +1178,125 @@
             return flatten();
         };
 
+        // part table-rows-one-line {
+        // A cell's clamp boxes: its value, or under leadingLines each leading line and the value, each
+        // one line; a cell that holds a control keeps its height (generic-tables.md, Columns and cells).
+        const clampBoxes = box => {
+            const lines = [...box.children].filter(child => child.matches(".data-table-leading-line"));
+            if (!lines.length) {
+                if (!box.querySelector(cellControls)) box.classList.add("data-table-clamp");
+                return;
+            }
+            lines.forEach(line => line.classList.add("data-table-clamp"));
+            const rest = [...box.childNodes].filter(node => !lines.includes(node));
+            if (!rest.length || rest.some(node => node.nodeType === 1 &&
+                    (node.matches(cellControls) || node.querySelector(cellControls)))) return;
+            const value = document.createElement("div");
+            value.className = "data-table-cell-value data-table-clamp";
+            value.append(...rest);
+            box.append(value);
+        };
+        const wholeCellText = cell => [...cell.querySelectorAll(".data-table-clamp")]
+            .flatMap(box => contentLines(box).lines).join("\n");
+        // The disclosure a cut gives a row with neither children nor details: it shows the row's cells
+        // in full and adds no detail row.
+        const cutToggle = (row, label) => {
+            const toggle = document.createElement("button");
+            toggle.className = "disclosure-toggle data-table-tree-toggle";
+            toggle.type = "button";
+            toggle.dataset.tableCutToggle = "";
+            const show = () => {
+                const open = openRows.has(row.dataset.rowKey);
+                toggle.setAttribute("aria-expanded", String(open));
+                toggle.setAttribute("aria-label", `${open ? "Collapse" : "Expand"} ${label}`);
+                globalThis.obsAssets.replace(toggle, open ? "expanded" : "collapsed");
+            };
+            show();
+            toggle.addEventListener("click", () => {
+                if (shell.isConnected) shell.dispatchEvent(
+                    new CustomEvent("obs-table-before-change", {bubbles: true}),
+                );
+                const rowKey = row.dataset.rowKey;
+                if (openRows.has(rowKey)) openRows.delete(rowKey);
+                else openRows.add(rowKey);
+                row.toggleAttribute("data-row-open", openRows.has(rowKey));
+                show();
+                paginate(orderedRows(), "row-details");
+            });
+            return toggle;
+        };
+        // A cell is cut where a clamp box's content overflows it; a cut cell takes its whole text as its title.
+        const markCell = cell => {
+            const cut = [...cell.querySelectorAll(".data-table-clamp")].some(box => isCut(box));
+            if (cut) {
+                cell.dataset.tableCellCut = "";
+                cell.title = wholeCellText(cell);
+            } else if ("tableCellCut" in cell.dataset) {
+                delete cell.dataset.tableCellCut;
+                cell.removeAttribute("title");
+            }
+            return cut;
+        };
+        // The rendered rows' cuts, measured after each render of the body and each sizing: a row gains or
+        // loses the disclosure a cut gives, a group caption whose label is cut takes its caption as its
+        // title, and where an added disclosure needs first-column width the plan lacks, the table is
+        // planned once more, never in a loop. A row not shown is measured once it shows.
+        function measureCuts() {
+            if (!rowsOneLine || !table.isConnected) return;
+            let grown = false;
+            [...body.children].forEach(row => {
+                if (!row.getClientRects().length) return;
+                const label = row.matches(".data-table-group-row") && row.querySelector(".data-table-group-label");
+                if (label) {
+                    // The label takes what the caption cell leaves beside its control and its count.
+                    const cell = label.closest("th");
+                    const style = getComputedStyle(cell);
+                    const end = cell.getBoundingClientRect().right - parseFloat(style.paddingRight) -
+                        parseFloat(style.borderRightWidth);
+                    label.style.maxWidth = `${Math.max(0, Math.floor(end - label.getBoundingClientRect().left -
+                        label.nextElementSibling.getBoundingClientRect().width))}px`;
+                    if (isCut(label)) label.title = label.textContent + label.nextElementSibling.textContent;
+                    else label.removeAttribute("title");
+                    return;
+                }
+                if (!row.dataset.rowKey) return;
+                const open = row.hasAttribute("data-row-open");
+                let cut = null;
+                if (!open) {
+                    cut = false;
+                    [...row.children].forEach(cell => {
+                        if (markCell(cell)) cut = true;
+                    });
+                }
+                const content = row.querySelector(":scope > td > .data-table-tree-content");
+                if (!content) return;
+                const toggle = content.querySelector(":scope > [data-table-cut-toggle]");
+                const structural = Boolean(content.querySelector(
+                    ":scope > .data-table-tree-toggle:not([data-table-cut-toggle])"));
+                const wanted = rowCutToggle({structural, open, cut, had: Boolean(toggle)});
+                if (wanted && !toggle) {
+                    const value = content.querySelector(":scope > .data-table-tree-value");
+                    content.prepend(cutToggle(row, value ? contentLines(value).lines.join(" ") : ""));
+                    // The disclosure narrows the first cell: its cut and title follow.
+                    markCell(content.parentElement);
+                } else if (!wanted && toggle) toggle.remove();
+                if (cut === true && wanted && !cutRows.has(row.dataset.rowKey)) {
+                    cutRows.add(row.dataset.rowKey);
+                    grown = true;
+                } else if (cut === false) cutRows.delete(row.dataset.rowKey);
+            });
+            const first = columns[0];
+            if (grown && !replanning && first && !explicitWidth(first) && !first.weight && !equalSizing) {
+                replanning = true;
+                try {
+                    contentWidths.delete(first.key);
+                    renderColumnWidths();
+                } finally {
+                    replanning = false;
+                }
+            }
+        }
+        // } part table-rows-one-line
         const rowHydrators = new WeakMap();
         const appendDataRow = (item, childKeys) => {
             const row = document.createElement("tr");
@@ -1160,7 +1307,17 @@
             const showDetails = !hasChildren && hasDetails(item);
             const isExpanded = hasChildren
                 ? expanded.has(item.key) : expandedDetails.has(item.key);
+            // part table-rows-one-line {
+            // An open row shows its cells in full: a parent opened to its children, a row with its details
+            // shown, a row opened through the disclosure a cut gave it or revealed for a hit.
+            if (rowsOneLine && ((hasChildren || showDetails) && isExpanded || openRows.has(item.key))) {
+                row.dataset.rowOpen = "";
+            }
+            // } part table-rows-one-line
             const toggleRow = () => {
+                // part table-rows-one-line {
+                openRows.delete(item.key);
+                // } part table-rows-one-line
                 const state = hasChildren ? expanded : expandedDetails;
                 if (state.has(item.key)) state.delete(item.key);
                 else state.add(item.key);
@@ -1195,9 +1352,24 @@
                         content.append(toggle);
                     }
                     content.append(target);
+                    // part table-rows-one-line {
+                    if (rowsOneLine && !hasChildren && !showDetails &&
+                            (openRows.has(item.key) || cutRows.has(item.key))) {
+                        content.prepend(cutToggle(row, String(item.values[column.key] ?? "")));
+                    }
+                    // } part table-rows-one-line
                 }
+                // part table-rows-one-line {
+                if (rowsOneLine && index !== 0 && !column.fixed) {
+                    target = document.createElement("div");
+                    cell.append(target);
+                }
+                // } part table-rows-one-line
                 if (column.render) column.render(item, target);
                 else target.append(String(item.values[column.key] ?? ""));
+                // part table-rows-one-line {
+                if (rowsOneLine && !column.fixed) clampBoxes(target);
+                // } part table-rows-one-line
                 if (columnDetails) cell.querySelectorAll("[data-table-reference-column]").forEach(link => {
                     const selected = columns.find(subject =>
                         subject.detail && subject.key === selectedDetailColumns.get(item.key))
@@ -1350,6 +1522,9 @@
                 detailRow?.remove();
                 renderDetail();
                 const open = expandedDetails.has(item.key);
+                // part table-rows-one-line {
+                if (rowsOneLine) row.toggleAttribute("data-row-open", open || openRows.has(item.key));
+                // } part table-rows-one-line
                 row.querySelectorAll(".data-table-tree-toggle, [data-table-detail-toggle]").forEach(button => {
                     button.setAttribute("aria-expanded", String(open));
                     const label = button.getAttribute("aria-label")?.replace(
@@ -1462,6 +1637,23 @@
                         renderBody();
                     });
                     cell.append(toggle, `${caption} (${entries.length})`);
+                    // part table-rows-one-line {
+                    // One line: the label is cut, the count stays in view; the caption's text stays the
+                    // cell's last node, after its control (generic-tables.md, group captions).
+                    if (rowsOneLine) {
+                        cell.lastChild.remove();
+                        const line = document.createElement("span");
+                        line.className = "data-table-group-line";
+                        const name = document.createElement("span");
+                        name.className = "data-table-group-label";
+                        name.textContent = caption;
+                        const total = document.createElement("span");
+                        total.className = "data-table-group-count";
+                        total.textContent = ` (${entries.length})`;
+                        line.append(name, total);
+                        cell.append(line);
+                    }
+                    // } part table-rows-one-line
                     // part empty-groups {
                     if (!entries.length) {
                         toggle.remove();
@@ -1506,6 +1698,9 @@
             // } part passing-rows
             if (!pagination) {
                 updateViewportHeight();
+                // part table-rows-one-line {
+                measureCuts();
+                // } part table-rows-one-line
                 shell.dispatchEvent(new CustomEvent("obs-table-change", {bubbles: true, detail: {reason}}));
                 return;
             }
@@ -1577,6 +1772,9 @@
             pageInput.value = String(pageIndex + 1);
             // Controls stay while filtering shrinks a larger table or the reader enlarged the page.
             footer.dataset.singlePage = String(baseRows.length <= Math.min(pageSize, initialPageSize));
+            // part table-rows-one-line {
+            measureCuts();
+            // } part table-rows-one-line
             shell.dispatchEvent(new CustomEvent("obs-table-change", {bubbles: true, detail: {reason}}));
         };
 
@@ -1723,6 +1921,9 @@
             if (passing && !passingOpen && passing.match(target)) setPassingOpen(true);
             // } part passing-rows
             revealKey = target.key;
+            // part table-rows-one-line {
+            openRows.add(target.key);
+            // } part table-rows-one-line
             if (event.detail.details && hasDetails(target)) expandedDetails.add(target.key);
             const subject = catalogByKey.get(event.detail.column);
             let revealColumn = false;
@@ -1813,5 +2014,5 @@
         };
     };
 
-    globalThis.obsDataTable = {render, fitStaticTable, compareGroupLabels/* part empty-groups { */, emptyGroupLabels/* } part empty-groups *//* part passing-rows { */, foldPassingRows, passingCaption/* } part passing-rows *//* part detail-fields { */, chosenDetailEntries, hiddenDetailFields, shownRowText/* } part detail-fields */};
+    globalThis.obsDataTable = {render, fitStaticTable, compareGroupLabels/* part empty-groups { */, emptyGroupLabels/* } part empty-groups *//* part passing-rows { */, foldPassingRows, passingCaption/* } part passing-rows *//* part detail-fields { */, chosenDetailEntries, hiddenDetailFields, shownRowText/* } part detail-fields *//* part table-rows-one-line { */, isCut, rowCutToggle/* } part table-rows-one-line */};
 })();

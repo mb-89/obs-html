@@ -732,6 +732,10 @@
                     onRefresh: () => liveShown.get(table.key)?.act?.("refresh"),
                 } : undefined,
                 // } part live-source
+                // part table-rows-one-line {
+                // On screen only: the static view, from which print is drawn, never cuts.
+                rowsOneLine: !staticView,
+                // } part table-rows-one-line
                 screenPageBreaks: definition.screenPageBreaks,
                 pagination: definition.pagination,
                 columnSizing: definition.columnSizing,

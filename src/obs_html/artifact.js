@@ -1911,6 +1911,10 @@
         }, query);
         const metadataMark = frontmatterBody.querySelector(".search-highlight");
         if (metadataMark) setFrontmatterExpanded(true);
+        // part pipe-table-rows-one-line {
+        // A pipe table's row whose cut cell holds a highlight opens first, so it shows (generic-tables.md, Pipe tables).
+        globalThis.obsPipeTables?.reveal(chapterBody.querySelectorAll(".search-highlight"));
+        // } part pipe-table-rows-one-line
         const firstMark = chapterBody.querySelector(".search-highlight") || metadataMark;
         if (firstMark) scrollToHit(firstMark);
         return Boolean(firstMark);

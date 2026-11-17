@@ -893,7 +893,32 @@ math {
 
 .chapter-body thead th {
     background: var(--color-canvas-secondary);
-}
+}/* part pipe-table-rows-one-line { */
+
+/* A pipe table's body rows on screen (artifact.tableRowsOneLine; generic-tables.md, Pipe tables;
+   pipe-tables.js): a closed row's boxes show one line each, the disclosure sits at the start of the
+   first cell beside its box; an open row, and print, show every cell in full. */
+@media screen {
+    .chapter-body table[data-pipe-rows-one-line] .pipe-table-box {
+        display: flow-root;
+    }
+
+    .chapter-body table[data-pipe-rows-one-line] > tbody > tr:not([data-pipe-row-open]) > * > .pipe-table-box {
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 1;
+        display: -webkit-box;
+        line-clamp: 1;
+        overflow: hidden;
+    }
+
+    .pipe-table-row-toggle {
+        float: inline-start;
+        margin-inline-end: 0.35rem;
+        min-height: 1.5rem;
+        min-width: 1.5rem;
+        padding: 0.1rem;
+    }
+}/* } part pipe-table-rows-one-line */
 
 .paper-content h1 {
     font-size: 24pt;

@@ -755,7 +755,7 @@ def features(root: Path) -> None:
     links, marks, an image, a callout and nested headings; a paged table of notes outside the contents,
     whose second view lists a kind no row has, for empty-groups, whose third folds its passing rows,
     for passing-rows, and whose fourth opens a row with only its rank, for detail-fields; a second table,
-    of two issue notes, that declares a live source, for live-source;
+    of two issue notes, that declares a live source, for live-source; a pipe table, for pipe-tables;
     a figure reference across chapters; a register and a property editor; a card group with metrics
     and a quantity link (FEATURE_CARDS). As in obs's spec, the
     chapters the reading script walks are nested three deep, with headings. Each chapter's
@@ -796,6 +796,7 @@ def features(root: Path) -> None:
         "  - type: table\n    name: Brief\n    order: [file.name, description]\n"
         f"    obsHtml: {{detailFields: [rank]}}\n```\n\n```base\nfilters: 'kind == \"issue\"'\nviews:\n"
         f"  - type: table\n    name: Tracker\n    order: [file.name, number]\n{FEATURE_LIVE_SOURCE}```\n\n"
+        "| Key | Meaning |\n|---|---|\n| pipe | A pipe table's row, long enough to be cut to one line on a phone. |\n\n"
         f"{FEATURE_PROSE}\n", encoding="utf-8")
     (root / "issues").mkdir()
     for number in (1, 2):

@@ -439,4 +439,34 @@
 
 .review-mode .data-table-scroll:not([data-max-rows]) {
     overflow: visible;
-}
+}/* part table-rows-one-line { */
+
+/* One line per row on screen (artifact.tableRowsOneLine; generic-tables.md, Columns and cells): a
+   collapsed row's clamp boxes show one line each and a group caption's label is cut before its count;
+   an open row, and print, which draws the static view, show every cell in full. */
+@media screen {
+    .data-table-shell[data-rows-one-line] tr[data-row-key]:not([data-row-open]) .data-table-clamp {
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 1;
+        display: -webkit-box;
+        line-clamp: 1;
+        overflow: hidden;
+    }
+
+    .data-table-shell[data-rows-one-line] .data-table-group-row>th {
+        overflow: hidden;
+        white-space: nowrap;
+    }
+
+    .data-table-group-label {
+        display: inline-block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        vertical-align: bottom;
+        white-space: nowrap;
+    }
+
+    .data-table-group-count {
+        white-space: pre;
+    }
+}/* } part table-rows-one-line */

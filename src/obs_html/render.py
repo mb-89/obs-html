@@ -1596,7 +1596,7 @@ def _shell(model: dict[str, object], limits: list[dict[str, str]], overlay: str,
     shipped_parts = [part.key for part in parts]
     feature_code = "".join(f"{feature_source(name, shipped_parts)}\n" for feature in features for name in feature.code)
     feature_code += "".join(f"{feature_source(name, shipped_parts)}\n" for part in parts for name in part.code)
-    stylesheet = read("base.css") + "".join(
+    stylesheet = feature_source("base.css", shipped_parts) + "".join(
         f"\n{feature_source(name, shipped_parts)}"
         for feature in features for name in feature.base_styles) + "\n" + overlay
     feature_styles = "".join(f'\n  <style id="feature-styles-{feature.key}">\n{read(name)}  </style>'

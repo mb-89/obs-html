@@ -97,9 +97,15 @@ feature's part may need an option of the adapter's configuration (`Part.option`)
 (`false`, or 0) says; the code a feature's own script runs only with such a part sits in
 that part's marked regions, which the renderer strips where the part does not ship
 (`features.py`, `feature_source`). Without the option an artifact is byte for byte what it was.
-The source file row is the one exception, decided by the owner on 17 Nov 2026: its option
+The source file row is one exception, decided by the owner on 17 Nov 2026: its option
 `artifact.sourceFileLinks` is on by default, so with it on every page changes by the row and its
 code ([[artifact-ui#Reading shell]]), and with it off a page is byte for byte what it was.
+One line per table row is the other, decided by the owner on 17 Nov 2026 as well: its option
+`artifact.tableRowsOneLine` is on by default, so with it on every page with a Base table changes
+by the code and rules of the tables feature's part `table-rows-one-line`, and every page with a
+pipe table by those of the `pipe-tables` feature's part `pipe-table-rows-one-line`
+([[generic-tables#Columns and cells]], [[generic-tables#Pipe tables]]); with it off a page is byte
+for byte what it was.
 Two builds of one source under one `SOURCE_DATE_EPOCH` show it with `cmp`; where they differ,
 `test/compare_builds.py` names the page's lines and the parts of its data, note by note, that
 changed, and builds and changes nothing. `test/unchanged_output.py` builds obs's reference pages

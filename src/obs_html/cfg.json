@@ -17,6 +17,7 @@
     },
     "dataCompression": "gzip",
     "sourceFileLinks": true,
+    "tableRowsOneLine": true,
     "reading": {
       "codeFontPoints": 8,
       "headingSpaceBeforeEm": 0.9,

@@ -220,7 +220,8 @@ adapter's browser evaluator runs the same conformance fixture.
 ## Hierarchy, grouping, and sorting
 
 - Every table is a tree view, even when all rows are roots. Rows may reference a parent or carry a
-  manifest depth. Expand/collapse controls appear only for rows with children or details.
+  manifest depth. Expand/collapse controls appear only for rows with children, details or a cut
+  cell (Columns and cells, One line per row).
 - A node representing a canonical note's own content outside the TOC has a bare disclosure icon.
 
   A source or chapter-reference column does not confer details: tags expand no source chapter,
@@ -245,7 +246,7 @@ adapter's browser evaluator runs the same conformance fixture.
   Details are lazy, collapsed initially, and independent
   of source-parent and group expansion.
 
-  Rows without children or details have no disclosure.
+  Rows without children, details or a cut cell have no disclosure.
 
   Nested links and tables inside details use the same note navigation and table runtime.
 
@@ -288,6 +289,10 @@ adapter's browser evaluator runs the same conformance fixture.
   form nested group levels in directive order.
 - A group caption reads `<label>: <value> (<count>)`, where the label is the grouped property's
   `displayName`, else its key; an empty `displayName` shows only `<value> (<count>)`.
+
+  On screen a caption is one line, as a collapsed row is (Columns and cells, One line per row):
+  its label is cut where it does not fit, ends in an ellipsis and keeps its whole caption as its
+  hover title, and its count stays in view.
 
   A view's `obsHtml.groupOrder` lists `groupBy` values in their display order; unlisted values
   follow in the `groupBy` direction. It requires `groupBy`. A sort directive on the grouped
@@ -373,7 +378,7 @@ adapter's browser evaluator runs the same conformance fixture.
   handle. Keyboard interaction on the same header and handle provides equivalent movement and sizing;
   persistent move or size buttons do not occupy the table header.
 - Data cells have visible borders and align content to the top so wrapped or multi-line values begin
-  at the same edge as shorter neighboring values.
+  at the same edge as shorter neighboring values: an opened row's cells, and every cell in print.
 - The final displayed column is flexible and absorbs unused table width.
   An explicitly declared equal-column view instead divides the available subject
   width equally by the CURRENT displayed subject-column count, not a hard-coded
@@ -385,7 +390,37 @@ adapter's browser evaluator runs the same conformance fixture.
   Earlier columns retain their
   content-sized widths until manually resized, and the same rule reapplies after columns are reordered.
 
-  Initial columns size to readable content rather than a uniform fixed width; long prose wraps.
+  Initial columns size to readable content rather than a uniform fixed width.
+
+  **One line per row** (`artifact.tableRowsOneLine`, on as packaged by the owner's decision of
+  17 Nov 2026; [[architecture#Rendering and runtime]]). On screen a collapsed data row is one
+  line. Each text cell shows what fits on one line of its column, cutting a wrapped word and a
+  `<br>` between references alike; it ends in an ellipsis where it is cut and keeps its whole
+  text in the page, as its hover title too, so filters, copy and screen readers read all of it.
+  Opening the row shows its cells in full. A row with a cut cell and neither children nor details
+  has the disclosure too, and opening it only shows its cells in full: it adds no detail row. A
+  parent row opens to its children with its cells in full; a detail row's fields are those
+  `obsHtml.detailFields` picks, below the opened row's own cells in full.
+
+  The lines, controls and pictures the author chose keep their height: under `leadingLines`
+  each leading line and the value are one line each, and icon and editor cells hold controls,
+  not text. A `singleLine` cell is cut as it was, with its title. Links in a cut cell stay
+  links. A cut never widens a column: the column plan, `columnSize`, `compact` and `maxRows`
+  are unchanged, and a table that fits never scrolls sideways.
+
+  A cell is cut where its clamped content overflows. A table's cuts are measured on the
+  rendered rows after every render of its body (a sort, a filter, a grouping, a page of
+  pagination, a parent opened or closed, rows set anew by a live source, a property edit),
+  whenever sizing recomputes, and on a row hidden when they were measured, once it shows. Where
+  the disclosure a cut adds needs first-column width the plan lacks, the table is planned once
+  more, never in a loop.
+
+  A Search hit or a chosen comment in a cut cell opens its row, so the highlight shows. On
+  screen means the continuous view and the sheets shown as pages, where opening a row grows its
+  sheet as opening details does; the static view, from which the print book and PDF are drawn
+  and their pages counted, never cuts, and shows details as the print default has them. Which
+  rows are open is session state: nothing new is saved. With the option off a table is as it
+  was before it: long prose wraps.
 
   First-column sizing includes hierarchy indentation, disclosure control and its gap using the
   table's actual font and shared style metrics. The disclosure and value share one row even
@@ -533,6 +568,30 @@ adapter's browser evaluator runs the same conformance fixture.
   No additional on-table setting is required. Omission preserves current behavior; invalid
   values are errors. Printing removes the viewport constraint and retains the current table
   projection.
+
+## Pipe tables
+
+A pipe table, which the renderer writes from a note's Markdown, is no generic table: its header
+row, its equal columns and its cells' alignment are as written. Yet on screen, under
+`artifact.tableRowsOneLine`, its body rows follow One line per row (Columns and cells).
+
+- The pipe tables of the chapter body outside a Base table take the rule; one in an opened Base
+  row's details is part of that expansion and stays as it is.
+- Each body cell's content sits in one box clamped to one line, so a hard line break or a wrapped
+  word is cut as in a Base cell, and a cut cell takes its whole text as its hover title. A cell
+  that holds an image or display math keeps its height.
+- A row with a cut cell has a Base row's disclosure at the start of its first cell, named
+  "Expand" or "Collapse" and the first cell's text; a row without one has none. Opening the row
+  shows its cells in full and closing cuts them again; an open row stays open, and a closed row
+  left with no cut cell loses its disclosure.
+- Its cuts are measured when its chapter is shown and its deferred content placed, after the
+  sheets are laid out, when a section opens, when the table resizes (a dock, the window, fonts)
+  and on a row hidden when they were measured, once it shows.
+- A Search hit and a chosen comment in a cut cell open its row before the page scrolls to it.
+- The rule touches only the live reading view, the chapter's own nodes in the continuous view
+  and on the sheets; the print book and PDF, drawn from the notes' HTML, show every cell in
+  full. Which rows are open is session state, and the page's data and a saved copy are as without
+  the rule.
 
 ## Chapter integration
 
