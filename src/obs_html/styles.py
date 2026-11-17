@@ -23,6 +23,19 @@ _PAGE_GEOMETRY = re.compile(
 )
 
 
+GEOMETRY_PROBLEM = "declares page geometry, which the Document's profile owns"
+GEOMETRY_REMEDY = "Remove it; a Document chooses its paper and margin in its manifest's obsHtml.print"
+
+
+def page_geometry(css: str) -> str | None:
+    """The first page geometry ``css`` declares, as its at-rule or property (``@page``, ``size``,
+    ``--paper-width``), or None: what a style module's style.css must not hold."""
+    geometry = _PAGE_GEOMETRY.search(css)
+    if not geometry:
+        return None
+    return re.match(r"@?[-\w]+", css[geometry.start():].lstrip(";{ \t\r\n"))[0]
+
+
 def load_style(directory: Path | None = None) -> Style:
     """Load a style module folder, using the packaged generic module by default."""
     root = Path(directory) if directory is not None else Path(
@@ -36,11 +49,9 @@ def load_style(directory: Path | None = None) -> Style:
         raise InputError(root, "style.css", "is missing", "Add the module's stylesheet as style.css")
     asset_index = root / "assets.json"
     overlay = stylesheet.read_text(encoding="utf-8")
-    geometry = _PAGE_GEOMETRY.search(overlay)
-    if geometry:
-        declared = re.match(r"@?[-\w]+", overlay[geometry.start():].lstrip(";{ \t\r\n"))[0]
-        raise InputError(stylesheet, declared, "declares page geometry, which the Document's profile owns",
-                         "Remove it; a Document chooses its paper and margin in its manifest's obsHtml.print")
+    declared = page_geometry(overlay)
+    if declared:
+        raise InputError(stylesheet, declared, GEOMETRY_PROBLEM, GEOMETRY_REMEDY)
     return Style(
         directory=root,
         overlay=overlay,

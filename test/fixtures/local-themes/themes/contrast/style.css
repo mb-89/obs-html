@@ -1,0 +1,18 @@
+/* The made-up fixture theme's rules: its content font, spacing and one heading rule
+   (test_local_themes.py, test_local_themes_browser.py). This comment never reaches a page. */
+:root {
+    --font-content: "Trebuchet MS", sans-serif;
+}
+
+.chapter-body p {
+    line-height: 2;
+}
+
+.data-table-scroll table {
+    --table-cell-padding: 0.9;
+}
+
+.chapter h1 {
+    border-block-end: var(--border-width) solid var(--color-border);
+    letter-spacing: 0.04em;
+}

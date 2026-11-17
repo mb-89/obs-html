@@ -88,3 +88,26 @@ def test_a_guided_card_window_opens_in_the_page_theme(tmp_path, reader_browser) 
     assert rgba(painted["background"]) == rgb(THEME["canvas"]["light"]), painted
     window.close()
     assert errors == []
+
+
+TYPESET = """() => {
+    const computed = getComputedStyle(document.querySelector("[data-chapter-body] p"));
+    return {family: computed.fontFamily, size: parseFloat(computed.fontSize), height: parseFloat(computed.lineHeight)};
+}"""
+
+
+@pytest.mark.parametrize("start", ["contrast", "default"])
+def test_theme_rules_apply_in_each_appearance(tmp_path, reader_browser, start) -> None:
+    errors: list[str] = []
+    _page, frame = open_viewer(tmp_path, reader_browser, errors, themed(tmp_path, start), "light")
+    frame.locator('[data-step="1"]').first.click()
+    frame.locator("[data-chapter-body] p").wait_for()
+    for appearance in ("light", "dark"):
+        choose(frame, appearance)
+        typeset = frame.evaluate(TYPESET)
+        if start == "contrast":
+            assert typeset["family"].startswith('"Trebuchet MS"'), f"{appearance}: {typeset}"
+            assert typeset["height"] == pytest.approx(2 * typeset["size"], abs=0.01), f"{appearance}: {typeset}"
+        else:
+            assert typeset["family"].startswith("Georgia"), f"{appearance}: {typeset}"
+    assert errors == []

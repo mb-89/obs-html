@@ -124,11 +124,19 @@ failures have their form in [[input-model#Chapter content]].
 - A theme is a named local layer over the style module. The build's style module, whichever
   `--style`, `obs.style` or `generic` chose, is the theme Default. A build on a machine with local
   themes ([[configuration#Local themes]]) carries each of them as well, laid over Default: a
-  theme's colours apply where the page's root carries `data-style` with its name, Default's
-  everywhere else.
+  theme's rules and colours apply where the page's root carries `data-style` with its name,
+  Default's everywhere else.
 
   A theme sets a light and a dark value for every colour it sets, so it works in each
-  appearance, and print and PDF use its light values. Every opening starts in the start theme,
+  appearance, and print and PDF use its light values. A theme's rules use colours only as
+  light/dark pairs or the page's colour variables and set no appearance of their own.
+
+  A theme's rules keep their own specificity: a selector that starts with `:root` or `html` takes
+  `:where([data-style="<name>"])` right after it, any other `:where(:root[data-style="<name>"])`
+  before it, and rules inside `@media` or `@supports` are scoped the same way inside it. They
+  follow Default's rules, the semantic asset styles, the features' styles and the theme's colours,
+  and come before the author's CSS snippets, which still win at equal specificity. Comments in a
+  theme's CSS never reach the page. Every opening starts in the start theme,
   Default unless the machine names another, and a guided card's window shows the page's theme.
 
   A page built without local themes carries no `data-style`, no theme styles and no theme data.

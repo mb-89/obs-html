@@ -114,7 +114,7 @@ replace it with a fake and never reach the network.
 ## Local themes
 
 A build machine may hold themes of its own, which no committed file names: each is a named layer
-of colours over the style module, which a page carries beside Default
+of colours and rules over the style module, which a page carries beside Default
 ([[artifact-ui#Styling]]).
 
 obs-html's local folder is `obs-html` in the user's configuration folder: `$XDG_CONFIG_HOME` or
@@ -132,15 +132,25 @@ nor a theme fails the build, naming `obs-html local folder: local.json`, the fie
 there.
 
 A theme is checked when it is read. Every refusal is an input error whose source names the file
-from the local folder (`obs-html local folder: themes/<name>/assets.json`, or
-`obs-html local folder: themes/<name>` for the folder and its entries), never an absolute path,
-with the field and the remedy:
+from the local folder (`obs-html local folder: themes/<name>/assets.json`,
+`obs-html local folder: themes/<name>/style.css`, or `obs-html local folder: themes/<name>` for
+the folder and its entries), never an absolute path, with the field and the remedy:
 
 | Part | Rule | A break names |
 |---|---|---|
 | Name | 1 to 32 lowercase letters, digits and dashes, starting with a letter or digit, and not `default` | `themes/<name>`, field `name` |
-| Entries | `assets.json` and dot-named entries only | `themes/<name>`, field the entry's name |
-| `assets.json` | Optional; valid by the packaged `assets.schema.json`; holds only children of `color`, each a colour the packaged `assets.json` declares, each `value` a `{light, dark}` pair. An icon, an appearance, a single hex value, a `ref` or a colour the packaged index does not declare is refused. | `themes/<name>/assets.json`, field `assets.color.children.<name>` |
+| Entries | `assets.json`, `style.css` and dot-named entries only, each file optional | `themes/<name>`, field the entry's name |
+| `assets.json` | Valid by the packaged `assets.schema.json`; holds only children of `color`, each a colour the packaged `assets.json` declares, each `value` a `{light, dark}` pair. An icon, an appearance, a single hex value, a `ref` or a colour the packaged index does not declare is refused. | `themes/<name>/assets.json`, field `assets.color.children.<name>` |
+| `style.css` | No page geometry, as a style module's `style.css` holds none ([[#Declared style]]) | `themes/<name>/style.css`, field the declaration or at-rule, as for a style module |
+| At-rules | Only `@media` and `@supports`; `@import`, `@font-face`, `@page`, `@keyframes`, `@layer` and every other at-rule are refused | `themes/<name>/style.css`, field `@<keyword>` |
+| URLs | Every `url()` and `src()` holds a `data:image/` URI; `image-set()` and `-webkit-image-set()` are refused. A logo is such an image in the theme's CSS, for example a monochrome SVG as `mask-image` on `.cover-organization` painted with `background-color: var(--color-text)`, so it follows the appearance. | `themes/<name>/style.css`, field `url` |
+| Text | It parses as CSS with no parse error and holds no `</style` | `themes/<name>/style.css`, field `line <n>` |
+| Fonts | Named only, in `--font-content`, `--font-interface` and `--font-code` or in rules; never embedded, as no `@font-face` is read | (the at-rule row) |
+| Colours | No colour literal in a declaration's value outside `light-dark()`: a hash token, a CSS named colour, or a function `rgb`, `rgba`, `hsl`, `hsla`, `hwb`, `lab`, `lch`, `oklab`, `oklch` or `color` that is not an argument of `light-dark()`. A colour is `var(--color-…)`, `light-dark(<light>, <dark>)`, `currentcolor` or `transparent`. | `themes/<name>/style.css`, field `line <n>` |
+| Appearance | No `color-scheme` declaration and no `prefers-color-scheme` media feature: the appearance is the reader's | `themes/<name>/style.css`, field `color-scheme` or `prefers-color-scheme` |
+
+A theme's `style.css` reaches the page scoped to the theme's name, without its comments
+([[artifact-ui#Styling]]).
 
 Every render of `obs-html` on a Document reads the folder: a DESTINATION, a `.pdf` DESTINATION and
 `--check`, so every build through `obs-document --adapter html` on that machine.
@@ -154,8 +164,10 @@ or says whether one exists: obs-html finds them by the fixed folder alone. A reb
 archive on another machine has Default only. A page that a command fence builds with obs-html on
 that machine is that fence's output and carries the machine's themes, like any page built there.
 
-A page carries the themes of the machine that built it, as text: their names and colours, never
-a path. The exposure and provenance checks read them as any other part of the page, so a local
+A page carries the themes of the machine that built it, as text: their names, colours and rules,
+never a path. A theme's rules, like its name and colours, enter no Document, source archive or
+message the page shows; a refusal of its `style.css` names the theme only on the machine that
+holds it. The exposure and provenance checks read them as any other part of the page, so a local
 term in a theme's name warns, or refuses under `artifact.refuseProvenance`. Such a finding names
 its place (`HTML line <n>`, such as a line of `style-choice-styles`, or
 `artifact-data reading.styles[<n>]`). Its remedy is the local file of exceptions

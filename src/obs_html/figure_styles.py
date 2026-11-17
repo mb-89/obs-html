@@ -22,6 +22,7 @@ import tinycss2
 from tinycss2.ast import AtRule, CurlyBracketsBlock, IdentToken, LiteralToken, QualifiedRule, StringToken, WhitespaceToken
 from tinycss2.serializer import serialize_identifier
 
+from .css_scope import names_page, rule_list, split
 from .errors import InputError, warn
 
 FIELD = "figure.style"
@@ -30,8 +31,6 @@ NESTING = frozenset({"media", "supports", "container"})
 """Conditional group rules: their own condition is not global, their rules are scoped one by one."""
 ANIMATION = frozenset({"animation", "animation-name"})
 """The declarations that name a ``@keyframes`` rule."""
-PAGE = frozenset({"html", "body"})
-"""Type selectors that match only the page, never an element of the drawing."""
 STYLE = re.compile(r"(<style\b[^>]*>)(.*?)(</style>)", re.DOTALL)
 """A ``<style>`` element as figure_links.py's serializer writes it: its text is escaped, so no
 ``</style>`` occurs inside it."""
@@ -68,7 +67,7 @@ class _Scope:
                     if name is not None:
                         self.keyframes[name] = serialize_identifier(f"{self.anchor}--{name}")
                 elif rule.lower_at_keyword in NESTING:
-                    self._collect(_rule_list(rule.content))
+                    self._collect(rule_list(rule.content))
 
     def _rules(self, rules: list) -> str:
         return "".join(self._rule(rule) for rule in rules)
@@ -80,7 +79,7 @@ class _Scope:
             return ""  # A parse error, which a browser ignores as well.
         keyword = rule.lower_at_keyword
         if keyword in NESTING and rule.content is not None:
-            return f"@{rule.at_keyword}{tinycss2.serialize(rule.prelude)}{{{self._rules(_rule_list(rule.content))}}}"
+            return f"@{rule.at_keyword}{tinycss2.serialize(rule.prelude)}{{{self._rules(rule_list(rule.content))}}}"
         name = _keyframes_name(rule) if keyword == "keyframes" else None
         if name is not None:
             return f"@{rule.at_keyword} {self.keyframes[name]}{{{tinycss2.serialize(rule.content)}}}"
@@ -89,10 +88,10 @@ class _Scope:
         return ""
 
     def _qualified(self, rule: QualifiedRule) -> str:
-        selectors = _split(rule.prelude)
+        selectors = split(rule.prelude)
         if any(not tinycss2.serialize(selector).strip() for selector in selectors):
             return ""  # An empty selector makes the rule invalid; scoped, it would select the frame.
-        page = [selector for selector in selectors if _names_page(selector)]
+        page = [selector for selector in selectors if names_page(selector)]
         if page:
             shown = ", ".join(tinycss2.serialize(selector).strip() for selector in page)
             self.warn(f"has selectors that name :root, html or body ({shown}), which match only the page; "
@@ -127,39 +126,8 @@ class _Scope:
         return result
 
 
-def _rule_list(tokens: list) -> list:
-    return tinycss2.parse_rule_list(tokens, skip_comments=True, skip_whitespace=True)
-
-
 def _keyframes_name(rule: AtRule) -> str | None:
     names = [token for token in rule.prelude if not isinstance(token, WhitespaceToken)]
     if len(names) == 1 and isinstance(names[0], (IdentToken, StringToken)):
         return names[0].value
     return None
-
-
-def _split(prelude: list) -> list[list]:
-    """A selector list's selectors, split at its top-level commas."""
-    selectors = [[]]
-    for token in prelude:
-        if isinstance(token, LiteralToken) and token.value == ",":
-            selectors.append([])
-        else:
-            selectors[-1].append(token)
-    return selectors
-
-
-def _names_page(selector: list) -> bool:
-    """Whether a compound of the selector, outside a pseudo-class's arguments, is ``:root``,
-    ``html`` or ``body``."""
-    previous = None
-    for index, token in enumerate(selector):
-        if isinstance(token, IdentToken):
-            if token.lower_value == "root" and isinstance(previous, LiteralToken) and previous.value == ":" and not (
-                    index > 1 and isinstance(selector[index - 2], LiteralToken) and selector[index - 2].value == ":"):
-                return True
-            if token.lower_value in PAGE and (previous is None or isinstance(previous, WhitespaceToken) or (
-                    isinstance(previous, LiteralToken) and previous.value in {">", "+", "~"})):
-                return True
-        previous = token
-    return False

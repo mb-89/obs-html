@@ -206,9 +206,97 @@ def test_the_source_archive_names_no_local_theme() -> None:
         for member in archive.infolist():
             assert "contrast" not in member.filename
             assert b"contrast" not in archive.read(member).lower(), member.filename
+            assert b"trebuchet" not in archive.read(member).lower(), member.filename
 
 
 def test_tests_read_no_machine_themes() -> None:
     folder = os.environ.get(VARIABLE)
     assert folder and Path(folder).is_absolute() and not Path(folder).exists()
     assert style_choice.local_style_choice(os.environ) is None
+
+
+STYLE_CSS = "obs-html local folder: themes/contrast/style.css"
+STYLE_BREAKS = {
+    "page-geometry": (":root {\n    --paper-width: 10cm;\n}\n", "--paper-width"),
+    "page": ("@page {\n    margin: 1cm;\n}\n", "@page"),
+    "import": ('@import "late.css";\n', "@import"),
+    "font-face": ('@font-face {\n    font-family: "Late";\n    src: local("Late");\n}\n', "@font-face"),
+    "layer": ("@layer theme {\n    p { margin: 0; }\n}\n", "@layer"),
+    "remote-url": (".cover-organization {\n    mask-image: url(https://example.invalid/logo.svg);\n}\n", "url"),
+    "image-set": ('.cover-organization {\n    mask-image: image-set("data:image/png;base64,AA" 1x);\n}\n', "url"),
+    "parse-error": ('p {\n    margin: 0;\n    content: "open\n}\n', "line 3"),
+    "style-end": ('p {\n    margin: 0;\n}\np::after {\n    content: "</style>";\n}\n', "line 5"),
+    "hex": ("p {\n    margin: 0;\n    border-color: #ff0000;\n}\n", "line 3"),
+    "named-colour": ("p {\n    color: rebeccapurple;\n}\n", "line 2"),
+    "rgb": ("p {\n    color: light-dark(#ffffff, #000000);\n    background: rgb(0 0 0);\n}\n", "line 3"),
+    "color-scheme": (":root {\n    color-scheme: dark;\n}\n", "color-scheme"),
+    "prefers-color-scheme": ("@media (prefers-color-scheme: dark) {\n    p { margin: 0; }\n}\n",
+                             "prefers-color-scheme"),
+}
+
+
+def with_style(tmp_path: Path, css: str) -> Path:
+    """A copy of the fixture folder whose theme contrast holds ``css`` as its style.css."""
+    folder = copied(tmp_path)
+    (folder / "themes" / "contrast" / "style.css").write_text(css, encoding="utf-8")
+    return folder
+
+
+@pytest.mark.parametrize("css, field", STYLE_BREAKS.values(), ids=STYLE_BREAKS)
+def test_a_theme_rule_is_refused_naming_its_file_and_field(css, field, tmp_path, capsys, monkeypatch) -> None:
+    refused(capsys, tmp_path, with_style(tmp_path, css), STYLE_CSS, field, monkeypatch)
+
+
+ACCEPTED = """#cover .cover-organization {
+    mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'/>");
+    background-color: var(--color-text);
+    border-color: light-dark(#123456, #abcdef);
+    color: currentcolor;
+    outline-color: transparent;
+}
+"""
+
+
+def test_theme_colours_as_pairs_and_variables_are_read(tmp_path) -> None:
+    [theme] = fixture_choice(with_style(tmp_path, ACCEPTED)).extras
+    css = theme.css()
+    for kept in ("light-dark(#123456, #abcdef)", "var(--color-text)", "currentcolor", "transparent",
+                 "data:image/svg+xml", ':where(:root[data-style="contrast"]) #cover .cover-organization{'):
+        assert kept in css, css
+
+
+SCOPED = """/* planted-theme-comment */
+:root {
+    --font-content: "Trebuchet MS", sans-serif;
+}
+html body p { margin: 0; }
+:root.paged .chapter { margin: 0; }
+.chapter h1, .chapter h2 { margin: 0; }
+@media print {
+    :root { --font-code: "Courier New", monospace; }
+    .chapter-body p { margin: 0; }
+}
+@supports (display: grid) {
+    html { margin: 0; }
+}
+"""
+
+
+def test_theme_rules_keep_their_specificity_and_follow_default(document, tmp_path) -> None:
+    document["cssSnippets"] = [{"name": "late", "path": ".obsidian/snippets/late.css", "text": "p { --snippet: 1; }"}]
+    document["manifest"].setdefault("metadata", {})["obsHtml"] = {"cssSnippets": ["late"]}
+    html = artifact_html(document, style_choice=fixture_choice(with_style(tmp_path, SCOPED)))
+    styles = head(html).split('<style id="style-choice-styles">', 1)[1].split("</style>", 1)[0]
+    colours, rules = styles.split("}", 1)
+    assert colours.startswith(':root:where([data-style="contrast"]){') and color_variable("color.canvas") in colours
+    name = '[data-style="contrast"]'
+    for selector in (f":root:where({name}){{", f"html:where({name}) body p{{",
+                     f":root:where({name}).paged .chapter{{",
+                     f":where(:root{name}) .chapter h1,:where(:root{name}) .chapter h2{{",
+                     f"@media print{{:root:where({name}){{", f":where(:root{name}) .chapter-body p{{",
+                     f"@supports (display: grid){{html:where({name}){{"):
+        assert selector in rules, rules
+    assert rules.index('"Trebuchet MS"') < rules.index("@media print") < rules.index("@supports")
+    assert html.index('<style id="style-choice-styles">') < html.index('<style data-css-snippet="late">')
+    assert html.index('<style id="semantic-asset-styles">') < html.index('<style id="style-choice-styles">')
+    assert "planted-theme-comment" not in html
