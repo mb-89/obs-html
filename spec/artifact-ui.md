@@ -1979,8 +1979,11 @@ separate from artifact presentation.
   with reduced motion it goes without the fade. It is transient and never printed.
 
   Where a figure overlay holds the notice icons, the line shows there with them. The setting's
-  default, 0, keeps the line off: `brief` does nothing and the entry alone says what happened. The
-  entry stays the record of what the line said.
+  default, 0, keeps the line off, and the packaged `cfg.json` leaves the setting out: the line is
+  then no part of the page, `obsNotices.brief` does not exist and the entry alone says what
+  happened. `obsNotices.brief` exists only on a page with Send whose settings turn the line on
+  (`features.py`, the bless feature's part `brief-notice`), so a caller calls it as
+  `obsNotices.brief?.(text)`. The entry stays the record of what the line said.
 
   The changed-HTML information entry is present whenever the artifact holds a
   [[#What counts as a change|change]] since the last confirmed saved snapshot. It says that this HTML has changed, and its

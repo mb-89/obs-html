@@ -21,7 +21,9 @@ source-archive part, each through its door, libraries.py, and ctrl's decision en
 ships exactly where its feature or part is included.
 
 A part may also need an option of the adapter's configuration (``Part.option``, a path in
-``artifact`` of cfg.json) that is off by default, so an artifact built without it is what it was.
+``artifact`` of cfg.json) that is off by default, so an artifact built without it is what it was:
+the part ships where the option is true or a number above 0, and not where the configuration
+leaves it out, as the schema's default (false, or 0) says.
 A feature script holds the code it runs only with a part inside that part's regions, a line region
 (``// part <key> {`` to ``// } part <key>`` on lines of their own) or an inline one (``/* part
 <key> { */`` to ``/* } part <key> */``); ``feature_source`` strips every region of a part that does
@@ -78,21 +80,22 @@ def feature_source(name: str, parts: Iterable[str] = ()) -> str:
 @dataclass(frozen=True)
 class Part:
     """Code of a feature that ships only where the part's own condition holds as well, and, where
-    it names an ``option``, only where that option of the artifact configuration is true."""
+    it names an ``option``, only where that option of the artifact configuration is true or a number above 0."""
     key: str
     condition: str
     included: Callable[[dict, bool], bool]
     code: tuple[str, ...]
     option: tuple[str, ...] = ()
-    """The path in the adapter's ``artifact`` configuration (cfg.json) of the boolean that turns the
-    part on; empty for a part its condition alone ships."""
+    """The path in the adapter's ``artifact`` configuration (cfg.json) of the boolean, or the number,
+    that turns the part on; empty for a part its condition alone ships."""
 
     def enabled(self, artifact_config: dict | None) -> bool:
-        """Whether the configuration turns the part on: it names no option, or that option is true."""
+        """Whether the configuration turns the part on: it names no option, or that option is true or
+        a number above 0; left out, it is off, as the schema's default (false, or 0) says."""
         value: object = artifact_config if self.option else True
         for key in self.option:
             value = value.get(key) if isinstance(value, dict) else None
-        return value is True
+        return value is True or (type(value) in (int, float) and value > 0)
 
 
 @dataclass(frozen=True)
@@ -250,7 +253,11 @@ FEATURES: tuple[Feature, ...] = (
     Feature("answers", "a chapter that asks for a bless: the page hands a reader's answers to a sink "
             "(obsArtifact.sendAnswers; spec/capabilities/answers.md)", _bless, ("answers.js",)),
     Feature("bless", "a chapter that asks for a bless: the top band's verdict pill and keys, and Send "
-            "(spec/capabilities/bless.md)", _bless, ("bless.js",), base_styles=("bless.css",)),
+            "(spec/capabilities/bless.md)", _bless, ("bless.js",), base_styles=("bless.css",), parts=(
+                Part("brief-notice", "a chapter that asks for a bless in an artifact built with "
+                     "artifact.reading.briefNoticeMilliseconds above 0: the notice center's passing line, "
+                     "Send's short confirmation under the top band (artifact-ui.md, Dock menu: the notice "
+                     "center's passing line)", _bless, (), option=("reading", "briefNoticeMilliseconds")),)),
     Feature("screens", "an artifact that opens in screens (obsHtml.layout, or a deck whose chapters all ask "
             "for a bless): the band's title and position (artifact-ui.md, Screens)", _screens, ("screens.js",),
             styles=("screens.css",)),

@@ -368,14 +368,15 @@ def test_through_obs_html_serve_the_line_says_sent(line_served: Path, reader_bro
 
 @pytest.mark.parametrize("built", ["line_absent", "line_zero"], ids=["absent", "zero"])
 def test_with_the_default_no_line_shows_and_the_entry_says_what_was_sent(request, reader_browser, built: str) -> None:
-    """Requirement 2: with the default the line is off: brief() does nothing and the entry alone says
-    what was sent, in plain words."""
+    """Requirement 2: with the default the line is off and no part of the page (features.py, the bless
+    feature's part brief-notice): obsNotices.brief is absent, Send raises no page error and the entry
+    alone says what was sent, in plain words."""
     from playwright.sync_api import expect
 
     page, errors = _open_deck(reader_browser, request.getfixturevalue(built).as_uri(), SENT_VIEWPORTS[0])
+    assert page.evaluate("() => 'brief' in globalThis.obsNotices || 'obsNoticeBrief' in globalThis") is False
     _send_a_verdict(page)
     entry = page.locator('[data-notice="bless-send"] [data-notice-details]')
     expect(entry).to_have_text("1 verdict and 0 comments sent to Claude.", use_inner_text=False)
-    page.evaluate("globalThis.obsNotices.brief('Nothing.')")
     assert page.locator("[data-brief-notice]").count() == 0
     assert errors == []

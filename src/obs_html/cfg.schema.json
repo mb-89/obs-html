@@ -149,8 +149,7 @@
             "pingPeriodMilliseconds",
             "pingCount",
             "pingScale",
-            "swipePixels",
-            "briefNoticeMilliseconds"
+            "swipePixels"
           ]
         },
         "figureReferences": {
@@ -362,7 +361,7 @@
           "minimum": 0,
           "maximum": 60000,
           "default": 0,
-          "description": "How long the notice center's passing line, such as Send's \"Sent to Claude.\", shows under the top band before it fades (artifact-ui.md, Dock menu: the notice center). 0, the default, keeps the line off: obsNotices.brief does nothing and the notice entry alone says what happened."
+          "description": "How long the notice center's passing line, such as Send's \"Sent to Claude.\", shows under the top band before it fades (artifact-ui.md, Dock menu: the notice center). 0, the default, keeps the line off. Optional and off where absent: the packaged cfg.json leaves it out, so an artifact built without it is byte for byte what it was, and a page carries the line (features.py, the bless feature's part brief-notice) only with Send and a value above 0."
         },
         "pingPeriodMilliseconds": {
           "type": "integer",

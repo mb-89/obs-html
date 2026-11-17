@@ -280,6 +280,8 @@ globalThis.obsBless = (() => {
         ...(Object.keys(figures).length ? {figures} : {})};
     })};
   }
+  /** Pure: Send's entry, what was sent ("1 verdict and 2 comments") and, where the sink gives its name, where. */
+  const sentRecord = (what, name) => `${what} sent${name ? ` to ${name}` : ""}.`;
   /** Say in the notice center what Send did (artifact-ui.md, Comments that are never lost). */
   const tell = (severity, title, detail) => {
     globalThis.obsNotices?.post({id: "bless-send", severity, title, details: [detail]});
@@ -302,9 +304,10 @@ globalThis.obsBless = (() => {
       for (const entry of answers.verdicts) store(entry.chapter);
       if (answers.verdicts.some(entry => entry.chapter === active)) { comment.value = ""; closeEntry(); }
       // Plain words: where the sink gives its name, it says where; never a file, command or sink id.
-      const brief = globalThis.obsNoticeBrief;
-      tell("information", "Sent", brief.sentRecord(what, result.name));
-      globalThis.obsNotices?.brief(brief.sent(result.name));
+      tell("information", "Sent", sentRecord(what, result.name));
+      // part brief-notice {
+      globalThis.obsNotices?.brief(globalThis.obsNoticeBrief.sent(result.name));
+      // } part brief-notice
       for (const entry of answers.verdicts) document.dispatchEvent(new CustomEvent("obs-bless-change",
         {detail: {chapter: entry.chapter, verdict: null}}));
     } catch (error) {

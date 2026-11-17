@@ -1713,7 +1713,7 @@ def _shell(model: dict[str, object], limits: list[dict[str, str]], overlay: str,
   <script id="zip-rewrite-script">{read("zip-rewrite.js")}</script>
   <script id="payload-script">{read("payloads.js")}</script>
   <script id="assets-script">{read("assets.js")}</script>
-  <script id="notices-script">{read("notices.js")}</script>
+  <script id="notices-script">{feature_source("notices.js", shipped_parts)}</script>
   <script id="canonical-transaction-script">
 {read("canonical-transaction.js")}
 {read("attachment-replacement.js")}

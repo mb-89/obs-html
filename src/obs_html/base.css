@@ -1382,41 +1382,6 @@ math {
     margin-block: 0.25rem;
 }
 
-/* The notice center's passing line (notices.js, obsNoticeBrief): out of the band's row, under the band
-   and as wide as its content (inside the band's inline padding, 1rem each side), beneath what opens
-   from the band (z-index -1 in the band's stacking context) and never in the pointer's way.
-   In a figure overlay it shows under the notice icons there. */
-.brief-notice {
-    background: var(--color-surface);
-    border: var(--border-width) solid var(--color-border);
-    border-inline-start: 0.25rem solid var(--color-information);
-    border-radius: var(--radius-small);
-    box-shadow: 0 0.3rem 1rem var(--color-shadow);
-    box-sizing: border-box;
-    color: var(--color-text);
-    font: 0.85rem/1.35 var(--font-interface);
-    inset-inline: 1rem;
-    margin: 0;
-    overflow-wrap: anywhere;
-    padding: 0.35rem 0.6rem;
-    pointer-events: none;
-    position: absolute;
-    top: 100%;
-    z-index: -1;
-}
-
-.figure-overlay > .brief-notice {
-    position: fixed;
-    top: 4rem;
-    z-index: 28;
-}
-
-.brief-notice[hidden] { display: none; }
-
-@media print {
-    .brief-notice { display: none; }
-}
-
 .notice-group[hidden] { display: none; }
 
 .notice-group[data-notice-group="error"] {

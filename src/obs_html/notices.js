@@ -1,7 +1,10 @@
+// part brief-notice {
 // The passing line (artifact-ui.md, Dock menu: the notice center's passing line): one short line of
 // plain text under the top band that fades after artifact.reading.briefNoticeMilliseconds (cfg.json),
-// whose default, 0, keeps it off. Its pure core says whether and how a line shows and Send's words for
-// it; wire() is the one element and its timer, which the notice center below hands obsNotices.brief.
+// whose default, 0, keeps it off. It ships only as the bless feature's part brief-notice (features.py),
+// on a page with Send and the setting above 0. Its pure core says whether and how a line shows and
+// Send's words for it; wire() is the one element and its timer, which the notice center below hands
+// obsNotices.brief.
 globalThis.obsNoticeBrief = (() => {
     const FADE_MILLISECONDS = 400;
     // Pure: how a line shows for the page's setting and the reader's motion preference: null where the
@@ -10,8 +13,6 @@ globalThis.obsNoticeBrief = (() => {
         ? {hold: milliseconds, fade: reducedMotion ? 0 : FADE_MILLISECONDS} : null);
     // Pure: Send's line, naming where the answers went where the sink that took them gives its name.
     const sent = (name) => (name ? `Sent to ${name}.` : "Sent.");
-    // Pure: Send's entry, what was sent ("1 verdict and 2 comments") and, where named, where.
-    const sentRecord = (what, name) => `${what} sent${name ? ` to ${name}` : ""}.`;
 
     // The element is made on the first line shown, so a page with the line off holds none. host() is
     // where it sits (the top band, or a figure overlay that holds the notice icons); setting() is the
@@ -52,14 +53,17 @@ globalThis.obsNoticeBrief = (() => {
         const place = () => { if (line) host().append(line); };
         return {brief, place};
     };
-    return Object.freeze({timing, sent, sentRecord, wire});
+    return Object.freeze({timing, sent, wire});
 })();
 
+// } part brief-notice
 // Notice center: every notice the artifact raises is one entry here, and no notice draws its own banner.
 // The top of the page shows at most one icon per severity, with a count pill; an icon opens its list,
 // an entry expands its details. Adding a kind of notice is one post() call from its owner.
 (() => {
+    // part brief-notice {
     if (typeof document === "undefined") return;  // Read without a page (test/notice-brief.test.js): the core above only.
+    // } part brief-notice
     const severities = [
         {key: "error", label: "Errors", icon: "notice.error"},
         {key: "warning", label: "Warnings", icon: "notice.warning"},
@@ -198,10 +202,11 @@ globalThis.obsNoticeBrief = (() => {
         groups.forEach((_, key) => close(key));
     });
 
-    // The icons sit in the top band, directly left of the menu; a figure overlay takes them along, and
-    // the passing line with them: under the band, or in the overlay.
+    // The icons sit in the top band, directly left of the menu; a figure overlay takes them along.
     const band = document.querySelector("[data-top-band-end]");
     const dock = () => band.prepend(area);
+    // part brief-notice {
+    // The passing line goes with the icons: under the band, or in the figure overlay that holds them.
     let lineHost = document.querySelector("[data-top-band]");
     let settings = null;
     const passing = globalThis.obsNoticeBrief.wire({
@@ -210,17 +215,22 @@ globalThis.obsNoticeBrief = (() => {
             .reading ?? {}).briefNoticeMilliseconds,
         reducedMotion: () => globalThis.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false,
     });
+    // } part brief-notice
     document.addEventListener("obs-figure-overlay", ({detail}) => {
         if (detail.open) detail.dialog.append(area);
         else dock();
+        // part brief-notice {
         lineHost = detail.open ? detail.dialog : document.querySelector("[data-top-band]");
         passing.place();
+        // } part brief-notice
     });
     dock();
 
     globalThis.obsNotices = Object.freeze({
         post,
+        // part brief-notice {
         brief: (text) => passing.brief(text),
+        // } part brief-notice
         remove,
         reveal,
         has: (id) => entries.has(id),

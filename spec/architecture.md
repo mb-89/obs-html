@@ -92,8 +92,9 @@ page, so a script left out leaves no call behind.
 
 Decided by the user, 14 Nov 2026 (work issue `feat/pugh-engine-computes-the-verdict-20261114`): new
 behaviour ships as a standalone module, or behind an option whose default is today's output. A
-feature's part may need an option of the adapter's configuration (`Part.option`), off where the
-configuration leaves it out; the code a feature's own script runs only with such a part sits in
+feature's part may need an option of the adapter's configuration (`Part.option`), on where it is
+`true` or a number above 0 and off where the configuration leaves it out, as the schema's default
+(`false`, or 0) says; the code a feature's own script runs only with such a part sits in
 that part's marked regions, which the renderer strips where the part does not ship
 (`features.py`, `feature_source`). Without the option an artifact is byte for byte what it was.
 
