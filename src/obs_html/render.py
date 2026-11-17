@@ -25,6 +25,7 @@ from referencing import Registry, Resource
 from latex2mathml import exceptions as math_exceptions
 from latex2mathml.converter import convert as mathml
 
+from obs_html.base_rules import FILE_PROPERTIES, first_breach, unsupported_property
 from obs_html.bars import BarDefinition, discover_bars
 from obs_html.config import Config, paper
 from obs_html.errors import DOCUMENT_OF, InputError, field_path, schema_error, warn
@@ -532,7 +533,6 @@ def _data_table(definition: dict[str, object], rows: list[list[str]] | None, con
     return f'<div class="data-table-placeholder" data-base-table="{escape(key, quote=True)}"></div>\n'
 
 
-FILE_PROPERTIES = ("file.name", "file.path", "file.folder", "file.ext")
 BASE_SCHEMA = json.loads(files("obs_html").joinpath("base.schema.json").read_text(encoding="utf-8"))
 COMPARISON = re.compile(BASE_SCHEMA["$defs"]["comparison"]["pattern"])
 BROWSER_KEYWORDS = frozenset({
@@ -540,8 +540,9 @@ BROWSER_KEYWORDS = frozenset({
     "minItems", "maxItems", "uniqueItems", "items", "minProperties", "maxProperties", "dependentRequired",
     "required", "properties", "additionalProperties"})
 """The JSON Schema keywords base.js's validator implements (validateNode); test_registers.py holds
-the two to each other. The build checks a Base with these alone, so it refuses nothing the browser
-accepts (input-model.md, Compact declarative table presentation)."""
+the two to each other. The build checks a Base with these alone, and then with base_rules.py's copy
+of what base.js refuses beyond the schema, so it refuses nothing the browser accepts (input-model.md,
+Compact declarative table presentation)."""
 BASE_VALIDATOR = validators.create(
     meta_schema=Draft202012Validator.META_SCHEMA, type_checker=Draft202012Validator.TYPE_CHECKER,
     validators={keyword: check for keyword, check in Draft202012Validator.VALIDATORS.items()
@@ -553,33 +554,38 @@ VIEW_FIELD = re.compile(r"^((?:base\.)?views)\[(\d+)\]")
 
 
 def base_definition_error(definition: object, source: str, views: list[int] | None = None) -> InputError | None:
-    """The input error of the first part of a Base ``definition`` that base.schema.json refuses, as
-    the browser's base.js refuses it, or None. ``source`` names the note of a fence, whose fields sit
-    under ``base.``, or the .base file; ``views`` maps a one-view table's views to their index in
-    that file."""
+    """The input error of the first part of a Base ``definition`` that base.schema.json refuses, or
+    else of the first rule beyond it that base.js refuses (base_rules.py), as the browser's base.js
+    refuses it, or None. ``source`` names the note of a fence, whose fields sit under ``base.``, or
+    the .base file; ``views`` maps a one-view table's views to their index in that file."""
+    prefix = "" if source.endswith(".base") else "base"
     error = schema_error(list(BASE_VALIDATOR.iter_errors(definition)), source,
                          "obs-html's base.schema.json and its input-model.md, Compact declarative table "
-                         "presentation", prefix="" if source.endswith(".base") else "base")
-    if error is None or views is None:
-        return error
-    field = VIEW_FIELD.sub(lambda match: f"{match[1]}[{views[int(match[2])]}]", error.field)
-    return InputError(error.source, field, error.problem, error.remedy)
+                         "presentation", prefix=prefix)
+    if error is not None:
+        field, problem, remedy = error.field, error.problem, error.remedy
+    else:
+        breach = first_breach(definition)
+        if breach is None:
+            return None
+        field, problem, remedy = field_path(breach.field, prefix), breach.problem, breach.remedy
+    if views is not None:
+        field = VIEW_FIELD.sub(lambda match: f"{match[1]}[{views[int(match[2])]}]", field)
+    return InputError(source, field, problem, remedy)
 
 
 def _unsupported_filter(filters: object) -> str | None:
     """The first filter expression base.js cannot evaluate, as authored, or None.
 
     The schema's comparison pattern owns the comparison syntax (generic-tables, Bases filter
-    grammar); base.js evaluates the same subset at runtime.
+    grammar) and its unsupportedProperty pattern the property names; base.js evaluates the same
+    subset at runtime, testing the plain name or ``note["<name>"]`` as its ``comparison`` does.
     """
     if filters is None:
         return None
     if isinstance(filters, str):
         match = COMPARISON.fullmatch(filters)
-        if not match or match[1] == "recordType" or (match[2] or "").startswith("file."):
-            return filters
-        name = (match[1] or "").removeprefix("note.")
-        if name.startswith(("formula.", "this.", "file.")) and (match[1] != name or name not in FILE_PROPERTIES):
+        if not match or match[1] == "recordType" or unsupported_property(match[1] or f'note["{match[2]}"]'):
             return filters
         return None
     if isinstance(filters, dict) and len(filters) == 1:

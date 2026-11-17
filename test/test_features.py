@@ -317,8 +317,9 @@ def _grouped_table(**options: object) -> dict:
 
 def test_the_empty_groups_part_ships_only_where_a_view_sets_the_option_and_strips_without_it() -> None:
     """features.py, the tables feature's part empty-groups: it ships where any view of a Base sets
-    obsHtml.showEmptyGroups, and without it the files the renderer embeds carry none of its regions
-    (the JSON line region of the schema included), so such an artifact is what it was."""
+    obsHtml.showEmptyGroups, to any value, so base.js holds a false one to the schema line it
+    embeds, and without it the files the renderer embeds carry none of its regions (the JSON line
+    region of the schema included), so such an artifact is what it was."""
     part = next(part for feature in FEATURES if feature.key == "tables" for part in feature.parts
                 if part.key == "empty-groups")
     assert part.option == ()
@@ -334,7 +335,7 @@ def test_the_empty_groups_part_ships_only_where_a_view_sets_the_option_and_strip
         html = render(source, CONFIG)
         shipped[label] = [name for name in EMPTY_GROUPS_FILES if feature_source(name, ["empty-groups"]) in html]
         assert not any(feature_source(name) in html for name in EMPTY_GROUPS_FILES) or label != "on", label
-    assert shipped == {"off": [], "false": [], "on": list(EMPTY_GROUPS_FILES)}
+    assert shipped == {"off": [], "false": list(EMPTY_GROUPS_FILES), "on": list(EMPTY_GROUPS_FILES)}
 
 
 PASSING_ROWS_FILES = ("table.js", "tables.js", "base.js", "tables.css", "base.schema.json")

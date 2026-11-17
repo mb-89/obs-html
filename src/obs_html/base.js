@@ -4,9 +4,12 @@
     let schemaCache;
     const schema = () => schemaCache ??= JSON.parse(document.querySelector("#base-schema").textContent);
     const isObject = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
+    // The schema's unsupportedProperty pattern owns the property names obs-html cannot read, here
+    // and in the build (base_rules.py).
+    let unsupportedPattern;
     const supportedProperty = field => {
-        if (/^note(?:\.file\.|\["file\.)/.test(field) || /^(?:formula|this)\./.test(field) || field.startsWith("file.") &&
-                !["file.name", "file.path", "file.folder", "file.ext"].includes(field)) {
+        unsupportedPattern ??= new RegExp(schema().$defs.unsupportedProperty.pattern);
+        if (unsupportedPattern.test(field)) {
             throw new TypeError(`Unsupported Bases property: ${field}`);
         }
     };

@@ -463,6 +463,15 @@ the packaged `base.schema.json` when it builds the artifact, with the JSON Schem
 `base.js` implements, so the build refuses what that schema refuses in the browser and nothing
 more. A refused option fails the build naming the note or `.base` file and its field path
 (`base.views[0].obsHtml.groupOrder` in a fence, `views[0].obsHtml.groupOrder` in a `.base` file).
+The build also refuses what `base.js`'s `validate` refuses beyond the schema, and an expanded
+column no view shows, at the same field paths, and still nothing more; `base_rules.py` repeats
+those rules, whose wording stays with their owners ([Table definition](generic-tables.md#table-definition),
+[Hierarchy, grouping, and sorting](generic-tables.md#hierarchy-grouping-and-sorting),
+[Columns and cells](generic-tables.md#columns-and-cells), `leadingLines` below, and obs's input
+model, Base fences). The schema's `$defs.unsupportedProperty` owns the property names obs-html
+cannot read, for `base.js` and the build alike, as `$defs.comparison` owns the filter syntax.
+Checks that need another note's values, such as an expanded column's source note and its keys,
+stay in the browser.
 The browser checks the definition again with the same schema, since a reader can edit a query in
 the open artifact.
 

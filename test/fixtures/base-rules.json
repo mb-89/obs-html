@@ -1,0 +1,233 @@
+{
+  "$comment": "The one list of Base definitions that base.js's check (base-rules.test.js) and the build's (test_base_rules.py, obs_html.base_rules) must answer alike. Each refused case breaks one rule, at its field in a base fence; a .base file drops base. 'rules' names each rule by the base.js function that throws it, so a throw no rule names fails test_base_rules.py. 'records' are the notes project() reads for an expanded column.",
+  "rules": {
+    "unsupported-property": "supportedProperty",
+    "group-order-without-group-by": "validate",
+    "empty-groups-without-group-order": "validate",
+    "column-size-with-equal-sizing": "validate",
+    "leading-lines-with-presentation": "validate",
+    "view-names": "validate",
+    "expanded-column-not-ordered": "project"
+  },
+  "records": [
+    {"sourcePath": "columns.md", "frontmatter": {"phases": [{"key": "design"}, {"key": "build"}]}}
+  ],
+  "refused": [
+    {
+      "name": "groupOrder without groupBy",
+      "rule": "group-order-without-group-by",
+      "field": "base.views[0].obsHtml.groupOrder",
+      "definition": {"views": [{"type": "table", "order": ["file.name"], "obsHtml": {"groupOrder": ["a"]}}]}
+    },
+    {
+      "name": "showEmptyGroups true without groupOrder",
+      "rule": "empty-groups-without-group-order",
+      "field": "base.views[0].obsHtml.showEmptyGroups",
+      "definition": {"views": [{"type": "table", "order": ["file.name"], "groupBy": {"property": "phase"},
+                                "obsHtml": {"showEmptyGroups": true}}]}
+    },
+    {
+      "name": "columnSize with columnSizing equal",
+      "rule": "column-size-with-equal-sizing",
+      "field": "base.views[0].columnSize",
+      "definition": {"views": [{"type": "table", "order": ["file.name"], "columnSize": {"file.name": 120},
+                                "obsHtml": {"columnSizing": "equal"}}]}
+    },
+    {
+      "name": "an empty columnSize with columnSizing equal",
+      "rule": "column-size-with-equal-sizing",
+      "field": "base.views[0].columnSize",
+      "definition": {"views": [{"type": "table", "order": ["file.name"], "columnSize": {},
+                                "obsHtml": {"columnSizing": "equal"}}]}
+    },
+    {
+      "name": "a second view without a name",
+      "rule": "view-names",
+      "field": "base.views[1].name",
+      "definition": {"views": [{"type": "table", "name": "A", "order": ["file.name"]},
+                               {"type": "table", "order": ["file.name"]}]}
+    },
+    {
+      "name": "a first view without a name",
+      "rule": "view-names",
+      "field": "base.views[0].name",
+      "definition": {"views": [{"type": "table", "order": ["file.name"]},
+                               {"type": "table", "name": "B", "order": ["file.name"]}]}
+    },
+    {
+      "name": "a blank view name",
+      "rule": "view-names",
+      "field": "base.views[1].name",
+      "definition": {"views": [{"type": "table", "name": "A", "order": ["file.name"]},
+                               {"type": "table", "name": " \t ", "order": ["file.name"]}]}
+    },
+    {
+      "name": "a view name that repeats an earlier one once trimmed",
+      "rule": "view-names",
+      "field": "base.views[2].name",
+      "definition": {"views": [{"type": "table", "name": "A", "order": ["file.name"]},
+                               {"type": "table", "name": "B", "order": ["file.name"]},
+                               {"type": "table", "name": " A ", "order": ["file.name"]}]}
+    },
+    {
+      "name": "a view named U+FEFF, which JavaScript trims away",
+      "rule": "view-names",
+      "field": "base.views[1].name",
+      "definition": {"views": [{"type": "table", "name": "A", "order": ["file.name"]},
+                               {"type": "table", "name": "﻿", "order": ["file.name"]}]}
+    },
+    {
+      "name": "leadingLines with icon",
+      "rule": "leading-lines-with-presentation",
+      "field": "base.properties.description.obsHtml.icon",
+      "definition": {"properties": {"description": {"obsHtml": {"leadingLines": ["date"],
+                       "icon": {"name": "upload", "label": "Upload", "help": "Uploads it"}}}},
+                     "views": [{"type": "table", "order": ["file.name", "description"]}]}
+    },
+    {
+      "name": "leadingLines with icons",
+      "rule": "leading-lines-with-presentation",
+      "field": "base.properties.description.obsHtml.icons",
+      "definition": {"properties": {"description": {"obsHtml": {"leadingLines": ["date"],
+                       "icons": [{"name": "upload", "label": "Upload", "help": "Uploads it"}]}}},
+                     "views": [{"type": "table", "order": ["file.name", "description"]}]}
+    },
+    {
+      "name": "leadingLines with reference",
+      "rule": "leading-lines-with-presentation",
+      "field": "base.properties.description.obsHtml.reference",
+      "definition": {"properties": {"description": {"obsHtml": {"leadingLines": ["date"],
+                       "reference": {"label": ["title"]}}}},
+                     "views": [{"type": "table", "order": ["file.name", "description"]}]}
+    },
+    {
+      "name": "leadingLines with editable and reference names reference, which comes first in base.js's list",
+      "rule": "leading-lines-with-presentation",
+      "field": "base.properties.description.obsHtml.reference",
+      "definition": {"properties": {"description": {"obsHtml": {"editable": true, "leadingLines": ["date"],
+                       "reference": {"label": ["title"]}}}},
+                     "views": [{"type": "table", "order": ["file.name", "description"]}]}
+    },
+    {
+      "name": "leadingLines with editable",
+      "rule": "leading-lines-with-presentation",
+      "field": "base.properties.description.obsHtml.editable",
+      "definition": {"properties": {"description": {"obsHtml": {"leadingLines": ["date"], "editable": true}}},
+                     "views": [{"type": "table", "order": ["file.name", "description"]}]}
+    },
+    {
+      "name": "a formula property declared",
+      "rule": "unsupported-property",
+      "field": "base.properties.formula.total",
+      "definition": {"properties": {"formula.total": {"displayName": "Total"}},
+                     "views": [{"type": "table", "order": ["file.name"]}]}
+    },
+    {
+      "name": "a this property in order",
+      "rule": "unsupported-property",
+      "field": "base.views[0].order[1]",
+      "definition": {"views": [{"type": "table", "order": ["file.name", "this.status"]}]}
+    },
+    {
+      "name": "file.name followed by a line break in order",
+      "rule": "unsupported-property",
+      "field": "base.views[0].order[0]",
+      "definition": {"views": [{"type": "table", "order": ["file.name\n"]}]}
+    },
+    {
+      "name": "an unreadable file property in a later view's order",
+      "rule": "unsupported-property",
+      "field": "base.views[1].order[0]",
+      "definition": {"views": [{"type": "table", "name": "A", "order": ["file.name"]},
+                               {"type": "table", "name": "B", "order": ["file.size"]}]}
+    },
+    {
+      "name": "an unreadable file property sized",
+      "rule": "unsupported-property",
+      "field": "base.views[0].columnSize.file.mtime",
+      "definition": {"views": [{"type": "table", "order": ["file.name"], "columnSize": {"file.mtime": 80}}]}
+    },
+    {
+      "name": "a note file property grouped",
+      "rule": "unsupported-property",
+      "field": "base.views[0].groupBy.property",
+      "definition": {"views": [{"type": "table", "order": ["file.name"], "groupBy": {"property": "note.file.name"}}]}
+    },
+    {
+      "name": "a formula property in a list of sort directives",
+      "rule": "unsupported-property",
+      "field": "base.views[0].sort[1].property",
+      "definition": {"views": [{"type": "table", "order": ["file.name"],
+                                "sort": [{"property": "status"}, {"property": "formula.rank", "direction": "DESC"}]}]}
+    },
+    {
+      "name": "a bracketed note file property as the one sort directive",
+      "rule": "unsupported-property",
+      "field": "base.views[0].sort.property",
+      "definition": {"views": [{"type": "table", "order": ["file.name"], "sort": {"property": "note[\"file.ext\"]"}}]}
+    },
+    {
+      "name": "an unreadable file property as a leading line",
+      "rule": "unsupported-property",
+      "field": "base.properties.description.obsHtml.leadingLines[1]",
+      "definition": {"properties": {"description": {"obsHtml": {"leadingLines": ["date", "file.ctime"]}}},
+                     "views": [{"type": "table", "order": ["file.name", "description"]}]}
+    },
+    {
+      "name": "an expanded column no view shows",
+      "rule": "expanded-column-not-ordered",
+      "field": "base.obsHtml.expandProperties.phase",
+      "definition": {"obsHtml": {"expandProperties": {"phase": {"sourceNote": "columns", "property": "phases",
+                                                                  "keyProperty": "key"}}},
+                     "views": [{"type": "table", "order": ["file.name"]}]}
+    }
+  ],
+  "accepted": [
+    {
+      "name": "showEmptyGroups false without groupOrder",
+      "definition": {"views": [{"type": "table", "order": ["file.name"], "obsHtml": {"showEmptyGroups": false}}]}
+    },
+    {
+      "name": "one view without a name",
+      "definition": {"views": [{"type": "table", "order": ["file.name"]}]}
+    },
+    {
+      "name": "two views named A and U+001F, which JavaScript does not trim",
+      "definition": {"views": [{"type": "table", "name": "A", "order": ["file.name"]},
+                               {"type": "table", "name": "\u001f", "order": ["file.name"]}]}
+    },
+    {
+      "name": "the readable file properties in order",
+      "definition": {"views": [{"type": "table", "order": ["file.name", "file.path", "file.folder", "file.ext"]}]}
+    },
+    {
+      "name": "a filter on a note property named like a formula",
+      "definition": {"filters": "note.formula.x == 1", "views": [{"type": "table", "order": ["file.name"]}]}
+    },
+    {
+      "name": "grouped, ordered and showing empty groups",
+      "definition": {"views": [{"type": "table", "order": ["file.name", "phase"], "groupBy": {"property": "phase"},
+                                "obsHtml": {"groupOrder": ["design", "build"], "showEmptyGroups": true}}]}
+    },
+    {
+      "name": "columnSize without equal sizing, and equal sizing without columnSize",
+      "definition": {"views": [{"type": "table", "name": "Sized", "order": ["file.name"], "columnSize": {"file.name": 120}},
+                               {"type": "table", "name": "Equal", "order": ["file.name"],
+                                "obsHtml": {"columnSizing": "equal"}}]}
+    },
+    {
+      "name": "leadingLines with another presentation option",
+      "definition": {"properties": {"description": {"displayName": "Description",
+                       "obsHtml": {"leadingLines": ["date", "file.name"], "singleLine": true}}},
+                     "views": [{"type": "table", "order": ["file.name", "description"],
+                                "sort": {"property": "note.status"}}]}
+    },
+    {
+      "name": "an expanded column one of the views shows",
+      "definition": {"obsHtml": {"expandProperties": {"phase": {"sourceNote": "columns", "property": "phases",
+                                                                  "keyProperty": "key"}}},
+                     "views": [{"type": "table", "name": "Plain", "order": ["file.name"]},
+                               {"type": "table", "name": "Phases", "order": ["file.name", "phase"]}]}
+    }
+  ]
+}

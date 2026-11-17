@@ -190,8 +190,9 @@ def _tables(model: dict, _trusted_runtime: bool) -> bool:
 
 
 def _empty_groups(model: dict, _trusted_runtime: bool) -> bool:
-    """A Base table's view sets obsHtml.showEmptyGroups (generic-tables.md, groupOrder)."""
-    return any((view.get("obsHtml") or {}).get("showEmptyGroups") is True
+    """A Base table's view sets obsHtml.showEmptyGroups, to any value, so the view's validation
+    holds that value to its schema line (generic-tables.md, groupOrder); false draws no empty group."""
+    return any(isinstance(view.get("obsHtml"), dict) and "showEmptyGroups" in view["obsHtml"]
                for note in model["notes"] for table in note["tables"]
                for view in table["definition"].get("views") or [] if isinstance(view, dict))
 

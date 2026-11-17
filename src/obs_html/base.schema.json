@@ -242,6 +242,11 @@
         {"type": "array", "items": {"$ref": "#/$defs/directive"}}
       ]
     },
+    "unsupportedProperty": {
+      "$comment": "Owns the Bases property names obs-html cannot read, for base.js and the build alike (base_rules.py); it ends a name with (?![\\s\\S]), not $, which Python also matches before a final line break.",
+      "type": "string",
+      "pattern": "^(?:formula\\.|this\\.|note(?:\\.file\\.|\\[\"file\\.)|file\\.(?!(?:name|path|folder|ext)(?!(?:[\\s\\S]))))"
+    },
     "comparison": {
       "$comment": "Owns Bases comparison syntax for both evaluators; groups: name, bracketed name, operator, literal.",
       "type": "string",
