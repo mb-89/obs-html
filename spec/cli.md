@@ -120,6 +120,10 @@ A DESTINATION ending in `.pdf` prints the rendered HTML to PDF in the same call,
 `--export-pdf` prints an HTML built before. The PDF row of the
 [parity table](../test/parity/features.md) records the issue that decided it.
 
+Links to places the PDF holds jump inside it; the others name the HTML beside the PDF,
+`./NAME.html#place`, where a `.pdf` DESTINATION names its own name with `.html`, and a link to
+another local file names its path from the HTML's folder ([[artifact-ui#Pages and PDF]]).
+
 Where `SOURCE_DATE_EPOCH` is set, both calls set the PDF's creation and change dates to the
 instant it names, else the PDF keeps the dates the browser printed ([[architecture#Build time]]).
 

@@ -1536,6 +1536,12 @@ Implementation decisions (4 Nov 2026, worker, reversible):
 - Links to exported chapters and headings become PDF-internal anchors. Other note links point
   to the companion HTML filename and its original fragment. Keep that HTML beside the PDF;
   PDF link handling is ultimately viewer-dependent. Unlisted notes are not appended.
+  In a PDF obs prints, such a link is relative to the PDF, `./NAME.html#fragment`, and names
+  no folder: `--export-pdf` names the HTML it printed, and a `.pdf` DESTINATION its own name
+  with `.html` (`report.pdf` gives `./report.html#fragment`), never its temporary page. A link
+  to another local file names its path from the HTML's folder (`./files/report.pdf`); one with
+  no such path, on another drive, keeps its text and loses its link. Web links stay.
+  `src/obs_html/pdf_links.py` rewrites the browser's `file:` links so after printing.
   Table cells and repeated continuation fragments retain those same real link targets.
 
   The physical PDF must contain clickable link annotations, not only styled labels or

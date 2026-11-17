@@ -216,8 +216,10 @@ Set, the page records the instant, and a rebuild writes the page unless the dest
 holds the same bytes, so a written page always carries the instant. A PDF's two dates are set to
 it before the source ZIP is attached, so two prints of one page under one value are equal.
 
-A `.pdf` DESTINATION is printed from a temporary page beside it, whose name its internal links
-carry, so two such PDFs still differ there; that is no time.
+A `.pdf` DESTINATION is printed from a temporary page beside it, but its links name no folder and
+not that page ([[artifact-ui#Pages and PDF]]): their local paths are made relative before the dates
+are set. So two prints under one value to one file name are equal in whatever folder they are made,
+for a `.pdf` DESTINATION and `--export-pdf` alike.
 
 ## Opt-in page shell parts
 

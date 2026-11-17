@@ -21,6 +21,7 @@ from obs_html.exposure import check_artifact
 from obs_html.figure_svg import document_figures, figure_svg
 from obs_html import build_time, provenance, serve, verdicts
 from obs_html.render import render
+from obs_html.pdf_links import portable
 from obs_html.source_archive import attach, embedded
 from obs_html.artifact_data import chapter_html, html_text, same_artifact_content
 from obs_html.timings import STAGES, load_baselines, recording, stage, warn_slower_stages
@@ -106,6 +107,9 @@ PDF operations:
   --export-pdf HTML --output file.pdf prints existing HTML with local Chrome/Edge/Chromium
   or Playwright Chromium, and attaches the source ZIP the HTML embeds as obs-html-source.zip.
   If no browser is installed: uv run playwright install chromium
+  Links to places the PDF holds jump inside it; the others name ./NAME.html#place, so keep that
+  HTML beside the PDF; a .pdf DESTINATION names its own name with .html, and a link to another
+  local file its path from the HTML's folder.
   --attach-source-to-pdf PDF --source-artifact HTML --output file.pdf attaches the source ZIP
   that HTML embeds (a Document built with obs-document --embed-source) to a PDF saved from it,
   as obs-html-source.zip. Rendering such a Document to a .pdf DESTINATION attaches it already.
@@ -307,7 +311,7 @@ def _write_artifact(document: dict, options: argparse.Namespace, config, destina
             temporary.write(artifact)
         html = Path(temporary.name)
         try:
-            pdf = _printed(html, artifact, destination, fixed)
+            pdf = _printed(html, artifact, destination, fixed, destination.with_suffix(".html").name)
         finally:
             html.unlink()
         _write_if_changed(destination, pdf)
@@ -386,12 +390,13 @@ def _attach_source(options: argparse.Namespace) -> None:
     print(f"Generated PDF {output.resolve()} with {html.name}'s source ZIP.")
 
 
-def _printed(html: Path, artifact: str, source: object, fixed: datetime | None) -> bytes:
-    """``html`` printed, dated ``fixed`` where it is set (the instant of ``SOURCE_DATE_EPOCH``), with the
-    source ZIP its ``artifact`` text embeds attached when it has one; ``source`` names the artifact in
-    errors."""
+def _printed(html: Path, artifact: str, source: object, fixed: datetime | None, companion: str) -> bytes:
+    """``html`` printed, its local links naming ``companion``, the HTML beside the PDF, or their path
+    from its folder (pdf_links.portable), dated ``fixed`` where it is set (the instant of
+    ``SOURCE_DATE_EPOCH``), with the source ZIP its ``artifact`` text embeds attached when it has one;
+    ``source`` names the artifact in errors."""
     from obs_html.pdf import dated, export_pdf
-    pdf = export_pdf(html)
+    pdf = portable(export_pdf(html), html.resolve(), companion)
     if fixed is not None:
         pdf = dated(pdf, build_time.pdf_date(fixed))
     archive = embedded(artifact, source)
@@ -416,7 +421,8 @@ def _browser_operation(options: argparse.Namespace, config) -> None:
         except (OSError, UnicodeError) as error:
             raise InputError(PROG, "--export-pdf", f"cannot read its HTML ({error})",
                              "Name an existing HTML artifact") from error
-        _write_if_changed(output.resolve(), _printed(options.export_pdf, artifact, options.export_pdf, fixed))
+        _write_if_changed(output.resolve(), _printed(options.export_pdf, artifact, options.export_pdf, fixed,
+                                                   options.export_pdf.name))
         print(f"Generated PDF {output.resolve()}.")
         return
     if options.output:
