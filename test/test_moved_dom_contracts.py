@@ -45,8 +45,10 @@ def test_the_complete_document_uses_references_and_a_callout_without_an_extensio
 @pytest.mark.dom
 def test_complete_document_dom_interactions(tmp_path: Path) -> None:
     package = files("obs_html")
-    run_artifact_dom_contract(_artifact(tmp_path, "complete"), "", package / "bars" / "comments.js",
-                            package / "bars" / "settings.js", package / "storage.js")
+    output = run_artifact_dom_contract(_artifact(tmp_path, "complete"), "", package / "bars" / "comments.js",
+                                     package / "bars" / "settings.js", package / "storage.js")
+    # The default run's last line names every verify step that finished (artifact-ui.cjs, run).
+    assert output.splitlines()[-1] == "PASS default run: verifyPages, verifyComments"
 
 
 @pytest.mark.dom

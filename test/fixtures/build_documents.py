@@ -38,7 +38,9 @@ def complete(root: Path) -> None:
     the core includes only when linked (the interim included every glossary note); the subtitle
     badges are vault files, so the Document carries their bytes without a network fetch; the
     references are two registers, whose views declare the members, since only a register carries
-    the core's rows (the interim read Base-level members of fences)."""
+    the core's rows (the interim read Base-level members of fences); the BLUF entry's source
+    references a note, which a `details: columns` view opens as the record field a comment
+    targets (input-model#Comments and the core model)."""
     notes = {
         "parent": "# Parent\n\n[[node#Extra]]\n\n[1](reference.md)\n",
         "child": "---\nbottom line: Child result.\n---\n# Child\n\nQuestion. #mark/question/child_question\n\nResolve this. #mark/open_point/child_open\n",
@@ -76,7 +78,8 @@ def complete(root: Path) -> None:
         ),
         "bluf": (
             "---\nkind: glossary\nterm: BLUF\naliases: [Conclusion upfront]\n"
-            "definition: The principle of presenting the [[bottom line]] first.\n---\n# BLUF\n\n[[details]]\n"
+            "definition: The principle of presenting the [[bottom line]] first.\n"
+            "source: '[[details]]'\n---\n# BLUF\n\n[[details]]\n"
             "\n```base\nobs: {records: glossary}\n"
             "views:\n  - type: table\n    order: [term, definition]\n```\n"
         ),

@@ -971,7 +971,8 @@
               "aliases": [
                 "Conclusion upfront"
               ],
-              "definition": "The principle of presenting the [[bottom line]] first."
+              "definition": "The principle of presenting the [[bottom line]] first.",
+              "source": "[[details]]"
             }
           },
           "children": [
@@ -1046,6 +1047,24 @@
                   "text": " first."
                 }
               ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "source"
+              },
+              "children": [
+                {
+                  "type": "wikilinks",
+                  "attrs": {
+                    "target": "details",
+                    "chapter": "details",
+                    "heading": "",
+                    "label": "details"
+                  },
+                  "children": []
+                }
+              ]
             }
           ]
         },
@@ -1058,7 +1077,8 @@
               "aliases": [
                 "Conclusion upfront"
               ],
-              "definition": "The principle of presenting the [[bottom line]] first."
+              "definition": "The principle of presenting the [[bottom line]] first.",
+              "source": "[[details]]"
             }
           },
           "children": []
@@ -1137,7 +1157,8 @@
         "aliases": [
           "Conclusion upfront"
         ],
-        "definition": "The principle of presenting the [[bottom line]] first."
+        "definition": "The principle of presenting the [[bottom line]] first.",
+        "source": "[[details]]"
       }
     },
     {
@@ -1978,7 +1999,8 @@
         "aliases": [
           "Conclusion upfront"
         ],
-        "definition": "The principle of presenting the [[bottom line]] first."
+        "definition": "The principle of presenting the [[bottom line]] first.",
+        "source": "[[details]]"
       },
       "fieldNodes": [
         {
@@ -2050,6 +2072,24 @@
               "attrs": {},
               "children": [],
               "text": " first."
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "source"
+          },
+          "children": [
+            {
+              "type": "wikilinks",
+              "attrs": {
+                "target": "details",
+                "chapter": "details",
+                "heading": "",
+                "label": "details"
+              },
+              "children": []
             }
           ]
         }

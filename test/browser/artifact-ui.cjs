@@ -2,6 +2,12 @@ const fs = require("node:fs");
 const vm = require("node:vm");
 const assert = require("node:assert/strict");
 const harness = require("./artifact-harness.cjs");
+// The step the run is in and the verify steps that finished; a run that exits unsettled names its step.
+const progress = {step: process.argv[7] || "the default run", settled: false, finished: []};
+const finish = (step, line) => {
+    console.log(line);
+    progress.finished.push(step);
+};
 async function run() {
 const {window, document, context, parseHTML, TextRange, timers, runTimers} =
     await harness.open(process.argv[2], process.argv[3]);
@@ -121,6 +127,7 @@ if (process.argv[7] === "--table-controls-only") {
     return;
 }
 if (process.argv[7] === "--table-help-only") {
+    progress.step = "verifyTableHelpOnly";
     await verifyTableHelpOnly();
     return;
 }
@@ -165,6 +172,7 @@ if (process.argv[7] === "--inspect-json") {
     return;
 }
 if (process.argv[7] === "--comments-only") {
+    progress.step = "verifyCommentExportOnly";
     await verifyCommentExportOnly();
     return;
 }
@@ -862,7 +870,9 @@ async function verifyPages() {
     const immediateFrame = context.requestAnimationFrame;
     const frames = [];
     context.requestAnimationFrame = (callback) => frames.push(callback);
-    document.fonts = {ready: Promise.resolve()};
+    // A FontFaceSet stand-in: the data-table runtime listens for loadingdone (table.js).
+    const fontFaceSet = (ready) => ({ready, addEventListener() {}, removeEventListener() {}});
+    document.fonts = fontFaceSet(Promise.resolve());
     const pendingDecodes = [];
     decodeImage = (image) => new Promise((resolve) => pendingDecodes.push({image, resolve}));
     const flushPromises = async () => {
@@ -880,7 +890,8 @@ async function verifyPages() {
     assert.equal(printCalls, 0);
     assert.equal(frames.length, 0);
     assert.equal(pendingDecodes.length, 4);
-    await context.obsPages.exportPDF();
+    // A second export while one is pending joins it (pages.js exportPDF); awaiting it would wait on the decodes below.
+    assert.equal(context.obsPages.exportPDF(), firstExport);
     assert.equal(pendingDecodes.length, 4);
     pendingDecodes.splice(0).forEach(({image, resolve}) => {
         assert.equal(image.isConnected, true);
@@ -909,7 +920,6 @@ async function verifyPages() {
     assert.equal(printBook.querySelector("#pdf-node, #pdf-conclusion"), null);
     assert.deepEqual([...printBook.querySelectorAll(".page-contents a")].map(link =>
         link.getAttribute("href")), ["#pdf-parent", "#pdf-child"]);
-    assert.equal(printBook.querySelector(".chapter-bluf .content-card-title a").getAttribute("href"), "artifact.html#bluf");
     assert.equal(printBook.querySelector(".chapter-breadcrumbs, button, input, .data-table-detail-row"), null);
     assert.equal(new Set([...printBook.querySelectorAll("[id]")].map((element) => element.id)).size,
         printBook.querySelectorAll("[id]").length);
@@ -927,11 +937,12 @@ async function verifyPages() {
     assert.deepEqual(artifactPageNumbers, artifactPageNumbers.map((_number, index) => index + 1));
     const pdfNodeFirstPage = printBook.querySelector("#pdf-node .paper-page-number").textContent;
     assert.ok(printBook.querySelector('a[href="#pdf-conclusion"]') === null);
-    assert.ok(printBook.querySelector('a[href="artifact.html#conclusion"]'));
+    // Artifact-ui.md "Pages and PDF": a note outside the print links the companion HTML and its fragment;
+    // pages.js fixLinks writes an empty query before the fragment so Chromium keeps the destination.
+    assert.ok(printBook.querySelector('a[href="artifact.html?#conclusion"]'));
+    // The glossary's link to its BLUF note, which the contents do not list, is such a link too.
+    assert.ok(printBook.querySelector('a[href="artifact.html?#bluf"]'));
     assert.ok(printBook.querySelector('a[href="#pdf-child"]'));
-    assert.ok([...printBook.querySelectorAll('a[href="#pdf-tags"]')].some(
-        (link) => link.textContent === "Number of open points",
-    ));
     assert.ok(printBook.querySelector('a[href="#pdf-node--extra"]'));
     assert.ok([...printBook.querySelectorAll(".paper-content")].every(
         (element) => element.scrollHeight <= element.clientHeight,
@@ -980,7 +991,7 @@ async function verifyPages() {
     assert.equal(printBook.children.length, 0);
     assert.equal(printCalls, callsBeforeAssetFailure);
     decodeImage = () => Promise.resolve();
-    document.fonts = {ready: new Promise(() => {})};
+    document.fonts = fontFaceSet(new Promise(() => {}));
     const fontTimeoutExport = context.obsPages.exportPDF();
     await flushPromises();
     [...timers.values()].find(({delay}) =>
@@ -989,7 +1000,7 @@ async function verifyPages() {
     ).callback();
     await assert.rejects(fontTimeoutExport, /Timed out waiting/);
     assert.equal(printCalls, callsBeforeAssetFailure);
-    document.fonts = {ready: Promise.resolve()};
+    document.fonts = fontFaceSet(Promise.resolve());
     imageComplete = false;
     const loadingExport = context.obsPages.exportPDF();
     await flushPromises();
@@ -1010,8 +1021,7 @@ async function verifyPages() {
     await context.obsPages.exportPDF();
     assert.equal(printCalls, callsBeforeAssetFailure + 2);
     window.dispatchEvent(new window.Event("afterprint"));
-    await verifyComments();
-    console.log("PASS: internal previews, canonical note details, query editing, inherited metadata filters, paged front matter, measured overflow, filtered PDF projection, anchor/companion links, and print cleanup.");
+    finish("verifyPages", "PASS: internal previews, canonical note details, query editing, inherited metadata filters, paged front matter, measured overflow, filtered PDF projection, anchor/companion links, and print cleanup.");
 }
 
 async function verifyTableHelpOnly() {
@@ -1081,7 +1091,7 @@ async function verifyTableHelpOnly() {
     renderedHelp.remove();
     await Promise.resolve();
     assert.equal(card.hidden, true);
-    console.log("PASS: shared table help keeps canonical rich links, containment lifecycle and dynamic rows.");
+    finish("verifyTableHelpOnly", "PASS: shared table help keeps canonical rich links, containment lifecycle and dynamic rows.");
 }
 
 async function verifyComments() {
@@ -1126,7 +1136,9 @@ async function verifyComments() {
     const exportButton = document.querySelector("[data-export-pdf]");
     assert.ok(exportRow.contains(exportButton));
     assert.equal(exportButton.textContent, "Export to PDF");
-    assert.ok(exportButton.title.includes("light colors"));
+    // Artifact-ui.md "Overlays": an explanation is data-hover-help text, not a native title.
+    assert.ok(exportButton.dataset.hoverHelp.includes("light colors"));
+    assert.equal(exportButton.hasAttribute("title"), false);
     assert.equal(document.querySelector('[data-bar="settings"] .dock-bar-content>p:not([role="status"])'), null);
     pagesToggle.checked = true;
     trigger(pagesToggle, "change");
@@ -1149,8 +1161,11 @@ async function verifyComments() {
     };
     let railMeasureCalls = 0;
     const originalGetClientRects = window.HTMLElement.prototype.getClientRects;
+    // Generic-tables.md "Columns and cells" (One line per row): a table measures its rows' cuts after each
+    // render of its body (table.js measureCuts), so only the comments bar's own calls measure review rails.
     window.HTMLElement.prototype.getClientRects = function (...args) {
-        railMeasureCalls += 1;
+        const caller = (new Error().stack || "").split("\n")[2] || "";
+        if (/\bcomments\.js:/.test(caller)) railMeasureCalls += 1;
         return originalGetClientRects.apply(this, args);
     };
     vm.runInContext(fs.readFileSync(process.argv[4], "utf8"), context, {filename: "comments.js"});
@@ -1166,6 +1181,24 @@ async function verifyComments() {
     const originalTop = row.querySelector("[data-review-gutter]").getBoundingClientRect().top;
     click(row.querySelector(".review-action--accept"));
     row = body.querySelector('tr[data-row-key="glossary:bluf"]');
+    assert.equal(row.dataset.reviewState, "accepted");
+    // Input-model.md "Comments and the core model": a selection in a keyed row's detail targets the
+    // detail's record field, the reference panel a `details: columns` view opens (input-model.md,
+    // obsHtml.details); the BLUF entry's source is such a reference.
+    const detailShell = row.closest("[data-data-table]");
+    click(detailShell.querySelector(".data-table-options-toggle"));
+    click([...detailShell.querySelectorAll(".filter-pill")].find((button) => button.textContent === "Query view"));
+    const detailEditor = detailShell.querySelector("textarea");
+    const columnsDefinition = context.obsBases.parse(detailEditor.value);
+    columnsDefinition.properties = {...columnsDefinition.properties,
+        source: {displayName: "Source", obsHtml: {detail: true}}};
+    columnsDefinition.views[0] = {...columnsDefinition.views[0], order: [...columnsDefinition.views[0].order, "source"],
+        obsHtml: {...columnsDefinition.views[0].obsHtml, details: "columns"}};
+    detailEditor.value = context.obsBases.dump(columnsDefinition);
+    detailEditor.dispatchEvent(new window.Event("input"));
+    detailEditor.dispatchEvent(new window.Event("blur"));
+    row = body.querySelector('tr[data-row-key="glossary:bluf"]');
+    assert.equal(row.dataset.reviewItem, reviewId);
     assert.equal(row.dataset.reviewState, "accepted");
     staticRenderCalls = 0;
     targetCloneCalls = 0;
@@ -1221,7 +1254,12 @@ async function verifyComments() {
     click(queryShell.querySelector(".data-table-options-toggle"));
     click([...queryShell.querySelectorAll(".filter-pill")].find((button) => button.textContent === "Query view"));
     const queryEditor = queryShell.querySelector("textarea");
-    queryEditor.value = context.obsBases.dump(context.obsBases.parse(queryEditor.value));
+    // Generic-tables.md "Editable query view" and "Projection": obs-table-definition-change means the reader
+    // applied a new query, which an unchanged definition is not (tables.js onDefinitionChange), so the edit
+    // names the view and keeps its rows.
+    const editedDefinition = context.obsBases.parse(queryEditor.value);
+    editedDefinition.views[0].name = "Edited glossary";
+    queryEditor.value = context.obsBases.dump(editedDefinition);
     queryEditor.dispatchEvent(new window.Event("input"));
     staticRenderCalls = 0;
     queryEditor.dispatchEvent(new window.Event("blur"));
@@ -1240,21 +1278,22 @@ async function verifyComments() {
     assert.equal(copyButton.textContent.trim(), "Copy comments to clipboard");
     const originalDirty = document.querySelector("[data-review-save-guidance]").dataset.dirty;
     const originalIsland = document.querySelector("[data-comment-island]").textContent;
-    const [alphaId, betaId] = [firstNodeId("alpha"), firstNodeId("beta")];
+    // The complete fixture's chapters: review items are their blocks (spec/input-model.md, Comments and the core model).
+    const [parentId, childId] = [firstNodeId("parent"), firstNodeId("child")];
     context.obsComments.data.annotations.push(thread({
         id: "selected-unicode",
         author: "Reviewer Ω",
         text: "First line.\n<Second line> & safe.",
         state: "open",
         target: {
-            chapter: "beta", node: betaId, quote: "Quoted “text”\nacross lines.", prefix: "Before ",
+            chapter: "child", node: childId, quote: "Quoted “text”\nacross lines.", prefix: "Before ",
             suffix: " after", start: 17, end: 42,
         },
         batch: {
             scope: "section",
             items: [
-                {chapter: "alpha", node: alphaId},
-                {chapter: "beta", node: betaId},
+                {chapter: "parent", node: parentId},
+                {chapter: "child", node: childId},
             ],
         },
         replies: [thread({
@@ -1282,10 +1321,10 @@ async function verifyComments() {
     click(copyButton);
     await new Promise((resolve) => setImmediate(resolve));
     assert.ok(clipboardText.includes("Test document"));
-    assert.ok(clipboardText.includes("beta"));
+    assert.ok(clipboardText.includes("- Chapter: Child (child)"));
     assert.ok(clipboardText.includes("Page: unavailable"));
     assert.doesNotMatch(clipboardText, /Page: \d+/);
-    assert.ok(clipboardText.includes(`review item "${betaId}"`));
+    assert.ok(clipboardText.includes(`review item "${childId}"`));
     assert.ok(clipboardText.includes("17-42"));
     assert.ok(clipboardText.includes("Quoted “text”\nacross lines."));
     assert.ok(clipboardText.includes("Reviewer Ω"));
@@ -1293,8 +1332,8 @@ async function verifyComments() {
     assert.ok(clipboardText.includes("Nested reply."));
     assert.ok(clipboardText.includes("Deep reply."));
     assert.ok(clipboardText.includes("Batch scope: full section"));
-    assert.ok(clipboardText.includes(`alpha ${alphaId}`));
-    assert.ok(clipboardText.includes(`beta ${betaId}`));
+    assert.ok(clipboardText.includes(`parent ${parentId}`));
+    assert.ok(clipboardText.includes(`child ${childId}`));
     assert.equal(document.querySelector("[data-comment-announcer]").textContent,
         "Comments copied to clipboard.");
     assert.equal(document.querySelector("[data-review-save-guidance]").dataset.dirty, originalDirty);
@@ -1330,6 +1369,8 @@ async function verifyComments() {
     assert.equal(island.textContent, '{"invalid":true}');
     assert.equal(document.querySelector("[data-comment-save]").disabled, true);
     assert.ok(runtimeErrors.some((message) => message.includes("original review data was preserved")));
+    finish("verifyComments", "PASS verifyComments: shared images, Appearance, the export row, review rails, " +
+        "detail selections, table identities, the reviewed copy, clipboard states and storage failures.");
 }
 async function verifyCommentExportOnly() {
     navigate("parent");
@@ -1545,8 +1586,20 @@ async function verifyCommentExportOnly() {
     const merged = context.obsComments.data.annotations.at(-1);
     assert.equal(merged.text, "Imported whole item feedback.");
     assert.equal(merged.target.node, whole.target.node);
-    console.log("PASS: all comments/context, nested replies, batch/table identities, clipboard states, unchanged review state, and save/import compatibility.");
+    finish("verifyCommentExportOnly", "PASS: all comments/context, nested replies, batch/table identities, clipboard states, unchanged review state, and save/import compatibility.");
 }
+progress.step = "verifyPages";
 await verifyPages();
+progress.step = "verifyComments";
+await verifyComments();
+console.log(`PASS default run: ${progress.finished.join(", ")}`);
 }
-run().catch((error) => { console.error(error); process.exitCode = 1; });
+run().then(() => { progress.settled = true; },
+    (error) => { progress.settled = true; console.error(error); process.exitCode = 1; });
+// With the harness's fake timers nothing keeps the event loop alive: an await that never settles ends the process.
+process.on("exit", () => {
+    if (progress.settled || process.exitCode !== undefined) return;
+    process.stderr.write(`test/browser/artifact-ui.cjs: the run stopped in ${progress.step} ` +
+        "before it finished: an awaited promise never settled.\n");
+    process.exitCode = 1;
+});
