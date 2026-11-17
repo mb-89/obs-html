@@ -320,7 +320,9 @@ FEATURES: tuple[Feature, ...] = (
                      _detail_fields, ()),
                 Part("live-source", "a Base that declares obsHtml.liveSource: its declaration checked against "
                      "the build's rows when the page starts, and the pure layer that maps fetched items onto "
-                     "them (generic-tables.md, Current data)", _live_source, ("live-data.js",)))),
+                     "them (generic-tables.md, Current data)", _live_source, ("live-data.js",)),
+                Part("style-refit", "a table on a page that carries local themes: its columns are measured "
+                     "again when the reader chooses a theme", _style_choice, ()))),
     Feature("options-menu", "a Base table or a figure: their one options menu (options-menu.js)",
             _options_menu, ("options-menu.js",), host=False, base_styles=("options-menu.css",)),
     Feature("figures", "a figure: its frame's styles and script", _figures,
@@ -334,6 +336,13 @@ FEATURES: tuple[Feature, ...] = (
     Feature("source-file", "a note with a Source file row (artifact.sourceFileLinks): the frontmatter table's "
             "last row, the note's vault path, a link where the core passed --vault-link (cli.md, Source file "
             "links); the panel's own rules lay it out", _source_file, ("source-file.js",), host=False),
+    Feature("style-choice", "a page that carries local themes (reading.styles; spec/configuration.md, Local "
+            "themes): the Settings bar's Theme select", _style_choice, ("style-choice.js",),
+            styles=("style-choice.css",), elements=("style-choice-styles",), host=False, parts=(
+                Part("style-relayout", "a page that carries local themes: its sheets are laid out again, their "
+                     "page numbers measured again, when the reader chooses a theme", _style_choice, ()),
+                Part("style-copy", "a page that carries local themes: a saved copy's root holds the start theme, "
+                     "never the reader's choice", _style_choice, ()))),
 )
 
 

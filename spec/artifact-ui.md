@@ -142,6 +142,13 @@ failures have their form in [[input-model#Chapter content]].
   A page built without local themes carries no `data-style`, no theme styles and no theme data.
   In code a theme is a style (`data-style`, `reading.styles`, `reading.style`), because
   `data-theme` is the appearance.
+
+  On a page that carries local themes, the Settings bar offers a Theme select below Appearance:
+  Default first, then each local theme by its folder name. Choosing one restyles the page at once
+  in the current appearance, a guided card's window with it, and lays the page out again in the
+  theme's fonts and spacing; Export to PDF prints the chosen theme in its light colours. The
+  choice is session-only, as appearance is: nothing stores it, and every opening, a saved copy's
+  too, starts in the start theme. A page without local themes has no Theme select.
 - All colors are semantic custom properties projected from [[semantic-assets]].
 - Components consume semantic tokens; color literals do not appear in component rules or
   generated markup.
@@ -2321,8 +2328,8 @@ change since it was opened or last saved.
 - A review edit is a change: a comment, a reply or a review decision. It is not a content
   edit and leaves the `timestamp` unchanged.
 - Reader state is never a change: filters, view selections, table columns,
-  sorting, grouping, pagination, open or closed panels and bars, navigation, scrolling and
-  appearance. It raises neither the changed-HTML entry nor the unload warning, also where a
+  sorting, grouping, pagination, open or closed panels and bars, navigation, scrolling, appearance
+  and theme. It raises neither the changed-HTML entry nor the unload warning, also where a
   saved copy persists it; the applied filter has its own information entry.
 - A resized column width and a choice in a figure's options menu are session-only view state:
   never saved, never a change and not reader state.

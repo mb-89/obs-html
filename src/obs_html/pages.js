@@ -1139,6 +1139,14 @@
         }
     }, true);
     window.addEventListener("resize", refreshSheets);
+    // part style-relayout {
+    // A theme the reader chooses lays the sheets out again in its fonts and spacing, its page
+    // numbers measured again (artifact-ui.md, Styling).
+    new MutationObserver(() => {
+        invalidateMeasurements();
+        renderScreen();
+    }).observe(root, {attributes: true, attributeFilter: ["data-style"]});
+    // } part style-relayout
     document.addEventListener("keydown", event => {
         if (!(event.ctrlKey || event.metaKey) || event.altKey || event.key.toLowerCase() !== "p") return;
         event.preventDefault();

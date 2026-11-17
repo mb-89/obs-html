@@ -1755,6 +1755,9 @@
             if (!shell.isConnected) {
                 observer.disconnect();
                 document.fonts?.removeEventListener("loadingdone", refitAfterFontLoad);
+                // part style-refit {
+                window.removeEventListener("resize", renderColumnWidths);
+                // } part style-refit
                 return;
             }
             updateViewportHeight();
@@ -1768,6 +1771,10 @@
             renderColumnWidths();
         }
         document.fonts?.addEventListener("loadingdone", refitAfterFontLoad);
+        // part style-refit {
+        // A theme the reader chooses measures the columns again in its fonts and spacing (artifact-ui.md, Styling).
+        window.addEventListener("resize", renderColumnWidths);
+        // } part style-refit
         observer.observe(scroller);
         observer.observe(table);
         return {

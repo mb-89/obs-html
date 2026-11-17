@@ -13,7 +13,7 @@ import pytest
 
 import canaries
 import library_fakes
-from conftest import FIXTURE, PIXEL, ROOT
+from conftest import FIXTURE, LOCAL_THEMES, PIXEL, ROOT
 from documents import chapter, document, heading, node, paragraph
 from obs_html import features
 from obs_html.artifact_data import decode_artifact_data
@@ -22,6 +22,7 @@ from obs_html.errors import InputError
 from obs_html.features import FEATURES, PART_REGION, Feature, Part, feature_source
 from obs_html.figures import FIGURE_KINDS
 from obs_html.render import render
+from obs_html.style_choice import local_style_choice
 
 
 CONFIG = load_config()
@@ -143,7 +144,10 @@ CASES = {
     "property-editor": ([fixture("property-editor-projection")], [plain(), with_guided_card()]),
     "columns": ([fixture("columns")], [plain(), fixture("cards")]),
     "source-file": ([plain()], [(plain(), SOURCE_FILES_OFF)]),
+    "style-choice": ([plain()], [plain()]),
 }
+# Feature key -> the render options its included Documents are rendered with: the fixture's local themes.
+OPTIONS = {"style-choice": {"style_choice": local_style_choice({"OBS_HTML_LOCAL_FOLDER": str(LOCAL_THEMES)})}}
 
 
 def _case(case: dict | tuple[dict, object]) -> tuple[dict, object]:
@@ -245,6 +249,17 @@ def test_the_style_sync_part_ships_only_with_local_themes() -> None:
     assert "dataset.style" in themed and '"data-style"' in themed
 
 
+def test_the_style_refit_part_ships_only_with_local_themes() -> None:
+    """A table's columns are measured again when the reader chooses a theme only on a page that carries
+    local themes (artifact-ui.md, Styling); elsewhere table.js ships as it is without the part."""
+    listener = 'window.addEventListener("resize"'
+    plain_page = render(with_guided_card(), load_config())
+    assert feature_source("table.js") in plain_page and listener not in feature_source("table.js")
+    themed = render(with_guided_card(), load_config(), **OPTIONS["style-choice"])
+    shipped = feature_source("table.js", ["style-refit"])
+    assert shipped in themed and listener in shipped
+
+
 @pytest.mark.parametrize("feature", FEATURES, ids=lambda feature: feature.key)
 def test_the_inclusion_condition_decides_whether_code_elements_and_canary_ship(feature) -> None:
     included, excluded = CASES[feature.key]
@@ -253,7 +268,7 @@ def test_the_inclusion_condition_decides_whether_code_elements_and_canary_ship(f
     code = [feature_source(name).strip() for name in (*feature.code, *feature.styles, *feature.base_styles)]
     elements = [f'id="{element}"' for element in feature.elements]
     for source, config in map(_case, included):
-        html, title = render(source, config), source["manifest"]["title"]
+        html, title = render(source, config, **OPTIONS.get(feature.key, {})), source["manifest"]["title"]
         assert canary is None or f'id="canary-{feature.key}"' in html and canary in html, (
             f"{feature.key}: {title} meets '{feature.condition}' but lacks its canary")
         assert all(part in html for part in code), f"{feature.key}: code missing from {title}"
