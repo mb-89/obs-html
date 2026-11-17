@@ -1,14 +1,18 @@
 """Browser tests: they start the local Chrome/Edge/Chromium through Playwright."""
 import base64
+import copy
 import json
+import re
 import shutil
 from io import BytesIO
 from pathlib import Path
 
 import pytest
+import yaml
 from pypdf import PdfReader
 
-from conftest import FIXTURE
+from conftest import FIXTURE, ROOT
+from documents import chapter, document, node
 from obs_html import cli
 
 
@@ -49,6 +53,43 @@ def test_rendered_check_fails_on_console_errors(pdf_browser, tmp_path, capsys) -
     error = capsys.readouterr().err
     assert "Console error: bad" in error  # The console's own error, as the check reports it.
     assert f"\n{html}: --check-rendered: " in f"\n{error}", error
+
+
+def _live_tracker(status: str) -> dict:
+    """A Document whose Base declares the live-data capability note's live source over two issue
+    notes; issue 1 is labelled ready, so the declaration derives Next for it (generic-tables.md,
+    Current data, The check)."""
+    note = (ROOT / "spec" / "capabilities" / "live-data.md").read_text(encoding="utf-8")
+    declaration = yaml.safe_load(re.search(r"```yaml\n(.*?)```", note, re.S)[1])["obsHtml"]["liveSource"]
+    issues = {1: {"state": "open", "labels": ["ready"], "status": status},
+              2: {"state": "closed", "labels": [], "status": "Done"}}
+    records = tuple({"id": f"widgets-{number}", "type": "note", "path": f"issues/widgets-{number}.md", "fields": {
+        "kind": "issue", "repo": "widgets", "number": number, **item}}
+        for number, item in issues.items())
+    spec = {"filters": 'kind == "issue"', "views": [{"type": "table", "name": "Board", "order": ["file.name", "status"]}],
+            "obsHtml": {"liveSource": copy.deepcopy(declaration)}}
+    return document("Tracker", chapter("tracker", "Tracker", node("bases", source="", spec=spec)), records=records)
+
+
+@pytest.mark.browser
+def test_rendered_check_fails_on_a_live_source_that_does_not_reproduce_a_row_and_passes_once_corrected(
+        pdf_browser, tmp_path, capsys) -> None:
+    """generic-tables.md, Current data, The check: a row whose status the declaration's derive does
+    not reproduce logs one console error naming its note and the field, so --check-rendered fails;
+    the corrected note passes (spec/capabilities/live-data.md tells authors to run it)."""
+    for status, name in (("Running", "wrong"), ("Next", "corrected")):
+        (tmp_path / f"{name}.json").write_text(json.dumps(_live_tracker(status)), encoding="utf-8")
+        assert cli.main([str(tmp_path / f"{name}.json"), str(tmp_path / f"{name}.html")]) == 0
+    capsys.readouterr()
+    with pytest.raises(SystemExit) as exit_info:
+        cli.main(["--check-rendered", str(tmp_path / "wrong.html")])
+    assert exit_info.value.code == 2
+    error = capsys.readouterr().err
+    errors = [line for line in error.splitlines() if line.startswith("Console error: ")]
+    assert len(errors) == 1, error
+    assert "note issues/widgets-1.md" in errors[0] and "derive check of field status" in errors[0]
+    cli.main(["--check-rendered", str(tmp_path / "corrected.html")])
+    assert "status ready, 0 console errors," in capsys.readouterr().out
 
 
 @pytest.mark.browser

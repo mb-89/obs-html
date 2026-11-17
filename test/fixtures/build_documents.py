@@ -732,6 +732,17 @@ FEATURE_CARDS = {"version": 1, "cards": [
 the first a quantity link in its body."""
 
 
+FEATURE_LIVE_SOURCE = (
+    "obsHtml:\n  liveSource:\n    name: Example Tracker\n    key: [repo, number]\n"
+    "    notePath: 'issues/{repo}-{number}.md'\n    fields: {number: number}\n"
+    "    changes:\n    - provider: connector\n      server: Example Tracker\n      tool: list_issues\n"
+    "      rows: issues\n      maxPages: 1\n      requests:\n      - set: {repo: widgets}\n"
+    "        input: {owner: example-org, repo: widgets, since: '{since}'}\n")
+"""The tracker table's live source, for live-source (generic-tables.md, Current data): its one route is
+a connector's, so no browser test that opens the fixture makes a request, and its notes carry no
+instant, so its build raises no provenance finding."""
+
+
 def features(root: Path) -> None:
     """The browser tier's feature fixture (obs quality.md, Testing boundaries): a few chapters in
     which every feature of the registry (features.py, FEATURES, with every part) appears, read in
@@ -743,7 +754,8 @@ def features(root: Path) -> None:
     bless, which needs answers and bless; the overview's two-column block needs columns. Its chapters also hold what those checks read in obs's spec: prose with
     links, marks, an image, a callout and nested headings; a paged table of notes outside the contents,
     whose second view lists a kind no row has, for empty-groups, whose third folds its passing rows,
-    for passing-rows, and whose fourth opens a row with only its rank, for detail-fields;
+    for passing-rows, and whose fourth opens a row with only its rank, for detail-fields; a second table,
+    of two issue notes, that declares a live source, for live-source;
     a figure reference across chapters; a register and a property editor; a card group with metrics
     and a quantity link (FEATURE_CARDS). As in obs's spec, the
     chapters the reading script walks are nested three deep, with headings. Each chapter's
@@ -782,7 +794,14 @@ def features(root: Path) -> None:
         "  - type: table\n    name: Checked\n    order: [file.name, rank]\n"
         f"    obsHtml: {{passing: {{filters: 'rank != 1', label: checked}}}}\n"
         "  - type: table\n    name: Brief\n    order: [file.name, description]\n"
-        f"    obsHtml: {{detailFields: [rank]}}\n```\n\n{FEATURE_PROSE}\n", encoding="utf-8")
+        f"    obsHtml: {{detailFields: [rank]}}\n```\n\n```base\nfilters: 'kind == \"issue\"'\nviews:\n"
+        f"  - type: table\n    name: Tracker\n    order: [file.name, number]\n{FEATURE_LIVE_SOURCE}```\n\n"
+        f"{FEATURE_PROSE}\n", encoding="utf-8")
+    (root / "issues").mkdir()
+    for number in (1, 2):
+        (root / "issues" / f"widgets-{number}.md").write_text(
+            f"---\nkind: issue\nrepo: widgets\nnumber: {number}\n---\n",
+            encoding="utf-8")
     for index in range(1, FEATURE_ITEMS + 1):
         (root / f"item-{index:02}.md").write_text(
             f"---\nkind: item\nrank: {index}\ndescription: Item {index} of the paged table, "

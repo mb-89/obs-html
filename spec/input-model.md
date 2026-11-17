@@ -600,6 +600,11 @@ against the generated artifact's location.
 Formatting is shared by initial, filtered, printed and canonically refreshed
 subject details and must not add another query or canonical data owner.
 
+A Base may declare a live source ([[capabilities/live-data]]). Its build-time rows stay canonical,
+complete and the only saved rows. Rows read when the page opens are a table-local, in-memory
+projection: never saved, and no data owner for anything but that table's display. The rules are in
+[[generic-tables#Current data]].
+
 Table `obs-table-set-row-keys` presentation events may restrict a mounted view to
 known row identities (or reset with null); this independent presentation scope
 intersects, never replaces, its authored and interactive queries. Static exports

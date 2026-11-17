@@ -15,7 +15,9 @@ A figure kind that needs a host ability, a library or a script of its own names 
 FigureKind.features (figures.py); the feature's condition reads those declarations, so the kind
 registry has no inclusion mechanism of its own. A feature's part ships code only where its own condition holds as
 well, under the feature's canary: the downloads feature's source-archive part attaches the source
-ZIP to a PDF only in an artifact that has one. A library the renderer delivers itself (the
+ZIP to a PDF only in an artifact that has one. A part may read the host yet have no canary: the
+tables feature's live-source part, because a host that refuses it leaves the saved rows and the
+table's own line says so (artifact-ui.md, Dock menu). A library the renderer delivers itself (the
 plotting library, by artifact.figures.plotlyDelivery, the maths library and the PDF library of the
 source-archive part, each through its door, libraries.py, and ctrl's decision engine ``vendor/pugh.js``)
 ships exactly where its feature or part is included.
@@ -215,6 +217,12 @@ def _detail_fields(model: dict, _trusted_runtime: bool) -> bool:
                for view in table["definition"].get("views") or [] if isinstance(view, dict))
 
 
+def _live_source(model: dict, _trusted_runtime: bool) -> bool:
+    """A Base table's entry carries live: its Base declares obsHtml.liveSource (generic-tables.md,
+    Current data)."""
+    return any("live" in table for note in model["notes"] for table in note["tables"])
+
+
 def _marked(marker: str) -> Callable[[dict, bool], bool]:
     """Whether the artifact's model holds ``marker``, the attribute the renderer writes on the
     element a feature's script finds (a figure, a record card, a property editor)."""
@@ -290,7 +298,10 @@ FEATURES: tuple[Feature, ...] = (
                      "line that opens them (generic-tables.md, Query and filtering)", _passing_rows, ()),
                 Part("detail-fields", "a view that sets obsHtml.detailFields: an opened row shows only the "
                      "fields it lists, in its order (input-model.md, Compact declarative table presentation)",
-                     _detail_fields, ()))),
+                     _detail_fields, ()),
+                Part("live-source", "a Base that declares obsHtml.liveSource: its declaration checked against "
+                     "the build's rows when the page starts, and the pure layer that maps fetched items onto "
+                     "them (generic-tables.md, Current data)", _live_source, ("live-data.js",)))),
     Feature("options-menu", "a Base table or a figure: their one options menu (options-menu.js)",
             _options_menu, ("options-menu.js",), host=False, base_styles=("options-menu.css",)),
     Feature("figures", "a figure: its frame's styles and script", _figures,

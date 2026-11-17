@@ -1725,6 +1725,11 @@ separate from artifact presentation.
   Deferred startup does not omit source material,
   weaken offline reopening or create another data owner.
 
+  A Base may declare a live source ([[capabilities/live-data]]). Its build-time rows stay
+  canonical, complete and the only saved rows. Rows read when the page opens are a table-local,
+  in-memory projection: never saved, and no data owner for anything but that table's display. The
+  rules are in [[generic-tables#Current data]].
+
   Downloads use the
   browser's normal save destination (the user may choose a folder).
 
@@ -2032,6 +2037,8 @@ separate from artifact presentation.
   ability, a library or a script of its own declares it there by key, never through a second
   inclusion mechanism. The registry also holds the features that need nothing of the host, such as
   Base tables and figures; they ship the same way and have no canary.
+  The tables feature's `live-source` part reads the host yet has no canary: a host that refuses it
+  leaves the saved rows, and the table's own line says so ([[generic-tables#Current data]]).
 
   Generic reader-facing controls and messages call the artifact HTML, not a report.
   Where its semantic name is useful, derive it from the authored document type;

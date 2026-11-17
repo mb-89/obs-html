@@ -443,3 +443,28 @@ def test_a_detail_fields_value_its_schema_line_refuses_fails_the_build() -> None
     with pytest.raises(InputError) as failure:
         render(_grouped_table(detailFields="date"), CONFIG)
     assert (failure.value.source, failure.value.field) == ("chapter one", "base.views[1].obsHtml.detailFields")
+
+
+LIVE_DECLARATION = __import__("yaml").safe_load(re.search(r"```yaml\n(.*?)```", (
+    ROOT / "spec" / "capabilities" / "live-data.md").read_text(encoding="utf-8"), re.S)[1])["obsHtml"]["liveSource"]
+"""The live-data capability note's example declaration."""
+
+
+def test_the_live_source_part_ships_only_where_a_base_declares_it_and_strips_without_it() -> None:
+    """features.py, the tables feature's part live-source: it ships live-data.js and tables.js's
+    live-source region where a Base declares obsHtml.liveSource, and without it the HTML holds
+    neither, so a Base without the option renders as it did (generic-tables.md, Current data)."""
+    part = next(part for feature in FEATURES if feature.key == "tables" for part in feature.parts
+                if part.key == "live-source")
+    assert (part.option, part.code) == ((), ("live-data.js",))
+    assert next(feature for feature in FEATURES if feature.key == "tables").canary is None
+    plain_source, kept = feature_source("tables.js"), feature_source("tables.js", ["live-source"])
+    assert "live-source" not in plain_source and "obsLiveData" not in plain_source and "liveTables" not in plain_source
+    assert kept != plain_source and "showEmptyGroups" not in kept and "passing" not in kept.lower()
+    assert feature_source("tables.js", TABLES_PARTS) == SOURCE.joinpath("tables.js").read_text(encoding="utf-8")
+    pure = feature_source("live-data.js")
+    live = _grouped_table()
+    live["chapters"][0]["content"][1]["attrs"]["spec"]["obsHtml"] = {"liveSource": LIVE_DECLARATION}
+    off, on = render(_grouped_table(), CONFIG), render(live, CONFIG)
+    assert "obsLiveData" not in off and "live-source" not in off and plain_source in off
+    assert pure in on and kept in on and plain_source not in on

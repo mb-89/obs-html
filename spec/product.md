@@ -16,6 +16,10 @@ it because they hold for the HTML artifact.
   hosting.
 - Keep all artifact data inside that file so it can be sent by email and opened on another
   machine without access to the source vault.
+- A Base may declare a live source ([[capabilities/live-data]]). Its build-time rows stay
+  canonical, complete and the only saved rows. Rows read when the page opens are a table-local,
+  in-memory projection: never saved, and no data owner for anything but that table's display. The
+  rules are in [[generic-tables#Current data]].
 - Network CDN dependencies are allowed; local filesystem dependencies are not.
 - Present one chapter at a time with table-of-contents and previous/next navigation.
 

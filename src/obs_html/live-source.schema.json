@@ -1,0 +1,162 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$comment": "obsHtml.liveSource on a Base: where newer values of its rows are read when the page opens (generic-tables.md, Current data). No key for headers, tokens or credentials exists anywhere, and none names an instant: a read item is compared with its row by value.",
+  "type": "object",
+  "required": ["name", "key", "notePath", "fields", "changes"],
+  "additionalProperties": false,
+  "properties": {
+    "name": {"$ref": "#/$defs/text"},
+    "key": {"type": "array", "minItems": 1, "maxItems": 4, "uniqueItems": true, "items": {"$ref": "#/$defs/text"}},
+    "notePath": {"$ref": "#/$defs/text"},
+    "refreshMinutes": {"type": "integer", "minimum": 5, "default": 10},
+    "lookbackHours": {"type": "integer", "minimum": 1, "maximum": 720, "default": 1, "$comment": "How long before the page's generation timestamp a read starts: a duration, no date."},
+    "fields": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "oneOf": [
+          {"$ref": "#/$defs/path"},
+          {
+            "type": "object",
+            "required": ["path", "lowercase"],
+            "additionalProperties": false,
+            "properties": {"path": {"$ref": "#/$defs/path"}, "lowercase": {"const": true}}
+          }
+        ]
+      }
+    },
+    "derive": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/case"}}
+    },
+    "fillNew": {"type": "object", "minProperties": 1, "additionalProperties": {"$ref": "#/$defs/path"}},
+    "bodyPath": {"$ref": "#/$defs/path"},
+    "exclude": {"$ref": "#/$defs/conditions"},
+    "accept": {"$ref": "#/$defs/conditions"},
+    "changes": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["provider"],
+        "properties": {"provider": {"enum": ["connector", "web"]}},
+        "if": {"properties": {"provider": {"const": "connector"}}},
+        "then": {"$ref": "#/$defs/connector"},
+        "else": {"$ref": "#/$defs/web"}
+      }
+    }
+  },
+  "$defs": {
+    "text": {"type": "string", "pattern": "\\S", "maxLength": 512},
+    "path": {
+      "$comment": "Dotted keys plus [], which maps over a list (generic-tables.md, Paths, templates and conditions).",
+      "type": "string",
+      "pattern": "^[A-Za-z_][A-Za-z0-9_-]*(\\[\\])?(\\.[A-Za-z_][A-Za-z0-9_-]*(\\[\\])?)*$"
+    },
+    "scalar": {"type": ["string", "number", "boolean"]},
+    "conditions": {
+      "$comment": "The shape of the core's capabilities/queries, Conditions.",
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 32,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["field"],
+        "properties": {
+          "field": {"type": "string", "minLength": 1, "maxLength": 256},
+          "equals": {"type": "string", "maxLength": 512},
+          "exists": {"const": true},
+          "matchCase": {"const": true}
+        },
+        "dependentRequired": {"matchCase": ["equals"]},
+        "oneOf": [{"required": ["equals"]}, {"required": ["exists"]}]
+      }
+    },
+    "case": {
+      "oneOf": [
+        {
+          "type": "object", "required": ["value"], "additionalProperties": false,
+          "properties": {"where": {"$ref": "#/$defs/conditions"}, "value": {"$ref": "#/$defs/scalar"}}
+        },
+        {
+          "type": "object", "required": ["path"], "additionalProperties": false,
+          "properties": {"where": {"$ref": "#/$defs/conditions"}, "path": {"$ref": "#/$defs/path"}}
+        },
+        {
+          "type": "object", "required": ["keep"], "additionalProperties": false,
+          "properties": {"where": {"$ref": "#/$defs/conditions"}, "keep": {"const": true}}
+        }
+      ]
+    },
+    "set": {"type": "object", "additionalProperties": {"$ref": "#/$defs/scalar"}},
+    "routeFields": {"type": "object", "minProperties": 1, "additionalProperties": {"$ref": "#/$defs/path"}},
+    "maxPages": {"type": "integer", "minimum": 1, "maximum": 5},
+    "input": {
+      "type": "object",
+      "additionalProperties": {
+        "oneOf": [
+          {"$ref": "#/$defs/scalar"},
+          {"type": "array", "items": {"$ref": "#/$defs/scalar"}}
+        ]
+      }
+    },
+    "connector": {
+      "type": "object",
+      "required": ["provider", "server", "tool", "rows", "requests", "maxPages"],
+      "additionalProperties": false,
+      "properties": {
+        "provider": {"const": "connector"},
+        "server": {"$ref": "#/$defs/text"},
+        "tool": {"enum": ["list_issues"], "$comment": "The connector's read tools; adding one is a reviewed schema change."},
+        "rows": {"$ref": "#/$defs/path"},
+        "requests": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["set", "input"],
+            "additionalProperties": false,
+            "properties": {"set": {"$ref": "#/$defs/set"}, "input": {"$ref": "#/$defs/input"}}
+          }
+        },
+        "next": {
+          "type": "object",
+          "required": ["cursor", "more", "input"],
+          "additionalProperties": false,
+          "properties": {
+            "cursor": {"$ref": "#/$defs/path"},
+            "more": {"$ref": "#/$defs/path"},
+            "input": {"$ref": "#/$defs/text"}
+          }
+        },
+        "maxPages": {"$ref": "#/$defs/maxPages"},
+        "fields": {"$ref": "#/$defs/routeFields"}
+      }
+    },
+    "web": {
+      "type": "object",
+      "required": ["provider", "requests", "maxPages"],
+      "additionalProperties": false,
+      "properties": {
+        "provider": {"const": "web"},
+        "requests": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["set", "url"],
+            "additionalProperties": false,
+            "properties": {"set": {"$ref": "#/$defs/set"}, "url": {"type": "string", "pattern": "\\S", "maxLength": 2048}}
+          }
+        },
+        "rows": {"$ref": "#/$defs/path"},
+        "next": {"const": "link"},
+        "maxPages": {"$ref": "#/$defs/maxPages"},
+        "fields": {"$ref": "#/$defs/routeFields"}
+      }
+    }
+  }
+}

@@ -994,6 +994,61 @@
                   "id": "bases-7fdd4328"
                 },
                 {
+                  "type": "bases",
+                  "attrs": {
+                    "source": "filters: 'kind == \"issue\"'\nviews:\n  - type: table\n    name: Tracker\n    order: [file.name, number]\nobsHtml:\n  liveSource:\n    name: Example Tracker\n    key: [repo, number]\n    notePath: 'issues/{repo}-{number}.md'\n    fields: {number: number}\n    changes:\n    - provider: connector\n      server: Example Tracker\n      tool: list_issues\n      rows: issues\n      maxPages: 1\n      requests:\n      - set: {repo: widgets}\n        input: {owner: example-org, repo: widgets, since: '{since}'}\n",
+                    "spec": {
+                      "filters": "kind == \"issue\"",
+                      "views": [
+                        {
+                          "type": "table",
+                          "name": "Tracker",
+                          "order": [
+                            "file.name",
+                            "number"
+                          ]
+                        }
+                      ],
+                      "obsHtml": {
+                        "liveSource": {
+                          "name": "Example Tracker",
+                          "key": [
+                            "repo",
+                            "number"
+                          ],
+                          "notePath": "issues/{repo}-{number}.md",
+                          "fields": {
+                            "number": "number"
+                          },
+                          "changes": [
+                            {
+                              "provider": "connector",
+                              "server": "Example Tracker",
+                              "tool": "list_issues",
+                              "rows": "issues",
+                              "maxPages": 1,
+                              "requests": [
+                                {
+                                  "set": {
+                                    "repo": "widgets"
+                                  },
+                                  "input": {
+                                    "owner": "example-org",
+                                    "repo": "widgets",
+                                    "since": "{since}"
+                                  }
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  "children": [],
+                  "id": "bases-5746d2aa"
+                },
+                {
                   "type": "paragraph",
                   "attrs": {},
                   "children": [
@@ -2367,6 +2422,126 @@
         "obs": {
           "document": false
         }
+      }
+    },
+    {
+      "id": "issues-widgets-1",
+      "title": "Widgets 1",
+      "toc": false,
+      "content": [
+        {
+          "type": "markdown-frontmatter",
+          "attrs": {
+            "metadata": {
+              "kind": "issue",
+              "repo": "widgets",
+              "number": 1
+            }
+          },
+          "children": [
+            {
+              "type": "field",
+              "attrs": {
+                "name": "kind"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "issue"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "repo"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "widgets"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "issues-widgets-1"
+          },
+          "children": []
+        }
+      ],
+      "children": [],
+      "metadata": {
+        "kind": "issue",
+        "repo": "widgets",
+        "number": 1
+      }
+    },
+    {
+      "id": "issues-widgets-2",
+      "title": "Widgets 2",
+      "toc": false,
+      "content": [
+        {
+          "type": "markdown-frontmatter",
+          "attrs": {
+            "metadata": {
+              "kind": "issue",
+              "repo": "widgets",
+              "number": 2
+            }
+          },
+          "children": [
+            {
+              "type": "field",
+              "attrs": {
+                "name": "kind"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "issue"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "repo"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "widgets"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "issues-widgets-2"
+          },
+          "children": []
+        }
+      ],
+      "children": [],
+      "metadata": {
+        "kind": "issue",
+        "repo": "widgets",
+        "number": 2
       }
     },
     {
@@ -4335,6 +4510,86 @@
       "fieldNodes": []
     },
     {
+      "id": "issues-widgets-1",
+      "type": "note",
+      "path": "issues/widgets-1.md",
+      "fields": {
+        "kind": "issue",
+        "repo": "widgets",
+        "number": 1
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "kind"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "issue"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "repo"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "widgets"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "issues-widgets-2",
+      "type": "note",
+      "path": "issues/widgets-2.md",
+      "fields": {
+        "kind": "issue",
+        "repo": "widgets",
+        "number": 2
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "kind"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "issue"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "repo"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "widgets"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "id": "item-01",
       "type": "note",
       "path": "item-01.md",
@@ -5698,6 +5953,14 @@
         "data": "eyJ2ZXJzaW9uIjogMSwgIm5vZGVzIjogW3siaWQiOiAiaW4iLCAibGFiZWwiOiAiSW5wdXQiLCAic3RhZ2UiOiAwfSwgeyJpZCI6ICJvdXQiLCAibGFiZWwiOiAiT3V0cHV0IiwgInN0YWdlIjogMX0sIHsiaWQiOiAibG9zcyIsICJsYWJlbCI6ICJMb3NzIiwgInN0YWdlIjogMX1dLCAibGlua3MiOiBbeyJzb3VyY2UiOiAiaW4iLCAidGFyZ2V0IjogIm91dCIsICJ2YWx1ZSI6IDh9LCB7InNvdXJjZSI6ICJpbiIsICJ0YXJnZXQiOiAibG9zcyIsICJ2YWx1ZSI6IDJ9XX0="
       },
       {
+        "path": "issues/widgets-1.md",
+        "data": "LS0tCmtpbmQ6IGlzc3VlCnJlcG86IHdpZGdldHMKbnVtYmVyOiAxCi0tLQo="
+      },
+      {
+        "path": "issues/widgets-2.md",
+        "data": "LS0tCmtpbmQ6IGlzc3VlCnJlcG86IHdpZGdldHMKbnVtYmVyOiAyCi0tLQo="
+      },
+      {
         "path": "item-01.md",
         "data": "LS0tCmtpbmQ6IGl0ZW0KcmFuazogMQpkZXNjcmlwdGlvbjogSXRlbSAxIG9mIHRoZSBwYWdlZCB0YWJsZSwgd2l0aCBhIGRlc2NyaXB0aW9uIGxvbmcgZW5vdWdoIHRvIHdyYXAgaW4gYSBuYXJyb3cgY29sdW1uLgotLS0K"
       },
@@ -5827,7 +6090,7 @@
       },
       {
         "path": "tables.md",
-        "data": "IyBUYWJsZXMKCmBgYGJhc2UKZmlsdGVyczogJ2tpbmQgPT0gIml0ZW0iJwpwcm9wZXJ0aWVzOgogIGRlc2NyaXB0aW9uOiB7ZGlzcGxheU5hbWU6IERlc2NyaXB0aW9ufQp2aWV3czoKICAtIHR5cGU6IHRhYmxlCiAgICBuYW1lOiBJdGVtcwogICAgb3JkZXI6IFtmaWxlLm5hbWUsIHJhbmssIGRlc2NyaXB0aW9uXQogICAgc29ydDogW3twcm9wZXJ0eTogcmFuaywgZGlyZWN0aW9uOiBBU0N9XQogIC0gdHlwZTogdGFibGUKICAgIG5hbWU6IEtpbmRzCiAgICBvcmRlcjogW2ZpbGUubmFtZSwgcmFua10KICAgIGdyb3VwQnk6IHtwcm9wZXJ0eToga2luZCwgZGlyZWN0aW9uOiBBU0N9CiAgICBvYnNIdG1sOiB7Z3JvdXBPcmRlcjogW2l0ZW0sIHBhcnRdLCBzaG93RW1wdHlHcm91cHM6IHRydWV9CiAgLSB0eXBlOiB0YWJsZQogICAgbmFtZTogQ2hlY2tlZAogICAgb3JkZXI6IFtmaWxlLm5hbWUsIHJhbmtdCiAgICBvYnNIdG1sOiB7cGFzc2luZzoge2ZpbHRlcnM6ICdyYW5rICE9IDEnLCBsYWJlbDogY2hlY2tlZH19CiAgLSB0eXBlOiB0YWJsZQogICAgbmFtZTogQnJpZWYKICAgIG9yZGVyOiBbZmlsZS5uYW1lLCBkZXNjcmlwdGlvbl0KICAgIG9ic0h0bWw6IHtkZXRhaWxGaWVsZHM6IFtyYW5rXX0KYGBgCgpQYXJhZ3JhcGggMSBvZiB0aGUgY2xvc2luZyB0ZXh0LCB3aGljaCByZWFkcyBvbiBhZnRlciB0aGUgY29udGVudCBhYm92ZSBpdC4gUGFyYWdyYXBoIDEgb2YgdGhlIGNsb3NpbmcgdGV4dCwgd2hpY2ggcmVhZHMgb24gYWZ0ZXIgdGhlIGNvbnRlbnQgYWJvdmUgaXQuIFBhcmFncmFwaCAxIG9mIHRoZSBjbG9zaW5nIHRleHQsIHdoaWNoIHJlYWRzIG9uIGFmdGVyIHRoZSBjb250ZW50IGFib3ZlIGl0LiAKClBhcmFncmFwaCAyIG9mIHRoZSBjbG9zaW5nIHRleHQsIHdoaWNoIHJlYWRzIG9uIGFmdGVyIHRoZSBjb250ZW50IGFib3ZlIGl0LiBQYXJhZ3JhcGggMiBvZiB0aGUgY2xvc2luZyB0ZXh0LCB3aGljaCByZWFkcyBvbiBhZnRlciB0aGUgY29udGVudCBhYm92ZSBpdC4gUGFyYWdyYXBoIDIgb2YgdGhlIGNsb3NpbmcgdGV4dCwgd2hpY2ggcmVhZHMgb24gYWZ0ZXIgdGhlIGNvbnRlbnQgYWJvdmUgaXQuIAo="
+        "data": "IyBUYWJsZXMKCmBgYGJhc2UKZmlsdGVyczogJ2tpbmQgPT0gIml0ZW0iJwpwcm9wZXJ0aWVzOgogIGRlc2NyaXB0aW9uOiB7ZGlzcGxheU5hbWU6IERlc2NyaXB0aW9ufQp2aWV3czoKICAtIHR5cGU6IHRhYmxlCiAgICBuYW1lOiBJdGVtcwogICAgb3JkZXI6IFtmaWxlLm5hbWUsIHJhbmssIGRlc2NyaXB0aW9uXQogICAgc29ydDogW3twcm9wZXJ0eTogcmFuaywgZGlyZWN0aW9uOiBBU0N9XQogIC0gdHlwZTogdGFibGUKICAgIG5hbWU6IEtpbmRzCiAgICBvcmRlcjogW2ZpbGUubmFtZSwgcmFua10KICAgIGdyb3VwQnk6IHtwcm9wZXJ0eToga2luZCwgZGlyZWN0aW9uOiBBU0N9CiAgICBvYnNIdG1sOiB7Z3JvdXBPcmRlcjogW2l0ZW0sIHBhcnRdLCBzaG93RW1wdHlHcm91cHM6IHRydWV9CiAgLSB0eXBlOiB0YWJsZQogICAgbmFtZTogQ2hlY2tlZAogICAgb3JkZXI6IFtmaWxlLm5hbWUsIHJhbmtdCiAgICBvYnNIdG1sOiB7cGFzc2luZzoge2ZpbHRlcnM6ICdyYW5rICE9IDEnLCBsYWJlbDogY2hlY2tlZH19CiAgLSB0eXBlOiB0YWJsZQogICAgbmFtZTogQnJpZWYKICAgIG9yZGVyOiBbZmlsZS5uYW1lLCBkZXNjcmlwdGlvbl0KICAgIG9ic0h0bWw6IHtkZXRhaWxGaWVsZHM6IFtyYW5rXX0KYGBgCgpgYGBiYXNlCmZpbHRlcnM6ICdraW5kID09ICJpc3N1ZSInCnZpZXdzOgogIC0gdHlwZTogdGFibGUKICAgIG5hbWU6IFRyYWNrZXIKICAgIG9yZGVyOiBbZmlsZS5uYW1lLCBudW1iZXJdCm9ic0h0bWw6CiAgbGl2ZVNvdXJjZToKICAgIG5hbWU6IEV4YW1wbGUgVHJhY2tlcgogICAga2V5OiBbcmVwbywgbnVtYmVyXQogICAgbm90ZVBhdGg6ICdpc3N1ZXMve3JlcG99LXtudW1iZXJ9Lm1kJwogICAgZmllbGRzOiB7bnVtYmVyOiBudW1iZXJ9CiAgICBjaGFuZ2VzOgogICAgLSBwcm92aWRlcjogY29ubmVjdG9yCiAgICAgIHNlcnZlcjogRXhhbXBsZSBUcmFja2VyCiAgICAgIHRvb2w6IGxpc3RfaXNzdWVzCiAgICAgIHJvd3M6IGlzc3VlcwogICAgICBtYXhQYWdlczogMQogICAgICByZXF1ZXN0czoKICAgICAgLSBzZXQ6IHtyZXBvOiB3aWRnZXRzfQogICAgICAgIGlucHV0OiB7b3duZXI6IGV4YW1wbGUtb3JnLCByZXBvOiB3aWRnZXRzLCBzaW5jZTogJ3tzaW5jZX0nfQpgYGAKClBhcmFncmFwaCAxIG9mIHRoZSBjbG9zaW5nIHRleHQsIHdoaWNoIHJlYWRzIG9uIGFmdGVyIHRoZSBjb250ZW50IGFib3ZlIGl0LiBQYXJhZ3JhcGggMSBvZiB0aGUgY2xvc2luZyB0ZXh0LCB3aGljaCByZWFkcyBvbiBhZnRlciB0aGUgY29udGVudCBhYm92ZSBpdC4gUGFyYWdyYXBoIDEgb2YgdGhlIGNsb3NpbmcgdGV4dCwgd2hpY2ggcmVhZHMgb24gYWZ0ZXIgdGhlIGNvbnRlbnQgYWJvdmUgaXQuIAoKUGFyYWdyYXBoIDIgb2YgdGhlIGNsb3NpbmcgdGV4dCwgd2hpY2ggcmVhZHMgb24gYWZ0ZXIgdGhlIGNvbnRlbnQgYWJvdmUgaXQuIFBhcmFncmFwaCAyIG9mIHRoZSBjbG9zaW5nIHRleHQsIHdoaWNoIHJlYWRzIG9uIGFmdGVyIHRoZSBjb250ZW50IGFib3ZlIGl0LiBQYXJhZ3JhcGggMiBvZiB0aGUgY2xvc2luZyB0ZXh0LCB3aGljaCByZWFkcyBvbiBhZnRlciB0aGUgY29udGVudCBhYm92ZSBpdC4gCg=="
       }
     ],
     "build": {

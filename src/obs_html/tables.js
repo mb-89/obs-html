@@ -462,6 +462,32 @@
         definition: table.definition,
         ...savedTableState(table),
     }]));
+    // part live-source {
+    // A live table's declaration checked against the build's rows when the page starts, whether or
+    // not its chapter is shown (generic-tables.md, Current data, The check): a register's rows are
+    // the core's, of the views its entry carries; a fence's are the note rows its Base-level filters
+    // select. Each failure logs one console error, and the table's routes are off for this page;
+    // its saved rows stay as they are.
+    const livePopulation = table => {
+        const noteRows = artifactTableRows().filter(row => row.values.recordType === "note" && recordsBySlug.has(row.noteId));
+        const keys = table.rows && new Set(table.rows.flat());
+        const compiled = keys ? null : globalThis.obsBases.compileFilter(table.definition.filters,
+            (row, field) => globalThis.obsBases.recordValue(recordsBySlug.get(row.noteId), field));
+        return noteRows.filter(row => keys ? keys.has(row.key) : compiled.match(row)).map(row => {
+            const owner = recordsBySlug.get(row.noteId);
+            return {sourcePath: owner.sourcePath, frontmatter: owner.frontmatter || {}};
+        });
+    };
+    const liveTables = new Map(tableDefinitions.filter(table => table.live).map(table => {
+        const failures = globalThis.obsLiveData.check(table.live, livePopulation(table));
+        failures.forEach(({notePath, check, field}) => console.error(
+            `Live source ${table.live.name} of table ${table.key}: ${notePath ? `note ${notePath}` : "no note"} ` +
+            `fails the ${check} check of field ${field}, so the table shows its saved rows and reads nothing ` +
+            "in this page. Remedy: correct the note or the Base's obsHtml.liveSource, rebuild, and run " +
+            "obs-html --check-rendered (generic-tables.md, Current data)."));
+        return [table.key, {declaration: table.live, routes: failures.length ? "off" : "on", failures}];
+    }));
+    // } part live-source
     const renderChapterTables = (
         record, root = chapterBody, staticView = false, respectFilter = true, firstTableFilter = "",
         firstTableProjection = "",
@@ -727,6 +753,9 @@
         render: renderChapterTables,
         searchHits: tableSearchHits,
         shown: row => filterTableRows([row]).length > 0,
+        // part live-source {
+        live: liveTables,
+        // } part live-source
     };
     }};
 })();

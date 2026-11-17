@@ -33,6 +33,7 @@ from obs_html.errors import DOCUMENT_OF, InputError, field_path, schema_error, w
 from obs_html import build_time, libraries
 from obs_html.agent_note import agent_note_markup
 from obs_html.features import feature_source, included as included_features, pugh_engine
+from obs_html.live_source import live_source_error
 from obs_html.figure_links import FigureLink
 from obs_html.page_pattern import matches as page_pattern_matches
 from obs_html.limited_host import limited_host_markup
@@ -509,10 +510,23 @@ def _data_table(definition: dict[str, object], rows: list[list[str]] | None, con
                 source: str, node: dict[str, object], views: list[int] | None = None) -> str:
     """A table placeholder the runtime fills; its rows are review items keyed by ``node``'s id
     (input-model#Comments and the core model). ``views`` are the indexes in the .base file of a
-    one-view table's views."""
+    one-view table's views. A Base's ``obsHtml.liveSource`` leaves the definition the page embeds
+    and rides on the table entry as ``live`` (generic-tables.md, Current data); the rest of the
+    definition is checked first, then the declaration."""
+    declared, options = definition, definition.get("obsHtml")
+    live = options.get("liveSource") if isinstance(options, dict) else None
+    if live is not None:
+        options = {name: value for name, value in options.items() if name != "liveSource"}
+        definition = {name: value for name, value in definition.items() if name != "obsHtml"}
+        if options:
+            definition["obsHtml"] = options
     error = base_definition_error(definition, source, views)
     if error is not None:
         raise error
+    if live is not None:
+        error = live_source_error(declared, source, views)
+        if error is not None:
+            raise error
     context.assets.normalize_definition(definition, source)
     key = f"{context.chapter or HOME}-base-{len(context.tables) + 1}"
     places = [("filters", definition.get("filters")),
@@ -531,7 +545,7 @@ def _data_table(definition: dict[str, object], rows: list[list[str]] | None, con
                 "text, a number, true, false or null; combined with and, or and not",
                 "Rewrite the filter in this subset")
     context.tables.append({"key": key, "definition": definition, **({"rows": rows} if rows is not None else {}),
-                           **({"node": node["id"]} if "id" in node else {})})
+                           **({"node": node["id"]} if "id" in node else {}), **({"live": live} if live is not None else {})})
     return f'<div class="data-table-placeholder" data-base-table="{escape(key, quote=True)}"></div>\n'
 
 
