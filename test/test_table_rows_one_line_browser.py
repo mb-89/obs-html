@@ -369,6 +369,7 @@ def test_search_and_comments_open_the_row_that_holds_a_hit_in_a_cut_cell(reader)
     page.locator(f"[data-search-hit='{hits.index({'slug': 'grouped', 'kind': 'row'})}']").click()
     page.locator(f"{SHELL} tr[data-row-key='note:t1'][data-row-open] .search-highlight").wait_for()
     assert page.locator(f"{SHELL} tr[data-row-key='note:t1'] .search-highlight").first.is_visible()
+    assert page.locator(f"{SHELL} tr[data-detail-owner='note:t1']").count() == 0
     hits = _search(page, PIPE_WORD)
     page.locator(f"[data-search-hit='{[hit['slug'] for hit in hits].index('pipes')}']").click()
     page.locator("[data-active-chapter] tr[data-node-id='row-long'][data-pipe-row-open] .search-highlight").wait_for()
@@ -380,6 +381,9 @@ def test_search_and_comments_open_the_row_that_holds_a_hit_in_a_cut_cell(reader)
         page.locator(f"[data-comment-id='{comment}'] .comment-target").click()
         page.locator(f"[data-active-chapter] {row}[data-row-open], "
                      f"[data-active-chapter] {row}[data-pipe-row-open]").wait_for()
+        if comment == "base-comment":
+            # A reveal opens the row's cells, not its details (generic-tables.md, One line per row).
+            assert page.locator(f"{SHELL} tr[data-detail-owner='note:t1']").count() == 0
 
 
 def test_the_print_book_shows_every_cell_and_caption_in_full(reader) -> None:

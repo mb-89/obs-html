@@ -415,7 +415,10 @@ adapter's browser evaluator runs the same conformance fixture.
   the disclosure a cut adds needs first-column width the plan lacks, the table is planned once
   more, never in a loop.
 
-  A Search hit or a chosen comment in a cut cell opens its row, so the highlight shows. On
+  A Search hit or a chosen comment in a cut cell opens its row, so the highlight shows. Every
+  row the reader is taken to, by a Search hit, a chosen comment or a mark icon's link to its tag
+  row, opens to its cells in full, wherever the hit lies; it opens its details only where the hit
+  lies in them or the comment targets a detail's record field, as with the option off. On
   screen means the continuous view and the sheets shown as pages, where opening a row grows its
   sheet as opening details does; the static view, from which the print book and PDF are drawn
   and their pages counted, never cuts, and shows details as the print default has them. Which

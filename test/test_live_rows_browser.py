@@ -157,6 +157,29 @@ def test_a_read_is_never_saved(artifact, reader_browser, tmp_path) -> None:
     assert errors == []
 
 
+def test_an_arrival_while_a_print_is_prepared_waits_until_it_ends(artifact, reader_browser, tmp_path) -> None:
+    """A read that answers while a print or an export is prepared changes no row until it ends
+    (generic-tables.md, Current data: Projection, Arrival); Export to PDF sets the class beforeprint does."""
+    errors: list[str] = []
+    _, frame = open_viewer(tmp_path, reader_browser, errors, artifact, "light", init_script=stand_in(consent="prompt"))
+    frame.evaluate(SHOW, "live")
+    assert dict(frame.evaluate(READ_ROWS))["note:widgets-3"] == "widgets-3 Running"
+    frame.evaluate("dispatchEvent(new Event('beforeprint'))")
+    assert frame.evaluate("document.documentElement.classList.contains('preparing-print')")
+    frame.locator(f"{LINE} button").click()
+    # The reader registers the watch after it applies the first call's answer.
+    frame.wait_for_function("fakeClaude.calls.some(call => call.kind === 'watch')")
+    rows = dict(frame.evaluate(READ_ROWS))
+    assert rows["note:widgets-3"] == "widgets-3 Running", rows
+    assert not any(key.startswith("note:live~") for key in rows), rows
+    frame.evaluate("dispatchEvent(new Event('afterprint'))")
+    expect(frame.locator(LINE)).to_have_text("Showing current data")
+    rows = dict(frame.evaluate(READ_ROWS))
+    assert rows["note:widgets-3"] == "widgets-3 Done", rows
+    assert any(key.startswith("note:live~") for key in rows), rows
+    assert errors == []
+
+
 def test_the_comments_bar_shows_the_saved_rows_and_a_comment_there_survives_reopening(
         artifact, reader_browser, tmp_path) -> None:
     errors: list[str] = []

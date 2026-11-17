@@ -148,7 +148,8 @@ failures have their form in [[input-model#Chapter content]].
   in the current appearance, a guided card's window with it, and lays the page out again in the
   theme's fonts and spacing; Export to PDF prints the chosen theme in its light colours. The
   choice is session-only, as appearance is: nothing stores it, and every opening, a saved copy's
-  too, starts in the start theme. A page without local themes has no Theme select.
+  too, starts in the start theme. A page without local themes has no Theme select. The Theme
+  select is laid out as the Appearance select is: as wide as its options, not the bar's width.
 - All colors are semantic custom properties projected from [[semantic-assets]].
 - Components consume semantic tokens; color literals do not appear in component rules or
   generated markup.
@@ -1624,6 +1625,10 @@ Implementation decisions (4 Nov 2026, worker, reversible):
 - Links to exported chapters and headings become PDF-internal anchors. Other note links point
   to the companion HTML filename and its original fragment. Keep that HTML beside the PDF;
   PDF link handling is ultimately viewer-dependent. Unlisted notes are not appended.
+  In the print book such a link reads `NAME.html?#fragment`: the empty query keeps Chromium from
+  taking it for a link into the printed file and dropping it where the print leaves its
+  destination out (`pages.js`, `fixLinks`); `pdf_links.py` drops the query again from a link to
+  the printed page.
   In a PDF obs prints, such a link is relative to the PDF, `./NAME.html#fragment`, and names
   no folder: `--export-pdf` names the HTML it printed, and a `.pdf` DESTINATION its own name
   with `.html` (`report.pdf` gives `./report.html#fragment`), never its temporary page. A link

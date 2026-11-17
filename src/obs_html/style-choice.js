@@ -38,7 +38,11 @@ globalThis.obsStyleChoice = (() => {
     select.append(...globalThis.obsStyleChoice.choice(styles, style).options
         .map(({value, label: text}) => new Option(text, value)));
     select.value = style;
-    label.append("Theme", select);
+    // The control span of the Appearance select (bars/settings.py), so base.css lays both out alike.
+    const control = document.createElement("span");
+    control.className = "settings-appearance-control";
+    control.append(select);
+    label.append("Theme", control);
     document.querySelector("[data-theme-select]").closest("label").after(label);
     select.addEventListener("change", () => {
         apply(select.value);

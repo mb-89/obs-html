@@ -14,7 +14,7 @@ from browser.viewer import open_viewer
 from documents import chapter, document, heading, node, paragraph
 from test_appearance_browser import choose, rgba
 from test_features import with_context_note
-from test_local_themes import fixture_choice
+from test_local_themes import fixture_choice, with_style
 from test_local_themes_browser import DEFAULT, PAINTED, THEME, rgb, starting_in
 
 pytestmark = pytest.mark.browser
@@ -32,6 +32,15 @@ SETTINGS = """() => {
         value: select.value,
         root: document.documentElement.dataset.style,
     };
+}"""
+SELECTS = """() => ["[data-theme-select]", "[data-style-select]"].map(selector => {
+    const select = document.querySelector(selector);
+    return {select: selector, parent: select.parentElement.className,
+            right: select.getBoundingClientRect().right, label: select.closest("label").getBoundingClientRect().right};
+})"""
+TABLE_BOX = """() => {
+    const box = document.querySelector("[data-active-chapter] .data-table-shell table").getBoundingClientRect();
+    return [Math.round(box.width), Math.round(box.height)];
 }"""
 SHEETS = """() => [...document.querySelectorAll(".paged-reader .paper-sheet:not([hidden])")].map(sheet => {
     const content = sheet.querySelector(".paper-content");
@@ -170,6 +179,38 @@ def test_choosing_a_theme_measures_the_table_columns_again(tmp_path, reader_brow
     assert before != expected, "the fixture theme's font and padding size the columns differently"
     pick(frame, "contrast")
     frame.wait_for_function(f"(expected) => JSON.stringify(({COLUMNS})()) === JSON.stringify(expected)", arg=expected)
+    assert errors == []
+
+
+@pytest.mark.parametrize("width", [390, 1180])
+def test_the_theme_select_is_as_wide_as_its_options_as_the_appearance_select_is(tmp_path, reader_browser, width) -> None:
+    errors: list[str] = []
+    _page, frame = open_viewer(tmp_path, reader_browser, errors, text_page(), "light", width=width)
+    frame.evaluate("() => obsArtifact.openBar('settings')")
+    frame.locator(SELECT).wait_for()
+    for placed in frame.evaluate(SELECTS):
+        assert placed["parent"] == "settings-appearance-control", placed
+        assert placed["right"] < placed["label"] - 1, placed
+    assert errors == []
+
+
+def test_a_theme_that_changes_only_text_metrics_measures_the_columns_again(tmp_path, reader_browser) -> None:
+    errors: list[str] = []
+    folder = with_style(tmp_path, ".data-table-scroll table { font-weight: 700; }\n")
+    (folder / "local.json").write_text('{"startTheme": "contrast"}', encoding="utf-8")
+    _page, opened = open_viewer(tmp_path, reader_browser, errors, artifact_html(
+        table_document(), style_choice=fixture_choice(folder)), "light")
+    expected = _columns(opened)
+    (folder / "local.json").unlink()
+    _page, frame = open_viewer(tmp_path, reader_browser, errors, artifact_html(
+        table_document(), style_choice=fixture_choice(folder)), "light")
+    assert _columns(frame) != expected, "a bold table sizes its columns differently"
+    box = frame.evaluate(TABLE_BOX)
+    pick(frame, "contrast")
+    frame.evaluate("() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done)))")
+    # The table's own box keeps its size, so only the theme choice measures the columns again.
+    assert frame.evaluate(TABLE_BOX) == box
+    assert frame.evaluate(COLUMNS) == expected
     assert errors == []
 
 

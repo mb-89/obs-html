@@ -400,7 +400,12 @@ assert.equal(current(), "node");
 click(band.querySelector(".chapter-breadcrumbs > a[href='#parent']"));
 assert.equal(current(), "parent");
 navigate("child");
-assert.equal(body.querySelector(".chapter-bluf"), null);
+// Artifact-ui.md "Styling" and "Reading shell": a note with body content shows its bottom line only in
+// the frontmatter panel, which stays collapsed behind the chevron; nothing is inferred from frontmatter.
+assert.equal(body.textContent.includes("Child result."), false);
+assert.equal(document.querySelector("[data-frontmatter-panel]").hidden, true);
+assert.equal(document.querySelector("[data-frontmatter-toggle]").getAttribute("aria-expanded"), "false");
+assert.ok(document.querySelector("[data-frontmatter-body]").textContent.includes("Child result."));
 navigate("home");
 let shell = tables()[0];
 assert.equal(shell.querySelector('tr[data-row-key="parent"] td:last-child').textContent, "");

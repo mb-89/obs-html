@@ -222,12 +222,14 @@ STYLE_BREAKS = {
     "import": ('@import "late.css";\n', "@import"),
     "font-face": ('@font-face {\n    font-family: "Late";\n    src: local("Late");\n}\n', "@font-face"),
     "layer": ("@layer theme {\n    p { margin: 0; }\n}\n", "@layer"),
+    "container": ("@container (min-width: 30rem) { p { margin: 0; } }\n", "@container"),
     "remote-url": (".cover-organization {\n    mask-image: url(https://example.invalid/logo.svg);\n}\n", "url"),
     "image-set": ('.cover-organization {\n    mask-image: image-set("data:image/png;base64,AA" 1x);\n}\n', "url"),
     "parse-error": ('p {\n    margin: 0;\n    content: "open\n}\n', "line 3"),
     "style-end": ('p {\n    margin: 0;\n}\np::after {\n    content: "</style>";\n}\n', "line 5"),
     "hex": ("p {\n    margin: 0;\n    border-color: #ff0000;\n}\n", "line 3"),
     "named-colour": ("p {\n    color: rebeccapurple;\n}\n", "line 2"),
+    "color-mix-literal": ("p {\n    color: color-mix(in srgb, red 40%, var(--color-text));\n}\n", "line 2"),
     "rgb": ("p {\n    color: light-dark(#ffffff, #000000);\n    background: rgb(0 0 0);\n}\n", "line 3"),
     "color-scheme": (":root {\n    color-scheme: dark;\n}\n", "color-scheme"),
     "prefers-color-scheme": ("@media (prefers-color-scheme: dark) {\n    p { margin: 0; }\n}\n",
@@ -253,6 +255,7 @@ ACCEPTED = """#cover .cover-organization {
     border-color: light-dark(#123456, #abcdef);
     color: currentcolor;
     outline-color: transparent;
+    text-decoration-color: color-mix(in srgb, var(--color-text) 40%, transparent);
 }
 """
 
@@ -261,6 +264,7 @@ def test_theme_colours_as_pairs_and_variables_are_read(tmp_path) -> None:
     [theme] = fixture_choice(with_style(tmp_path, ACCEPTED)).extras
     css = theme.css()
     for kept in ("light-dark(#123456, #abcdef)", "var(--color-text)", "currentcolor", "transparent",
+                 "color-mix(in srgb, var(--color-text) 40%, transparent)",
                  "data:image/svg+xml", ':where(:root[data-style="contrast"]) #cover .cover-organization{'):
         assert kept in css, css
 
