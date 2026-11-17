@@ -461,7 +461,11 @@ omitting them preserves the existing table defaults.
 obs-html checks every Base definition, a `base` fence's or an embedded `.base` file's, against
 the packaged `base.schema.json` when it builds the artifact, with the JSON Schema keywords
 `base.js` implements, so the build refuses what that schema refuses in the browser and nothing
-more. A refused option fails the build naming the note or `.base` file and its field path
+more. The build reads each `pattern` as the page's JavaScript reads it, so `$` is the very end of
+the text, `\s` is JavaScript's set of spaces, and characters count as UTF-16 code units;
+`page_pattern.py` reads the subset the schemas use and refuses any other sign; and
+`test/fixtures/pattern-conformance.json` holds the build and the page to the same answers.
+A refused option fails the build naming the note or `.base` file and its field path
 (`base.views[0].obsHtml.groupOrder` in a fence, `views[0].obsHtml.groupOrder` in a `.base` file).
 The build also refuses what `base.js`'s `validate` refuses beyond the schema, and an expanded
 column no view shows, at the same field paths, and still nothing more; `base_rules.py` repeats

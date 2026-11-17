@@ -21,6 +21,7 @@ from typing import Callable, Iterator
 from urllib.parse import unquote
 
 from jsonschema import Draft202012Validator, validators
+from jsonschema.exceptions import ValidationError
 from referencing import Registry, Resource
 from latex2mathml import exceptions as math_exceptions
 from latex2mathml.converter import convert as mathml
@@ -33,6 +34,7 @@ from obs_html import libraries
 from obs_html.agent_note import agent_note_markup
 from obs_html.features import feature_source, included as included_features, pugh_engine
 from obs_html.figure_links import FigureLink
+from obs_html.page_pattern import matches as page_pattern_matches
 from obs_html.limited_host import limited_host_markup
 from obs_html.figures import FIGURE_KINDS, render_figure
 from obs_html.artifact_data import encode_artifact_data, prepare_artifact_scripts, serialize_artifact_data
@@ -543,10 +545,20 @@ BROWSER_KEYWORDS = frozenset({
 the two to each other. The build checks a Base with these alone, and then with base_rules.py's copy
 of what base.js refuses beyond the schema, so it refuses nothing the browser accepts (input-model.md,
 Compact declarative table presentation)."""
+
+
+def page_pattern_keyword(validator, patrn: str, instance: object, schema: object) -> Iterator[ValidationError]:
+    """jsonschema's ``pattern`` keyword with the page's reading of the pattern (page_pattern.py) in
+    place of ``re.search``; it yields the error jsonschema's own yields, so errors.py words it alike."""
+    if validator.is_type(instance, "string") and not page_pattern_matches(patrn, instance):
+        yield ValidationError(f"{instance!r} does not match {patrn!r}")
+
+
 BASE_VALIDATOR = validators.create(
     meta_schema=Draft202012Validator.META_SCHEMA, type_checker=Draft202012Validator.TYPE_CHECKER,
-    validators={keyword: check for keyword, check in Draft202012Validator.VALIDATORS.items()
-                if keyword in BROWSER_KEYWORDS},
+    validators={**{keyword: check for keyword, check in Draft202012Validator.VALIDATORS.items()
+                   if keyword in BROWSER_KEYWORDS},
+                "pattern": page_pattern_keyword},  # Without this line the build reads patterns as Python's re does.
 )(BASE_SCHEMA, registry=Registry().with_resource("assets.schema.json", Resource.from_contents(json.loads(
     files("obs_html").joinpath("assets.schema.json").read_text(encoding="utf-8")))))
 """base.schema.json as base.js reads it, with the assets schema its icon names refer to."""

@@ -14,6 +14,10 @@
         }
     };
 
+    // A schema pattern's answer for a text; page_pattern.py gives the build the same answers
+    // (test/fixtures/pattern-conformance.json).
+    const patternMatches = (pattern, text) => new RegExp(pattern).test(text);
+
     // This validator implements only the JSON Schema keywords used by the shared Bases schema.
     const validateNode = (value, rule, path = "root", owner = schema()) => {
         if (rule.$ref) {
@@ -70,7 +74,7 @@
         if (typeof value === "string" && (
             (rule.minLength && value.length < rule.minLength) ||
             (rule.maxLength !== undefined && value.length > rule.maxLength) ||
-            (rule.pattern && !new RegExp(rule.pattern).test(value))
+            (rule.pattern && !patternMatches(rule.pattern, value))
         )) throw new TypeError(`${path}: unsupported or empty text.`);
         if (Array.isArray(value)) {
             if ((rule.minItems && value.length < rule.minItems) ||
@@ -349,6 +353,6 @@
     };
     globalThis.obsBases = {
         validate, parse, dump, filterExpression, compileFilter, assigned, recordValue, referenceRecords,
-        project, expandMetadata, textMatcher, escapePattern, fold,
+        project, expandMetadata, textMatcher, escapePattern, fold, patternMatches,
     };
 })();

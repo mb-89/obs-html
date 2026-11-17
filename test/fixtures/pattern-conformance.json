@@ -1,0 +1,27 @@
+{
+  "description": "The answers new RegExp(pattern).test(text) gives in the page for the patterns base.js reaches in base.schema.json and assets.schema.json: pattern-conformance.test.js holds base.js's patternMatches to them and test_page_pattern.py holds page_pattern.matches, the build's reading, to them (input-model.md, Compact declarative table presentation).",
+  "cases": [
+    {"pattern": "^[a-z][a-z0-9._-]*$", "text": "mapping", "matches": true},
+    {"pattern": "^[a-z][a-z0-9._-]*$", "text": "mapping\n", "matches": false},
+    {"pattern": "^[a-z][a-z0-9._-]*$", "text": "mapping\n\n", "matches": false},
+    {"pattern": "\\S", "text": "\ufeff", "matches": false},
+    {"pattern": "\\S", "text": "\u00a0", "matches": false},
+    {"pattern": "\\S", "text": "\u001f", "matches": true},
+    {"pattern": "\\S", "text": "\u0085", "matches": true},
+    {"pattern": "\\S", "text": "\ud83d\ude00", "matches": true},
+    {"pattern": "^\\S$", "text": "\ud83d\ude00", "matches": false},
+    {"pattern": "^[^x]$", "text": "\ud83d\ude00", "matches": false},
+    {"pattern": "^(?:([A-Za-z][A-Za-z0-9_.]*)|note\\[\"([^\"\\r\\n]+)\"\\])[ \\t]*(==|!=)[ \\t]*(null|true|false|-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?|\"[^\"\\\\\\r\\n]*\"|'[^'\\\\\\r\\n]*')$", "text": "kind == \"Item\"", "matches": true},
+    {"pattern": "^(?:([A-Za-z][A-Za-z0-9_.]*)|note\\[\"([^\"\\r\\n]+)\"\\])[ \\t]*(==|!=)[ \\t]*(null|true|false|-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?|\"[^\"\\\\\\r\\n]*\"|'[^'\\\\\\r\\n]*')$", "text": "kind == \"Item\"\n", "matches": false},
+    {"pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}(\\.[A-Za-z][A-Za-z0-9_-]{0,63})*(?![\\s\\S])", "text": "check", "matches": true},
+    {"pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}(\\.[A-Za-z][A-Za-z0-9_-]{0,63})*(?![\\s\\S])", "text": "check\n", "matches": false},
+    {"pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$", "text": "notes/one.md", "matches": true},
+    {"pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$", "text": "/notes/one.md", "matches": false},
+    {"pattern": "^[a-z][A-Za-z0-9._-]{0,63}$", "text": "openCard", "matches": true},
+    {"pattern": "^[a-z][A-Za-z0-9._-]{0,63}$", "text": "OpenCard", "matches": false},
+    {"pattern": "^(?:formula\\.|this\\.|note(?:\\.file\\.|\\[\"file\\.)|file\\.(?!(?:name|path|folder|ext)(?!(?:[\\s\\S]))))", "text": "formula.total", "matches": true},
+    {"pattern": "^(?:formula\\.|this\\.|note(?:\\.file\\.|\\[\"file\\.)|file\\.(?!(?:name|path|folder|ext)(?!(?:[\\s\\S]))))", "text": "file.name", "matches": false},
+    {"pattern": "^(?:formula\\.|this\\.|note(?:\\.file\\.|\\[\"file\\.)|file\\.(?!(?:name|path|folder|ext)(?!(?:[\\s\\S]))))", "text": "file.size", "matches": true},
+    {"pattern": "^(?:formula\\.|this\\.|note(?:\\.file\\.|\\[\"file\\.)|file\\.(?!(?:name|path|folder|ext)(?!(?:[\\s\\S]))))", "text": "file.name\n", "matches": true}
+  ]
+}
