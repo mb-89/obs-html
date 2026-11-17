@@ -24,6 +24,11 @@ FIXTURE = ROOT / "test" / "fixtures" / "documents" / "document.json"
 # in a few chapters (test/fixtures/build_documents.py, features).
 FEATURE_FIXTURE = ROOT / "test" / "fixtures" / "documents" / "features.json"
 CORE_ROOT = ROOT.parents[1]
+# The made-up local themes the feature fixture carries (spec/configuration.md, Local themes).
+LOCAL_THEMES = ROOT / "test" / "fixtures" / "local-themes"
+# No test, and no build a test starts, reads the build machine's local themes: the folder named
+# here does not exist. A test that needs themes sets the variable for its own call.
+os.environ["OBS_HTML_LOCAL_FOLDER"] = str(ROOT.resolve() / "test" / "fixtures" / "no-local-folder")
 
 
 def _core_module(name: str) -> types.ModuleType:
@@ -110,8 +115,18 @@ def feature_artifact(tmp_path_factory) -> str:
     from obs_html import cli
 
     def build(folder: Path) -> None:
-        # With its notes' way from the page, so the source file row is a link (spec/cli.md, Source file links).
-        assert cli.main([str(FEATURE_FIXTURE), str(folder / "artifact.html"), "--vault-link", "../vault"]) == 0, \
+        # With its notes' way from the page, so the source file row is a link (spec/cli.md, Source file links),
+        # and with the fixture's local themes, so it carries the popups feature's style-sync part.
+        earlier = os.environ.get("OBS_HTML_LOCAL_FOLDER")
+        os.environ["OBS_HTML_LOCAL_FOLDER"] = str(LOCAL_THEMES)
+        try:
+            built = cli.main([str(FEATURE_FIXTURE), str(folder / "artifact.html"), "--vault-link", "../vault"])
+        finally:
+            if earlier is None:
+                os.environ.pop("OBS_HTML_LOCAL_FOLDER", None)
+            else:
+                os.environ["OBS_HTML_LOCAL_FOLDER"] = earlier
+        assert built == 0, \
             "test/conftest.py: obs-html could not render the feature fixture test/fixtures/documents/features.json"
 
     return (built_once(tmp_path_factory, "feature-artifact", build) / "artifact.html").read_text(encoding="utf-8")

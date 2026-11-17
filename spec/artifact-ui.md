@@ -121,6 +121,19 @@ failures have their form in [[input-model#Chapter content]].
 
   Page geometry (paper size, orientation, sheet dimensions, margins, and `@page`) belongs only to
   the structural stylesheet; a style module must not declare or assume it.
+- A theme is a named local layer over the style module. The build's style module, whichever
+  `--style`, `obs.style` or `generic` chose, is the theme Default. A build on a machine with local
+  themes ([[configuration#Local themes]]) carries each of them as well, laid over Default: a
+  theme's colours apply where the page's root carries `data-style` with its name, Default's
+  everywhere else.
+
+  A theme sets a light and a dark value for every colour it sets, so it works in each
+  appearance, and print and PDF use its light values. Every opening starts in the start theme,
+  Default unless the machine names another, and a guided card's window shows the page's theme.
+
+  A page built without local themes carries no `data-style`, no theme styles and no theme data.
+  In code a theme is a style (`data-style`, `reading.styles`, `reading.style`), because
+  `data-theme` is the appearance.
 - All colors are semantic custom properties projected from [[semantic-assets]].
 - Components consume semantic tokens; color literals do not appear in component rules or
   generated markup.

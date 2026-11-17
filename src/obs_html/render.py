@@ -42,6 +42,7 @@ from obs_html.artifact_data import encode_artifact_data, prepare_artifact_script
 from obs_html.semantic_assets import SemanticAssets, markup
 from obs_html.declared_style import DeclaredStyles, GitFetcher, user_cache
 from obs_html.styles import load_style
+from obs_html.style_choice import StyleChoice
 from obs_html import source_archive
 from obs_html.bless_record import record_html
 from obs_html.comments import island_model
@@ -897,12 +898,18 @@ def render(document: dict[str, object], config: Config,
            embed_attachments: bool = False,
            styles: DeclaredStyles | None = None,
            built: datetime | None = None,
-           vault_link: str | None = None) -> str:
+           vault_link: str | None = None,
+           style_choice: StyleChoice | None = None) -> str:
     """The artifact of ``document``, styled by ``style_folder``, else by the style the Document
     declares (fetched through ``styles``, by default git into the user's cache), else by the packaged
     generic module (spec/configuration.md, Declared style). ``built`` is the build's instant, by
     default the clock's (spec/architecture.md, Build time). ``vault_link`` is the vault folder's way
-    from the page's folder, which makes each source file row a link (spec/cli.md, Source file links)."""
+    from the page's folder, which makes each source file row a link (spec/cli.md, Source file links).
+    ``style_choice`` is the build machine's local themes (style_choice.py), laid over the style as
+    themes beside Default; without one, or without a theme in it, the page carries none
+    (spec/artifact-ui.md, Styling)."""
+    if style_choice is not None and not style_choice.extras:
+        style_choice = None
     if document.get("schemaVersion") != 1:
         raise InputError("Document", "schemaVersion", f"is {document.get('schemaVersion')!r}, not 1, the "
                          "version obs-html renders", "Build the Document with an obs core of schema version 1")
@@ -933,13 +940,14 @@ def render(document: dict[str, object], config: Config,
     _index_headings(HOME, document["manifest"].get("abstract", []), context)
     context.chapters[HOME] = document["manifest"]["title"]  # The core links the manifest as home.
     built = build_time.instant({}) if built is None else built
-    model = _resolve_icons(_model(document, config, context, built, vault_link), assets)
+    model = _resolve_icons(_model(document, config, context, built, vault_link, style_choice), assets)
     archive = source_archive.package(document, embed_attachments)
     if archive is not None:
         model = source_archive.share(model, archive)
     return prepare_artifact_scripts(assets.resolve_markup(
         _shell(model, list(context.unknown.values()), style.overlay, assets, config, trusted_runtime,
-               snippets=_css_snippets(document), archive=archive, comments=island_model(document))))
+               snippets=_css_snippets(document), archive=archive, comments=island_model(document),
+               style_choice=style_choice)))
 
 
 def _css_snippets(document: dict[str, object]) -> str:
@@ -1006,8 +1014,9 @@ def _profile(manifest: dict[str, object], chapters: list[dict[str, object]]) -> 
 
 
 def _model(document: dict[str, object], config: Config, context: Context, built: datetime,
-           vault_link: str | None = None) -> dict[str, object]:
-    """The artifact-data island: the runtime's only model of the artifact."""
+           vault_link: str | None = None, style_choice: StyleChoice | None = None) -> dict[str, object]:
+    """The artifact-data island: the runtime's only model of the artifact. With local themes
+    (``style_choice``), its ``reading`` names them, Default first, and the start theme."""
     manifest = document["manifest"]
     profile = _profile(manifest, document["chapters"])
     context.figures = profile["figures"]
@@ -1048,7 +1057,8 @@ def _model(document: dict[str, object], config: Config, context: Context, built:
         "paper": paper({**config.print_default, **profile["print"]}, config, lambda key: (
             (manifest["path"], f"obsHtml.print.{key}") if key in profile["print"]
             else (config.source("artifact", "print", "default", key), f"artifact.print.default.{key}"))),
-        "reading": {"theme": profile["appearance"], "layout": profile["layout"], **settings["reading"]},
+        "reading": {"theme": profile["appearance"], "layout": profile["layout"], **settings["reading"],
+                    **({"styles": style_choice.names, "style": style_choice.start} if style_choice else {})},
         "figures": settings["figures"],
         "printReadyTimeoutMilliseconds": settings["printReadyTimeoutMilliseconds"],
         "hoverCard": settings["hoverCard"],
@@ -1561,12 +1571,16 @@ def _note_target(href: str, context: Context) -> str | None:
 
 def _shell(model: dict[str, object], limits: list[dict[str, str]], overlay: str, assets: SemanticAssets,
            config: Config, trusted_runtime: tuple[str, str] | None, snippets: str = "",
-           archive: bytes | None = None, *, comments: dict[str, object]) -> str:
+           archive: bytes | None = None, *, comments: dict[str, object],
+           style_choice: StyleChoice | None = None) -> str:
     """The artifact page; ``limits`` are the Document's limited functions (capabilities.js warns of each).
     ``overlay`` is the style module's stylesheet, which follows base.css and the included features'
     shares of it (features.py, Feature.base_styles).
     ``snippets`` are the author's style elements, which follow every packaged style; ``archive`` is
-    the source ZIP (source_archive.py); ``comments`` the core's comments the island holds (comments.py)."""
+    the source ZIP (source_archive.py); ``comments`` the core's comments the island holds (comments.py).
+    ``style_choice``, the local themes, adds the root's ``data-style``, the startup script's line that
+    opens the start theme and ``style-choice-styles``, the head's last style element; without it
+    none of them is written (spec/artifact-ui.md, Styling)."""
     package = files("obs_html")
 
     def read(*parts: str) -> str:
@@ -1633,6 +1647,11 @@ def _shell(model: dict[str, object], limits: list[dict[str, str]], overlay: str,
         .replace("READER_THEME", json.dumps(startup["theme"]))
         .replace("READER_LAYOUT", json.dumps(startup["layout"])).splitlines()
     )
+    root_style = style_styles = ""
+    if style_choice is not None:
+        reader_startup += f"    document.documentElement.dataset.style = {json.dumps(style_choice.start)};\n"
+        root_style = f' data-style="{escape(style_choice.start)}"'
+        style_styles = f'\n  <style id="style-choice-styles">{style_choice.css()}</style>'
     runtime_head = runtime_script = ""
     if trusted_runtime:
         runtime_id, runtime_source = trusted_runtime
@@ -1647,7 +1666,7 @@ def _shell(model: dict[str, object], limits: list[dict[str, str]], overlay: str,
     agent_note = agent_note_markup(config.artifact.get("agentNote", False),
                                    any(feature.key == "answers" for feature in features))
     return f"""<!doctype html>
-<html lang="en" data-theme="{escape(startup['theme'])}" data-layout="{escape(startup['layout'])}">
+<html lang="en" data-theme="{escape(startup['theme'])}" data-layout="{escape(startup['layout'])}"{root_style}>
 <head>
   <meta charset="utf-8">
   {runtime_head}
@@ -1658,7 +1677,7 @@ def _shell(model: dict[str, object], limits: list[dict[str, str]], overlay: str,
   <style id="artifact-styles">
 {stylesheet}
   </style>
-  <style id="semantic-asset-styles">{assets.css()}</style>{feature_styles}
+  <style id="semantic-asset-styles">{assets.css()}</style>{feature_styles}{style_styles}
 </head>
 <body>
   {limited_host}<header class="top-band" data-top-band>

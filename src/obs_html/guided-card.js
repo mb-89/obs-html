@@ -131,10 +131,13 @@
                 childDocument.head.append(childDocument.importNode(style, true)));
             const syncTheme = () => {
                 childDocument.documentElement.dataset.theme = document.documentElement.dataset.theme;
+                // part style-sync {
+                childDocument.documentElement.dataset.style = document.documentElement.dataset.style;
+                // } part style-sync
             };
             syncTheme();
             const theme = new MutationObserver(syncTheme);
-            theme.observe(document.documentElement, {attributes: true, attributeFilter: ["data-theme"]});
+            theme.observe(document.documentElement, {attributes: true, attributeFilter: ["data-theme"/* part style-sync { */, "data-style"/* } part style-sync */]});
             windowCleanups.push(() => theme.disconnect());
             childDocument.body.className = "guided-card-window";
             message.textContent = "";

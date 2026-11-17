@@ -121,8 +121,12 @@ def report(pairs: Iterable[tuple[str, str | None, str | None]]) -> tuple[list[st
 
 
 def _environment(root: Path) -> dict[str, str]:
+    """A side's environment: the caller's without ``VIRTUAL_ENV``, with the fixed instant, and with
+    obs-html's local folder at one that nothing creates, so a build on a machine with local themes
+    equals one on CI (spec/configuration.md, Local themes)."""
     environment = {key: value for key, value in os.environ.items() if key != "VIRTUAL_ENV"}
-    environment.update(SOURCE_DATE_EPOCH=EPOCH, UV_PROJECT=str(root))
+    environment.update(SOURCE_DATE_EPOCH=EPOCH, UV_PROJECT=str(root),
+                       OBS_HTML_LOCAL_FOLDER=str(root / ".no-local-folder"))
     return environment
 
 

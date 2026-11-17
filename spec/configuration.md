@@ -39,7 +39,8 @@ adapter's.
   semantics; the shared configuration/schema owns its default and path constraints.
   Do not maintain separate project icon and color registries.
 - The style is not configuration: the manifest declares it as `obs.style`
-  ([[#Declared style]]), and no settings key names a style module folder.
+  ([[#Declared style]]), and no settings key names a style module folder. Local themes are no
+  setting either: obs-html finds them in a fixed folder of the build machine ([[#Local themes]]).
 - The `timings` section holds the relative and absolute thresholds a stage must both
   exceed before a build warns about it; baselines and stage names are owned by
   [[architecture#Build stage timings]].
@@ -109,5 +110,63 @@ holds no `style.css` names `style.path`. No other style replaces a declared one 
 
 `src/obs_html/declared_style.py` holds the fetcher, the one door to a style repository; tests
 replace it with a fake and never reach the network.
+
+## Local themes
+
+A build machine may hold themes of its own, which no committed file names: each is a named layer
+of colours over the style module, which a page carries beside Default
+([[artifact-ui#Styling]]).
+
+obs-html's local folder is `obs-html` in the user's configuration folder: `$XDG_CONFIG_HOME` or
+`~/.config` on Linux, `~/Library/Application Support` on macOS, `%APPDATA%` on Windows.
+`OBS_HTML_LOCAL_FOLDER`, where set and not empty, names that folder instead: the folder that holds
+`themes` and `local.json` itself, not its parent.
+
+Each folder in its `themes` folder whose name does not start with a dot is a theme named by its
+folder; files and dot-named entries are skipped. No `themes` folder, or an empty one, is no theme.
+
+The start theme is named in `local.json` beside `themes`, `{"startTheme": "<name>"}`, checked by
+the packaged `src/obs_html/local.schema.json`. Without the file, the start theme is Default
+(`default`). A `local.json` that is no JSON object, has another key, or names neither `default`
+nor a theme fails the build, naming `obs-html local folder: local.json`, the field and the themes
+there.
+
+A theme is checked when it is read. Every refusal is an input error whose source names the file
+from the local folder (`obs-html local folder: themes/<name>/assets.json`, or
+`obs-html local folder: themes/<name>` for the folder and its entries), never an absolute path,
+with the field and the remedy:
+
+| Part | Rule | A break names |
+|---|---|---|
+| Name | 1 to 32 lowercase letters, digits and dashes, starting with a letter or digit, and not `default` | `themes/<name>`, field `name` |
+| Entries | `assets.json` and dot-named entries only | `themes/<name>`, field the entry's name |
+| `assets.json` | Optional; valid by the packaged `assets.schema.json`; holds only children of `color`, each a colour the packaged `assets.json` declares, each `value` a `{light, dark}` pair. An icon, an appearance, a single hex value, a `ref` or a colour the packaged index does not declare is refused. | `themes/<name>/assets.json`, field `assets.color.children.<name>` |
+
+Every render of `obs-html` on a Document reads the folder: a DESTINATION, a `.pdf` DESTINATION and
+`--check`, so every build through `obs-document --adapter html` on that machine.
+`--build-own-spec` reads none: the adapter's specification is the same page on every machine, and
+obs's specification attaches it.
+
+The settings have two layers of style. The committed layer is the packaged `generic` module or
+the declared style ([[#Declared style]]); the local layer is this folder. Nothing in a vault, its
+settings, its manifest, the Document, the source archive or its build record names a local theme
+or says whether one exists: obs-html finds them by the fixed folder alone. A rebuild from the
+archive on another machine has Default only. A page that a command fence builds with obs-html on
+that machine is that fence's output and carries the machine's themes, like any page built there.
+
+A page carries the themes of the machine that built it, as text: their names and colours, never
+a path. The exposure and provenance checks read them as any other part of the page, so a local
+term in a theme's name warns, or refuses under `artifact.refuseProvenance`. Such a finding names
+its place (`HTML line <n>`, such as a line of `style-choice-styles`, or
+`artifact-data reading.styles[<n>]`). Its remedy is the local file of exceptions
+([[architecture#Exceptions]]), which may cover a `local-term` finding, or a theme folder name
+without the term.
+
+A machine without the folder builds every page byte for byte as before. On a machine with it,
+`OBS_HTML_LOCAL_FOLDER` set to an empty folder builds a page without them, for a page meant for
+readers elsewhere.
+
+`src/obs_html/style_choice.py` reads the folder and checks what it holds; `render()` takes what it
+chose and reads no folder itself.
 
 See [[cli]] and [[architecture]].

@@ -180,6 +180,11 @@ def _figures_need(key: str) -> Callable[[dict, bool], bool]:
     return included
 
 
+def _style_choice(model: dict, _trusted_runtime: bool) -> bool:
+    """A page that carries local themes (style_choice.py): its reading names them."""
+    return "styles" in model["reading"]
+
+
 def _bless(model: dict, _trusted_runtime: bool) -> bool:
     """A chapter of the Document asks for a bless (obs input-model, Bless requests)."""
     return any("bless" in note for note in model["notes"])
@@ -282,7 +287,9 @@ FEATURES: tuple[Feature, ...] = (
             "for a bless): the band's title and position (artifact-ui.md, Screens)", _screens, ("screens.js",),
             styles=("screens.css",)),
     Feature("popups", "a guided card, a note a link opens as context, or a trusted runtime",
-            _floating_window, ("guided-card.js",), base_styles=("popups.css",)),
+            _floating_window, ("guided-card.js",), base_styles=("popups.css",), parts=(
+                Part("style-sync", "a guided card's window on a page that carries local themes: the window "
+                     "shows the page's theme", _style_choice, ()),)),
     Feature("plotting", "a figure of a kind that needs the plotting library (figures.py, FIGURE_KINDS): "
             "a stored-data plot or an equation figure", _figures_need("plotting"),
             elements=("plotly-script",)),

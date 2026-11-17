@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "assets": {
+    "color": {
+      "children": {
+        "canvas": {"value": {"light": "#fff8e7", "dark": "#0b1a2e"}},
+        "canvas-secondary": {"value": {"light": "#f3ead2", "dark": "#10243d"}},
+        "surface": {"value": {"light": "#fffdf6", "dark": "#0e2036"}},
+        "text": {"value": {"light": "#1a1033", "dark": "#f4e9c8"}}
+      }
+    }
+  }
+}

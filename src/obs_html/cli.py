@@ -22,6 +22,7 @@ from obs_html.figure_svg import document_figures, figure_svg
 from obs_html.live_source import live_publish
 from obs_html import build_time, provenance, serve, source_files, verdicts
 from obs_html.render import render
+from obs_html.style_choice import local_style_choice
 from obs_html.pdf_links import portable
 from obs_html.source_archive import attach, embedded
 from obs_html.artifact_data import chapter_html, html_text, same_artifact_content
@@ -54,6 +55,13 @@ EPILOG = f"""Rendering:
   Without it, the style the manifest declares (obs.style) applies, fetched with git once per
   commit into the user's cache folder (obs-html/styles/<commit>); without one, the packaged
   generic style.
+
+Themes:
+  Each folder in obs-html/themes in the user's configuration folder (~/.config, ~/Library/
+  Application Support, %APPDATA%), or in the folder OBS_HTML_LOCAL_FOLDER names, is a theme beside
+  Default; local.json there, {{"startTheme": "<name>"}}, names the one a page opens in. Nothing
+  committed names them, and without the folder a page is as before. Set OBS_HTML_LOCAL_FOLDER to
+  an empty folder to build without them. A .pdf DESTINATION prints the start theme.
 
 Sources and styles:
   A Document built with obs-document --embed-source carries the vault's source files; the HTML
@@ -295,12 +303,14 @@ def _render(options: argparse.Namespace, config) -> None:
         raise InputError(PROG, "DESTINATION", "names DOCUMENT itself", "Name another output file")
     if options.vault_link is not None:
         source_files.checked(options.vault_link)
-    _write_artifact(_read_document(options.document), options, config, options.destination)
+    _write_artifact(_read_document(options.document), options, config, options.destination, local_themes=True)
 
 
-def _write_artifact(document: dict, options: argparse.Namespace, config, destination: Path | None) -> None:
+def _write_artifact(document: dict, options: argparse.Namespace, config, destination: Path | None,
+                    local_themes: bool) -> None:
     """Render ``document`` and write it to ``destination``, a PDF for a .pdf name; with --check, nothing.
-    ``SOURCE_DATE_EPOCH``, where set, is the build's instant (spec/architecture.md, Build time)."""
+    ``SOURCE_DATE_EPOCH``, where set, is the build's instant (spec/architecture.md, Build time). With
+    ``local_themes`` the page carries the build machine's local themes (spec/configuration.md, Local themes)."""
     fixed = build_time.fixed(os.environ)
     paths = _vault_paths(document)
     start = (Path(options.vault_root) if options.vault_root
@@ -309,9 +319,10 @@ def _write_artifact(document: dict, options: argparse.Namespace, config, destina
     try:
         with vault_naming(options.vault_root, paths):
             config = with_vault_settings(config, document)
+            local = {"style_choice": local_style_choice(os.environ)} if local_themes else {}
             artifact = render(document, config, style_folder=options.style,
                               trusted_runtime=_trusted_runtime(options.trusted_runtime_bundle),
-                              embed_attachments=options.embed_attachments, built=fixed, vault_link=link)
+                              embed_attachments=options.embed_attachments, built=fixed, vault_link=link, **local)
     except InputError as error:
         raise in_vault(error, options.vault_root, paths) from error
     check_artifact(artifact)
@@ -416,7 +427,7 @@ def _build_own_spec(options: argparse.Namespace, config) -> None:
                              "runs the core installed beside it, python -m obs.document")
         sys.stderr.write(result.stderr)  # The core's diagnostics, printed once.
         options.vault_root = str(vault)
-        _write_artifact(_read_document(document), options, config, options.build_own_spec)
+        _write_artifact(_read_document(document), options, config, options.build_own_spec, local_themes=False)
 
 
 def _attach_source(options: argparse.Namespace) -> None:

@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "obs-html local.json: the build machine's start theme",
+  "description": "local.json in obs-html's local folder, beside its themes folder (spec/configuration.md, Local themes). Without the file, or without startTheme, the start theme is Default.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "startTheme": {
+      "description": "The theme every opening starts in: default, or the name of a folder in themes.",
+      "type": "string"
+    }
+  }
+}

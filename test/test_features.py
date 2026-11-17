@@ -232,6 +232,19 @@ def test_a_newly_registered_feature_or_part_must_appear_in_the_feature_fixture(f
         *missing_from_the_feature_fixture(feature_artifact), "added", f"{FEATURES[0].key}/added-part"]
 
 
+def test_the_style_sync_part_ships_only_with_local_themes() -> None:
+    """A guided card's window follows the page's theme only on a page that carries local themes
+    (artifact-ui.md, Styling); elsewhere guided-card.js ships as it is without the part."""
+    from obs_html.style_choice import local_style_choice
+
+    plain_page = render(with_context_note(), load_config())
+    assert feature_source("guided-card.js") in plain_page and "dataset.style" not in plain_page
+    choice = local_style_choice({"OBS_HTML_LOCAL_FOLDER": str(ROOT / "test" / "fixtures" / "local-themes")})
+    themed = render(with_context_note(), load_config(), style_choice=choice)
+    assert feature_source("guided-card.js", ["style-sync"]) in themed
+    assert "dataset.style" in themed and '"data-style"' in themed
+
+
 @pytest.mark.parametrize("feature", FEATURES, ids=lambda feature: feature.key)
 def test_the_inclusion_condition_decides_whether_code_elements_and_canary_ship(feature) -> None:
     included, excluded = CASES[feature.key]
