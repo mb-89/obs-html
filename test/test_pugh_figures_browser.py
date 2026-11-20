@@ -1,12 +1,12 @@
-"""Decision figures, decided live in the reader with ctrl's engine (figures.py, the pugh kind;
+"""Decision figures, decided live in the reader with the upstream engine (figures.py, the pugh kind;
 pugh-figure.js; artifact-ui.md, Decision figures).
 
 Reader: whoever changes how a decision figure is decided, laid out or printed.
 
 One artifact of the pugh fixture Document (fixtures/build_documents.py, pugh) serves every test:
-ctrl's test matrix with a fourth option, a chosen runner-up and a checklist, and a matrix of ten
+The upstream project's test matrix with a fourth option, a chosen runner-up and a checklist, and a matrix of ten
 options with a Checklist row. The computed verdict's tests read a second, of the decision-verdict
-fixture, whose vault turns artifact.figures.decisionVerdict on and adds ctrl's matrix with a gate; the printed
+fixture, whose vault turns artifact.figures.decisionVerdict on and adds the upstream project's matrix with a gate; the printed
 verdict's test reads a third, the same Document with an answer to its decisions chapter. The read-only checks share one page; the tests that change the
 reader's view or the viewport lease their own. Every page runs with every request outside the
 artifact refused and recorded.
@@ -28,7 +28,7 @@ VECTORS = json.loads((ROOT / "test" / "fixtures" / "pugh-vectors.json").read_tex
 OPTION, WIDE, GATED = "decisions--block-option", "decisions--block-wide", "decisions--block-gated"
 SMALL_WITH_C = next(vector for vector in VECTORS["matrices"] if vector["name"] == "small with C")
 LETTERS = {"D": "A", "A": "B", "B": "C", "C": "D"}
-"""The option figure decides ctrl's matrix with the fourth option C (build_documents.py, DECISION),
+"""The option figure decides the upstream project's matrix with the fourth option C (build_documents.py, DECISION),
 whose options the fence lists D, A, B, C: their letters."""
 
 pytestmark = pytest.mark.browser
@@ -184,7 +184,7 @@ def shared_reader(artifact, shared_reader_browser) -> Reader:
     return Reader(shared_reader_browser, artifact)
 
 
-def test_the_page_decides_ctrls_test_vectors_and_the_matrix_tab_shows_the_decision(shared_reader) -> None:
+def test_the_page_decides_the_upstream_test_vectors_and_the_matrix_tab_shows_the_decision(shared_reader) -> None:
     reader = shared_reader
     decided = reader.page.evaluate("""matrices => matrices.map(({matrix}) => {
         const result = globalThis.obsPughEngine.decide(matrix);

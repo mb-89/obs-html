@@ -1,5 +1,5 @@
 {
- "source": "ctrl test/pugh.test.mjs at commit 2839d765ff04d5586f1f0199203bbebf2d03cd22: each matrix and the results its test asserts (totals, ranking, suggestion, verdict, each runner-up's single-weight tie point)",
+ "source": "Upstream test/pugh.test.mjs at commit 2839d765ff04d5586f1f0199203bbebf2d03cd22: each matrix and the results its test asserts (totals, ranking, suggestion, verdict, each runner-up's single-weight tie point)",
  "matrices": [
   {
    "name": "small",

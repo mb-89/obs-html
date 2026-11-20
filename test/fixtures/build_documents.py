@@ -577,10 +577,10 @@ DECISION = {
         {"item": "Is there a second supplier?", "answer": "Not for this kind of system.", "pass": False},
     ],
 }
-"""ctrl's test matrix with a fourth option (test/fixtures/pugh-vectors.json, small with C), lettered A
-(the datum D), B (ctrl's A), C (ctrl's B) and D (ctrl's C), with names, sentences, wins and losses, a
+"""The upstream project's test matrix with a fourth option (test/fixtures/pugh-vectors.json, small with C), lettered A
+(the datum D), B (the upstream project's A), C (the upstream project's B) and D (the upstream project's C), with names, sentences, wins and losses, a
 chosen option that is a runner-up, and a checklist whose failed item names no option, so the totals
-stay ctrl's."""
+stay the upstream project's."""
 WIDE = {**DECISION, "title": "Many options", "chosen": "O9", "checklist": [
     {"item": "Can we leave it within a month?", "answer": "Not the last two.", "pass": False, "options": ["I", "J"]}],
     "checklistWeight": 2, "candidates": [
@@ -592,7 +592,7 @@ last two on a Checklist row of weight 2 (test_pugh_figures_browser.py)."""
 
 
 def pugh(root: Path) -> None:
-    """The decision figures (test_pugh_figures_browser.py): ctrl's test matrix with a chosen runner-up,
+    """The decision figures (test_pugh_figures_browser.py): the upstream project's test matrix with a chosen runner-up,
     and one of ten options. Not a moved interim vault."""
     (root / "manifest.md").write_text("---\ntitle: Decisions\n---\n- [[decisions]]\n", encoding="utf-8")
     (root / "decisions.md").write_text("# Decisions\n\n" + "".join(
@@ -602,14 +602,14 @@ def pugh(root: Path) -> None:
 
 GATED = {**DECISION, "title": "Which option within budget", "chosen": "B", "checklist": [],
          "gates": [{"criterion": "cost", "max": 15, "why": "over budget"}]}
-"""ctrl's test matrix of DECISION with a hard gate: B (ctrl's A, cost 19) fails it, the engine's veto
+"""The upstream project's test matrix of DECISION with a hard gate: B (the upstream project's A, cost 19) fails it, the engine's veto
 gate0, which the reader lifts (test_pugh_figures_browser.py, the computed verdict)."""
 
 
 def decision_verdict(root: Path) -> None:
     """The decision figures with the computed verdict on (test_pugh_figures_browser.py): the vault's
     cfg.json turns on artifact.figures.decisionVerdict, as a deck's does; the pugh vault's two
-    decisions and ctrl's matrix with a gate. Not a moved interim vault."""
+    decisions and the upstream project's matrix with a gate. Not a moved interim vault."""
     (root / "cfg.json").write_text(json.dumps({"artifact": {"figures": {"decisionVerdict": True}}}), encoding="utf-8")
     (root / "manifest.md").write_text("---\ntitle: Decisions with their verdict\n---\n- [[decisions]]\n", encoding="utf-8")
     (root / "decisions.md").write_text("# Decisions\n\n" + "".join(

@@ -555,9 +555,9 @@ change comments): one decision is a one-pager; the options come first; the reade
 weights and marks in place and plays what-if; the details sit behind tabs.
 
 A decision figure (obs capabilities/pugh-decisions) is decided in the reader's page by
-`src/obs_html/pugh-figure.js` with ctrl's Pugh engine, `src/obs_html/vendor/pugh.js`, copied
-unchanged from ctrl (its header names the commit). ctrl's tests of the engine's rules (obs
-capabilities/pugh-decisions, The rules) run against that file under their ctrl names,
+`src/obs_html/pugh-figure.js` with the upstream Pugh engine, `src/obs_html/vendor/pugh.js`, copied
+unchanged from upstream (its header names the commit). The upstream project's tests of the engine's rules (obs
+capabilities/pugh-decisions, The rules) run against that file under their upstream names,
 `test/pugh-engine.test.mjs`. The engine is embedded, with its header, only in an artifact that
 holds a decision figure: it is the reader feature `pugh` (`features.py`), whose canary reports a
 host that does not run it.
@@ -668,18 +668,18 @@ the reader can change shows its reason on hover or focus, and a tap changes it.
 #### The engine's bottom line
 
 Decided by the user, 14 Nov 2026 (work issue `feat/pugh-engine-computes-the-verdict-20261114`): the
-decision states its computed verdict, "it can't be judgment" (ctrl's design input 55), where the
+decision states its computed verdict, "it can't be judgment" (the upstream project's design input 55), where the
 computed verdict is on. Its changes after filing make it an option, off by default, so a decision
 figure is what it was until someone turns it on: `artifact.figures.decisionVerdict` (cfg.schema.json),
 true in the adapter's configuration or in a vault's own `cfg.json`, as a deck's. With it off the
 artifact carries none of the module below, byte for byte the artifact it was.
 
 The verdict is its own module, `src/obs_html/pugh-verdict.js`, the pugh feature's part `verdict`
-(`features.py`): a pure layer, data in and data out (the reader's changes to ctrl's engine
+(`features.py`): a pure layer, data in and data out (the reader's changes to the upstream engine
 overrides; the engine's result to the bottom line's lines), and thin wiring the figure calls only
 inside its `part verdict` regions ([[architecture#Rendering and runtime]]).
 
-Under the Y-statement and the success criterion, the Proposed winner box holds what ctrl's engine computed
+Under the Y-statement and the success criterion, the Proposed winner box holds what the upstream engine computed
 (its `sensitivity` and each option's `vetoes`; obs capabilities/pugh-decisions, The rules), one
 line each, in this order:
 
@@ -703,7 +703,7 @@ them as the reader left them.
 #### The reader's vetoes and datum
 
 Decided by the user, 14 Nov 2026 (work issue `feat/pugh-engine-computes-the-verdict-20261114`): the
-person's changes that ctrl's engine takes (ctrl's `design/output/pugh.md`, "The person's changes")
+person's changes that the upstream engine takes (the upstream project's `design/output/pugh.md`, "The person's changes")
 feed it here too, where the computed verdict is on, and the page decides again at once. A changed
 mark is the engine's cell nudge
 ([[#The decision matrix]]); an option's expander in the options list holds the rest, as keys:
@@ -779,7 +779,7 @@ with no radios, and Reset is disabled.
 
 Decided by the user, 6 Nov 2026 (work issue `feature/decision-sensitivity-pareto-views-20261106`):
 what if is a grid a decision maker reads at a glance, not prose. Every number is the engine's
-(ctrl's `pugh.js`, its sensitivity), which the figure only lays out.
+(the upstream project's `pugh.js`, its sensitivity), which the figure only lays out.
 
 - **The top line:** a bar of the winner's share of the engine's random weight draws, "B · Artifact
   wins 100.0 % of draws", with a mark at the engine's hold share (`holdShare`, 75 % by default).

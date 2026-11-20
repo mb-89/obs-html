@@ -1,4 +1,4 @@
-// obs-html carries ctrl's Pugh decision engine (MIT), copied unchanged below these four lines.
+// obs-html carries the upstream Pugh decision engine (MIT), copied unchanged below these four lines.
 // The renderer embeds its pughEngine() for decision figures (features.py, pugh_engine).
 // To update it, copy the engine's file again under this header.
 //

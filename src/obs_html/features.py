@@ -19,7 +19,7 @@ ZIP to a PDF only in an artifact that has one. A part may read the host yet have
 tables feature's live-source part, because a host that refuses it leaves the saved rows and the
 table's own line says so (artifact-ui.md, Dock menu). A library the renderer delivers itself (the
 plotting library, by artifact.figures.plotlyDelivery, the maths library and the PDF library of the
-source-archive part, each through its door, libraries.py, and ctrl's decision engine ``vendor/pugh.js``)
+source-archive part, each through its door, libraries.py, and the upstream decision engine ``vendor/pugh.js``)
 ships exactly where its feature or part is included.
 
 A part may also need an option of the adapter's configuration (``Part.option``, a path in
@@ -54,16 +54,16 @@ from .figures import FIGURE_KINDS
 
 
 ENGINE_EXPORT = re.compile(r"^export const \{[^}]*\} = pughEngine\(\);\s*\Z", re.M)
-"""The last line of ctrl's engine module (vendor/pugh.js), which a classic script cannot hold."""
+"""The last line of the upstream engine module (vendor/pugh.js), which a classic script cannot hold."""
 
 
 def pugh_engine() -> str:
-    """ctrl's Pugh engine (vendor/pugh.js, its header naming ctrl's commit) as the classic script the
+    """The upstream Pugh engine (vendor/pugh.js, its header naming the upstream commit) as the classic script the
     pugh feature embeds: the file as it is, its module export replaced by ``globalThis.obsPughEngine``."""
     source = files("obs_html").joinpath("vendor", "pugh.js").read_text(encoding="utf-8")
     if not ENGINE_EXPORT.search(source):
-        raise InputError("obs_html/vendor/pugh.js", "last line", "is not ctrl's export of pughEngine()",
-                         "Copy ctrl's src/core/pugh.js again unchanged under its header; see features.py, pugh_engine")
+        raise InputError("obs_html/vendor/pugh.js", "last line", "is not the upstream project's export of pughEngine()",
+                         "Copy the upstream project's src/core/pugh.js again unchanged under its header; see features.py, pugh_engine")
     return ENGINE_EXPORT.sub("globalThis.obsPughEngine = pughEngine();\n", source)
 
 

@@ -1,8 +1,8 @@
 "use strict";
 
 // The computed verdict's pure layer (src/obs_html/pugh-verdict.js; artifact-ui.md, The engine's bottom
-// line): data in, data out, no page. overridesOf turns the reader's changes into ctrl's engine overrides,
-// which ctrl's engine (vendor/pugh.js) takes as they are; bottomLineOf words the engine's result.
+// line): data in, data out, no page. overridesOf turns the reader's changes into the upstream engine overrides,
+// which the upstream engine (vendor/pugh.js) takes as they are; bottomLineOf words the engine's result.
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
@@ -18,7 +18,7 @@ const vectors = require(path.join(__dirname, "fixtures", "pugh-vectors.json"));
   vm.runInNewContext(fs.readFileSync(path.join(root, "src", "obs_html", "pugh-verdict.js"), "utf8"), context);
   const {overridesOf, bottomLineOf} = context.obsPughVerdict;
   const {matrix} = vectors.matrices.find(vector => vector.name === "small with C");
-  const keys = {A: "D", B: "A", C: "B", D: "C"};  // The figure's letters of ctrl's options, in the fence's order.
+  const keys = {A: "D", B: "A", C: "B", D: "C"};  // The figure's letters of the upstream project's options, in the fence's order.
   const letters = Object.fromEntries(Object.entries(keys).map(([letter, key]) => [key, letter]));
   const nameOf = key => letters[key], letterOf = key => letters[key];
 

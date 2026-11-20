@@ -1,5 +1,5 @@
 """Parity gate: features.md records every feature of this adapter and how it differs from the
-interim adapter obs#3 deleted.
+interim adapter it replaced.
 
 Reader: whoever changes this adapter or the core in front of it, and the dispatcher reading the
 record.

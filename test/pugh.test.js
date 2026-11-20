@@ -1,7 +1,7 @@
 "use strict";
 
-// ctrl's Pugh engine as this package carries it (src/obs_html/vendor/pugh.js) decides ctrl's own
-// test matrices as ctrl's tests assert (fixtures/pugh-vectors.json): the weighted totals, the
+// The upstream Pugh engine as this package carries it (src/obs_html/vendor/pugh.js) decides the upstream project's own
+// test matrices as the upstream project's tests assert (fixtures/pugh-vectors.json): the weighted totals, the
 // ranking, the suggestion, the verdict and each runner-up's single-weight tie point. The option
 // card shows an option's label only where it says more than the short name (pugh-figure.js).
 // The figure decides an existing deck's fences, obs's example deck (spec/examples/bless-deck), the
@@ -18,7 +18,7 @@ const vectors = require(path.join(__dirname, "fixtures", "pugh-vectors.json"));
 
 (async () => {
   const engine = await import(pathToFileURL(path.join(root, "src", "obs_html", "vendor", "pugh.js")));
-  assert.ok(vectors.matrices.length >= 3, "pugh-vectors.json: at least three of ctrl's matrices");
+  assert.ok(vectors.matrices.length >= 3, "pugh-vectors.json: at least three of the upstream project's matrices");
   for (const {name, matrix, expected} of vectors.matrices) {
     const result = engine.decide(matrix);
     assert.deepEqual(Object.fromEntries(result.candidates.map(c => [c.key, c.total])), expected.totals, `${name}: totals`);

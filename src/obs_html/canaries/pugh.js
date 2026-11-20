@@ -1,4 +1,4 @@
-// Canary of Decision figures (features.py, pugh): ctrl's decision engine is embedded in the HTML and
+// Canary of Decision figures (features.py, pugh): the upstream decision engine is embedded in the HTML and
 // loads after the canaries, so a decision figure reports a failure on use.
 globalThis.obsCapabilities.canary({
     key: "pugh", feature: "Decision figures",

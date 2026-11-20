@@ -236,7 +236,7 @@ whether it fits and its vetoes, and its `sensitivity` with each runner-up's tie 
 in DOCUMENT." or `{"decisions": []}`, and exits 0.
 
 The decision is the page's own, through one door to a JavaScript runtime, Node.js
-(`verdicts.py`, `run_node`): it runs ctrl's engine (`vendor/pugh.js`) unchanged with the figure's
+(`verdicts.py`, `run_node`): it runs the upstream engine (`vendor/pugh.js`) unchanged with the figure's
 mapping (`obsPugh.decide`, `pugh-figure.js`) and the wording of the pure layer
 (`bottomLineOf`, `pugh-verdict.js`), which `pugh-text.js` calls; obs copies no rule into Python.
 The engine has no clock and draws from the fence's seed, so the same Document prints the same

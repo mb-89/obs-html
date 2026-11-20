@@ -1041,7 +1041,7 @@ button.pugh-grid-key[aria-expanded="true"] {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
 }
 
-/* The Pareto tab (pugh-figure.js, paretoPanel): ctrl's plot (vendor/pugh.js, plotSvg), each
+/* The Pareto tab (pugh-figure.js, paretoPanel): the upstream project's plot (vendor/pugh.js, plotSvg), each
    option's line in its colour, the criteria its axes, the winner thickest, a dominated option dashed. */
 .pugh-pareto {
     display: grid;

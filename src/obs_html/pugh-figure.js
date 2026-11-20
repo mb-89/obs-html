@@ -1,6 +1,6 @@
 /* Decision figures, decided live in the reader (features.py, pugh; artifact-ui.md, Decision
    figures). The Document carries the matrix as the core checked it (obs capabilities/
-   pugh-decisions); ctrl's engine (vendor/pugh.js, embedded before figures.js as
+   pugh-decisions); the upstream engine (vendor/pugh.js, embedded before figures.js as
    globalThis.obsPughEngine) decides it here, unchanged. The figure hands the engine the fence's
    matrix with the reader's weights, a Checklist criterion where failed checklist items name
    options, and the reader's changed marks as the engine's own cell overrides; a mark's reason
@@ -129,7 +129,7 @@ globalThis.obsPugh = (() => {
     for (const criterion of matrix.criteria) if (criterion.key in weights) criterion.weight = weights[criterion.key];
     return matrix;
   }
-  /** The decision with the reader's weights and marks: ctrl's decide(); a changed mark is the
+  /** The decision with the reader's weights and marks: the upstream project's decide(); a changed mark is the
       engine's cell override, a nudge from the mark it computes to the reader's. */
   function decide(spec, view = {weights: {}, marks: {}}) {
     const figureModel = model(spec);

@@ -131,7 +131,7 @@ def _equations_body(attrs: dict, alt: str, _source: str, _links: dict[str, Figur
 
 def _pugh_body(attrs: dict, alt: str, _source: str, _links: dict[str, FigureLink]) -> Body:
     """A decision figure: the runtime (pugh-figure.js) decides the Document's matrix, which the core
-    checked against its schema, with ctrl's engine; without scripts its title and size stand."""
+    checked against its schema, with the upstream engine; without scripts its title and size stand."""
     matrix = attrs["matrix"]
     summary = (f'{escape(matrix.get("title", "Decision"))}: {len(matrix["candidates"])} options on '
                f'{len(matrix["criteria"])} criteria.')
@@ -158,7 +158,7 @@ FIGURE_KINDS: dict[str, FigureKind] = {
     # Plotted with the plotting library; evaluated and solved with the maths library.
     "equations": FigureKind(_equations_body, options=("legend", "trace", "axis", "swap", "family", "parallel"),
                             features=("plotting", "equations")),
-    # Decided in the page with ctrl's engine.
+    # Decided in the page with the upstream engine.
     "pugh": FigureKind(_pugh_body, options=("weights",), features=("pugh",)),
     # Drawn in the page by its own script (timeline-figure.js), whose rows follow the filter.
     "timeline": FigureKind(_timeline_body, features=("timeline",)),

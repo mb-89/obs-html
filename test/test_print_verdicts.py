@@ -103,7 +103,7 @@ def test_without_a_runtime_the_print_says_so_in_one_line_and_exits_2(capsys, mon
 
 
 def test_the_door_gets_each_figure_spec_and_the_print_writes_what_it_answered(capsys, monkeypatch) -> None:
-    """The program carries ctrl's engine and the three scripts, each unchanged, and the specs the
+    """The program carries the upstream engine and the three scripts, each unchanged, and the specs the
     page's figures get; text and JSON write the door's answer, title first."""
     answer = [{"lines": [{"part": "verdict", "text": f"Line of {index}."}]} for index in range(3)]
     door = _fake(answer)

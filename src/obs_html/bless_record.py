@@ -18,7 +18,7 @@ STATES = {"bless": "Blessed", "decline": "Declined", "ask": "Question", "pick": 
 NONE = "None of the above"
 """The state of a pick of none of the options (obs input-model, Answers), as bless.js names it."""
 SYMBOLS = {2: "++", 1: "+", 0: "S", -1: "−", -2: "−−"}
-"""ctrl's mark symbols, as the decision figure shows them (vendor/pugh.js, SYMBOL)."""
+"""The upstream project's mark symbols, as the decision figure shows them (vendor/pugh.js, SYMBOL)."""
 
 
 def _matrices(nodes: list[dict]) -> list[dict]:

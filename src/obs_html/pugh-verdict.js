@@ -5,14 +5,14 @@
    inside its "part verdict" regions, which the renderer strips where the part does not ship.
 
    Two layers. The pure one takes data and gives data, with no page: overridesOf turns the
-   reader's changes into ctrl's engine overrides, bottomLineOf turns the engine's result into the
+   reader's changes into the upstream engine overrides, bottomLineOf turns the engine's result into the
    bottom line's lines. The wiring draws those lines and the expander's keys, and keeps the
-   reader's changes in the figure's view state (vetoes, lifts, datum). The engine itself is ctrl's,
+   reader's changes in the figure's view state (vetoes, lifts, datum). The engine itself is the upstream project's,
    unchanged (vendor/pugh.js), and decides everything. */
 globalThis.obsPughVerdict = (() => {
-  const READER = "Changed by the reader";  // Every override needs a comment (ctrl's pugh.md, The person's changes).
+  const READER = "Changed by the reader";  // Every override needs a comment (the upstream project's pugh.md, The person's changes).
 
-  /** The reader's vetoes, lifts and datum as ctrl's engine overrides, datum first: ``changes`` is
+  /** The reader's vetoes, lifts and datum as the upstream engine overrides, datum first: ``changes`` is
       {vetoes: [letter], lifts: {letter: [veto id]}, datum: letter | null}, ``keyOf`` a letter's option key. */
   function overridesOf(changes, keyOf) {
     return [

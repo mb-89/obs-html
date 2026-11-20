@@ -53,7 +53,7 @@ and small absolute changes do not cause noise.
 ## The interim adapter
 
 The interim adapter, which built artifacts directly from a vault, was deleted once the
-integrated adapter reached parity with it (obs#3); `obs-html` is the only HTML adapter.
+integrated adapter reached parity with it; `obs-html` is the only HTML adapter.
 
 ### Known differences from the interim
 

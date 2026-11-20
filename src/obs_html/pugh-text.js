@@ -1,6 +1,6 @@
 /* The computed verdict of a decision as data, without a page (cli.md, Printing the verdicts):
    what obs-html --print-verdicts prints (verdicts.py). No feature ships this module and no
-   artifact carries it; verdicts.py runs it in Node.js after ctrl's engine (vendor/pugh.js, as
+   artifact carries it; verdicts.py runs it in Node.js after the upstream engine (vendor/pugh.js, as
    globalThis.obsPughEngine), pugh-figure.js and pugh-verdict.js, each unchanged.
 
    One pure function: a figure's spec (figures.py, the pugh kind) in, its decision as data out.

@@ -1,10 +1,10 @@
-// ctrl's Pugh engine tests, ported: the tests of the engine's decision, under their names and
+// The upstream Pugh engine tests, ported: the tests of the engine's decision, under their names and
 // unchanged but for the import, run against the engine as this package carries it
-// (src/obs_html/vendor/pugh.js). Not ported: ctrl's tests of its own report, CLI, figures and
+// (src/obs_html/vendor/pugh.js). Not ported: the upstream project's tests of its own report, CLI, figures and
 // browser page (renderHtml, renderMarkdown, tools/pugh.mjs, plotSvg's series), which obs does not
 // use; obs's figure lays out the engine's result itself (pugh-figure.js).
 //
-// MIT License: ctrl's LICENSE, whose notice follows.
+// MIT License: the upstream project's LICENSE, whose notice follows.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 // associated documentation files (the "Software"), to deal in the Software without restriction,

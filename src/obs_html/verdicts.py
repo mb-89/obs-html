@@ -4,7 +4,7 @@
 Pure but for one door. ``decisions`` finds each decision figure's spec as the page's figure gets
 it (figures.py, the pugh kind), ``program`` is the JavaScript that decides them, ``run_node`` the
 one door to a JavaScript runtime, Node.js, and ``text_of`` and ``json_of`` write what it answered.
-The decision and its wording stay JavaScript, run unchanged: ctrl's engine (vendor/pugh.js), the
+The decision and its wording stay JavaScript, run unchanged: the upstream engine (vendor/pugh.js), the
 figure's mapping (pugh-figure.js, obsPugh.decide), the bottom line's pure layer (pugh-verdict.js,
 bottomLineOf) and the text module that calls them (pugh-text.js). No rule is copied here.
 """
@@ -21,7 +21,7 @@ from obs_html.features import pugh_engine
 from obs_html.figures import FIGURE_KINDS
 from obs_html.render import HOME
 SCRIPTS = ("pugh-figure.js", "pugh-verdict.js", "pugh-text.js")
-"""The package's scripts the decision runs, after ctrl's engine, in this order."""
+"""The package's scripts the decision runs, after the upstream engine, in this order."""
 NO_PAGE = "globalThis.document = {addEventListener() {}};\n"
 """What pugh-figure.js reaches of a page while it loads: it listens for the bless band's pick,
 which never comes here. Deciding needs no page."""
