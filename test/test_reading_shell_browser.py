@@ -42,7 +42,6 @@ TOP_BAND = """() => {
         }).map((item) => item.textContent || item.className),
         truncated: links.filter((link) => link.scrollWidth > link.clientWidth)
             .map((link) => ({text: link.textContent, title: link.title})),
-        chevron: box(document.querySelector("[data-frontmatter-toggle]")),
         notices: [...document.querySelectorAll("[data-header-notices] [data-notice-icon]")]
             .filter((icon) => icon.getClientRects().length).map(box),
         menu: box(document.querySelector("[data-menu-button]")),
@@ -103,10 +102,10 @@ def test_every_top_control_is_one_square_size_in_one_row(tmp_path: Path, reader_
         globalThis.obsNotices.post({id: severity, severity, title: severity}))""")
     band = frame.evaluate(TOP_BAND)
 
-    squares = [band["home"], band["chevron"], *band["notices"], band["menu"]]
+    squares = [band["home"], *band["notices"], band["menu"]]
     assert len(band["notices"]) == 3
     size = band["menu"]["height"]
-    assert [(round(item["width"]), round(item["height"])) for item in squares] == [(round(size),) * 2] * 6
+    assert [(round(item["width"]), round(item["height"])) for item in squares] == [(round(size),) * 2] * 5
     assert {round(item["top"]) for item in [*squares, band["crumbs"]]} == {round(band["menu"]["top"])}
     assert round(band["crumbs"]["height"]) == round(size)
     assert band["offRow"] == []
@@ -114,7 +113,7 @@ def test_every_top_control_is_one_square_size_in_one_row(tmp_path: Path, reader_
     lefts = [item["left"] for item in band["notices"]]
     assert lefts == sorted(lefts)
     assert 0 <= band["menu"]["left"] - band["notices"][-1]["right"] <= size / 4
-    assert band["crumbs"]["right"] <= band["chevron"]["left"] <= band["chevron"]["right"] <= lefts[0]
+    assert band["crumbs"]["right"] <= lefts[0]
     # Previous and next stay at the viewport edges, below the band.
     previous, following = band["arrows"]
     # Next keeps its inset clear of a scrollbar (base.css --chapter-nav-inset-end, 1rem).

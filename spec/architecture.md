@@ -100,6 +100,9 @@ that part's marked regions, which the renderer strips where the part does not sh
 The source file row is one exception, decided by the owner on 17 Nov 2026: its option
 `artifact.sourceFileLinks` is on by default, so with it on every page changes by the row and its
 code ([[artifact-ui#Reading shell]]), and with it off a page is byte for byte what it was.
+The metadata cards of the Comments bar change every page as well, by the owner's decision of
+22 Nov 2026 ([[artifact-ui#Reading shell]]): the bar replaces the chevron and its table, and its
+script carries the cards' code on every page, since every note's front matter is a card.
 One line per table row is the other, decided by the owner on 17 Nov 2026 as well: its option
 `artifact.tableRowsOneLine` is on by default, so with it on every page with a Base table changes
 by the code and rules of the tables feature's part `table-rows-one-line`, and every page with a

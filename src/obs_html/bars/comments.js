@@ -10,14 +10,16 @@
     const fileInput = document.querySelector("[data-comment-files]");
     const filterInput = document.querySelector("[data-comment-filter-input]");
     const filterState = document.querySelector("[data-comment-filter-state]");
+    const kindSelect = document.querySelector("[data-comment-kind]");
     const reviewSummary = document.querySelector("[data-review-summary]");
     const list = document.querySelector("[data-comment-list]");
     const announcer = document.querySelector("[data-comment-announcer]");
     const saveGuidance = document.querySelector("[data-review-save-guidance]");
     const chapterBody = document.querySelector("[data-chapter-body]");
     const activeChapter = chapterBody?.closest("[data-active-chapter]");
+    const chapterScroll = document.querySelector("[data-chapter-scroll]");
     if (!island || !authorInput || !addButton || !saveButton || !copyButton ||
-            !loadButton || !fileInput || !filterInput || !filterState || !reviewSummary ||
+            !loadButton || !fileInput || !filterInput || !filterState || !kindSelect || !reviewSummary ||
             !list || !saveGuidance || !chapterBody) {
         return;
     }
@@ -227,13 +229,16 @@
         placeCache.set(record.slug, places);
         return places;
     };
-    const targetPlace = (target) => {
+    // A note's record and its place in the Document: its place in the contents, else after them.
+    const notePlace = (slug) => {
         const records = globalThis.obsArtifact?.records || [];
         const toc = artifactData.toc || [];
-        const index = records.findIndex((record) => record.slug === target.chapter);
-        const record = records[index];
-        const inContents = toc.indexOf(target.chapter);
-        const chapter = inContents >= 0 ? inContents : toc.length + Math.max(index, 0);
+        const index = records.findIndex((record) => record.slug === slug);
+        const inContents = toc.indexOf(slug);
+        return {record: records[index], chapter: inContents >= 0 ? inContents : toc.length + Math.max(index, 0)};
+    };
+    const targetPlace = (target) => {
+        const {record, chapter} = notePlace(target.chapter);
         const places = record ? chapterPlaces(record) : null;
         const node = keyedRow(target)?.table ?? target.node;
         const place = (node !== undefined && places?.block(node)) ||
@@ -241,17 +246,181 @@
         return {chapter, order: place.order, start: Number.isInteger(target.start) ? target.start : 0,
             path: [record?.title || target.chapter, ...place.sections]};
     };
-    // Root comments in document order; comments on one place keep the order they were made in.
-    const documentOrder = (annotations) => annotations
-        .map((annotation, index) => ({annotation, index, place: targetPlace(annotation.target)}))
+    // Cards in document order: by chapter, block and text position; a note's front matter card
+    // first, a block's metadata card before the comments on it, and comments on one place in the
+    // order they were made in.
+    const documentOrder = (cards) => cards
+        .map((card, index) => ({...card, index}))
         .sort((first, second) => first.place.chapter - second.place.chapter ||
             first.place.order - second.place.order || first.place.start - second.place.start ||
-            first.index - second.index)
-        .map(({annotation}) => annotation);
+            first.index - second.index);
     // A card's label is its path, `Chapter › Section › block`, the block named by its marked text.
     const targetLabel = (target) => {
         const quote = (target.quote || "").replace(/\s+/g, " ").trim();
         return [...targetPlace(target).path, ...(quote ? [quote] : [])].join(" › ");
+    };
+
+    // Metadata cards (artifact-ui.md, Comments bar): each note's front matter, with its Source file
+    // row, and each block or section that sets a field (obs input-model#Block records), read-only.
+    const metadataCards = () => {
+        const records = globalThis.obsArtifact?.records || [];
+        const bySlug = new Map(records.map((record) => [record.slug, record]));
+        return [
+            ...records.filter((record) => globalThis.obsArtifact.isDocument(record) &&
+                (record.metadataEntries.length || globalThis.obsSourceFile?.value(record.slug)))
+                .map((record) => ({id: `frontmatter:${record.slug}`, kind: "frontmatter", chapter: record.slug, record})),
+            ...(artifactData.blocks || []).filter((block) => bySlug.has(block.block.chapter))
+                .map((block) => ({id: block.key, kind: "block", chapter: block.block.chapter, block,
+                    record: bySlug.get(block.block.chapter)})),
+        ];
+    };
+    // A card's place and path: a front matter card stands first in its note, `Chapter › front matter`;
+    // a block's card at its block, `Chapter › Section › kind`, a section's ending in its own title.
+    const metadataPlace = (card) => {
+        const {chapter} = notePlace(card.chapter);
+        const title = card.record.title || card.chapter;
+        if (card.kind === "frontmatter") return {chapter, order: -2, start: -1, path: [title, "front matter"]};
+        const {node, kind, path} = card.block.block;
+        const place = chapterPlaces(card.record).block(node);
+        if (!place) return {chapter, order: -1, start: -1, path: path.split(" › ")};
+        const own = kind === "section" ? path.split(" › ").at(-1) : kind;
+        const chapterHeading = kind === "section" && own === title && !place.sections.length;
+        return {chapter, order: place.order, start: -1, path: [title, ...place.sections, ...(chapterHeading ? [] : [own])]};
+    };
+    const valueText = (value) => Array.isArray(value) ? value.map(valueText).join(", ")
+        : value !== null && typeof value === "object" ? JSON.stringify(value) : String(value);
+    // What a field query reads of a card: its block's effective values, as the core's block record
+    // holds them, or its note's front matter.
+    const metadataRecord = (card, place) => {
+        const values = card.kind === "frontmatter"
+            ? (card.record.generated === "home" ? artifactData.document.metadata : card.record.frontmatter)
+            : card.block.fields;
+        const path = place.path.join(" › ");
+        const shown = card.kind === "frontmatter" ? card.record.metadataEntries.map(([field, value]) => [field, value])
+            : Object.entries(card.block.block.fields).map(([key, value]) => [key, value === null ? "unset" : valueText(value)]);
+        return {
+            frontmatter: values || {}, sourcePath: card.record.sourcePath,
+            fields: {chapter: card.chapter, path, kind: card.kind === "frontmatter" ? "front matter" : card.block.block.kind},
+            haystack: [path, ...shown.flat()].join("\n"), detail: "",
+        };
+    };
+    // The element a block's card names: its block's, or a section's heading.
+    const metadataElement = (card) => card.kind === "block"
+        ? chapterBody.querySelector(`[data-node-id="${CSS.escape(card.block.block.node)}"]`) : null;
+    // What a block's card highlights: its block, or a section's heading and its body, without the
+    // review controls.
+    const metadataRoots = (card) => {
+        const element = metadataElement(card);
+        if (!element) return [];
+        const level = Number(/^H([1-6])$/.exec(element.tagName)?.[1]);
+        if (!level) return [element];
+        const roots = [element];
+        const body = element.parentElement.matches(".collapsible-heading")
+            ? element.parentElement.nextElementSibling : null;
+        if (body?.matches("[data-heading-section]")) return [...roots, body];
+        for (let next = element.nextElementSibling; next; next = next.nextElementSibling) {
+            const other = Number(/^H([1-6])$/.exec(next.tagName)?.[1]);
+            if (other && other <= level) break;
+            roots.push(next);
+        }
+        return roots;
+    };
+    const metadataRanges = (card) => metadataRoots(card).flatMap((root) => {
+        const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+        const ranges = [];
+        while (walker.nextNode()) {
+            const text = walker.currentNode;
+            if (!text.data.trim() || text.parentElement.closest(notCounted)) continue;
+            const range = document.createRange();
+            range.selectNodeContents(text);
+            ranges.push(range);
+        }
+        return ranges;
+    });
+    const paintMetadata = (card) => {
+        if (!globalThis.CSS?.highlights || typeof Highlight === "undefined") return;
+        const ranges = card ? metadataRanges(card) : [];
+        if (ranges.length) CSS.highlights.set("obs-metadata", new Highlight(...ranges));
+        else CSS.highlights.delete("obs-metadata");
+    };
+    const navigateToMetadata = async (card) => {
+        const opened = await globalThis.obsArtifact?.activateChapter(card.chapter);
+        if (opened === false) return;
+        await globalThis.obsArtifact?.whenChapterReady?.();
+        requestAnimationFrame(() => {
+            const element = metadataElement(card);
+            if (element) {
+                globalThis.obsPugh?.reveal(element);
+                element.scrollIntoView({block: "center"});
+            }
+            paintMetadata(card);
+            markOnScreen();
+        });
+    };
+    const renderMetadataCard = (card, place) => {
+        const wrapper = document.createElement("div");
+        wrapper.className = "metadata-node";
+        wrapper.dataset.metadataCard = card.id;
+        wrapper.dataset.metadataKind = card.kind;
+        const article = document.createElement("article");
+        article.className = "comment-card metadata-card";
+        const fields = document.createElement("div");
+        fields.className = "comment-fields";
+        const target = document.createElement("button");
+        target.type = "button";
+        target.className = "metadata-target";
+        target.textContent = target.title = place.path.join(" › ");
+        target.addEventListener("click", () => navigateToMetadata(card));
+        addField(fields, "Target", target);
+        if (card.kind === "frontmatter") {
+            card.record.metadataEntries.forEach(([field, value]) => {
+                const content = addField(fields, field, "");
+                content.parentElement.dataset.metadataField = field;
+                globalThis.obsArtifact.appendFieldValue(content, card.record, field, value);
+            });
+            const source = globalThis.obsSourceFile?.value(card.chapter);
+            if (source) addField(fields, "Source file", source).parentElement.dataset.metadataSourceFile = "";
+        } else {
+            Object.entries(card.block.block.fields).forEach(([key, value]) => {
+                const content = addField(fields, key, "");
+                const row = content.parentElement;
+                row.dataset.metadataField = key;
+                if (value === null) {
+                    const unset = document.createElement("em");
+                    unset.className = "metadata-unset";
+                    unset.textContent = "unset";
+                    content.append(unset);
+                } else content.append(valueText(value));
+                if (!Object.hasOwn(card.block.inherited || {}, key)) return;
+                // An override of a value from farther out: its section's, its container's or its note's.
+                row.dataset.override = "";
+                const override = document.createElement("span");
+                override.className = "metadata-override";
+                override.textContent = `overrides ${valueText(card.block.inherited[key])}`;
+                content.append(" ", override);
+            });
+        }
+        article.append(fields);
+        wrapper.append(article);
+        return wrapper;
+    };
+
+    // Scrolling marks the cards of what is on screen: a comment's marked text, a block, or for a front
+    // matter card its open note.
+    const cardTargets = new Map();
+    let markFrame = 0;
+    const markOnScreen = () => {
+        markFrame = 0;
+        const open = globalThis.obsArtifact?.isBarOpen?.("comments");
+        const view = chapterScroll?.getBoundingClientRect();
+        cardTargets.forEach(({chapter, rects}, element) => {
+            const shown = open && view && chapter === activeChapter?.dataset.chapter && rects().some((rect) =>
+                (rect.width || rect.height) && rect.bottom > view.top && rect.top < view.bottom);
+            element.toggleAttribute("data-on-screen", Boolean(shown));
+        });
+    };
+    const scheduleMark = () => {
+        if (!markFrame) markFrame = requestAnimationFrame(markOnScreen);
     };
 
     const recordFor = (annotation) => {
@@ -448,12 +617,53 @@
         return wrapper;
     };
 
+    // The bar's cards: the comments and the metadata cards the kind filter shows and the query matches.
     const renderComments = () => {
         list.replaceChildren();
-        const visible = data.annotations.filter((annotation) => activeFilter.match(recordFor(annotation)));
-        filterState.textContent = `${visible.length} of ${data.annotations.length} comments`;
-        documentOrder(visible).forEach((annotation) => list.append(renderNode(annotation, annotation)));
+        cardTargets.clear();
+        const kind = kindSelect.value;
+        const visible = kind === "metadata" ? []
+            : data.annotations.filter((annotation) => activeFilter.match(recordFor(annotation)));
+        const metadata = metadataCards();
+        const placed = kind === "comments" ? [] : metadata.map((card) => ({card, place: metadataPlace(card)}))
+            .filter(({card, place}) => activeFilter.match(metadataRecord(card, place)));
+        const counts = [
+            ...(kind === "metadata" ? [] : [`${visible.length} of ${data.annotations.length} comments`]),
+            ...(kind === "comments" ? [] : [`${placed.length} of ${metadata.length} metadata cards`]),
+        ];
+        filterState.textContent = counts.join(", ");
+        documentOrder([
+            ...visible.map((annotation) => ({annotation, place: targetPlace(annotation.target)})),
+            ...placed,
+        ]).forEach(({annotation, card, place}) => {
+            const element = annotation ? renderNode(annotation, annotation) : renderMetadataCard(card, place);
+            list.append(element);
+            cardTargets.set(element, annotation
+                ? {chapter: annotation.target.chapter, rects: () => [...(rangeForTarget(annotation.target)?.getClientRects() || [])]}
+                : {chapter: card.chapter, rects: card.kind === "frontmatter"
+                    ? () => [chapterScroll.getBoundingClientRect()]
+                    : () => metadataRoots(card).flatMap((root) => [...root.getClientRects()])});
+        });
+        scheduleMark();
     };
+    // The note's front matter card where the bar shows it, and the bar opened on it, the filters
+    // cleared where they hide it: search reveals a match in a note's fields there (artifact.js).
+    const frontmatterCard = (slug) => list.querySelector(`:scope > [data-metadata-card="${CSS.escape(`frontmatter:${slug}`)}"]`);
+    const revealFrontmatter = (slug, field) => {
+        globalThis.obsArtifact?.openBar?.("comments", "right");
+        if (!frontmatterCard(slug)) {
+            if (kindSelect.value === "comments") kindSelect.value = "all";
+            filterInput.value = "";
+            activeFilter = globalThis.obsQuery.compile("");
+            renderComments();
+        }
+        const card = frontmatterCard(slug);
+        const row = field === undefined ? null : [...(card?.querySelectorAll("[data-metadata-field]") || [])]
+            .find((item) => item.dataset.metadataField.toLocaleLowerCase() === field.toLocaleLowerCase());
+        (row || card)?.scrollIntoView({block: "nearest"});
+        return card;
+    };
+    kindSelect.addEventListener("change", renderComments);
 
     filterInput.addEventListener("input", () => {
         try {
@@ -1346,18 +1556,24 @@
     document.addEventListener("obs-bar-change", (event) => {
         if (event.detail?.bar === "comments") updateReviewMode();
         requestAnimationFrame(positionReviewRails);
+        scheduleMark();
     });
+    chapterScroll?.addEventListener("scroll", scheduleMark, {passive: true});
     const reviewLayout = new ResizeObserver(() => requestAnimationFrame(positionReviewRails));
     reviewLayout.observe(chapterBody);
     window.addEventListener("resize", positionReviewRails);
+    window.addEventListener("resize", scheduleMark);
 
     document.addEventListener("obs-chapter-change", () => {
         updateReviewMode();
         repaintHighlights();
+        paintMetadata(null);
+        scheduleMark();
     });
     document.addEventListener("obs-chapter-content-ready", () => {
         updateReviewMode();
         repaintHighlights();
+        scheduleMark();
     });
     // part live-source {
     // A live table's rows change its review items as a new query does (generic-tables.md, Projection).
@@ -1410,6 +1626,7 @@
         updateReviewSummary();
         updateReviewMode();
         updateSaveGuidance();
+        renderComments();
     });
 
     reviewSummary.addEventListener("click", (event) => {
@@ -1467,6 +1684,8 @@
 
     globalThis.obsComments = {
         data,
+        frontmatterCard,
+        revealFrontmatter,
         importFiles,
         reviewItems: () => allReviewItems().map(({chapter, id}) => ({chapter, id})),
         reviewedHtml,
