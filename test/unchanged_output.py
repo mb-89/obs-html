@@ -1,21 +1,34 @@
 """Whether a change leaves obs's reference pages byte for byte as they were, and what changed in the others.
 
 Reader: a worker whose change must leave the other pages as they were (architecture.md, Rendering
-and runtime), who quotes this command's output in the field report. From the adapter's folder:
+and runtime), who quotes this command's output in the field report. From this repository's root:
 
     uv run python test/unchanged_output.py [--base REF] [--head REF] [--keep FOLDER]
 
 It builds the reference set twice with ``SOURCE_DATE_EPOCH`` fixed (EPOCH): at the base, by default
-the merge base of ``HEAD`` and ``origin/main``, and at the head, by default the working tree. A REF
-is built in a detached worktree of its own whose folder starts with PREFIX, removed again however
-the run ends. Each side builds with its own code: every command is ``uv run`` in that side's root
-(UV_PROJECT), without the caller's ``VIRTUAL_ENV``, so a worktree gets its own ``.venv`` on first
-use. The pages go to a temporary folder, or to ``FOLDER/base`` and ``FOLDER/head``.
+the merge base of ``HEAD`` and ``origin/main``, and at the head, by default the working tree. A
+side's root is a checkout of obs-html. A REF is built in a detached worktree of its own whose
+folder starts with PREFIX, removed again however the run ends. Each side builds with its own code:
+every command is ``uv run`` in that side's root (UV_PROJECT), without the caller's
+``VIRTUAL_ENV``, so a worktree gets its own ``.venv`` on first use, and the core it runs is the
+release that side's lockfile pins. The core finds that side's checkout as the component ``html``
+of a machine folder of the side's own (OBS_LOCAL_FOLDER), as test/conftest.py installs it, so no
+build reads the machine's installed components. The pages go to a temporary folder, or to
+``FOLDER/base`` and ``FOLDER/head``.
 
-The set (``reference_set``) is what a side holds of: the decks and the fixture Documents that
-test/measure/artifact_bytes.py measures (DECKS, DOCUMENTS), read relative to the side's root; obs's
-spec (OBS_SPEC), built from a copy of its vault with ``--execute-commands``, which fetches its
-remote images; and the adapter's specification (ADAPTER_SPEC), ``obs-html --build-own-spec``.
+The set (``reference_set``) holds, in this order:
+
+- the decks: ``phone-deck`` from the side (DECKS) and ``bless-deck`` from the core (CORE_DECKS),
+  each built through the core as a deck is built (``obs-document --source <manifest> --adapter html``);
+- the fixture Documents, every ``*.json`` in the side's DOCUMENTS, each built with ``obs-html DOCUMENT``;
+- obs's spec (OBS_SPEC) from the core, built from a copy of its vault with ``--execute-commands``,
+  which fetches its remote images;
+- the adapter's specification (ADAPTER_SPEC) from the side, ``obs-html --build-own-spec``.
+
+The core is obs's checkout at the tag pyproject.toml pins, beside this repository as ``../obs`` or
+where ``OBS_CORE_ROOT`` names it (CORE_ROOT, as test/conftest.py reads it; README, Core). Its pages
+come from one checkout, so they are the same input on both sides, and only the side's code makes
+them differ.
 
 For each page, in the set's order, it prints ``same NAME``, or ``differs NAME`` with the report of
 test/compare_builds.py's ``compare`` under it, indented by two spaces, or ``added NAME`` or
@@ -38,30 +51,37 @@ from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 
 from compare_builds import IDENTICAL, compare
-from measure import artifact_bytes
 
 ADAPTER = Path(__file__).resolve().parents[1]
+# The core's checkout, as test/conftest.py reads it (README, Core).
+CORE_ROOT = Path(os.environ.get("OBS_CORE_ROOT") or ADAPTER.parent / "obs").resolve()
 # What every build of both sides is given, so that two builds of one source are equal.
 EPOCH = "1700000000"
 # The start of each worktree's folder name.
 PREFIX = "obs-unchanged-output-"
 SIDES = ("base", "head")
-# artifact_bytes.py's set, relative to a checkout's root.
-DOCUMENTS = PurePosixPath(artifact_bytes.DOCUMENTS.relative_to(artifact_bytes.ROOT).as_posix())
-DECKS = {name: PurePosixPath(folder.relative_to(artifact_bytes.ROOT).as_posix()) / "manifest.md"
-         for name, folder in artifact_bytes.DECKS.items()}
+# What a side holds, relative to its root: the fixture Documents and its deck.
+DOCUMENTS = PurePosixPath("test/fixtures/documents")
+DECKS = {"phone-deck": PurePosixPath("test/fixtures/phone-deck/manifest.md")}
+# What the core holds, relative to CORE_ROOT: its deck.
+CORE_DECKS = {"bless-deck": PurePosixPath("spec/examples/bless-deck/manifest.md")}
+# obs's spec, from the core, and the adapter's specification, from the side.
 OBS_SPEC, OBS_SPEC_SOURCE = "obs-spec", PurePosixPath("spec/manifest.md")
-ADAPTER_SPEC, ADAPTER_SPEC_SOURCE = "adapter-spec", PurePosixPath("adapters/html/spec/manifest.md")
+ADAPTER_SPEC, ADAPTER_SPEC_SOURCE = "adapter-spec", PurePosixPath("spec/manifest.md")
 # The set's order: decks, then fixture Documents, then the two specifications.
 KINDS = ("deck", "document", "spec", "adapter-spec")
+# Where a page's source is: the side's root or CORE_ROOT.
+SIDE, CORE = "side", "core"
 
 
 @dataclass(frozen=True)
 class Page:
-    """One page of the set: its name, its kind (KINDS) and its source relative to a side's root."""
+    """One page of the set: its name, its kind (KINDS), its source relative to its origin's root and
+    its origin, SIDE or CORE."""
     name: str
     kind: str
     source: PurePosixPath
+    origin: str = SIDE
 
 
 class BuildError(Exception):
@@ -76,21 +96,27 @@ def _order(page: Page) -> tuple[int, str]:
     return KINDS.index(page.kind), page.name
 
 
-def reference_set(files: Iterable[PurePosixPath]) -> list[Page]:
-    """The pages a side's ``files`` (paths relative to its root) give, in the set's order."""
-    files = set(files)
+def reference_set(files: Iterable[PurePosixPath], core: Iterable[PurePosixPath] = ()) -> list[Page]:
+    """The pages a side's ``files`` and the core's ``core`` (paths relative to each root) give, in
+    the set's order."""
+    files, core = set(files), set(core)
     pages = [Page(name, "deck", source) for name, source in DECKS.items() if source in files]
+    pages += [Page(name, "deck", source, CORE) for name, source in CORE_DECKS.items() if source in core]
     pages += [Page(file.stem, "document", file) for file in files if file.parent == DOCUMENTS and file.suffix == ".json"]
-    pages += [Page(OBS_SPEC, "spec", OBS_SPEC_SOURCE)] if OBS_SPEC_SOURCE in files else []
+    pages += [Page(OBS_SPEC, "spec", OBS_SPEC_SOURCE, CORE)] if OBS_SPEC_SOURCE in core else []
     pages += [Page(ADAPTER_SPEC, "adapter-spec", ADAPTER_SPEC_SOURCE)] if ADAPTER_SPEC_SOURCE in files else []
     return sorted(pages, key=_order)
 
 
 def side_files(root: Path) -> list[PurePosixPath]:
-    """The files of ``root`` that ``reference_set`` reads."""
-    candidates = [*DECKS.values(), OBS_SPEC_SOURCE, ADAPTER_SPEC_SOURCE]
-    found = [source for source in candidates if (root / source).is_file()]
+    """The files of a side's ``root`` that ``reference_set`` reads."""
+    found = [source for source in [*DECKS.values(), ADAPTER_SPEC_SOURCE] if (root / source).is_file()]
     return found + [DOCUMENTS / path.name for path in (root / DOCUMENTS).glob("*.json")]
+
+
+def core_files(core: Path) -> list[PurePosixPath]:
+    """The files of the core's checkout ``core`` that ``reference_set`` reads."""
+    return [source for source in [*CORE_DECKS.values(), OBS_SPEC_SOURCE] if (core / source).is_file()]
 
 
 def paired(base: list[Page], head: list[Page]) -> list[tuple[str, Page | None, Page | None]]:
@@ -139,12 +165,13 @@ def _run(command: list[str], cwd: Path, root: Path, page: Page, side: str) -> No
 
 
 def build(page: Page, root: Path, folder: Path, side: str) -> Path:
-    """``page`` built from the side whose root is ``root``, with that side's own environment, into
-    ``folder``; the HTML file. A ``BuildError`` names the page and the side."""
+    """``page`` built by the side whose root is ``root``, with that side's own environment, into
+    ``folder``; the HTML file. Its source is in that root or, for a page of the core, in CORE_ROOT.
+    A ``BuildError`` names the page and the side."""
     folder.mkdir(parents=True, exist_ok=True)
     html = (folder / f"{page.name}.html").resolve()
     uv = ["uv", "run", "--locked"]
-    source = root / page.source
+    source = (CORE_ROOT if page.origin == CORE else root) / page.source
     if page.kind == "document":
         _run([*uv, "obs-html", str(source), str(html)], root, root, page, side)
     elif page.kind == "deck":
@@ -169,9 +196,11 @@ Builder = Callable[[Page, Path, Path, str], Path]
 
 
 def check(roots: dict[str, Path], folder: Path, builder: Builder = build) -> tuple[list[str], int]:
-    """Each side's set, discovered in its root (``roots``, by side), built into ``folder/<side>`` with
-    ``builder`` and compared: the report's lines and the exit code, 2 where a build fails."""
-    sets = {side: reference_set(side_files(roots[side])) for side in SIDES}
+    """Each side's set, discovered in its root (``roots``, by side) and in CORE_ROOT, built into
+    ``folder/<side>`` with ``builder`` and compared: the report's lines and the exit code, 2 where a
+    build fails."""
+    core = core_files(CORE_ROOT)
+    sets = {side: reference_set(side_files(roots[side]), core) for side in SIDES}
     try:
         html = {side: {page.name: builder(page, roots[side], folder / side, side).read_text(encoding="utf-8")
                        for page in sets[side]} for side in SIDES}
