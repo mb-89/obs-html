@@ -301,6 +301,7 @@ def test_a_review_time_in_the_comment_island_is_exempt_and_every_other_timestamp
 
 
 JSON = json.dumps(REVIEWED, separators=(",", ":"))
+NESTED_TWICE = JSON.replace('"author":"Alice"', '"author":"Alice","author":"Alice"', 1)
 
 
 @pytest.mark.parametrize("html", [
@@ -312,8 +313,10 @@ JSON = json.dumps(REVIEWED, separators=(",", ":"))
     f"<p>\n{ISLAND_TAG}{JSON[:-1]},\"version\":1}}</script>",
     f"<p>\n{ISLAND_TAG}{json.dumps({**REVIEWED, 'version': 2})}</script>",
     f"<p>\n{ISLAND_TAG}{JSON[:-1]}</script>",
+    f"<p>\n{ISLAND_TAG}{NESTED_TWICE}</script>",
 ], ids=["a second element", "an unquoted second id", "another start tag", "JSON over lines",
-        "the end tag on another line", "a key twice", "JSON the schema refuses", "not JSON"])
+        "the end tag on another line", "a key twice", "JSON the schema refuses", "not JSON",
+        "a key twice in a comment"])
 def test_an_island_of_any_other_shape_than_the_builds_is_its_html_line(html: str) -> None:
     assert provenance.comment_island(html) is None
     assert not any(finding.exemption == "review-time" for finding in findings(html))

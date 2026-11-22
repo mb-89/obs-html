@@ -324,9 +324,11 @@ each named on the finding it covers, which then neither warns nor refuses:
   island by its field paths, as it reads the data island (`script#obs-comments.comments[0].created`),
   only where it has the shape the build writes: one
   `<script id="obs-comments" type="application/json" data-comment-island>` element, on one line,
-  whose JSON the core's schema of a resolved model (`$defs/resolved`) accepts. Every other string
-  of the island, such as a comment's body or quote, warns as any text does, and an island of any
-  other shape is read as its HTML line.
+  whose JSON the core's schema of a resolved model (`$defs/resolved`) accepts. A key that appears
+  twice in any object of that JSON breaks the shape too: `json.loads` keeps only the last value,
+  and the first, still in the page, would go unread (`provenance.py`, `comment_island`). Every
+  other string of the island, such as a comment's body or quote, warns as any text does, and an
+  island of any other shape is read as its HTML line.
 
 A source file link ([[cli#Source file links]]) raises no finding: it is relative and climbs with
 `..` alone to the vault folder, which the path detectors do not match, and obs-html gives no link
