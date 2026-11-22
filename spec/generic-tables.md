@@ -42,6 +42,9 @@ consume the same applied global Filter; a table's local query remains independen
 - The standalone HTML embeds canonical source records and table definitions, including their queries;
   it does not embed precomputed table result sets. Opening a table resolves its source collection,
   compiles its base query, and computes the current tree in the browser.
+- A row of the core's `block` records (obs input-model#Block records) has its block's effective
+  values as its own fields, then `block.node`, `block.chapter`, `block.kind` and `block.path`, so
+  a register view with `obs.records: block` shows the blocks the core selected by those columns.
 - One browser table runtime owns filtering, grouping, sorting, hierarchy, column order, and table
   interaction. Embedded Bases adapters supply declarative table definitions to that runtime.
   Definitions come from `base` fences and embedded `.base` files in ordinary notes.

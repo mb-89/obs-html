@@ -22,7 +22,7 @@ DOCUMENTS = sorted((ROOT / "test" / "fixtures" / "documents").glob("*.json"))
 # block ids, less the data tables' hidden status paragraphs, which are no content.
 REVIEW_ITEMS = {"artifact-change": 10, "bottom-lines": 12, "callouts": 4, "cards": 10, "columns": 20, "complete": 25, "decision-verdict": 3, "document": 23,
                 "equations": 5, "features": 61, "figure-references": 15, "figures": 9, "projections": 8,
-                "property-editor-projection": 0, "pugh": 2, "registers": 10, "self-link": 33, "source-archive": 2,
+                "property-editor-projection": 0, "pugh": 2, "registers": 12, "self-link": 33, "source-archive": 2,
                 "structural": 5, "table-help": 2}
 HOME = "home"
 PARAGRAPH = {"chapter": "intro", "node": "paragraph-957766ff"}

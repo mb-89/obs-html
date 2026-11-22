@@ -10,7 +10,7 @@ public_check = true
 # (.github/workflows/release-tag.yml; se's docs/components.md), never tagged by hand.
 release = "workflow"
 # pyproject.toml holds the same version (README "Release").
-version = "0.1.1"
+version = "0.1.2"
 
 # How a landing reaches main: se's README "Landing on main" owns the setting.
 [integrate]
