@@ -241,6 +241,10 @@ globalThis.obsPugh = (() => {
       mark.dataset.pughTag = name;
       return [" ", mark];
     };
+    // The shown expanders are the record of what the reader opened: a details element's toggle event
+    // is a task queued after the click, so a redraw (a weight's change) can run before it.
+    if (!print) figure.querySelectorAll(".pugh-option-list [data-pugh-option] > details")
+      .forEach(shown => { view.open[shown.parentElement.dataset.pughOption] = shown.open; });
     const rows = figureModel.options.map(option => {
       const said = (part, label) => (option[part].length
         ? element("p", {className: `pugh-option-${part}`}, element("strong", {textContent: `${label}: `}), option[part].join("; ")) : null);
