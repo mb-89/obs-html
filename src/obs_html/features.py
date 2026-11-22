@@ -280,6 +280,15 @@ def _shown_copies(model: dict, _trusted_runtime: bool) -> bool:
     return any(SHOWN_COPY in note["html"] for note in model["notes"])
 
 
+BOTTOM_LINE_BOX = 'data-callout="bluf"'
+"""The attribute of a bottom-line box (render.py, _callout and _note_body)."""
+
+
+def _bottom_lines(model: dict, _trusted_runtime: bool) -> bool:
+    """A page shows a bottom-line box (artifact-ui.md, Bottom lines)."""
+    return any(BOTTOM_LINE_BOX in note["html"] for note in model["notes"])
+
+
 def _cards(model: dict, trusted_runtime: bool) -> bool:
     """Record cards, or a quantity note that counts by a query (cards.js)."""
     return _marked("data-record-cards")(model, trusted_runtime) or any(
@@ -371,6 +380,11 @@ FEATURES: tuple[Feature, ...] = (
                 Part("shown-copy", "a block or section embed shown in place: the copy's rules in the structural "
                      "styles, and its headings left out of the embedding chapter's collapsible sections and of "
                      "its comment sections (artifact-ui.md, Content sections)", _shown_copies, ()),)),
+    Feature("bottom-lines", "a bottom-line box on a page (artifact-ui.md, Bottom lines); it has nothing of its own, "
+            "only its part", _bottom_lines, host=False, parts=(
+                Part("bottom-line-list", "a bottom-line box on a page: a link's preview leaves out the list of the "
+                     "children's leads, so a parent's preview holds no child's lead (artifact-ui.md, Bottom lines)",
+                     _bottom_lines, ()),)),
     Feature("columns", "a two-column block (obs capabilities/columns): its side-by-side and stacking rules",
             _marked("data-content-columns"), host=False, base_styles=("columns.css",)),
     Feature("source-file", "a note with a Source file row (artifact.sourceFileLinks): the frontmatter table's "

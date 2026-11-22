@@ -316,6 +316,29 @@ def callouts(root: Path) -> None:
     (root / "target.md").write_text("# Target\n\nTarget text.\n", encoding="utf-8")
 
 
+BOTTOM_LINES = {
+    "manifest.md": "---\ntitle: Probe\n---\n\n- [[product|Product]]\n  - [[vision|Vision]]\n  - [[plan|Plan]]\n"
+                   "    - [[step|Step]]\n- [[other|Other]]\n\nAbstract prose.\n\n> [!bluf]\n> The probe in one sentence.\n",
+    "product.md": "# Product\n\nIntro prose.\n\n> [!bluf]\n> The product in one sentence; see "
+                  "[[vision#^statement|the vision statement]].\n>\n> ![[vision#^statement]]\n\nMore product prose.\n",
+    "vision.md": "# Vision\n\n> [!bluf] Why it matters\n> Vision lead, for every [[other#Owner|owner]].\n>\n"
+                 "> Vision second paragraph.\n\nThe vision statement, written once. ^statement\n",
+    "plan.md": "# Plan\n\n## Steps\n\n> [!bluf]\n> Plan lead.\n\nPlan body.\n",
+    "step.md": "# Step\n\n> [!bluf]\n> Step lead.\n",
+    "other.md": "# Other\n\n## Owner\n\nThe person who decides; see [[aside]] and [[product]].\n",
+    "aside.md": "# Aside\n\n> [!bluf]\n> Aside lead.\n",
+}
+
+
+def bottom_lines(root: Path) -> None:
+    """test_callouts_embeds_attachments.py's bottom-line vault (artifact-ui.md, Bottom
+    lines): Product holds Vision and Plan, Plan holds Step; Other has no bottom line and links to
+    Product, for the preview; Aside, which only Other links to, is no TOC chapter. Each bottom line
+    stands where its note writes it."""
+    for name, text in BOTTOM_LINES.items():
+        (root / name).write_text(text, encoding="utf-8")
+
+
 POINT_FLOW = {"version": 1, "data": {"where": [{"field": "kind", "equals": "point"}]}, "nodes": [
     {"id": "points", "label": "Points", "stage": 0, "records": {"where": [{"field": "owner", "equals": "lin"}]}},
     {"id": "open", "label": "Open", "stage": 1, "records": {"where": [{"field": "status", "equals": "open"}]},
@@ -755,7 +778,8 @@ def features(root: Path) -> None:
     opened as context, needs popups; the plot figure needs plotting, the Sankey figure sankey, the
     timeline figure timeline, the equation figure equations and the decision figure pugh; the prose chapter, with the decision figure, asks for a
     bless, which needs answers and bless; the overview's two-column block needs columns, and its block
-    embed of the aside's paragraph shown-copies. Its chapters also hold what those checks read in obs's spec: prose with
+    embed of the aside's paragraph shown-copies; the figures chapter and its child, equations, each
+    have a bottom line, for bottom-lines. Its chapters also hold what those checks read in obs's spec: prose with
     links, marks, an image, a callout and nested headings; a paged table of notes outside the contents,
     whose second view lists a kind no row has, for empty-groups, whose third folds its passing rows,
     for passing-rows, and whose fourth opens a row with only its rank, for detail-fields; a second table,
@@ -776,7 +800,7 @@ def features(root: Path) -> None:
     (root / "aside.md").write_text("# Aside\n\nA note a link opens as context. ^aside-note\n", encoding="utf-8")
     (root / "drawing.svg").write_text(GALLERY_SVG, encoding="utf-8")
     (root / "figures.md").write_text(
-        "# Figures\n\n## Image\n\n```figure\nversion: 1\nkind: image\ncaption: The image figure.\nsource: drawing.svg\n```\n"
+        "# Figures\n\n> [!bluf]\n> Every figure kind once, each with its caption.\n\n## Image\n\n```figure\nversion: 1\nkind: image\ncaption: The image figure.\nsource: drawing.svg\n```\n"
         f"^image-figure\n\n## Plot\n\n```figure\nversion: 1\nkind: plot\ncaption: The plot figure.\ncontent: {json.dumps(RESPONSE)}\n```\n"
         f"^plot-figure\n\n## Flow\n\n```figure\nversion: 1\nkind: sankey\ncaption: The Sankey figure.\n"
         f"source: flow.json\n```\n^sankey-figure\n\n## Timeline\n\n```figure\nversion: 1\nkind: timeline\n"
@@ -785,7 +809,7 @@ def features(root: Path) -> None:
     _timeline_events(root)
     (root / "flow.json").write_text(json.dumps(FLOW["data"]["sankey"]), encoding="utf-8")
     (root / "equations.md").write_text(
-        "# Equations\n\nThe plot figure is [[figures#^plot-figure]].\n\n## Parabola\n\n"
+        "# Equations\n\n> [!bluf]\n> An equations figure, its terms explained.\n\nThe plot figure is [[figures#^plot-figure]].\n\n## Parabola\n\n"
         f"```figure\nversion: 1\nkind: equations\ncaption: The equations figure.\ncontent:\n{_indent(PARABOLA)}```\n"
         f"^equations-figure\n\n{FEATURE_PROSE}\n", encoding="utf-8")
     (root / "tables.md").write_text(
@@ -874,7 +898,7 @@ VAULTS = {"figures": figures, "equations": equations, "pugh": pugh, "decision-ve
           "registers": registers, "cards": cards,
           "property-editor-projection": property_editor_projection, "self-link": self_link,
           "figure-references": figure_references, "source-archive": source_archive,
-          "features": features, "columns": columns}
+          "features": features, "columns": columns, "bottom-lines": bottom_lines}
 RUNS_COMMANDS = {"document"}
 """The vaults whose cmd fences the build runs (obs-document --execute-commands): ``echo`` only."""
 EMBEDS_SOURCE = {"source-archive", "features"}

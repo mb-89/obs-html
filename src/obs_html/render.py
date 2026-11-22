@@ -111,9 +111,14 @@ class Context:
     """The chapter and block id of each block link's target (_block_targets)."""
     contents: dict[str, tuple[list[dict[str, object]], list[object]]] = field(default_factory=dict)
     """Each chapter's content and its path in the Document, by chapter id, the home page's as home."""
+    percolated: dict[str, list[dict[str, object]]] = field(default_factory=dict)
+    """Each page's direct children whose note holds a bottom line, by page id (percolated)."""
     inline: bool = False
     """Whether the node being rendered sits in a field value or a table cell, where an embed of a
     block or section renders its link alone (artifact-ui, Content sections)."""
+    leads: str = ""
+    """The list of the page's children's leads, which the page's bottom line being rendered holds
+    (artifact-ui.md, Bottom lines)."""
     showing: list[tuple[str, str]] = field(default_factory=list)
     """The chapter and block of each embed whose copy is being rendered, outermost first."""
     conjunctions: tuple[str, ...] = ()
@@ -505,8 +510,10 @@ CALLOUT_TONES = {
     "note": "accent", "abstract": "accent", "info": "accent", "todo": "accent", "tip": "accent",
     "success": "success", "question": "warning", "warning": "warning", "failure": "failure",
     "danger": "failure", "bug": "failure", "example": "accent", "quote": "neutral",
-    "important": "accent",
+    "important": "accent", "bluf": "accent",
 }
+BOTTOM_LINE = "Bottom line"
+"""A bottom line's accessible label, and the title of a box that holds its children's leads alone."""
 
 
 def _callout(node: dict[str, object], context: Context) -> str:
@@ -519,12 +526,15 @@ def _callout(node: dict[str, object], context: Context) -> str:
     name = kind.capitalize()
     if kind == "important":
         opening = f'<aside class="content-card content-emphasis" aria-label="{name}">\n'
+    elif kind == "bluf":  # A bottom line is the emphasis box (artifact-ui.md, Bottom lines).
+        opening = f'<aside class="content-card content-emphasis" data-callout="bluf" aria-label="{BOTTOM_LINE}">\n'
     else:
         opening = (f'<aside class="content-card content-callout content-callout--{CALLOUT_TONES[kind]}" '
                    f'data-callout="{kind}" aria-label="{name}">\n')
     header = f'<header class="content-card-title">{_attr_nodes(title, context, "attrs", "title")}</header>\n' \
         if title else ""
-    return f"{opening}{header}{_nodes(node['children'], context)}</aside>\n"
+    leads, context.leads = context.leads, ""  # Only the page's own bottom line lists its children's.
+    return f"{opening}{header}{_nodes(node['children'], context)}{leads}</aside>\n"
 
 
 COLUMN_WEIGHTS = range(1, 9)
@@ -1148,7 +1158,10 @@ def _model(document: dict[str, object], config: Config, context: Context, built:
     context.bordered_tags = tuple(settings["borderedTags"])
     title = manifest["title"]
     metadata = _filled({key: value for key, value in manifest["metadata"].items() if key not in {"obs", "obsHtml"}})
-    abstract = _note_body(manifest.get("abstract", []), "", ["manifest", "abstract"], context)  # It holds the metadata's field nodes.
+    _check_bottom_lines(document)
+    context.percolated = percolated(document)
+    abstract = _note_body(manifest.get("abstract", []), "", ["manifest", "abstract"], context,  # It holds the metadata's field nodes.
+                          manifest.get("bottomLine"), context.percolated[HOME], after_heading=False)
     metadata_html = _frontmatter_html(metadata, HOME, context)  # The display HTML of each value that shows.
     home_html = _cover(title, metadata, metadata_html, profile["heading"] == "compact") + abstract
     notes = [_note(0, title, HOME, HOME, {}, home_html, context)]
@@ -1213,13 +1226,11 @@ def _chapter_notes(chapters: list[dict[str, object]], context: Context, depth: i
     for index, chapter in enumerate(chapters):
         context.frontmatter = dict(chapter.get("metadata") or {})
         context.answered_figures = ((chapter.get("bless") or {}).get("answer") or {}).get("figures", {})
-        body = _note_body(chapter["content"], chapter["id"], [*where, index, "content"], context)
+        record = record_html(chapter)  # The answer, read-only, under the chapter's heading (bless_record.py).
+        body = _note_body(chapter["content"], chapter["id"], [*where, index, "content"], context,
+                          chapter.get("bottomLine"), context.percolated.get(chapter["id"], []),
+                          record + "\n" if record else "")
         context.answered_figures = {}
-        record = record_html(chapter)
-        if record:  # The answer, read-only, under the chapter's heading (bless_record.py).
-            heading = re.match(r"\s*<h1\b.*?</h1>\n?", body, re.S)
-            cut = heading.end() if heading else 0
-            body = body[:cut] + record + "\n" + body[cut:]
         notes.append(_note(depth, chapter["title"], chapter["id"], "", context.frontmatter, body, context))
         if "bless" in chapter:  # Its bless request, answered or not (obs input-model, Bless requests; bless.js).
             notes[-1]["bless"] = chapter["bless"]
@@ -1227,18 +1238,100 @@ def _chapter_notes(chapters: list[dict[str, object]], context: Context, depth: i
     return notes
 
 
-def _note_body(nodes: list[dict[str, object]], chapter: str, where: list[object], context: Context) -> str:
-    """A note's nodes, which sit at ``where`` in the Document."""
+def _note_body(nodes: list[dict[str, object]], chapter: str, where: list[object], context: Context,
+               bottom_line: dict[str, str] | None = None, children: list[dict[str, object]] = (),
+               under: str = "", after_heading: bool = True) -> str:
+    """A note's nodes, which sit at ``where`` in the Document. Its bottom line, with the leads of
+    ``children`` (artifact-ui.md, Bottom lines), and then ``under`` go under its title: after the
+    leading first-level heading where ``after_heading`` and the note begins with one, else first."""
     context.chapter, context.tables, context.marks, context.editable = chapter, [], [], {}
     context.figure_position = 0
     context.where = where[:-1]
-    html = []
+    leads = _leads(children, context)
+    context.chapter, context.marks = chapter, []
+    html, box = [], ""
     for index, node in enumerate(nodes):
         with _at(context, where[-1], index):
-            html.append(_node(node, context))
+            if bottom_line is not None and node.get("id") == bottom_line["callout"]:
+                context.leads = leads  # It renders once, under the title, not where it is written.
+                box = _node(node, context)
+                html.append("")
+            else:
+                html.append(_node(node, context))
+    if bottom_line is None and leads:
+        box = (f'<aside class="content-card content-emphasis" data-callout="bluf" aria-label="{BOTTOM_LINE}">\n'
+               f'<header class="content-card-title">{BOTTOM_LINE}</header>\n{leads}</aside>\n')
     _decision_tabs(nodes, html, context)
     context.chapter, context.where = "", []
-    return "".join(html)
+    body = "".join(html)
+    heading = re.match(r"\s*<h1\b.*?</h1>\n?", body, re.S) if after_heading else None
+    cut = heading.end() if heading else 0
+    return body[:cut] + box + under + body[cut:]
+
+
+def percolated(document: dict[str, object]) -> dict[str, list[dict[str, object]]]:
+    """Each page's direct children whose note holds a bottom line, by page id, in manifest order:
+    a chapter's children, and for Home the chapters the contents list at the top level, never an
+    included note the manifest does not list (artifact-ui.md, Bottom lines). One level only."""
+    found = {HOME: [chapter for chapter in document["chapters"]
+                    if chapter.get("toc", True) and "bottomLine" in chapter]}
+
+    def walk(chapters: list[dict[str, object]]) -> None:
+        for chapter in chapters:
+            found[chapter["id"]] = [child for child in chapter["children"] if "bottomLine" in child]
+            walk(chapter["children"])
+    walk(document["chapters"])
+    return found
+
+
+PARAGRAPH_START = re.compile(r"^<p\b[^>]*>")
+"""A shown lead's opening tag, after which its link to its child goes."""
+
+
+def _leads(children: list[dict[str, object]], context: Context) -> str:
+    """The list of ``children``'s leads, each shown as an embedded block shows (_shown_copy) and
+    begun by a link to its child; empty without children (artifact-ui.md, Bottom lines)."""
+    items = []
+    for child in children:
+        chapter, lead = child["id"], child["bottomLine"]["lead"]
+        shown = _shown_copy({"attrs": {"chapter": chapter, "block": lead}}, context)
+        link = f'<a class="internal-link" href="#{escape(chapter, quote=True)}">{escape(child["title"])}</a>: '
+        paragraph = PARAGRAPH_START.sub(lambda start: start[0] + link, shown, count=1)
+        items.append(f'<li data-embed-chapter="{escape(chapter, quote=True)}" '
+                     f'data-embed-block="{escape(lead, quote=True)}">{paragraph}</li>\n')
+    return f'<ul class="bottom-line-list">\n{"".join(items)}</ul>\n' if items else ""
+
+
+def bottom_line_problem(content: list[dict[str, object]], bottom_line: dict[str, str]) -> tuple[str, str] | None:
+    """The field and problem of a ``bottomLine`` that names no bottom line of ``content`` (a chapter's,
+    or the abstract): its ``callout`` no bluf callout there, or its ``lead`` not that callout's first
+    block; None where it names one (artifact-ui.md, Bottom lines)."""
+    callout = next((node for node in content if node.get("id") == bottom_line["callout"]), None)
+    if callout is None or callout["type"] != "callouts" or callout["attrs"].get("kind") != "bluf":
+        return "callout", f"names {bottom_line['callout']!r}, which is no bluf callout"
+    children = callout["children"]
+    if not children or children[0].get("id") != bottom_line["lead"]:
+        return "lead", f"names {bottom_line['lead']!r}, which is not the first block of its bluf callout"
+    return None
+
+
+def _check_bottom_lines(document: dict[str, object]) -> None:
+    """Refuse a Document whose ``bottomLine`` names no bottom line of its chapter or of the abstract,
+    as a stale one (artifact-ui.md, Bottom lines)."""
+    pages = [(document["manifest"], ["manifest"], "the abstract", "abstract")]
+
+    def walk(chapters: list[dict[str, object]], where: list[object]) -> None:
+        for index, chapter in enumerate(chapters):
+            pages.append((chapter, [*where, index], f"chapter {chapter['id']!r}", "content"))
+            walk(chapter["children"], [*where, index, "children"])
+    walk(document["chapters"], ["chapters"])
+    for page, where, name, key in pages:
+        if "bottomLine" not in page:
+            continue
+        found = bottom_line_problem(page.get(key, []), page["bottomLine"])
+        if found is not None:
+            raise InputError(_source(document), field_path([*where, "bottomLine", found[0]]),
+                             f"{found[1]} of {name}", _rebuild(document))
 
 
 DECISION_SECTIONS = ("Potential solutions", "Proposed winner", "Details")

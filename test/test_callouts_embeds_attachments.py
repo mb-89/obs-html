@@ -320,3 +320,218 @@ def test_a_shown_figure_keeps_the_number_it_has_where_it_lives() -> None:
     assert '<span class="figure-number">Figure 2.4:</span> Figure d.' in copy
     assert '<span class="figure-number">Figure 2.4:</span> Figure d.' in notes["two"]
     assert not re.search(r'\s(?:id|data-node-id)="', copy)
+
+
+BOTTOM_LINES = ROOT / "test" / "fixtures" / "documents" / "bottom-lines.json"
+"""The bottom-line vault of fixtures/build_documents.py, built by the core (artifact-ui.md, Bottom lines)."""
+
+
+def _bottom_lines(change=None) -> dict[str, str]:
+    """Each note's html, of the bottom-line vault's Document as ``change`` leaves it."""
+    document = json.loads(BOTTOM_LINES.read_text(encoding="utf-8"))
+    if change is not None:
+        change(document, _chapters_of(document))
+    return {note["slug"]: note["html"] for note in decode_artifact_data(render(document, CONFIG))["notes"]}
+
+
+def _chapters_of(document: dict) -> dict[str, dict]:
+    found = {}
+    stack = list(document["chapters"])
+    while stack:
+        current = stack.pop()
+        found[current["id"]] = current
+        stack.extend(current["children"])
+    return found
+
+
+BOX = '<aside class="content-card content-emphasis" data-callout="bluf" aria-label="Bottom line"'
+
+
+def _box(html: str) -> str:
+    """The page's one bottom-line box."""
+    [box] = re.findall(rf'{BOX}.*?\n</aside>\n', html, re.S) if html.count(BOX) == 1 else [None]
+    assert box is not None, html
+    return box
+
+
+def _items(box: str) -> list[str]:
+    return re.findall(r"<li .*?</li>", box, re.S)
+
+
+def test_a_bottom_line_renders_under_the_chapter_title_wherever_authored() -> None:
+    notes = _bottom_lines()
+
+    product, plan = notes["product"], notes["plan"]
+    assert re.match(r'<h1 id="product--product"[^>]*>Product</h1>\n' + re.escape(BOX) + ' data-node-id="callouts-',
+                    product)
+    assert product.index("Intro prose.") > product.index(_box(product))
+    assert product.count('data-callout="bluf"') == 1  # Nothing at the authored place.
+    assert re.match(r"<h1[^>]*>Plan</h1>\n" + re.escape(BOX), plan)
+    assert plan.index(_box(plan)) < plan.index(">Steps</h2>")
+    assert '<header class="content-card-title">Why it matters</header>' in _box(notes["vision"])
+
+
+def test_a_bottom_line_is_first_without_a_leading_heading_and_a_bless_record_follows_it() -> None:
+    def change(document, chapters):
+        chapters["step"]["content"] = [node for node in chapters["step"]["content"] if node["type"] != "section"]
+        chapters["plan"]["bless"] = {"version": "1" * 64, "answer": {
+            "chapter": "plan", "version": "1" * 64, "verdict": "decline", "comment": "Not yet."}}
+
+    notes = _bottom_lines(change)
+
+    assert notes["step"].startswith(BOX)
+    plan = notes["plan"]
+    assert plan.index(_box(plan)) < plan.index("data-bless-record") < plan.index(">Steps</h2>")
+
+
+def test_a_bottom_line_lists_its_children_s_leads_with_links() -> None:
+    box = _box(_bottom_lines()["product"])
+
+    vision, plan = _items(box)
+    assert re.fullmatch(r'<li data-embed-chapter="vision" data-embed-block="paragraph-[0-9a-f]+"><p><a class="internal-link" '
+                        r'href="#vision">Vision</a>: Vision lead, for every <a class="internal-link" '
+                        r'href="#other/owner">owner</a>\.</p>\n</li>', vision)
+    assert re.fullmatch(r'<li data-embed-chapter="plan" data-embed-block="paragraph-[0-9a-f]+"><p><a class="internal-link" '
+                        r'href="#plan">Plan</a>: Plan lead\.</p>\n</li>', plan)
+    assert box.index('<ul class="bottom-line-list">') > box.index("The product in one sentence")
+
+
+def test_only_the_lead_goes_up_and_only_one_level() -> None:
+    notes = _bottom_lines()
+
+    product = notes["product"]
+    assert "Vision second paragraph." not in product and "Step lead." not in product
+    assert not re.search(r'\s(?:id|data-node-id)="', "".join(_items(_box(product))))
+    assert [re.search(r'data-embed-chapter="([^"]+)"', item)[1] for item in _items(_box(notes["plan"]))] == ["step"]
+    assert '<ul class="bottom-line-list">' not in notes["step"] and '<ul class="bottom-line-list">' not in notes["vision"]
+    assert 'data-callout="bluf"' not in notes["other"]
+
+
+def test_home_lists_the_top_level_leads_after_its_own_bottom_line() -> None:
+    home = _bottom_lines()["home"]
+    box = _box(home)
+
+    assert home.index(box) < home.index("Abstract prose.")
+    assert box.index("The probe in one sentence.") < box.index('<ul class="bottom-line-list">')
+    assert [re.search(r'data-embed-chapter="([^"]+)"', item)[1] for item in _items(box)] == ["product"]
+    assert "Aside lead." not in home  # A note the manifest does not list is no top-level chapter.
+    assert ('<a class="internal-link" href="#product">Product</a>: The product in one sentence; see '
+            '<a class="internal-link" href="#vision/block-statement">the vision statement</a>.') in box
+
+
+def test_a_page_without_its_own_bottom_line_shows_its_children_s_leads() -> None:
+    def change(document, chapters):
+        product = chapters["product"]
+        del product["bottomLine"]
+        product["content"] = [node for node in product["content"] if node["type"] != "callouts"]
+        del document["manifest"]["bottomLine"]
+        document["manifest"]["abstract"] = [node for node in document["manifest"]["abstract"]
+                                            if node["type"] != "callouts"]
+
+    notes = _bottom_lines(change)
+
+    for page, children in (("product", ["vision", "plan"]), ("home", [])):
+        if not children:
+            assert BOX not in notes[page]  # Its children have no lead: no box, no list.
+            continue
+        box = _box(notes[page])
+        assert box.startswith(BOX + '>\n<header class="content-card-title">Bottom line</header>\n<ul class="bottom-line-list">')
+        assert "data-node-id" not in box
+        assert [re.search(r'data-embed-chapter="([^"]+)"', item)[1] for item in _items(box)] == children
+
+
+def test_a_link_in_a_lead_that_went_up_goes_where_it_goes_in_its_chapter() -> None:
+    notes = _bottom_lines()
+
+    [vision] = [item for item in _items(_box(notes["product"])) if 'data-embed-chapter="vision"' in item]
+    assert re.findall(r'href="([^"]+)"', vision) == ["#vision", "#other/owner"]
+    assert re.findall(r'href="([^"]+)"', _items(_box(notes["home"]))[0]) == ["#product", "#vision/block-statement"]
+
+
+@pytest.mark.parametrize(("change", "field"), [
+    (lambda chapters: chapters["product"]["bottomLine"].update(callout="paragraph-missing"), "callout"),
+    (lambda chapters: chapters["product"]["bottomLine"].update(
+        callout=next(node["id"] for node in chapters["product"]["content"] if node["type"] == "paragraph")), "callout"),
+    (lambda chapters: chapters["vision"]["bottomLine"].update(lead="paragraph-missing"), "lead"),
+], ids=["missing", "no-callout", "lead"])
+def test_a_stale_bottom_line_is_refused(change, field: str) -> None:
+    with pytest.raises(InputError) as failure:
+        _bottom_lines(lambda document, chapters: change(chapters))
+
+    assert failure.value.source == "Document of manifest.md"
+    assert re.fullmatch(rf"chapters\[\d+\](?:\.children\[\d+\])*\.bottomLine\.{field}", failure.value.field)
+    assert "obs-document" in failure.value.remedy
+
+
+BOTTOM_LINE_PLACES = """async ({slug, paged}) => {
+    obsPages.setPaged(paged);
+    await obsArtifact.activateChapter(slug);
+    await obsArtifact.whenChapterReady();
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    // The emphasis box bleeds into the margin as every card does (artifact-ui.md, Takeaways and orientation):
+    // its text stays in the text column, and the box on the screen.
+    const place = (root) => [...root.querySelectorAll('aside[data-callout="bluf"]')].map((box) => {
+        const column = box.parentElement.getBoundingClientRect(), outer = box.getBoundingClientRect();
+        const style = getComputedStyle(box);
+        const inner = outer.width - ["Left", "Right"].reduce((sum, side) => sum + parseFloat(style[`padding${side}`])
+            + parseFloat(style[`border${side}Width`]), 0);
+        return {before: box.previousElementSibling?.textContent.trim() ?? null,
+                inColumn: inner <= column.width + 0.5 && outer.left >= 0 && outer.right <= innerWidth,
+                shown: box.checkVisibility()};
+    });
+    return {body: place(document.querySelector("[data-chapter-body]")),
+            sideways: [document.documentElement, document.querySelector(".chapter-scroll")]
+                .map((element) => element.scrollWidth - element.clientWidth)};
+}"""
+
+
+def _bottom_line_page(tmp_path, browser, width: int):
+    artifact = tmp_path / "bottom-lines.html"
+    artifact.write_text(artifact_html(json.loads(BOTTOM_LINES.read_text(encoding="utf-8"))), encoding="utf-8")
+    page = browser.new_page(viewport={"width": width, "height": 844 if width < 600 else 900})
+    errors: list[str] = []
+    page.on("pageerror", lambda error: errors.append(str(error)))
+    page.goto(artifact.as_uri())
+    page.wait_for_function("document.documentElement.dataset.artifactStatus === 'ready'")
+    return page, errors
+
+
+@pytest.mark.browser
+def test_a_bottom_line_leads_its_page_in_every_layout(tmp_path, reader_browser) -> None:
+    """Scrolling at 1200 and 390 px and paged, the box stands right under the chapter's title, and on
+    the paged Home under the Abstract page's; the print book shows each box under its chapter's title
+    (artifact-ui.md, Bottom lines)."""
+    page, errors = _bottom_line_page(tmp_path, reader_browser, 1200)
+    scrolling = {slug: page.evaluate(BOTTOM_LINE_PLACES, {"slug": slug, "paged": False}) for slug in ("product", "plan")}
+    paged = {slug: page.evaluate(BOTTOM_LINE_PLACES, {"slug": slug, "paged": True}) for slug in ("home", "product")}
+    page.evaluate("window.print = () => {}")
+    page.evaluate("globalThis.obsPages.exportPDF()")
+    page.wait_for_function("document.querySelectorAll('.print-book aside[data-callout=\"bluf\"]').length === 5")
+    printed = page.evaluate("""() => [...document.querySelectorAll('.print-book aside[data-callout="bluf"]')]
+        .map((box) => box.previousElementSibling.textContent.trim())""")
+    phone, phone_errors = _bottom_line_page(tmp_path, reader_browser, 390)
+    narrow = phone.evaluate(BOTTOM_LINE_PLACES, {"slug": "product", "paged": False})
+
+    for view, title in ((scrolling["product"], "Product"), (scrolling["plan"], "Plan"), (paged["product"], "Product"),
+                        (paged["home"], "Abstract"), (narrow, "Product")):
+        assert [(box["before"], box["shown"], box["inColumn"]) for box in view["body"]] == [(title, True, True)], view
+    assert narrow["sideways"] == [0, 0]
+    assert printed == ["Abstract", "Product", "Vision", "Plan", "Step"]
+    assert errors == [] and phone_errors == []
+
+
+@pytest.mark.browser
+def test_a_parent_s_preview_begins_with_its_bottom_line_and_holds_no_child_s_lead(tmp_path, reader_browser) -> None:
+    from playwright.sync_api import expect
+
+    page, errors = _bottom_line_page(tmp_path, reader_browser, 1200)
+    page.evaluate("obsPages.setPaged(false); obsArtifact.activateChapter('other')")
+    page.locator("[data-chapter-body] p a[href='#product']").hover()
+    card = page.locator("#hover-card")
+    expect(card.locator(".hover-card-title")).to_have_text("Product")
+    preview = card.locator("p").first.text_content()
+
+    assert preview.startswith("The product in one sentence; see the vision statement."), preview
+    assert "Vision lead" not in preview and "Plan lead" not in preview
+    assert "Intro prose." in preview
+    assert errors == []

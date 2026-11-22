@@ -252,6 +252,47 @@ failures have their form in [[input-model#Chapter content]].
   A soft fill, matching border and the title carry
   the tone, so the type remains identifiable without color. Callouts keep these colors in light,
   dark, paged and print views.
+
+### Bottom lines
+
+A note's `[!bluf]` callout is its bottom line (obs input-model, Bottom lines): what a reader reads
+first, and whose first paragraph, its lead, goes up one level.
+
+- **Under the title.** The bottom line renders once, directly under its page's title, wherever the
+  note writes it, and nothing renders at the authored place.
+
+  In a chapter it follows the leading first-level heading where the body begins with one, the
+  place of a bless record, and otherwise comes first; a bless record follows it. On Home it follows
+  the cover, before the rest of the abstract.
+- **The emphasis box.** It is drawn as the `[!important]` box: an `aside` of class
+  `content-card content-emphasis` with `data-callout="bluf"` and the accessible label "Bottom line",
+  its title in the card's heading, then its body. It keeps the callout's node id, so a comment on
+  it targets it in its own chapter.
+- **What goes up.** After its body, the box lists the page's direct children whose note holds a
+  bottom line, in manifest order: for a chapter its children, for Home the chapters the contents
+  list at the top level (an included note the manifest does not list is none).
+
+  Each item shows the child's lead as an embedded block shows (obs capabilities/embeds, Block and section embeds): the
+  paragraph as the child's chapter renders it, with no node id or anchor, each link in it going
+  where it goes in the child's chapter. The item begins with a link to the child holding its title,
+  then a colon.
+
+  Only the lead goes up: the rest of the child's bottom line, an embed in it and the child's own
+  list stay in the child, so nothing travels more than one level. A page without its own bottom
+  line whose children have leads shows the box titled "Bottom line" with the list alone; a page
+  whose children have none shows no list.
+- **A stale Document.** A `bottomLine` whose callout is not a `bluf` callout of its chapter, or of
+  the abstract, or whose lead is not that callout's first block, is refused as a stale Document,
+  naming the chapter and the field.
+- **Every layout.** The paged view, the print book and its PDF show the box where the scrolling
+  view does, under the chapter title; on the paged Home it opens the Abstract page, under that
+  page's title. On a phone the box is no wider than the text column.
+- **Previews.** A link's preview reads a note's paragraphs in order, so it begins with the page's
+  own bottom line. It leaves out the list of the children's leads, as it leaves out tables, so a
+  parent's preview never holds a child's lead ([[#Internal-link previews]]).
+- **Only where used.** What the box adds to the page's style and script ships only on a page that
+  has one ([[architecture#Rendering and runtime]]); a vault without a bottom line renders as before.
+
 ## Interactive engineering figures
 
 - A shared figure presentation owns images, screenshots, plots, and diagrams, not only

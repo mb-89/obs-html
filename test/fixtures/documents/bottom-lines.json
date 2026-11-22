@@ -1,0 +1,833 @@
+{
+  "schemaVersion": 1,
+  "manifest": {
+    "title": "Probe",
+    "path": "manifest.md",
+    "metadata": {
+      "title": "Probe"
+    },
+    "abstract": [
+      {
+        "type": "markdown-frontmatter",
+        "attrs": {
+          "metadata": {
+            "title": "Probe"
+          }
+        },
+        "children": [
+          {
+            "type": "field",
+            "attrs": {
+              "name": "title"
+            },
+            "children": [
+              {
+                "type": "text",
+                "attrs": {},
+                "children": [],
+                "text": "Probe"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "manifest",
+        "attrs": {},
+        "children": []
+      },
+      {
+        "type": "markdown",
+        "attrs": {},
+        "children": []
+      },
+      {
+        "type": "paragraph",
+        "attrs": {},
+        "children": [
+          {
+            "type": "text",
+            "attrs": {},
+            "children": [],
+            "text": "Abstract prose."
+          }
+        ],
+        "id": "paragraph-033bb4a8"
+      },
+      {
+        "type": "callouts",
+        "attrs": {
+          "kind": "bluf",
+          "title": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Bottom line"
+            }
+          ]
+        },
+        "children": [
+          {
+            "type": "paragraph",
+            "attrs": {},
+            "children": [
+              {
+                "type": "text",
+                "attrs": {},
+                "children": [],
+                "text": "The probe in one sentence."
+              }
+            ],
+            "id": "paragraph-c843412c"
+          }
+        ],
+        "id": "callouts-80e62558"
+      }
+    ],
+    "bottomLine": {
+      "callout": "callouts-80e62558",
+      "lead": "paragraph-c843412c"
+    }
+  },
+  "chapters": [
+    {
+      "id": "product",
+      "title": "Product",
+      "content": [
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "product"
+          },
+          "children": []
+        },
+        {
+          "type": "markdown",
+          "attrs": {},
+          "children": []
+        },
+        {
+          "type": "section",
+          "attrs": {
+            "level": 1
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Product"
+            }
+          ],
+          "id": "section-ed02529a"
+        },
+        {
+          "type": "paragraph",
+          "attrs": {},
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Intro prose."
+            }
+          ],
+          "id": "paragraph-834a34c6"
+        },
+        {
+          "type": "callouts",
+          "attrs": {
+            "kind": "bluf",
+            "title": [
+              {
+                "type": "text",
+                "attrs": {},
+                "children": [],
+                "text": "Bottom line"
+              }
+            ]
+          },
+          "children": [
+            {
+              "type": "paragraph",
+              "attrs": {},
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "The product in one sentence; see "
+                },
+                {
+                  "type": "wikilinks",
+                  "attrs": {
+                    "target": "vision",
+                    "chapter": "vision",
+                    "heading": "^statement",
+                    "label": "the vision statement",
+                    "block": "statement"
+                  },
+                  "children": []
+                },
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "."
+                }
+              ],
+              "id": "paragraph-a7520624"
+            },
+            {
+              "type": "embeds",
+              "attrs": {
+                "target": "vision",
+                "chapter": "vision",
+                "heading": "^statement",
+                "block": "statement"
+              },
+              "children": [],
+              "id": "embeds-c9d37475"
+            }
+          ],
+          "id": "callouts-79cfdd40"
+        },
+        {
+          "type": "paragraph",
+          "attrs": {},
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "More product prose."
+            }
+          ],
+          "id": "paragraph-f0c07204"
+        }
+      ],
+      "children": [
+        {
+          "id": "vision",
+          "title": "Vision",
+          "content": [
+            {
+              "type": "chapter-inclusion",
+              "attrs": {
+                "id": "vision"
+              },
+              "children": []
+            },
+            {
+              "type": "markdown",
+              "attrs": {},
+              "children": []
+            },
+            {
+              "type": "section",
+              "attrs": {
+                "level": 1
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "Vision"
+                }
+              ],
+              "id": "section-caeda403"
+            },
+            {
+              "type": "callouts",
+              "attrs": {
+                "kind": "bluf",
+                "title": [
+                  {
+                    "type": "text",
+                    "attrs": {},
+                    "children": [],
+                    "text": "Why it matters"
+                  }
+                ]
+              },
+              "children": [
+                {
+                  "type": "paragraph",
+                  "attrs": {},
+                  "children": [
+                    {
+                      "type": "text",
+                      "attrs": {},
+                      "children": [],
+                      "text": "Vision lead, for every "
+                    },
+                    {
+                      "type": "wikilinks",
+                      "attrs": {
+                        "target": "other",
+                        "chapter": "other",
+                        "heading": "Owner",
+                        "label": "owner"
+                      },
+                      "children": []
+                    },
+                    {
+                      "type": "text",
+                      "attrs": {},
+                      "children": [],
+                      "text": "."
+                    }
+                  ],
+                  "id": "paragraph-833a9b34"
+                },
+                {
+                  "type": "paragraph",
+                  "attrs": {},
+                  "children": [
+                    {
+                      "type": "text",
+                      "attrs": {},
+                      "children": [],
+                      "text": "Vision second paragraph."
+                    }
+                  ],
+                  "id": "paragraph-dca05437"
+                }
+              ],
+              "id": "callouts-84a6eebc"
+            },
+            {
+              "type": "paragraph",
+              "attrs": {},
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "The vision statement, written once."
+                }
+              ],
+              "id": "statement"
+            }
+          ],
+          "children": [],
+          "metadata": {},
+          "bottomLine": {
+            "callout": "callouts-84a6eebc",
+            "lead": "paragraph-833a9b34"
+          }
+        },
+        {
+          "id": "plan",
+          "title": "Plan",
+          "content": [
+            {
+              "type": "chapter-inclusion",
+              "attrs": {
+                "id": "plan"
+              },
+              "children": []
+            },
+            {
+              "type": "markdown",
+              "attrs": {},
+              "children": []
+            },
+            {
+              "type": "section",
+              "attrs": {
+                "level": 1
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "Plan"
+                }
+              ],
+              "id": "section-2b87d61e"
+            },
+            {
+              "type": "section",
+              "attrs": {
+                "level": 2
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "Steps"
+                }
+              ],
+              "id": "section-8f6d5cdd"
+            },
+            {
+              "type": "callouts",
+              "attrs": {
+                "kind": "bluf",
+                "title": [
+                  {
+                    "type": "text",
+                    "attrs": {},
+                    "children": [],
+                    "text": "Bottom line"
+                  }
+                ]
+              },
+              "children": [
+                {
+                  "type": "paragraph",
+                  "attrs": {},
+                  "children": [
+                    {
+                      "type": "text",
+                      "attrs": {},
+                      "children": [],
+                      "text": "Plan lead."
+                    }
+                  ],
+                  "id": "paragraph-f8a2e7c8"
+                }
+              ],
+              "id": "callouts-cbea1aea"
+            },
+            {
+              "type": "paragraph",
+              "attrs": {},
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "Plan body."
+                }
+              ],
+              "id": "paragraph-b6e5eadf"
+            }
+          ],
+          "children": [
+            {
+              "id": "step",
+              "title": "Step",
+              "content": [
+                {
+                  "type": "chapter-inclusion",
+                  "attrs": {
+                    "id": "step"
+                  },
+                  "children": []
+                },
+                {
+                  "type": "markdown",
+                  "attrs": {},
+                  "children": []
+                },
+                {
+                  "type": "section",
+                  "attrs": {
+                    "level": 1
+                  },
+                  "children": [
+                    {
+                      "type": "text",
+                      "attrs": {},
+                      "children": [],
+                      "text": "Step"
+                    }
+                  ],
+                  "id": "section-c5b7a30c"
+                },
+                {
+                  "type": "callouts",
+                  "attrs": {
+                    "kind": "bluf",
+                    "title": [
+                      {
+                        "type": "text",
+                        "attrs": {},
+                        "children": [],
+                        "text": "Bottom line"
+                      }
+                    ]
+                  },
+                  "children": [
+                    {
+                      "type": "paragraph",
+                      "attrs": {},
+                      "children": [
+                        {
+                          "type": "text",
+                          "attrs": {},
+                          "children": [],
+                          "text": "Step lead."
+                        }
+                      ],
+                      "id": "paragraph-24cfeac9"
+                    }
+                  ],
+                  "id": "callouts-ce375ad6"
+                }
+              ],
+              "children": [],
+              "metadata": {},
+              "bottomLine": {
+                "callout": "callouts-ce375ad6",
+                "lead": "paragraph-24cfeac9"
+              }
+            }
+          ],
+          "metadata": {},
+          "bottomLine": {
+            "callout": "callouts-cbea1aea",
+            "lead": "paragraph-f8a2e7c8"
+          }
+        }
+      ],
+      "metadata": {},
+      "bottomLine": {
+        "callout": "callouts-79cfdd40",
+        "lead": "paragraph-a7520624"
+      }
+    },
+    {
+      "id": "other",
+      "title": "Other",
+      "content": [
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "other"
+          },
+          "children": []
+        },
+        {
+          "type": "markdown",
+          "attrs": {},
+          "children": []
+        },
+        {
+          "type": "section",
+          "attrs": {
+            "level": 1
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Other"
+            }
+          ],
+          "id": "section-009ba9e6"
+        },
+        {
+          "type": "section",
+          "attrs": {
+            "level": 2
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Owner"
+            }
+          ],
+          "id": "section-73e2bba6"
+        },
+        {
+          "type": "paragraph",
+          "attrs": {},
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "The person who decides; see "
+            },
+            {
+              "type": "wikilinks",
+              "attrs": {
+                "target": "aside",
+                "chapter": "aside",
+                "heading": "",
+                "label": "aside"
+              },
+              "children": []
+            },
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": " and "
+            },
+            {
+              "type": "wikilinks",
+              "attrs": {
+                "target": "product",
+                "chapter": "product",
+                "heading": "",
+                "label": "product"
+              },
+              "children": []
+            },
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "."
+            }
+          ],
+          "id": "paragraph-739a134b"
+        }
+      ],
+      "children": [],
+      "metadata": {}
+    },
+    {
+      "id": "aside",
+      "title": "Aside",
+      "toc": false,
+      "content": [
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "aside"
+          },
+          "children": []
+        },
+        {
+          "type": "markdown",
+          "attrs": {},
+          "children": []
+        },
+        {
+          "type": "section",
+          "attrs": {
+            "level": 1
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Aside"
+            }
+          ],
+          "id": "section-bd565e03"
+        },
+        {
+          "type": "callouts",
+          "attrs": {
+            "kind": "bluf",
+            "title": [
+              {
+                "type": "text",
+                "attrs": {},
+                "children": [],
+                "text": "Bottom line"
+              }
+            ]
+          },
+          "children": [
+            {
+              "type": "paragraph",
+              "attrs": {},
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "Aside lead."
+                }
+              ],
+              "id": "paragraph-2f265053"
+            }
+          ],
+          "id": "callouts-8677d1d2"
+        }
+      ],
+      "children": [],
+      "metadata": {},
+      "bottomLine": {
+        "callout": "callouts-8677d1d2",
+        "lead": "paragraph-2f265053"
+      }
+    }
+  ],
+  "links": [
+    {
+      "id": "the-vision-statement",
+      "href": "vision",
+      "label": "the vision statement"
+    },
+    {
+      "id": "owner",
+      "href": "other",
+      "label": "owner"
+    },
+    {
+      "id": "aside",
+      "href": "aside",
+      "label": "aside"
+    },
+    {
+      "id": "product",
+      "href": "product",
+      "label": "product"
+    }
+  ],
+  "assets": [],
+  "records": [
+    {
+      "id": "aside",
+      "type": "note",
+      "path": "aside.md",
+      "fields": {},
+      "fieldNodes": []
+    },
+    {
+      "id": "manifest",
+      "type": "note",
+      "path": "manifest.md",
+      "fields": {
+        "title": "Probe"
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "title"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Probe"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "other",
+      "type": "note",
+      "path": "other.md",
+      "fields": {},
+      "fieldNodes": []
+    },
+    {
+      "id": "plan",
+      "type": "note",
+      "path": "plan.md",
+      "fields": {},
+      "fieldNodes": []
+    },
+    {
+      "id": "product",
+      "type": "note",
+      "path": "product.md",
+      "fields": {},
+      "fieldNodes": []
+    },
+    {
+      "id": "step",
+      "type": "note",
+      "path": "step.md",
+      "fields": {},
+      "fieldNodes": []
+    },
+    {
+      "id": "vision",
+      "type": "note",
+      "path": "vision.md",
+      "fields": {},
+      "fieldNodes": []
+    },
+    {
+      "id": "chapter-product",
+      "type": "chapter",
+      "note": "product",
+      "fields": {
+        "chapter": "Product",
+        "title": "Product",
+        "depth": "0",
+        "slug": "product",
+        "sourcePath": "product.md"
+      }
+    },
+    {
+      "id": "chapter-vision",
+      "type": "chapter",
+      "note": "vision",
+      "fields": {
+        "chapter": "Vision",
+        "title": "Vision",
+        "depth": "1",
+        "slug": "vision",
+        "sourcePath": "vision.md"
+      }
+    },
+    {
+      "id": "chapter-plan",
+      "type": "chapter",
+      "note": "plan",
+      "fields": {
+        "chapter": "Plan",
+        "title": "Plan",
+        "depth": "1",
+        "slug": "plan",
+        "sourcePath": "plan.md"
+      }
+    },
+    {
+      "id": "chapter-step",
+      "type": "chapter",
+      "note": "step",
+      "fields": {
+        "chapter": "Step",
+        "title": "Step",
+        "depth": "2",
+        "slug": "step",
+        "sourcePath": "step.md"
+      }
+    },
+    {
+      "id": "chapter-other",
+      "type": "chapter",
+      "note": "other",
+      "fields": {
+        "chapter": "Other",
+        "title": "Other",
+        "depth": "0",
+        "slug": "other",
+        "sourcePath": "other.md"
+      }
+    },
+    {
+      "id": "document-metadata-title",
+      "type": "documentMetadata",
+      "fields": {
+        "key": "title",
+        "value": "Probe"
+      }
+    }
+  ],
+  "semanticResources": [],
+  "diagnostics": [],
+  "capabilities": [
+    "callouts",
+    "chapter-inclusion",
+    "embeds",
+    "manifest",
+    "markdown",
+    "markdown-frontmatter",
+    "wikilinks"
+  ],
+  "cssSnippets": []
+}

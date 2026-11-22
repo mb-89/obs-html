@@ -400,8 +400,9 @@ assert.equal(current(), "node");
 click(band.querySelector(".chapter-breadcrumbs > a[href='#parent']"));
 assert.equal(current(), "parent");
 navigate("child");
-// Artifact-ui.md "Styling" and "Reading shell": a note with body content shows its bottom line only in
-// the frontmatter panel, which stays collapsed behind the chevron; nothing is inferred from frontmatter.
+// Artifact-ui.md "Styling" and "Reading shell": a note with body content shows its frontmatter, such as
+// its `bottom line` field, only in the frontmatter panel, which stays collapsed behind the chevron; a
+// bottom line is a [!bluf] callout.
 assert.equal(body.textContent.includes("Child result."), false);
 assert.equal(document.querySelector("[data-frontmatter-panel]").hidden, true);
 assert.equal(document.querySelector("[data-frontmatter-toggle]").getAttribute("aria-expanded"), "false");

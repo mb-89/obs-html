@@ -219,7 +219,8 @@
     const previewText = (record) => {
         const template = document.createElement("template");
         template.innerHTML = record.html;
-        template.content.querySelectorAll("table, pre, script, style, [data-data-table]").forEach(
+        template.content.querySelectorAll("table, pre, script, style, [data-data-table]"/* part bottom-line-list { */
+            + ", .bottom-line-list"/* } part bottom-line-list */).forEach(
             (node) => node.remove(),
         );
         const paragraphs = [...template.content.querySelectorAll("p")].map(

@@ -130,7 +130,8 @@ obsHtml:
   A listed snippet that is missing, or that contains `</style`, is an input error. A missing one
   names the manifest, the field (`obsHtml.cssSnippets[1]`) and, in its remedy, the snippets the
   vault has; one that contains `</style` names its snippet file. The default is none.
-- Generated abstract sections are [register](#registers) embeds in the abstract Markdown.
+- Generated abstract sections are [register](#registers) embeds in the abstract Markdown; the leads of
+  the top-level chapters are the list in Home's bottom line ([[artifact-ui#Bottom lines]]).
 - Vaults that declare none of these keys keep the packaged defaults shown above, which reproduce
   the established cover, "Abstract", "Contents", and paged opening, and open in System
   appearance.
@@ -777,8 +778,8 @@ TOC (Home alone) and `heading: compact` in the presentation profile.
 
 ### Registers
 
-`obsHtml.macros` is rejected with a migration message; obs's spec vault's `registers.base` is
-the starter.
+`obsHtml.macros` is rejected with a migration message; obs capabilities/registers shows a starter
+`registers.base`.
 
 Keys under `obs:` and `obsHtml:`, which Obsidian ignores, make obs_html render the rich register,
 for example one row per marked paragraph instead of one per note.
@@ -811,6 +812,9 @@ Callout presentation follows [[artifact-ui]].
 
 - `important` keeps its established obs_html meaning: an untitled emphasis box for key
   takeaways, not Obsidian's alias of `tip`.
+
+- `bluf` is the bottom line: obs_html draws it as the emphasis box under its page's title and lists
+  in it the leads of the page's children ([[artifact-ui#Bottom lines]]).
 
 ### Remaining chapter content
 
