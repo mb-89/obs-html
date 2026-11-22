@@ -189,7 +189,8 @@
               "children": []
             }
           ],
-          "id": "a"
+          "id": "a",
+          "authoredId": true
         },
         {
           "type": "figures",
@@ -221,7 +222,8 @@
               "children": []
             }
           ],
-          "id": "b"
+          "id": "b",
+          "authoredId": true
         },
         {
           "type": "figures",
@@ -253,7 +255,8 @@
               "children": []
             }
           ],
-          "id": "c"
+          "id": "c",
+          "authoredId": true
         },
         {
           "type": "figures",
@@ -285,7 +288,8 @@
               "children": []
             }
           ],
-          "id": "d"
+          "id": "d",
+          "authoredId": true
         },
         {
           "type": "figures",
@@ -317,7 +321,8 @@
               "children": []
             }
           ],
-          "id": "e"
+          "id": "e",
+          "authoredId": true
         },
         {
           "type": "figures",
@@ -349,7 +354,8 @@
               "children": []
             }
           ],
-          "id": "f"
+          "id": "f",
+          "authoredId": true
         },
         {
           "type": "paragraph",

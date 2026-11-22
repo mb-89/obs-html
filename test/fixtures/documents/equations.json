@@ -385,7 +385,8 @@
               "children": []
             }
           ],
-          "id": "torque"
+          "id": "torque",
+          "authoredId": true
         },
         {
           "type": "figures",
@@ -772,7 +773,8 @@
               "children": []
             }
           ],
-          "id": "saturated"
+          "id": "saturated",
+          "authoredId": true
         },
         {
           "type": "figures",
@@ -916,7 +918,8 @@
               "children": []
             }
           ],
-          "id": "quintic"
+          "id": "quintic",
+          "authoredId": true
         }
       ],
       "children": [],
@@ -1578,7 +1581,8 @@
               "children": []
             }
           ],
-          "id": "step"
+          "id": "step",
+          "authoredId": true
         },
         {
           "type": "figures",
@@ -1946,7 +1950,8 @@
               "children": []
             }
           ],
-          "id": "cap"
+          "id": "cap",
+          "authoredId": true
         }
       ],
       "children": [],

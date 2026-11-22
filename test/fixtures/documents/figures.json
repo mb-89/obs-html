@@ -140,7 +140,8 @@
               "children": []
             }
           ],
-          "id": "image-figure"
+          "id": "image-figure",
+          "authoredId": true
         },
         {
           "type": "figures",
@@ -199,7 +200,8 @@
               "children": []
             }
           ],
-          "id": "svg-figure"
+          "id": "svg-figure",
+          "authoredId": true
         },
         {
           "type": "figures",
@@ -280,7 +282,8 @@
               "children": []
             }
           ],
-          "id": "sankey-figure"
+          "id": "sankey-figure",
+          "authoredId": true
         },
         {
           "type": "figures",
@@ -403,7 +406,8 @@
               "children": []
             }
           ],
-          "id": "plot-figure"
+          "id": "plot-figure",
+          "authoredId": true
         },
         {
           "type": "figures",
@@ -451,7 +455,8 @@
               "children": []
             }
           ],
-          "id": "mermaid-figure"
+          "id": "mermaid-figure",
+          "authoredId": true
         },
         {
           "type": "figures",
@@ -499,7 +504,8 @@
               "children": []
             }
           ],
-          "id": "plantuml-figure"
+          "id": "plantuml-figure",
+          "authoredId": true
         },
         {
           "type": "figures",
@@ -685,7 +691,8 @@
               "children": []
             }
           ],
-          "id": "equations-figure"
+          "id": "equations-figure",
+          "authoredId": true
         },
         {
           "type": "figures",
@@ -838,7 +845,8 @@
               "children": []
             }
           ],
-          "id": "pugh-figure"
+          "id": "pugh-figure",
+          "authoredId": true
         },
         {
           "type": "figures",
@@ -900,7 +908,8 @@
               "children": []
             }
           ],
-          "id": "timeline-figure"
+          "id": "timeline-figure",
+          "authoredId": true
         }
       ],
       "children": [],

@@ -205,7 +205,8 @@
               "children": []
             }
           ],
-          "id": "option"
+          "id": "option",
+          "authoredId": true
         },
         {
           "type": "figures",
@@ -390,7 +391,8 @@
               "children": []
             }
           ],
-          "id": "wide"
+          "id": "wide",
+          "authoredId": true
         }
       ],
       "children": [],

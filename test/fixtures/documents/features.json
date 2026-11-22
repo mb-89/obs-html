@@ -360,7 +360,8 @@
               "children": []
             }
           ],
-          "id": "image-figure"
+          "id": "image-figure",
+          "authoredId": true
         },
         {
           "type": "section",
@@ -482,7 +483,8 @@
               "children": []
             }
           ],
-          "id": "plot-figure"
+          "id": "plot-figure",
+          "authoredId": true
         },
         {
           "type": "section",
@@ -559,7 +561,8 @@
               "children": []
             }
           ],
-          "id": "sankey-figure"
+          "id": "sankey-figure",
+          "authoredId": true
         },
         {
           "type": "section",
@@ -620,7 +623,8 @@
               "children": []
             }
           ],
-          "id": "timeline-figure"
+          "id": "timeline-figure",
+          "authoredId": true
         },
         {
           "type": "paragraph",
@@ -924,7 +928,8 @@
                   "children": []
                 }
               ],
-              "id": "equations-figure"
+              "id": "equations-figure",
+              "authoredId": true
             },
             {
               "type": "paragraph",
@@ -1739,7 +1744,8 @@
               "children": []
             }
           ],
-          "id": "decision-figure"
+          "id": "decision-figure",
+          "authoredId": true
         },
         {
           "type": "paragraph",
@@ -2122,7 +2128,8 @@
               "text": "A note a link opens as context."
             }
           ],
-          "id": "aside-note"
+          "id": "aside-note",
+          "authoredId": true
         }
       ],
       "children": [],

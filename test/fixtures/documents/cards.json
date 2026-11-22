@@ -450,7 +450,8 @@
               "children": []
             }
           ],
-          "id": "points"
+          "id": "points",
+          "authoredId": true
         }
       ],
       "children": [],

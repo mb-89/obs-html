@@ -309,7 +309,8 @@
                   "text": "The vision statement, written once."
                 }
               ],
-              "id": "statement"
+              "id": "statement",
+              "authoredId": true
             }
           ],
           "children": [],
