@@ -219,7 +219,7 @@ def test_the_vault_root_the_core_passes_prefixes_the_note_a_warning_names(tmp_pa
 
 
 def test_a_one_call_build_prints_a_core_warning_once_by_the_core(tmp_path, core_root) -> None:
-    """The core owns the Document's diagnostics: through obs-document --adapter html, a core warning
+    """The core owns the Document's diagnostics: through obs-document --adapter obs-html, a core warning
     reads ``obs-document: warning: ...`` once, and the adapter does not print it again."""
     vault = tmp_path / "vault"
     vault.mkdir()
@@ -229,7 +229,7 @@ def test_a_one_call_build_prints_a_core_warning_once_by_the_core(tmp_path, core_
                                       "caption: A drawing.\n```\n", encoding="utf-8")
 
     completed = subprocess.run(
-        [sys.executable, "-m", "obs.document", "--source", str(vault / "manifest.md"), "--adapter", "html",
+        [sys.executable, "-m", "obs.document", "--source", str(vault / "manifest.md"), "--adapter", "obs-html",
          "--destination", str(tmp_path / "once.html")],
         capture_output=True, text=True, env={**os.environ, "UV_OFFLINE": "1"}, check=False)
 

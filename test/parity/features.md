@@ -11,7 +11,7 @@ column says what the interim did, and nothing runs it. A feature the interim did
 and evidence follow.
 
 "Integrated" means this adapter (`obs-html`) and the core in front of it
-(`obs-document --adapter html`). Where the interim's values were the reference (the settings'
+(`obs-document --adapter obs-html`). Where the interim's values were the reference (the settings'
 defaults and limits), the reference is now this adapter's `cfg.schema.json` and the core's
 `config.schema.json` as they stand. A "missing" row names the issue that tracks the gap.
 

@@ -57,13 +57,17 @@ def test_each_declared_option_is_a_flag_of_the_cli() -> None:
     assert "embed-attachments" in declared  # The evidence edition (spec/design_input/cli.md, Attachments per build).
 
 
-def test_the_core_finds_this_adapter_as_the_installed_component_html_and_its_cli_as_the_executable() -> None:
-    """obs finds this checkout, which test/conftest.py installs, as the component html (obs's
-    spec/design_input/components.md, Naming a component)."""
-    found = subprocess.run([sys.executable, "-c", "from obs.adapter import adapter_location; "
-                            "print(adapter_location('html').manifest)"], capture_output=True, text=True, check=True)
+def test_the_core_finds_this_adapter_as_the_installed_component_obs_html_and_its_cli_as_the_executable() -> None:
+    """obs finds this checkout, which test/conftest.py installs, as the component obs-html, its
+    repository's name (obs's spec/design_input/components.md, Naming a component), and loads the
+    manifest, which names the same component."""
+    found = subprocess.run([sys.executable, "-c", "from obs.adapter import adapter_location, load_adapter; "
+                            "print(load_adapter('obs-html')['name']); print(adapter_location('obs-html').manifest)"],
+                           capture_output=True, text=True, check=True)
+    name, manifest = found.stdout.split()
 
-    assert Path(found.stdout.strip()).samefile(ROOT / "adapter.json")
+    assert name == _manifest()["name"] == "obs-html"
+    assert Path(manifest).samefile(ROOT / "adapter.json")
     scripts = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"]["scripts"]
     assert _manifest()["command"] == ["uv", "run", "obs-html"]
     assert scripts["obs-html"] == "obs_html.cli:main"  # Other scripts, such as obs-html-inspect, are tools.

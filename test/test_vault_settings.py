@@ -31,7 +31,7 @@ def test_a_vault_cfg_json_sets_the_filter_presets_of_a_one_call_build(tmp_path, 
     destination = tmp_path / "a.html"
 
     completed = subprocess.run(
-        [sys.executable, "-m", "obs.document", "--source", str(vault), "--adapter", "html",
+        [sys.executable, "-m", "obs.document", "--source", str(vault), "--adapter", "obs-html",
          "--destination", str(destination)],
         capture_output=True, text=True, env={**os.environ, "UV_OFFLINE": "1"}, check=False)
 

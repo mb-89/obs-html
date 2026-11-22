@@ -39,12 +39,14 @@ LOCAL_THEMES = ROOT / "test" / "fixtures" / "local-themes"
 os.environ["OBS_HTML_LOCAL_FOLDER"] = str(ROOT.resolve() / "test" / "fixtures" / "no-local-folder")
 # No build a test starts reads the build machine's installed components (obs's
 # spec/design_input/components.md, Installed components): each process gets a machine folder of its
-# own whose one installed component is this checkout, as the adapter component html.
+# own whose one installed component is this checkout, as the adapter component obs-html, the name
+# adapter.json declares.
+COMPONENT = json.loads((ROOT / "adapter.json").read_text(encoding="utf-8"))["name"]
 MACHINE = Path(tempfile.mkdtemp(prefix="obs-html-machine-"))
 (MACHINE / "components").mkdir()
-(MACHINE / "components" / "html").symlink_to(ROOT.resolve(), target_is_directory=True)
+(MACHINE / "components" / COMPONENT).symlink_to(ROOT.resolve(), target_is_directory=True)
 (MACHINE / "components.json").write_text(json.dumps({"components": [{
-    "name": "html", "kind": "adapter",
+    "name": COMPONENT, "kind": "adapter",
     "version": tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"]["version"],
     "commit": "0" * 40}]}), encoding="utf-8")
 os.environ["OBS_LOCAL_FOLDER"] = str(MACHINE)
