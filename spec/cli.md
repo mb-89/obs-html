@@ -213,6 +213,30 @@ as the adapter rendered them from its Document.
 CHAPTER; a title that two chapters share lists their ids. Like `--extract-comments`, it renders
 nothing, so it refuses DOCUMENT and the rendering options.
 
+A screenshot of a chapter is one line of Playwright's command line, which obs installs with its
+dependencies; from an obs checkout, the first line saves a desktop's screen and the second a
+phone's:
+
+```sh
+uv run playwright screenshot --timeout 30000 --viewport-size 1280,800 --wait-for-selector "html[data-artifact-status=ready]" --wait-for-timeout 500 "file:///path/to/artifact.html#intro" intro-1280.png
+uv run playwright screenshot --timeout 30000 --device "Pixel 7" --viewport-size 390,844 --wait-for-selector "html[data-artifact-status=ready]" --wait-for-timeout 500 "file:///path/to/artifact.html#intro" intro-390.png
+```
+
+Each saves the screen a reader sees on opening the chapter at that size. `--device "Pixel 7"`, a
+phone that Playwright's Chromium emulates, makes the second a phone's: a phone's scroll bar takes
+no room and its pointer is touch, so a desktop window 390 px wide shows the text column 15 px
+narrower than a phone does. It saves at that phone's scale, 2.625, so `390,844` gives a 1024 x
+2216 image. The chapter is its id after `#`; an unknown id opens Home, and `--print-chapter` with
+that id lists the ids. The command waits until the artifact reports that it is ready, the status
+`--check-rendered` waits for, then half a second for transitions to end; an artifact that never
+gets ready stops it after 30 s with a TimeoutError, and `--check-rendered` says why.
+
+Only that screen is saved: in the paged view it is the top of the chapter's first page, and Home
+opens on its cover, so a later page or a place further down needs a script that goes there first.
+The browser is Playwright's headless Chromium in the revision this Playwright opens, which
+`uv run playwright install chromium-headless-shell` installs; `--channel chrome` takes the
+installed Chrome instead.
+
 ## Printing the verdicts
 
 Decided by the user, 14 Nov 2026 (work issue `feat/pugh-verdict-as-text-20261114`): an agent that
