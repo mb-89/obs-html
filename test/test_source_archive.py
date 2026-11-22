@@ -41,9 +41,9 @@ FIXTURE = ROOT / "test" / "fixtures" / "documents" / "source-archive.json"
 STYLE = re.compile(r"<style\b[^>]*>")
 BUILD = {"repository": "https://example.invalid/obs", "commit": "0123456789abcdef0123456789abcdef01234567",
          "lockfiles": {"uv.lock": {"obs": "0.2.3", "pypdf": "6.21.2"}},
-         "arguments": ["--adapter", "html", "--destination", "report.html", "--adapter-option",
+         "arguments": ["--adapter", "obs-html", "--destination", "report.html", "--adapter-option",
                        "embed-attachments=true", "--embed-source"],
-         "components": [{"name": "html", "kind": "adapter", "version": "4.9.0", "commit": "ab" * 20}]}
+         "components": [{"name": "obs-html", "kind": "adapter", "version": "4.9.0", "commit": "ab" * 20}]}
 
 
 def archived(snippets: list[str] | None = None) -> dict:
@@ -195,7 +195,7 @@ def test_reproduce_installs_the_recorded_commit_and_reruns_the_recorded_command(
 
 
 def test_reproduce_runs_recorded_command_fences_only_when_asked(tmp_path: Path) -> None:
-    here = extracted(tmp_path, ["--adapter", "html", "--destination", "a.html", "--execute-commands",
+    here = extracted(tmp_path, ["--adapter", "obs-html", "--destination", "a.html", "--execute-commands",
                                 "--embed-source"])
     config = json.loads((here / "build-config.json").read_text(encoding="utf-8"))
 
@@ -207,7 +207,7 @@ def test_reproduce_runs_recorded_command_fences_only_when_asked(tmp_path: Path) 
 
 
 INSTALLED = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"]["version"]
-"""The version at which test/conftest.py installs this checkout as the component html (obs's components
+"""The version at which test/conftest.py installs this checkout as the component obs-html (obs's components
 note, Installed components)."""
 
 
@@ -220,7 +220,7 @@ def rebuilt(folder: Path, *recorded: dict[str, str]) -> subprocess.CompletedProc
         {"path": "manifest.md", "data": base64.b64encode(b"- [[one]]\n").decode("ascii")},
         {"path": "one.md", "data": base64.b64encode(b"# One\n\nText.\n").decode("ascii")},
     ]
-    source["sourceArchive"]["build"]["arguments"] = ["--adapter", "html", "--destination", "report.html",
+    source["sourceArchive"]["build"]["arguments"] = ["--adapter", "obs-html", "--destination", "report.html",
                                                      "--embed-source"]
     source["sourceArchive"]["build"]["components"] = list(recorded)
     with zipfile.ZipFile(io.BytesIO(embedded(render(source, CONFIG), "artifact.html"))) as opened:
@@ -232,18 +232,18 @@ def rebuilt(folder: Path, *recorded: dict[str, str]) -> subprocess.CompletedProc
 
 def test_a_rebuild_with_another_installed_version_warns_naming_the_component_and_both_versions(
         tmp_path: Path) -> None:
-    result = rebuilt(tmp_path / "archive", {"name": "html", "kind": "adapter", "version": "0.0.1",
+    result = rebuilt(tmp_path / "archive", {"name": "obs-html", "kind": "adapter", "version": "0.0.1",
                                             "commit": "ab" * 20})
 
     assert result.returncode == 0, result.stderr
     warning = next(line for line in result.stderr.splitlines() if "--recorded-components" in line)
-    assert "components[0]" in warning and "'html'" in warning
+    assert "components[0]" in warning and "'obs-html'" in warning
     assert "0.0.1" in warning and INSTALLED in warning
     assert (tmp_path / "archive" / "report.html").is_file()
 
 
 def test_a_rebuild_whose_recorded_component_is_absent_fails_naming_it(tmp_path: Path) -> None:
-    html = {"name": "html", "kind": "adapter", "version": INSTALLED, "commit": "ab" * 20}
+    html = {"name": "obs-html", "kind": "adapter", "version": INSTALLED, "commit": "ab" * 20}
     absent = {"name": "paper", "kind": "style", "version": "1.0.0", "commit": "cd" * 20}
 
     result = rebuilt(tmp_path / "archive", html, absent)

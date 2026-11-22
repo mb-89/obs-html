@@ -152,15 +152,28 @@ def test_the_build_step_builds_one_document_twice_alike(tmp_path):
     assert report([("structural", first, second)]) == (["same structural", "1 same, 0 differ"], 0)
 
 
-def test_a_side_builds_with_its_checkout_installed_as_html_as_the_tests_install_it(tmp_path):
+def test_a_side_builds_with_its_checkout_installed_as_obs_html_as_the_tests_install_it(tmp_path):
     machine = machine_folder(CHECKOUT, tmp_path / "head")
     assert machine == tmp_path / "head" / unchanged_output.MACHINE
-    assert [path.name for path in (machine / "components").iterdir()] == ["html"]
-    assert (machine / "components" / "html").resolve() == CHECKOUT.resolve()
+    assert [path.name for path in (machine / "components").iterdir()] == ["obs-html"]
+    assert (machine / "components" / "obs-html").resolve() == CHECKOUT.resolve()
     listed = json.loads((machine / "components.json").read_text(encoding="utf-8"))
     assert listed == json.loads((conftest.MACHINE / "components.json").read_text(encoding="utf-8"))
     assert machine_folder(CHECKOUT, tmp_path / "head") == machine
     assert unchanged_output._environment(CHECKOUT, machine)["OBS_LOCAL_FOLDER"] == str(machine)
+
+
+def test_a_side_from_before_the_rename_is_installed_as_the_component_its_adapter_json_names(tmp_path):
+    """A base from before the component took its repository's name declares html; it is installed,
+    and built, as html, so the comparison still builds it."""
+    old = tmp_path / "old-side"
+    old.mkdir()
+    (old / "pyproject.toml").write_text('[project]\nversion = "0.1.0"\n', encoding="utf-8")
+    (old / "adapter.json").write_text(json.dumps({"name": "html"}), encoding="utf-8")
+    machine = machine_folder(old, tmp_path / "base")
+    assert [path.name for path in (machine / "components").iterdir()] == ["html"]
+    [entry] = json.loads((machine / "components.json").read_text(encoding="utf-8"))["components"]
+    assert entry["name"] == unchanged_output.component(old) == "html"
 
 
 def test_a_side_without_a_project_version_fails_naming_its_pyproject(tmp_path):

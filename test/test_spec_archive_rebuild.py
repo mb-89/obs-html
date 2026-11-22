@@ -4,7 +4,7 @@ Reader: whoever changes reproduce.py, obs's spec producer (obs spec/appendix/ref
 obs-html-specification.md) or `obs-html --build-own-spec`; input-model.md, "Optional
 reproduction archive", owns the behaviour, cli.md, "Building its own specification", the command.
 
-The test builds a copy of obs's spec vault with the recorded command (obs-document --adapter html
+The test builds a copy of obs's spec vault with the recorded command (obs-document --adapter obs-html
 --execute-commands --embed-source), extracts the archive the artifact embeds and checks the steps
 reproduce.py composes. Their install is faked: this checkout stands for obs at the recorded
 commit, already installed, so the rebuild step runs with this checkout in place of the clone and
@@ -54,7 +54,7 @@ def test_reproduce_rebuilds_obs_spec_from_its_archive_with_the_references_entry(
     shutil.copytree(CORE_ROOT / "spec", vault, ignore=shutil.ignore_patterns("design_output"))
     built = tmp_path / "built" / "spec.html"
     run([uv(), "run", "--offline", "--project", str(CORE_ROOT), "python", str(OFFLINE_DOCUMENT), "--source",
-         str(vault / "manifest.md"), "--adapter", "html", "--destination", str(built), "--execute-commands",
+         str(vault / "manifest.md"), "--adapter", "obs-html", "--destination", str(built), "--execute-commands",
          "--embed-source"], CORE_ROOT,
         "building a copy of obs's spec with its source archive")
     here = tmp_path / "extracted"

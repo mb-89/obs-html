@@ -1,4 +1,4 @@
-"""A trusted runtime bundle through the core: obs-document --adapter html --adapter-option
+"""A trusted runtime bundle through the core: obs-document --adapter obs-html --adapter-option
 trusted-runtime-bundle=ID=PATH embeds it, and the source archive's rebuild embeds it again.
 
 Reader: whoever changes how a one-call build trusts a runtime bundle; obs cli.md, "Adapter
@@ -38,7 +38,7 @@ def _vault(folder: Path) -> Path:
 
 def _one_call(vault: Path, destination: Path, *options: str) -> subprocess.CompletedProcess:
     return subprocess.run(
-        [sys.executable, "-m", "obs.document", "--source", str(vault / "manifest.md"), "--adapter", "html",
+        [sys.executable, "-m", "obs.document", "--source", str(vault / "manifest.md"), "--adapter", "obs-html",
          "--destination", str(destination), *options],
         capture_output=True, text=True, env={**os.environ, "UV_OFFLINE": "1"}, check=False)
 

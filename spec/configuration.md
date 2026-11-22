@@ -144,7 +144,7 @@ A theme's `style.css` reaches the page scoped to the theme's name, without its c
 ([[artifact-ui#Styling]]).
 
 Every render of `obs-html` on a Document reads the folder: a DESTINATION, a `.pdf` DESTINATION and
-`--check`, so every build through `obs-document --adapter html` on that machine.
+`--check`, so every build through `obs-document --adapter obs-html` on that machine.
 `--build-own-spec` reads none: the adapter's specification is the same page on every machine, and
 obs's specification attaches it.
 

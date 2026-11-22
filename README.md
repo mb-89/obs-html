@@ -5,13 +5,13 @@ else, to portable HTML or PDF.
 
 ## Core
 
-This adapter is the component `html` of obs (obs's `spec/design_input/components.md`), in a
-repository of its own; from 5 to 22 Nov 2026 it was the folder `adapters/html` of obs, whose history
-this repository continues. It depends on one core release, the tag of obs that `[tool.uv.sources]`
-in `pyproject.toml` names: the adapter reads the core's schemas, its Document contract, as the `obs`
-package's data and imports no core module. Its tests read the core's checkout at that tag beside
-this repository, `../obs` (or the folder `OBS_CORE_ROOT` names), and install this checkout as the
-component `html` of a machine folder of their own. With that checkout set up
+This adapter is the component `obs-html` of obs (obs's `spec/design_input/components.md`), in a
+repository of its own whose name it carries; from 5 to 22 Nov 2026 it was the folder `adapters/html`
+of obs, whose history this repository continues. It depends on one core release, the tag of obs that
+`[tool.uv.sources]` in `pyproject.toml` names: the adapter reads the core's schemas, its Document
+contract, as the `obs` package's data and imports no core module. Its tests read the core's checkout
+at that tag beside this repository, `../obs` (or the folder `OBS_CORE_ROOT` names), and install this
+checkout as the component `obs-html` of a machine folder of their own. With that checkout set up
 (`uv run python test/suite.py --setup` in it), the tests run from here and test only the adapter:
 
 ```sh
@@ -28,14 +28,16 @@ A release is the tag `v<version>` on main, at the version `se.toml` holds. Nobod
 each landing bumps that version, and on each push to main
 `.github/workflows/release-tag.yml` runs se's release workflow (its copy,
 `.github/workflows/release.yml`), which tags every version main carried without a tag. obs's
-`obs-components install html` finds it among the repositories of the owner that carry the topic
+`obs-components install obs-html` finds it among the repositories of the owner that carry the topic
 `component`.
 
 ## Adapter
 
-obs finds this folder as the adapter component `html` (obs's `spec/design_input/components.md`), and `adapter.json` declares the contract version,
-the `obs-html` command and the capability identifiers it renders. `uv run obs-html --help` is the
-command reference. Run the focused contract check with:
+obs finds this folder as the adapter component `obs-html` (obs's
+`spec/design_input/components.md`), so `obs-document --adapter obs-html` builds with it, and
+`adapter.json` declares that name, the contract version, the `obs-html` command and the capability
+identifiers it renders. `uv run obs-html --help` is the command reference. Run the focused
+contract check with:
 
 ```powershell
 uv run pytest test/test_adapter_manifest.py

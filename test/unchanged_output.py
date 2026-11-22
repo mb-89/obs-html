@@ -19,7 +19,7 @@ build reads the machine's installed components. The pages go to a temporary fold
 The set (``reference_set``) holds, in this order:
 
 - the decks: ``phone-deck`` from the side (DECKS) and ``bless-deck`` from the core (CORE_DECKS),
-  each built through the core as a deck is built (``obs-document --source <manifest> --adapter html``);
+  each built through the core as a deck is built (``obs-document --source <manifest> --adapter obs-html``);
 - the fixture Documents, every ``*.json`` in the side's DOCUMENTS, each built with ``obs-html DOCUMENT``;
 - obs's spec (OBS_SPEC) from the core, built from a copy of its vault with ``--execute-commands``,
   which fetches its remote images;
@@ -63,7 +63,7 @@ EPOCH = "1700000000"
 PREFIX = "obs-unchanged-output-"
 # The machine folder of a side's builds, in that side's output folder (machine_folder).
 MACHINE = ".machine"
-# The commit every side's component html records, so a build records the same component on both sides
+# The commit every side's adapter component records, so a build records the same component on both sides
 # where their versions agree, as test/conftest.py records it.
 COMMIT = "0" * 40
 SIDES = ("base", "head")
@@ -153,18 +153,27 @@ def report(pairs: Iterable[tuple[str, str | None, str | None]]) -> tuple[list[st
     return lines, 1 if differ else 0
 
 
+def component(root: Path) -> str:
+    """The adapter component the side's checkout ``root`` is: the name its adapter.json declares,
+    obs-html, or html on a side from before the component took its repository's name. A
+    ``KeyError``, an ``OSError`` or a ``ValueError`` names a side without one."""
+    return json.loads((root / "adapter.json").read_text(encoding="utf-8"))["name"]
+
+
 def machine_folder(root: Path, folder: Path) -> Path:
     """The machine folder in ``folder`` whose one installed component is the side's checkout
-    ``root``, as the adapter component html, as test/conftest.py installs it: at the version the
-    side's pyproject.toml holds, with the commit COMMIT (obs's spec/design_input/components.md,
-    Installed components). A ``KeyError`` or an ``OSError`` names a side without that version."""
+    ``root``, as the adapter component its adapter.json names (component), as test/conftest.py
+    installs it: at the version the side's pyproject.toml holds, with the commit COMMIT (obs's
+    spec/design_input/components.md, Installed components). A ``KeyError``, an ``OSError`` or a
+    ``ValueError`` names a side without that version or that name."""
     version = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))["project"]["version"]
+    name = component(root)
     machine = folder / MACHINE
     (machine / "components").mkdir(parents=True, exist_ok=True)
-    link = machine / "components" / "html"
+    link = machine / "components" / name
     if not link.is_symlink():
         link.symlink_to(root.resolve(), target_is_directory=True)
-    entry = {"name": "html", "kind": "adapter", "version": version, "commit": COMMIT}
+    entry = {"name": name, "kind": "adapter", "version": version, "commit": COMMIT}
     (machine / "components.json").write_text(json.dumps({"components": [entry]}), encoding="utf-8")
     return machine
 
@@ -196,14 +205,16 @@ def build(page: Page, root: Path, folder: Path, side: str) -> Path:
     html = (folder / f"{page.name}.html").resolve()
     try:
         machine = machine_folder(root, folder)
-    except (KeyError, OSError) as error:
-        raise BuildError(page.name, side, f"{root / 'pyproject.toml'} names no project version: {error}") from error
+    except (KeyError, OSError, ValueError) as error:
+        raise BuildError(page.name, side, f"{root / 'pyproject.toml'} names no project version, or "
+                         f"{root / 'adapter.json'} no component name: {error}") from error
+    adapter = component(root)
     uv = ["uv", "run", "--locked"]
     source = (CORE_ROOT if page.origin == CORE else root) / page.source
     if page.kind == "document":
         _run([*uv, "obs-html", str(source), str(html)], root, root, machine, page, side)
     elif page.kind == "deck":
-        _run([*uv, "obs-document", "--source", str(source), "--adapter", "html", "--destination", str(html)],
+        _run([*uv, "obs-document", "--source", str(source), "--adapter", adapter, "--destination", str(html)],
              root, root, machine, page, side)
     else:
         work = folder / f"{page.name}-work"
@@ -211,7 +222,7 @@ def build(page: Page, root: Path, folder: Path, side: str) -> Path:
         work.mkdir()
         if page.kind == "spec":
             shutil.copytree(source.parent, work / page.source.parent, ignore=shutil.ignore_patterns("design_output"))
-            command = ["obs-document", "--source", page.source.as_posix(), "--execute-commands", "--adapter", "html",
+            command = ["obs-document", "--source", page.source.as_posix(), "--execute-commands", "--adapter", adapter,
                        "--destination", str(html)]
             _run([*uv, *command], work, root, machine, page, side)
         else:
