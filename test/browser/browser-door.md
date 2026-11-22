@@ -324,9 +324,12 @@ answers:
 ```
 
 `artifactDigest` is the SHA-256 of the artifact the state opens, built with the library fakes and
-the build time fixed by `SOURCE_DATE_EPOCH`. Two such builds of the feature fixture were
-byte-identical on 22 Nov 2026, so the digest changes exactly when the page does. The recordings are committed: every landing reads them without a
-browser.
+the build time fixed by `SOURCE_DATE_EPOCH`. It is built from its own folder, outside this
+checkout: a build records the commit and version of the repository it runs in as its target
+(spec/artifact-ui.md, Generation provenance), which made every commit change every digest. Built
+so, two builds were byte-identical across a commit on 22 Nov 2026. The page still records
+obs-html's own version, so a landing that bumps the version changes every digest: the staleness
+rule below meets that. The recordings are committed: every landing reads them without a browser.
 
 **Replay.** The fake opens a state with its recording. A step counts as reached as it begins, and
 from then on the fake answers every supplied call for a key from the latest step reached that

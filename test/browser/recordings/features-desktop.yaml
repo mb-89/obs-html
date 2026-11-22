@@ -16,7 +16,7 @@ steps:
   id: figures
 - open: chapter
   id: prose
-artifactDigest: sha256:393932a74dac527067825fad7913714c6101053baaa9fe967bc577935d368cc1
+artifactDigest: sha256:2264f96cf2733e287fb7bcebfc151e473ac74aeff11a68ddd0ba185e068726ea
 chromium: 153.0.8010.12 (Playwright 1.64.0)
 answers:
 - step: 0

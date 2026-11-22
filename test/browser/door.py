@@ -120,10 +120,14 @@ def build_feature_file(document: Path, target: Path) -> None:
 
 def build_artifact(name: str, folder: Path) -> Path:
     """The state's artifact, built into ``folder`` with the library fakes this process embeds
-    (test/library_fakes.py) and SOURCE_DATE_EPOCH fixed at BUILD_EPOCH."""
+    (test/library_fakes.py) and SOURCE_DATE_EPOCH fixed at BUILD_EPOCH. It is built from ``folder``,
+    outside this checkout: a build records the commit and version of the repository it runs in as
+    its target (spec/artifact-ui.md, Generation provenance), which would change the digest with
+    every commit of this one."""
     source = states()[name]["artifact"]
+    folder = folder.resolve()
     target = folder / "artifact.html"
-    with _environment(SOURCE_DATE_EPOCH=BUILD_EPOCH):
+    with _environment(SOURCE_DATE_EPOCH=BUILD_EPOCH), contextlib.chdir(folder):
         if "::" in source:
             from obs_html import build_time
             from obs_html.config import load_config
@@ -131,7 +135,8 @@ def build_artifact(name: str, folder: Path) -> Path:
 
             module, function = source.split("::")
             document = getattr(importlib.import_module(Path(module).stem), function)()
-            target.write_text(render(document, load_config(), built=build_time.instant(os.environ)), encoding="utf-8")
+            target.write_text(render(document, load_config(), built=build_time.instant(os.environ), target_root=folder),
+                              encoding="utf-8")
         else:
             build_feature_file(ROOT / source, target)
     return target
