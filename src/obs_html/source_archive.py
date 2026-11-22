@@ -83,7 +83,6 @@ def package(document: dict, embed_attachments: bool = False) -> bytes | None:
             "adapterOptions": {"embed-attachments": embed_attachments},
             "command": command,
             "components": build["components"],
-            **({"style": build["style"]} if "style" in build else {}),
         }, indent=2))
         zipped.writestr(_member("reproduce.py"), files("obs_html").joinpath("reproduce.py").read_bytes())
         zipped.writestr(_member("REPRODUCE.txt"), (

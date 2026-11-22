@@ -44,7 +44,6 @@ from obs_html.limited_host import limited_host_markup
 from obs_html.figures import FIGURE_KINDS, render_figure
 from obs_html.artifact_data import encode_artifact_data, prepare_artifact_scripts, serialize_artifact_data
 from obs_html.semantic_assets import SemanticAssets, markup
-from obs_html.declared_style import DeclaredStyles, GitFetcher, user_cache
 from obs_html.styles import Style, load_style
 from obs_html.style_choice import StyleChoice
 from obs_html import source_archive
@@ -129,6 +128,18 @@ class Context:
     """The words that may separate merged figure references (cfg.json artifact.figureReferences)."""
     bordered_tags: tuple[str, ...] = ()
     """The tag kinds whose paragraphs a shared card encloses (cfg.json artifact.borderedTags)."""
+
+
+def _declared_style(document: dict[str, object]) -> Path:
+    """The installed folder of the style component the Document declares (spec/configuration.md,
+    Declared style); one that holds no style.css, as on another machine, names the command that installs it."""
+    name, folder = document["style"]["name"], Path(document["style"]["folder"])
+    if not (folder / "style.css").is_file():
+        raise InputError(_source(document), "style.folder", f"is {str(folder)!r}, the installed folder of the style "
+                         f"component {name!r}, which holds no style.css on this machine",
+                         f"Run obs-components install {name} and build the Document again, or pass --style FOLDER "
+                         "for this build; see spec/configuration.md (Declared style)")
+    return folder
 
 
 def _source(document: dict[str, object]) -> str:
@@ -1029,14 +1040,12 @@ def render(document: dict[str, object], config: Config,
            style_folder: Path | None = None,
            trusted_runtime: tuple[str, str] | None = None,
            embed_attachments: bool = False,
-           styles: DeclaredStyles | None = None,
            built: datetime | None = None,
            vault_link: str | None = None,
            style_choice: StyleChoice | None = None,
            target_root: Path | None = None) -> str:
-    """The artifact of ``document``, styled by ``style_folder``, else by the style the Document
-    declares (fetched through ``styles``, by default git into the user's cache), else by the packaged
-    generic module (spec/configuration.md, Declared style). ``built`` is the build's instant, by
+    """The artifact of ``document``, styled by ``style_folder``, else by the installed style component
+    the Document declares, else by the packaged generic module (spec/configuration.md, Declared style). ``built`` is the build's instant, by
     default the clock's (spec/architecture.md, Build time). ``vault_link`` is the vault folder's way
     from the page's folder, which makes each source file row a link (spec/cli.md, Source file links).
     ``style_choice`` is the build machine's local themes (style_choice.py), laid over the style as
@@ -1057,8 +1066,7 @@ def render(document: dict[str, object], config: Config,
                          "does not render", "Build the Document for an adapter that declares them, or drop "
                          "their syntax from the notes")
     if style_folder is None and "style" in document:
-        styles = styles or DeclaredStyles(GitFetcher(), user_cache())
-        style_folder = styles.folder(document["style"], _source(document))
+        style_folder = _declared_style(document)
     style = load_style(style_folder)
     assets = SemanticAssets(style.asset_index)
     context = Context(

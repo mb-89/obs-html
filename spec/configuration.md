@@ -79,42 +79,28 @@ it; `--config` does not.
 
 ## Declared style
 
-obs's components note (`spec/design_input/components.md`) replaces the style named by its address: a
-style becomes a component the manifest names by name alone, installed on the machine by obs's component
-command, and obs-html no longer fetches a style itself. Until its implementation lands, this
-section describes the build as it is.
+A style is a component: the manifest names it by name alone, `obs.style: <name>`, obs's component
+command installs it on the machine, and obs's core finds it there (obs's components note,
+`spec/design_input/components.md`, and obs's architecture, Declared style). obs-html fetches no
+style.
 
 obs-html styles a build with one style module, chosen in this order:
 
 1. `--style FOLDER`, for this one build. The source archive never records it
 	([[input-model#Optional reproduction archive]]), so a rebuild from the archive uses the
 	declared style.
-2. The style the Document declares: its `style`, which the core takes from the manifest's
-	`obs.style` (`url`, `ref`, a full commit SHA, and optionally `path`; obs's architecture,
-	Declared style).
+2. The style the Document declares: its `style`, whose `folder` is the installed component's
+	folder the core found for the manifest's `obs.style`.
 3. The packaged `generic` module.
 
 Whichever is chosen takes the same place: its `style.css` follows the packaged base stylesheet,
 and the CSS snippets the manifest lists in `obsHtml.cssSnippets` follow it
 ([[input-model#Artifact presentation profile]]).
 
-The declared module is fetched once per commit: obs-html fetches `url` at `ref` with git into
-a cache folder named by the commit, `obs-html/styles/<ref>` in the user's cache folder
-(`$XDG_CACHE_HOME` or `~/.cache` on Linux, `~/Library/Caches` on macOS, `%LOCALAPPDATA%` on
-Windows), never inside a checkout.
-
-A build whose commit is cached fetches nothing, so the
-network is reached once per commit on a machine. A fetch is complete or absent: a failed one
-leaves nothing in the cache. `path` names the module's folder inside the fetched tree; an
-absolute `path` or one with `..` is refused before any fetch.
-
-Every failure is an input error
-of the Document's manifest: a fetch that fails names `style.url` and `style.ref`, with the
-remedy to check the declaration or to pass `--style FOLDER`; a `path` that leaves the tree or
-holds no `style.css` names `style.path`. No other style replaces a declared one that fails.
-
-`src/obs_html/declared_style.py` holds the fetcher, the one door to a style repository; tests
-replace it with a fake and never reach the network.
+A declared `folder` that holds no `style.css`, as when a Document is built on one machine and
+rendered on another, is an input error of the Document's manifest naming `style.folder` and the
+component, with the remedy to install it with `obs-components install NAME` and build again, or to
+pass `--style FOLDER`. No other style replaces a declared one that fails.
 
 ## Local themes
 

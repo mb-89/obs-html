@@ -263,8 +263,8 @@ obs-html's archive refers to the generator instead of copying it, from the Docum
 `build-config.json` holds the Document's `schemaVersion`, obs's `repository` and `commit`, the recorded `lockfiles` versions,
 the adapter's own options (`adapterOptions`), the exact `command`: `obs-document --source
 vault/<manifest path>` followed by the recorded arguments and `--recorded-components
-build-config.json`, the `components` the build record names, and, where the manifest declares one,
-the `style` the build record names (obs's architecture, Declared style).
+build-config.json` and the `components` the build record names, the declared style among them
+(obs's architecture, Declared style).
 
 The recorded command's `--recorded-components` makes the rebuild warn where an installed component's
 version differs from the recorded one and fail where a recorded component is not installed (obs's

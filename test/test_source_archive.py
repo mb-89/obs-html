@@ -28,7 +28,6 @@ from conftest import PIXEL, ROOT, built_once
 from documents import chapter, document, heading, node, paragraph
 from fixtures import build_documents
 from obs_html import cli
-from style_fetchers import fake_styles
 from obs_html.artifact_data import decode_artifact_data
 from obs_html.config import load_config
 from obs_html.errors import InputError
@@ -113,30 +112,33 @@ def test_build_config_records_what_rebuilds_the_artifact() -> None:
     assert b"python reproduce.py" in files["REPRODUCE.txt"]
 
 
-DECLARED = {"url": "https://example.invalid/house-style.git", "ref": "89abcdef0123456789abcdef0123456789abcdef",
-            "path": "styles/house"}
+HOUSE = {"name": "house", "kind": "style", "version": "1.2.3", "commit": "1" * 40}
 
 
-def test_build_config_records_the_declared_style_the_rebuild_resolves(tmp_path: Path) -> None:
-    """The archived build configuration names the style the manifest declares (obs's architecture,
-    Declared style), so a rebuild from the archive resolves the same pinned style."""
+def test_build_config_records_the_declared_style_among_its_components(tmp_path: Path) -> None:
+    """The archived build configuration names the declared style as one of the components that built
+    it and no style of its own (obs's architecture, Declared style)."""
+    folder = tmp_path / "house"
+    folder.mkdir()
+    (folder / "style.css").write_text("p {}\n", encoding="utf-8")
     source = archived()
-    source["style"] = DECLARED
-    source["sourceArchive"]["build"]["style"] = DECLARED
-    styles = fake_styles(tmp_path, {(DECLARED["url"], DECLARED["ref"]): {"styles/house/style.css": "p {}\n"}})
+    source["style"] = {"name": "house", "folder": str(folder)}
+    source["components"] = [*source["components"], HOUSE]
+    source["sourceArchive"]["build"]["components"] = source["components"]
 
-    config = json.loads(members(render(source, CONFIG, styles=styles))["build-config.json"])
+    config = json.loads(members(render(source, CONFIG))["build-config.json"])
 
-    assert config["style"] == DECLARED
-    assert "style" not in json.loads(members(render(archived(), CONFIG))["build-config.json"])
+    assert HOUSE in config["components"] and "style" not in config
 
 
 def test_a_one_off_style_override_is_not_archived_so_the_rebuild_keeps_the_declared_style(tmp_path: Path) -> None:
-    """obs-html --style FOLDER styles this one build only: the archive records the declared style and
-    the recorded command, neither of which names the override (obs's architecture, Declared style)."""
+    """obs-html --style FOLDER styles this one build only: the archive records the declared style's
+    component and the recorded command, neither of which names the override (obs's architecture,
+    Declared style)."""
     source = archived()
-    source["style"] = DECLARED
-    source["sourceArchive"]["build"]["style"] = DECLARED
+    source["style"] = {"name": "house", "folder": str(tmp_path / "not-installed-here")}
+    source["components"] = [*source["components"], HOUSE]
+    source["sourceArchive"]["build"]["components"] = source["components"]
     (tmp_path / "document.json").write_text(json.dumps(source), encoding="utf-8")
     override = tmp_path / "one-off-style"
     override.mkdir()
@@ -148,7 +150,7 @@ def test_a_one_off_style_override_is_not_archived_so_the_rebuild_keeps_the_decla
     assert "rgb(7, 8, 9)" in html, "the override styles this build"
     files = members(html)
     config = json.loads(files["build-config.json"])
-    assert config["style"] == DECLARED
+    assert HOUSE in config["components"]
     assert "--style" not in config["command"]
     assert not any(b"one-off-style" in data for data in files.values())
 

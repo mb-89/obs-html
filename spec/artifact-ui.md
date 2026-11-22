@@ -116,7 +116,7 @@ failures have their form in [[input-model#Chapter content]].
   defaults. The converter embeds its CSS into each output.
 
   The packaged `generic` module is the
-  default; a manifest may declare a module pinned to a commit, and `--style` selects an
+  default; a manifest may name an installed style component, and `--style` selects an
   explicit module folder for one invocation ([[configuration#Declared style]]). No artifact component names a style.
 
   Page geometry (paper size, orientation, sheet dimensions, margins, and `@page`) belongs only to

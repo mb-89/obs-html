@@ -53,9 +53,8 @@ EPILOG = f"""Rendering:
   --style FOLDER selects an external style module: a folder with style.css, laid over the
   packaged base stylesheet, and an optional assets.json semantic asset index. It must not
   declare page geometry (@page, size, --paper-*, --sheet-*); the Document's profile owns it.
-  Without it, the style the manifest declares (obs.style) applies, fetched with git once per
-  commit into the user's cache folder (obs-html/styles/<commit>); without one, the packaged
-  generic style.
+  Without it, the installed style component the manifest names (obs.style: <name>, installed
+  with obs-components install NAME) applies; without one, the packaged generic style.
 
 Themes:
   Each folder in obs-html/themes in the user's configuration folder (~/.config, ~/Library/
