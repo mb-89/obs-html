@@ -166,6 +166,19 @@ def feature_artifact(tmp_path_factory) -> str:
     return (built_once(tmp_path_factory, "feature-artifact", build) / "artifact.html").read_text(encoding="utf-8")
 
 
+@pytest.fixture(scope="session")
+def own_spec(tmp_path_factory) -> Path:
+    """The adapter's own specification as ``obs-html --build-own-spec`` builds it (spec/cli.md,
+    Building its own specification), once per run and shared by every worker; tests only read it."""
+    from obs_html import cli
+
+    def build(folder: Path) -> None:
+        assert cli.main(["--build-own-spec", str(folder / "obs-html-specification.html")]) == 0, \
+            "test/conftest.py: obs-html --build-own-spec could not build the adapter's specification"
+
+    return built_once(tmp_path_factory, "own-spec", build) / "obs-html-specification.html"
+
+
 def _uv(*arguments: str, cwd: Path, environment: dict[str, str]) -> None:
     result = subprocess.run(["uv", *arguments], cwd=cwd, env=environment, capture_output=True, text=True)
     assert result.returncode == 0, f"test/conftest.py: uv {' '.join(arguments)} failed:\n{result.stderr}"
@@ -182,11 +195,12 @@ def installed_wheels(tmp_path_factory) -> Path:
     def build(folder: Path) -> None:
         environment = {key: value for key, value in os.environ.items() if key not in ("VIRTUAL_ENV", "PYTHONPATH")}
         environment["UV_PROJECT_ENVIRONMENT"] = str(folder / "venv")
-        _uv("build", "--all-packages", "--wheel", "--offline", "--out-dir", str(folder / "dist"),
-            cwd=CORE_ROOT, environment=environment)
-        # The lockfile's dependencies of obs-html, from uv's cache; then the two wheels just built.
-        _uv("sync", "--frozen", "--offline", "--no-dev", "--no-install-workspace", "--package", "obs-html",
-            cwd=CORE_ROOT, environment=environment)
+        # The core's wheel from its checkout, this adapter's from this one.
+        for checkout in (CORE_ROOT, ROOT):
+            _uv("build", "--wheel", "--offline", "--out-dir", str(folder / "dist"), cwd=checkout, environment=environment)
+        # The lockfile's dependencies of obs-html but the core, from uv's cache; then the two wheels just built.
+        _uv("sync", "--frozen", "--offline", "--no-dev", "--no-install-project", "--no-install-package", "obs",
+            cwd=ROOT, environment=environment)
         _uv("pip", "install", "--offline", "--no-deps", "--python", str(_venv_python(folder)),
             *map(str, sorted((folder / "dist").glob("*.whl"))), cwd=folder, environment=environment)
 

@@ -25,6 +25,12 @@ def test_adapter_manifest_declares_exactly_the_rendered_capabilities() -> None:
     assert _manifest()["capabilities"] == sorted(CAPABILITIES)
 
 
+def test_the_adapter_declares_its_serve_command() -> None:
+    """obs-document --serve runs the serve command the adapter declares on the built artifact; for this
+    adapter `obs-html serve` (test/parity/features.md, `--serve`)."""
+    assert _manifest()["serve"] == ["uv", "run", "obs-html", "serve"]
+
+
 def _note(capability: str, core_root: Path) -> str:
     """The note of a declared capability: the core's capability note, or this adapter's own
     behavior note (kind adapter-behavior), which lives in this adapter's specification."""

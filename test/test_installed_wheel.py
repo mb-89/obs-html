@@ -4,7 +4,7 @@ Every browser asset the adapter embeds is package data in its wheel (hatch_build
 ones that come from a lockfile). The tests use the wheels of obs and obs-html built once per run
 and installed into a fresh virtual environment outside the checkout (conftest.py,
 ``installed_wheels``). One audit, a sitecustomize module on PYTHONPATH (AUDIT), records every file
-that any Python process of that environment opens or lists inside the checkout: the render of a
+that any Python process of that environment opens or lists inside this checkout or the core's: the render of a
 Document with an equation figure and a plot, and the adapter's own specification
 (`obs-html --build-own-spec`) with the core, which runs the specification's command fences. A build that cannot
 install a lockfile names the lockfile and the remedy. The installed core draws Mermaid and PlantUML
@@ -25,14 +25,15 @@ from conftest import CORE_ROOT, FIXTURE, ROOT
 from documents import chapter, document, heading, node
 
 # The audit of every Python process of the installed environment: a sitecustomize module on
-# PYTHONPATH appends to the file AUDIT_RECORD names each path inside AUDIT_CHECKOUT it opens or lists.
+# PYTHONPATH appends to the file AUDIT_RECORD names each path inside the AUDIT_CHECKOUTS (os.pathsep
+# between them) it opens or lists.
 AUDIT = """
 import os, sys
-checkout = os.path.realpath(os.environ["AUDIT_CHECKOUT"])
+checkouts = [os.path.realpath(checkout) for checkout in os.environ["AUDIT_CHECKOUTS"].split(os.pathsep)]
 def audit(event, args):
     if event in ("open", "os.listdir", "os.scandir") and args and isinstance(args[0], (str, bytes, os.PathLike)):
         path = os.path.realpath(os.fsdecode(args[0]))
-        if path == checkout or path.startswith(checkout + os.sep):
+        if any(path == checkout or path.startswith(checkout + os.sep) for checkout in checkouts):
             with open(os.environ["AUDIT_RECORD"], "a", encoding="utf-8") as record:
                 record.write(path + "\\n")
 sys.addaudithook(audit)
@@ -41,14 +42,15 @@ sys.addaudithook(audit)
 
 def audited(installed: Path, tmp_path: Path, code: str, *arguments: str) -> tuple[subprocess.CompletedProcess, list[str]]:
     """Run ``code`` with ``arguments`` in the installed environment with AUDIT on PYTHONPATH, so every
-    Python process it starts records its reads too; the result and each path read inside the checkout."""
+    Python process it starts records its reads too; the result and each path read inside this checkout
+    or the core's."""
     audit = tmp_path / "audit"
     audit.mkdir(exist_ok=True)
     (audit / "sitecustomize.py").write_text(AUDIT, encoding="utf-8")
     reads = tmp_path / "reads.txt"
     reads.write_text("", encoding="utf-8")
     environment = {key: value for key, value in os.environ.items() if key not in ("VIRTUAL_ENV", "UV_PROJECT")}
-    environment.update(PYTHONPATH=str(audit), AUDIT_CHECKOUT=str(CORE_ROOT), AUDIT_RECORD=str(reads))
+    environment.update(PYTHONPATH=str(audit), AUDIT_CHECKOUTS=os.pathsep.join(map(str, (ROOT, CORE_ROOT))), AUDIT_RECORD=str(reads))
     result = subprocess.run([str(installed), "-c", code, *arguments], cwd=tmp_path, env=environment,
                             capture_output=True, text=True)
     return result, reads.read_text(encoding="utf-8").splitlines()
@@ -60,13 +62,14 @@ CORE = "import sys; from obs.document import main; sys.exit(main(sys.argv[1:]))"
 
 @pytest.mark.build
 def test_the_audit_records_what_a_process_and_its_children_read_inside_the_checkout(installed_wheels, tmp_path) -> None:
-    """The audit is not vacuous: a read of the checkout, in the process or in a Python it starts, is recorded."""
-    read = f"open({str(CORE_ROOT / 'README.md')!r}).read()"
+    """The audit is not vacuous: a read of this checkout or the core's, in the process or in a Python it
+    starts, is recorded."""
+    read = "; ".join(f"open({str(checkout / 'README.md')!r}).read()" for checkout in (ROOT, CORE_ROOT))
     result, reads = audited(installed_wheels, tmp_path, f"import subprocess, sys; {read}; "
                             f"subprocess.run([sys.executable, '-c', {read!r}], check=True)")
 
     assert result.returncode == 0, result.stderr
-    assert reads == [str((CORE_ROOT / "README.md").resolve())] * 2
+    assert reads == [str((checkout / "README.md").resolve()) for checkout in (ROOT, CORE_ROOT)] * 2
 
 
 def _figure(kind: str) -> dict:
