@@ -123,9 +123,10 @@ SELECT_ACROSS = """async () => {
     const range = document.createRange();
     range.setStart(heading.firstChild, 0);
     range.setEnd(paragraph.querySelector(".semantic-mark-content").firstChild, 4);
+    const selected = new Promise((resolve) => document.addEventListener("selectionchange", resolve, {once: true}));
     getSelection().removeAllRanges();
     getSelection().addRange(range);
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await selected;
     document.querySelector("[data-comment-add]").click();
     await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     const target = obsComments.data.annotations.at(-1).target;
@@ -201,9 +202,10 @@ COMMENT_ON = """async ({chapter, node, quote}) => {
     const range = document.createRange();
     range.setStart(text, text.data.indexOf(quote));
     range.setEnd(text, text.data.indexOf(quote) + quote.length);
+    const selected = new Promise((resolve) => document.addEventListener("selectionchange", resolve, {once: true}));
     getSelection().removeAllRanges();
     getSelection().addRange(range);
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await selected;
     document.querySelector("[data-comment-add]").click();
     await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     return obsComments.data.annotations.at(-1).target;
@@ -309,9 +311,10 @@ SELECT_IN = """async ([node, quote]) => {
     const text = walker.currentNode, range = document.createRange();
     range.setStart(text, text.data.indexOf(quote));
     range.setEnd(text, text.data.indexOf(quote) + quote.length);
+    const selected = new Promise((resolve) => document.addEventListener("selectionchange", resolve, {once: true}));
     getSelection().removeAllRanges();
     getSelection().addRange(range);
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await selected;
     document.querySelector("[data-comment-add]").click();
     return obsComments.data.annotations.at(-1).target;
 }"""

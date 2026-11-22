@@ -102,9 +102,10 @@ COMMENT_ON_THE_RIGHT = f"""async () => {{
     const range = document.createRange();
     range.setStart(paragraph.firstChild, 0);
     range.setEnd(paragraph.firstChild, 8);
+    const selected = new Promise((resolve) => document.addEventListener("selectionchange", resolve, {{once: true}}));
     getSelection().removeAllRanges();
     getSelection().addRange(range);
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await selected;
     document.querySelector("[data-comment-add]").click();
     await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     return {{target: obsComments.data.annotations.at(-1).target,
@@ -147,8 +148,8 @@ SEARCH_AND_FILTER = """async () => {
     const input = document.querySelector("[data-search-input]");
     obsArtifact.openBar("search");
     input.value = "Second right";
+    // The search bar lists its results in its input listener (bars/search.js), before dispatchEvent returns.
     input.dispatchEvent(new Event("input", {bubbles: true}));
-    await new Promise((resolve) => setTimeout(resolve, 0));
     const results = [...document.querySelectorAll("[data-search-result]")].map((link) => link.dataset.searchResult);
     await obsArtifact.activateSearchResult("more", obsQuery.compile(input.value), {kind: "chapter"});
     const hits = [...document.querySelectorAll("[data-chapter-body] .search-highlight")]

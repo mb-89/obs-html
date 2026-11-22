@@ -92,13 +92,13 @@ const chapter = () => {
     return active[0].getAttribute("data-chapter");
 };
 // After an input the artifact has settled once the chapter's deferred content is in, every
-// image is decoded and one frame has been drawn: a task queued from the frame's callback runs
-// after that frame's rendering step, so the artifact's requestAnimationFrame and ResizeObserver
-// work is done, as control-coverage.js waits. No wall-clock wait.
+// image is decoded and one frame has been drawn: the next frame's callbacks run after that
+// frame's rendering step, so the artifact's requestAnimationFrame and ResizeObserver work is
+// done, as control-coverage.js waits. No wall-clock wait.
 const settle = async () => {
     await globalThis.obsArtifact.whenChapterReady();
     await Promise.all([...document.images].map((image) => image.decode().catch(() => {})));
-    await new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve)));
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 };
 """
 
