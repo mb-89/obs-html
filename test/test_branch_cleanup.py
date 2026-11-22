@@ -283,3 +283,10 @@ def test_the_workflow_is_owned_here_not_a_copy_se_regenerates():
     assert not text.startswith("# se-workflows:")
     assert WORKFLOW.name != "branch-cleanup.yml"
 
+
+def test_the_readme_says_what_the_cleanup_deletes_and_how_to_switch_it_off():
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    section = readme.split("\n## Branch cleanup\n", 1)[1].split("\n## ", 1)[0]
+    assert ".github/workflows/clean-branches.yml" in section
+    for words in ("head branch", "run by hand", "work issue", "`main`", "Disable workflow", "dry run"):
+        assert words in section, words
