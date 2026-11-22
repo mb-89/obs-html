@@ -389,11 +389,23 @@ def test_a_bottom_line_lists_its_children_s_leads_with_links() -> None:
 
     vision, plan = _items(box)
     assert re.fullmatch(r'<li data-embed-chapter="vision" data-embed-block="paragraph-[0-9a-f]+"><p><a class="internal-link" '
-                        r'href="#vision">Vision</a>: Vision lead, for every <a class="internal-link" '
+                        r'href="#vision">Vision</a><br>\nVision lead, for every <a class="internal-link" '
                         r'href="#other/owner">owner</a>\.</p>\n</li>', vision)
     assert re.fullmatch(r'<li data-embed-chapter="plan" data-embed-block="paragraph-[0-9a-f]+"><p><a class="internal-link" '
-                        r'href="#plan">Plan</a>: Plan lead\.</p>\n</li>', plan)
+                        r'href="#plan">Plan</a><br>\nPlan lead\.</p>\n</li>', plan)
     assert box.index('<ul class="bottom-line-list">') > box.index("The product in one sentence")
+
+
+def test_a_child_s_title_stands_alone_on_its_line_so_its_punctuation_is_never_doubled() -> None:
+    def change(document, chapters):
+        chapters["vision"]["title"] = "Part 1: scope"
+        chapters["plan"]["title"] = "Why now?"
+
+    box = _box(_bottom_lines(change)["product"])
+
+    assert '>Part 1: scope</a><br>\nVision lead, for every ' in box
+    assert '>Why now?</a><br>\nPlan lead.</p>' in box
+    assert "</a>:" not in box
 
 
 def test_only_the_lead_goes_up_and_only_one_level() -> None:
@@ -415,7 +427,7 @@ def test_home_lists_the_top_level_leads_after_its_own_bottom_line() -> None:
     assert box.index("The probe in one sentence.") < box.index('<ul class="bottom-line-list">')
     assert [re.search(r'data-embed-chapter="([^"]+)"', item)[1] for item in _items(box)] == ["product"]
     assert "Aside lead." not in home  # A note the manifest does not list is no top-level chapter.
-    assert ('<a class="internal-link" href="#product">Product</a>: The product in one sentence; see '
+    assert ('<a class="internal-link" href="#product">Product</a><br>\nThe product in one sentence; see '
             '<a class="internal-link" href="#vision/block-statement">the vision statement</a>.') in box
 
 

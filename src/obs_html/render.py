@@ -1285,17 +1285,19 @@ def percolated(document: dict[str, object]) -> dict[str, list[dict[str, object]]
 
 
 PARAGRAPH_START = re.compile(r"^<p\b[^>]*>")
-"""A shown lead's opening tag, after which its link to its child goes."""
+"""A shown lead's opening tag, after which its link to its child goes: the link stands alone on the
+paragraph's first line, with no separator before the lead on the next."""
 
 
 def _leads(children: list[dict[str, object]], context: Context) -> str:
     """The list of ``children``'s leads, each shown as an embedded block shows (_shown_copy) and
-    begun by a link to its child; empty without children (artifact-ui.md, Bottom lines)."""
+    begun by a link to its child, which stands alone on the item's first line with no separator
+    before the lead on the next; empty without children (artifact-ui.md, Bottom lines)."""
     items = []
     for child in children:
         chapter, lead = child["id"], child["bottomLine"]["lead"]
         shown = _shown_copy({"attrs": {"chapter": chapter, "block": lead}}, context)
-        link = f'<a class="internal-link" href="#{escape(chapter, quote=True)}">{escape(child["title"])}</a>: '
+        link = f'<a class="internal-link" href="#{escape(chapter, quote=True)}">{escape(child["title"])}</a><br>\n'
         paragraph = PARAGRAPH_START.sub(lambda start: start[0] + link, shown, count=1)
         items.append(f'<li data-embed-chapter="{escape(chapter, quote=True)}" '
                      f'data-embed-block="{escape(lead, quote=True)}">{paragraph}</li>\n')

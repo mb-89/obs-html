@@ -275,7 +275,8 @@ first, and whose first paragraph, its lead, goes up one level.
   Each item shows the child's lead as an embedded block shows (obs capabilities/embeds, Block and section embeds): the
   paragraph as the child's chapter renders it, with no node id or anchor, each link in it going
   where it goes in the child's chapter. The item begins with a link to the child holding its title,
-  then a colon.
+  alone on the item's first line, and the lead follows on the next line with no separator between
+  them, so a title's own punctuation ("Part 1: scope", "Why now?") is never doubled.
 
   Only the lead goes up: the rest of the child's bottom line, an embed in it and the child's own
   list stay in the child, so nothing travels more than one level. A page without its own bottom
