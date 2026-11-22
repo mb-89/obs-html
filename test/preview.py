@@ -50,19 +50,16 @@ class QuietHandler(http.server.SimpleHTTPRequestHandler):
 
 
 # Resolves on the artifact's obs-html-ready event (artifact-data.js, in this adapter and in the
-# interim reference), at once if it has fired; rejects when the startup fails. The deadline only
-# bounds a startup that never ends: an attribute poll's backoff cost seconds per open, and its
-# 5 s limit failed under the complete suite's load.
+# interim reference), at once if it has fired; rejects when the startup fails. A startup that never
+# ends runs past the test's tier timeout (the core's test/bounds.py), which fails and names it: an
+# attribute poll's backoff cost seconds per open, and its 5 s limit failed under the complete
+# suite's load.
 READY = """async () => {
-    const deadline = 60000;
     if (document.documentElement.dataset.artifactStatus === "ready") return;
     await new Promise((resolve, reject) => {
         document.addEventListener("obs-html-ready", resolve, {once: true});
         globalThis.obsHtmlReady?.catch((error) => reject(new Error(
             `test/preview.py: the artifact failed to open (data-artifact-status ${document.documentElement.dataset.artifactStatus}): ${error}`)));
-        setTimeout(() => reject(new Error(
-            `test/preview.py: the artifact sent no obs-html-ready within ${deadline / 1000} s ` +
-            `(data-artifact-status ${document.documentElement.dataset.artifactStatus})`)), deadline);
     });
 }"""
 

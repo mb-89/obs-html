@@ -218,16 +218,19 @@ async (_, {views, layouts, firstChapterLayouts, chapters: only}) => {
     // Waits until the layout a check sees is final. Opening or closing a bar narrows the reader,
     // and the next frame's rendering step lays out again what that changes: the bar's own frame
     // callback, then the ResizeObservers of the dock and of the chapter's figures, tables and
-    // equations, which run after every frame callback. A task queued from a frame callback runs
-    // once that step is done, so one frame is enough. Without the wait, a forced layout read sees
+    // equations, which run after every frame callback. The next frame's callbacks run once that
+    // step is done, so waiting for two frames is enough. Without the wait, a forced layout read sees
     // the reader before that step: with the Comments bar's review mode, table controls lie under
     // the next-chapter arrow.
-    const frame = () => new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve)));
+    const frame = () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    // A chapter is open once its deferred tables and figures replaced their loading placeholders
+    // (artifact.js, aria-busy while they load); a navigation that started meanwhile is waited for too.
     const open = async (slug) => {
         await obsArtifact.activateChapter(slug);
         await obsArtifact.whenChapterReady();
-        for (let wait = 0; wait < 200 && document.querySelector(".reader-pending"); wait++) {
-            await new Promise((resolve) => setTimeout(resolve, 25));
+        while (document.querySelector(".reader-pending[aria-busy]")) {
+            await frame();
+            await obsArtifact.whenChapterReady();
         }
     };
     const chapters = [...document.querySelectorAll("[data-toc-tree] a")]

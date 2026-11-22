@@ -11,7 +11,6 @@ import pytest
 
 from artifacts import artifact_html
 from documents import chapter, document as build, heading, node
-from obs_html.config import load_config
 
 pytestmark = pytest.mark.browser
 CARD = "#hover-card"
@@ -24,9 +23,10 @@ TABLE = build(
         "views": [{"type": "table", "name": "Rows", "order": ["label", "rank"]}]})),
     records=tuple({"id": name, "type": "note", "path": f"{name}.md",
                    "fields": {"kind": "row", "label": label, "rank": rank}} for name, label, rank in ROWS))
-# Past the card's delay: a timeout queued after a hover with this delay runs after the card's own.
-SETTLED = "delay => new Promise(resolve => setTimeout(resolve, delay))"
-CARD_SHOWN = f"(() => {{ const card = document.querySelector('{CARD}'); return !card.hidden; }})()"
+# Whether a card is shown, or waits for its delay to show (hover-card.js, data-pending): a hover
+# that shows no card leaves neither, so no test waits out the delay.
+CARD_SHOWN = f"""(() => {{ const card = document.querySelector('{CARD}');
+    return !card.hidden || 'pending' in card.dataset; }})()"""
 
 
 @pytest.fixture(scope="module")
@@ -58,17 +58,12 @@ def _sorts(page) -> dict[str, str]:
         "cells => cells.map(cell => [cell.dataset.columnKey, cell.getAttribute('aria-sort')])"))
 
 
-def _delay() -> int:
-    return load_config().artifact["hoverCard"]["showDelayMilliseconds"]
-
-
 def test_on_a_desktop_a_header_hover_shows_no_card_and_click_shift_click_and_enter_sort(reader_browser, artifact):
     page, errors = _open(reader_browser, artifact, {"width": 1280, "height": 900})
     helped = page.locator("[data-active-chapter] thead [data-hover-help]").count()
     label, rank = page.locator(f"{HEADERS}[data-column-key='label']"), page.locator(f"{HEADERS}[data-column-key='rank']")
 
     label.hover()
-    page.evaluate(SETTLED, _delay())
     hovered = page.evaluate(CARD_SHOWN)
     label.click()
     by_label = _labels(page), _sorts(page)
@@ -97,11 +92,9 @@ def test_on_a_phone_a_tap_on_a_header_sorts_and_opens_no_card(phone_browser, art
     header = page.locator(f"{HEADERS}[data-column-key='label']")
 
     header.tap()
-    page.evaluate(SETTLED, _delay())
     tapped = page.evaluate(CARD_SHOWN), header.get_attribute("aria-describedby")
     sorted_once = _labels(page), _sorts(page)
     header.tap()
-    page.evaluate(SETTLED, _delay())
     again = page.evaluate(CARD_SHOWN), _labels(page), _sorts(page)
 
     assert page.evaluate("matchMedia('(pointer: coarse)').matches") is True
