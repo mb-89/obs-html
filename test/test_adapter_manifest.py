@@ -1,12 +1,14 @@
 import ast
 import json
 import re
+import subprocess
+import sys
 import tomllib
 from pathlib import Path
 
 from jsonschema import Draft202012Validator
 
-from conftest import CORE_ROOT, FIXTURE, ROOT
+from conftest import FIXTURE, ROOT
 from obs_html.render import CAPABILITIES
 
 
@@ -55,10 +57,13 @@ def test_each_declared_option_is_a_flag_of_the_cli() -> None:
     assert "embed-attachments" in declared  # The evidence edition (spec/design_input/cli.md, Attachments per build).
 
 
-def test_the_core_finds_this_adapter_as_the_component_html_and_its_cli_as_the_executable() -> None:
-    """obs finds this folder's adapter.json as the component html (obs's test/test_components.py checks the lookup)."""
-    assert (CORE_ROOT / "adapters" / "html" / "adapter.json").samefile(ROOT / "adapter.json")
-    assert not (CORE_ROOT / "adapters.json").exists()
+def test_the_core_finds_this_adapter_as_the_installed_component_html_and_its_cli_as_the_executable() -> None:
+    """obs finds this checkout, which test/conftest.py installs, as the component html (obs's
+    spec/design_input/components.md, Naming a component)."""
+    found = subprocess.run([sys.executable, "-c", "from obs.adapter import adapter_location; "
+                            "print(adapter_location('html').manifest)"], capture_output=True, text=True, check=True)
+
+    assert Path(found.stdout.strip()).samefile(ROOT / "adapter.json")
     scripts = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"]["scripts"]
     assert _manifest()["command"] == ["uv", "run", "obs-html"]
     assert scripts["obs-html"] == "obs_html.cli:main"  # Other scripts, such as obs-html-inspect, are tools.

@@ -11,8 +11,10 @@ const path = require("node:path");
 const vm = require("node:vm");
 
 const root = path.resolve(__dirname, "..");
+// The core's checkout, which test/test_node_units.py names (test/conftest.py, CORE_ROOT).
+const core = process.env.OBS_CORE_ROOT || path.resolve(root, "..", "obs");
 const source = name => fs.readFileSync(path.join(root, "src", "obs_html", name), "utf8");
-const folding = fs.readFileSync(path.join(root, "..", "..", "src", "obs", "case-folding.json"), "utf8");
+const folding = fs.readFileSync(path.join(core, "src", "obs", "case-folding.json"), "utf8");
 const islands = {"#base-schema": source("base.schema.json"), "#case-folding": folding};
 globalThis.document = {querySelector: selector => selector in islands ? {textContent: islands[selector]} : null};
 vm.runInThisContext(source("vendor/js-yaml.min.js"));

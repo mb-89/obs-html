@@ -1,0 +1,48 @@
+src/obs_html/vendor/plotly-basic.min.js:8  # Third-party minified Plotly bundle; generic identifiers, not authored content.
+test/parity/test_parity_table.py:170  # Generic English words in a docstring.
+test/parity/test_parity_table.py:171  # Generic word matched by a machine-local list.
+test/passing-rows.test.js:52  # Generic terminal row in a tree-filter fixture.
+test/passing-rows.test.js:56  # Expected terminal row in a tree-filter fixture.
+test/test_provenance.py user-profile-path sha256:9a5c216cbf03125d  # A made-up home-folder path the provenance check's test plants and must find; no real profile.
+commit:b53b3b1a6595dc8fb88b6085b55de86cb20e52c0 author  # A copy, made by git subtree split, of a published squash merge made with the hosting service's merge button; its history is kept.
+commit:b53b3b1a6595dc8fb88b6085b55de86cb20e52c0 committer  # A copy, made by git subtree split, of a published squash merge made with the hosting service's merge button; its history is kept.
+commit:760b6277d6cbaf7767bc11bf0e66995ea1b20901 author  # A copy, made by git subtree split, of a published squash merge made with the hosting service's merge button; its history is kept.
+commit:760b6277d6cbaf7767bc11bf0e66995ea1b20901 committer  # A copy, made by git subtree split, of a published squash merge made with the hosting service's merge button; its history is kept.
+commit:9de01b11846d358b9140dd7b94f7ab07d445611f author  # A copy, made by git subtree split, of a published squash merge made with the hosting service's merge button; its history is kept.
+commit:9de01b11846d358b9140dd7b94f7ab07d445611f committer  # A copy, made by git subtree split, of a published squash merge made with the hosting service's merge button; its history is kept.
+commit:9e0bc75f477736f73f8297971e2d6a12ccdadf04 author  # A copy, made by git subtree split, of a published squash merge made with the hosting service's merge button; its history is kept.
+commit:9e0bc75f477736f73f8297971e2d6a12ccdadf04 committer  # A copy, made by git subtree split, of a published squash merge made with the hosting service's merge button; its history is kept.
+commit:03b5b15c4103d8b84349f7e12c14b5eb793a94b6 author  # A copy, made by git subtree split, of a published squash merge made with the hosting service's merge button; its history is kept.
+commit:03b5b15c4103d8b84349f7e12c14b5eb793a94b6 committer  # A copy, made by git subtree split, of a published squash merge made with the hosting service's merge button; its history is kept.
+commit:0fcf66dde315fe3d0cd0f06f872ecf61e1234cfd author  # A copy, made by git subtree split, of a published squash merge made with the hosting service's merge button; its history is kept.
+commit:0fcf66dde315fe3d0cd0f06f872ecf61e1234cfd committer  # A copy, made by git subtree split, of a published squash merge made with the hosting service's merge button; its history is kept.
+commit:ff84b11ad4b85e75b5392891662ddf54d63b8bfe author  # A copy, made by git subtree split, of a published squash merge made with the hosting service's merge button; its history is kept.
+commit:ff84b11ad4b85e75b5392891662ddf54d63b8bfe committer  # A copy, made by git subtree split, of a published squash merge made with the hosting service's merge button; its history is kept.
+commit:39d9e79b58e0d37fc16a817f54dafcb9d63ed4fa author  # A copy, made by git subtree split, of a published squash merge made with the hosting service's merge button; its history is kept.
+commit:39d9e79b58e0d37fc16a817f54dafcb9d63ed4fa committer  # A copy, made by git subtree split, of a published squash merge made with the hosting service's merge button; its history is kept.
+commit:17acb281f9fe1dafbbd8733ed465048c81a7abf5 author  # A copy, made by git subtree split, of a published squash merge made with the hosting service's merge button; its history is kept.
+commit:17acb281f9fe1dafbbd8733ed465048c81a7abf5 committer  # A copy, made by git subtree split, of a published squash merge made with the hosting service's merge button; its history is kept.
+commit:322653c592958b1f547b957a22baaf027f13305d author  # A copy, made by git subtree split, of a published squash merge made with the hosting service's merge button; its history is kept.
+commit:322653c592958b1f547b957a22baaf027f13305d committer  # A copy, made by git subtree split, of a published squash merge made with the hosting service's merge button; its history is kept.
+commit:d0fb0c70ae2bcc8137038247d5d2d615299b6499 author  # A copy, made by git subtree split, of a published squash merge made with the hosting service's merge button; its history is kept.
+commit:d0fb0c70ae2bcc8137038247d5d2d615299b6499 committer  # A copy, made by git subtree split, of a published squash merge made with the hosting service's merge button; its history is kept.
+commit:9f57117b7fe5e66a45bccf814a30d272d25194a0 author  # A copy, made by git subtree split, of a published squash merge made with the hosting service's merge button; its history is kept.
+commit:9f57117b7fe5e66a45bccf814a30d272d25194a0 committer  # A copy, made by git subtree split, of a published squash merge made with the hosting service's merge button; its history is kept.
+commit:124ab5c374dadd8ca338988b98e76068024e69e2 author  # A copy, made by git subtree split, of a published squash merge made with the hosting service's merge button; its history is kept.
+commit:124ab5c374dadd8ca338988b98e76068024e69e2 committer  # A copy, made by git subtree split, of a published squash merge made with the hosting service's merge button; its history is kept.
+commit:e08d2bd3bdcc59620b668efad8e57fb940c4bcb1 author  # A copy, made by git subtree split, of a published squash merge made with the hosting service's merge button; its history is kept.
+commit:e08d2bd3bdcc59620b668efad8e57fb940c4bcb1 committer  # A copy, made by git subtree split, of a published squash merge made with the hosting service's merge button; its history is kept.
+commit:f54f21bace147e585c8c9b81775d203b504c92a7 author  # A copy, made by git subtree split, of a published squash merge made with the hosting service's merge button; its history is kept.
+commit:f54f21bace147e585c8c9b81775d203b504c92a7 committer  # A copy, made by git subtree split, of a published squash merge made with the hosting service's merge button; its history is kept.
+commit:45abe35df0896395ffbf153e564e068372661f79 author  # A copy, made by git subtree split, of a published squash merge made with the hosting service's merge button; its history is kept.
+commit:45abe35df0896395ffbf153e564e068372661f79 committer  # A copy, made by git subtree split, of a published squash merge made with the hosting service's merge button; its history is kept.
+commit:afc0590d88a358a9a465d2243add0999177d2575 author  # A copy, made by git subtree split, of a published squash merge made with the hosting service's merge button; its history is kept.
+commit:afc0590d88a358a9a465d2243add0999177d2575 committer  # A copy, made by git subtree split, of a published squash merge made with the hosting service's merge button; its history is kept.
+commit:2c37f550111a990c600d0dae0d6158638ea470de author  # A copy, made by git subtree split, of a published squash merge made with the hosting service's merge button; its history is kept.
+commit:2c37f550111a990c600d0dae0d6158638ea470de committer  # A copy, made by git subtree split, of a published squash merge made with the hosting service's merge button; its history is kept.
+commit:b37b01421b8914404162b59f5e2623fba2a57200 author  # A copy, made by git subtree split, of a published squash merge made with the hosting service's merge button; its history is kept.
+commit:b37b01421b8914404162b59f5e2623fba2a57200 committer  # A copy, made by git subtree split, of a published squash merge made with the hosting service's merge button; its history is kept.
+commit:deba32a88ebb0557c8b7b99de8bfd52c6e5477d9 author  # A copy, made by git subtree split, of a published squash merge made with the hosting service's merge button; its history is kept.
+commit:deba32a88ebb0557c8b7b99de8bfd52c6e5477d9 committer  # A copy, made by git subtree split, of a published squash merge made with the hosting service's merge button; its history is kept.
+commit:f7401a822407f71670e03da3260bf66da0a2c784 author  # A copy, made by git subtree split, of a published squash merge made with the hosting service's merge button; its history is kept.
+commit:f7401a822407f71670e03da3260bf66da0a2c784 committer  # A copy, made by git subtree split, of a published squash merge made with the hosting service's merge button; its history is kept.

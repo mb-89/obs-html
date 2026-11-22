@@ -8,16 +8,18 @@ const path = require("node:path");
 const vm = require("node:vm");
 
 const root = path.resolve(__dirname, "..");
+// The core's checkout, which test/test_node_units.py names (test/conftest.py, CORE_ROOT).
+const core = process.env.OBS_CORE_ROOT || path.resolve(root, "..", "obs");
 const schema = fs.readFileSync(path.join(root, "src", "obs_html", "base.schema.json"), "utf8");
 // The core's case-folding table, which the page embeds as #case-folding.
-const folding = fs.readFileSync(path.join(root, "..", "..", "src", "obs", "case-folding.json"), "utf8");
+const folding = fs.readFileSync(path.join(core, "src", "obs", "case-folding.json"), "utf8");
 const islands = {"#base-schema": schema, "#case-folding": folding};
 globalThis.document = {querySelector: selector => selector in islands ? {textContent: islands[selector]} : null};
 vm.runInThisContext(fs.readFileSync(path.join(root, "src", "obs_html", "base.js"), "utf8"));
 vm.runInThisContext(fs.readFileSync(path.join(root, "src", "obs_html", "query.js"), "utf8"));
 
 const fixture = JSON.parse(fs.readFileSync(
-    path.join(root, "..", "..", "test", "fixtures", "bases-filter-conformance.json"), "utf8"));
+    path.join(core, "test", "fixtures", "bases-filter-conformance.json"), "utf8"));
 // Artifact records also carry the reader's own fields; a condition must not see them.
 const records = fixture.records.map(record => ({
     id: record.id, sourcePath: record.path, frontmatter: record.frontmatter,

@@ -14,6 +14,8 @@ const vm = require("node:vm");
 const {pathToFileURL} = require("node:url");
 
 const root = path.resolve(__dirname, "..");
+// The core's checkout, which test/test_node_units.py names (test/conftest.py, CORE_ROOT).
+const core = process.env.OBS_CORE_ROOT || path.resolve(root, "..", "obs");
 const vectors = require(path.join(__dirname, "fixtures", "pugh-vectors.json"));
 
 (async () => {
@@ -39,7 +41,7 @@ const vectors = require(path.join(__dirname, "fixtures", "pugh-vectors.json"));
   ]) assert.equal(page.obsPugh.labelAdds(short, label), adds, `labelAdds(${short}, ${label})`);
 
   const yaml = require(path.join(root, "src", "obs_html", "vendor", "js-yaml.min.js"));
-  const deck = path.resolve(root, "..", "..", "spec", "examples", "bless-deck");
+  const deck = path.resolve(core, "spec", "examples", "bless-deck");
   const fence = note => yaml.load(fs.readFileSync(path.join(deck, note), "utf8").match(/```pugh\n([\s\S]*?)\n```/)[1]);
   const decided = spec => {
     const {result} = page.obsPugh.decide(spec);

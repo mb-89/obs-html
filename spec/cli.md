@@ -308,13 +308,5 @@ The project's PowerShell scripts and wrappers follow this rule for every native 
 
 ## Setup
 
-`RUNME.conf` at the repository root declares, once, what obs needs on a machine with only its
-package manager, Git, curl, uv and npm, each with the ways to install it, and obs's command line;
-the header of `RUNME.sh` owns its format. npm is there because the core's first build fetches its
-diagram renderers with it. No browser is declared: a diagram or a PDF uses an installed Chrome,
-Edge or Chromium, and a build without one names the command that installs Playwright's.
-
-`RUNME.sh` and `RUNME.ps1` are se's generic pair, byte for byte se's at obs's se pin. They install
-what `RUNME.conf` declares and the machine lacks, then hand every argument to `uv run
-obs-document` in the caller's folder. Neither has an option of its own: `--help` prints
-obs-document's help.
+obs's `spec/design_input/cli.md`, Setup, owns obs's RUNME pair and what it installs; this adapter
+adds nothing to it.

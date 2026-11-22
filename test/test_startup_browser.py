@@ -23,7 +23,7 @@ runners painted the same commit's first chapter between 0.4 s and 1.8 s, while i
 whole startup stayed between a quarter and two fifths, so there the test records the times and
 does not judge them.
 
-On CI the second is judged by the median of five runs alone, by the core's test/first_chapter.py,
+On CI the second is judged by the median of five runs alone, by test/first_chapter.py,
 outside the suite's shards: it sets MEDIAN_VARIABLE, so each run records its times (the junit
 properties "startup painted ms" and "startup first chapter budget ms") and judges only the order,
 and it judges the median against the budget each run recorded.

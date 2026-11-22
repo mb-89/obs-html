@@ -4,6 +4,8 @@ import json
 import os
 import shutil
 import subprocess
+import tempfile
+import tomllib
 import types
 from pathlib import Path
 
@@ -23,15 +25,29 @@ FIXTURE = ROOT / "test" / "fixtures" / "documents" / "document.json"
 # The browser tier's feature fixture (obs quality.md, Testing boundaries): every registered feature
 # in a few chapters (test/fixtures/build_documents.py, features).
 FEATURE_FIXTURE = ROOT / "test" / "fixtures" / "documents" / "features.json"
-CORE_ROOT = ROOT.parents[1]
+# The core's checkout beside this repository, at the tag pyproject.toml's obs source pins (README
+# "Core"); OBS_CORE_ROOT names another.
+CORE_ROOT = Path(os.environ.get("OBS_CORE_ROOT") or ROOT.parent / "obs").resolve()
+if not (CORE_ROOT / "src" / "obs" / "document.schema.json").is_file():
+    raise pytest.UsageError(f"test/conftest.py: {CORE_ROOT} holds no checkout of obs. Remedy: clone obs at the tag "
+                            "pyproject.toml's [tool.uv.sources] obs names beside this repository, as ../obs, or name "
+                            "the checkout in OBS_CORE_ROOT (README, Core).")
 # The made-up local themes the feature fixture carries (spec/configuration.md, Local themes).
 LOCAL_THEMES = ROOT / "test" / "fixtures" / "local-themes"
 # No test, and no build a test starts, reads the build machine's local themes: the folder named
 # here does not exist. A test that needs themes sets the variable for its own call.
 os.environ["OBS_HTML_LOCAL_FOLDER"] = str(ROOT.resolve() / "test" / "fixtures" / "no-local-folder")
 # No build a test starts reads the build machine's installed components (obs's
-# spec/design_input/components.md, Installed components): the core finds html in obs's tree.
-os.environ["OBS_LOCAL_FOLDER"] = str(ROOT.resolve() / "test" / "fixtures" / "no-local-folder")
+# spec/design_input/components.md, Installed components): each process gets a machine folder of its
+# own whose one installed component is this checkout, as the adapter component html.
+MACHINE = Path(tempfile.mkdtemp(prefix="obs-html-machine-"))
+(MACHINE / "components").mkdir()
+(MACHINE / "components" / "html").symlink_to(ROOT.resolve(), target_is_directory=True)
+(MACHINE / "components.json").write_text(json.dumps({"components": [{
+    "name": "html", "kind": "adapter",
+    "version": tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"]["version"],
+    "commit": "0" * 40}]}), encoding="utf-8")
+os.environ["OBS_LOCAL_FOLDER"] = str(MACHINE)
 
 
 def _core_module(name: str) -> types.ModuleType:
@@ -49,12 +65,25 @@ def _core_module(name: str) -> types.ModuleType:
 suite = _core_module("suite")
 spec_build = _core_module("spec_build")
 bounds = _core_module("bounds")
+# The core's suite names this repository by the part name it had in obs's tree, adapters/html, so its
+# committed weights deal this suite's groups (test/suite.py, heaviest_first).
+_core_part_name = suite.part_name
+suite.part_name = lambda part: "adapters/html" if part.resolve() == ROOT.resolve() else _core_part_name(part)
+# This repository's Node test package, which the core's suite does not hold.
+NODE_PACKAGE = ROOT / "test" / "browser"
 
 
 def pytest_sessionstart(session):
-    """A focused run installs the suite's Node test packages where they are missing or stale; the
-    JUnit report, where the run writes one, names the part's worker count (test/suite.py)."""
-    suite.set_up_focused_run(session.config)
+    """A run installs this repository's Node test package where it is missing or stale, as the
+    core's suite installs its own (test/suite.py, install_node_packages); the JUnit report, where the
+    run writes one, names the worker count (test/suite.py)."""
+    if not hasattr(session.config, "workerinput"):
+        lock = Path(tempfile.gettempdir()) / "obs-html-node-setup.lock"
+        try:
+            with FileLock(lock):
+                suite.install_node_packages([NODE_PACKAGE])
+        except suite.InstallError as error:
+            pytest.exit(str(error), returncode=1)
     suite.record_workers(session.config)
 
 

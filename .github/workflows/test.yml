@@ -1,0 +1,61 @@
+name: test
+
+# obs-html's CI: its suite against the core release pyproject.toml pins (README "Core"). The core is
+# checked out beside this repository, as ../obs, from the repository obs of the same owner.
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: obs-html
+      - uses: astral-sh/setup-uv@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Check out the pinned core beside
+        env:
+          CORE_URL: ${{ github.server_url }}/${{ github.repository_owner }}/obs.git
+        run: |
+          tag=$(python3 -c 'import tomllib; print(tomllib.load(open("obs-html/pyproject.toml", "rb"))["tool"]["uv"]["sources"]["obs"]["tag"])')
+          echo "core: obs $tag, the release pyproject.toml pins"
+          git clone --quiet --depth 1 --branch "$tag" "$CORE_URL" obs
+      - name: Set up the core's test packages and browser
+        working-directory: obs
+        run: uv run python test/suite.py --setup
+      - name: Suite
+        working-directory: obs-html
+        run: uv run pytest
+  # The spec artifact's first chapter within a second (spec/artifact-ui.md), judged outside the
+  # suite: test/first_chapter.py runs that one test alone five times and judges their median; its
+  # docstring owns how, and its BLOCKING whether a miss fails this job.
+  first-chapter:
+    name: first chapter
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: obs-html
+      - uses: astral-sh/setup-uv@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Check out the pinned core beside
+        env:
+          CORE_URL: ${{ github.server_url }}/${{ github.repository_owner }}/obs.git
+        run: |
+          tag=$(python3 -c 'import tomllib; print(tomllib.load(open("obs-html/pyproject.toml", "rb"))["tool"]["uv"]["sources"]["obs"]["tag"])')
+          git clone --quiet --depth 1 --branch "$tag" "$CORE_URL" obs
+      - name: Set up the core's test packages and browser
+        working-directory: obs
+        run: uv run python test/suite.py --setup
+      - name: First chapter, median of five runs alone
+        working-directory: obs-html
+        run: uv run python test/first_chapter.py

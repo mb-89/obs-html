@@ -5,13 +5,29 @@ else, to portable HTML or PDF.
 
 ## Core
 
-This adapter is the `adapters/html` folder of obs and a member of its uv workspace: it depends on
-the core of the same commit through a workspace path dependency, so a core change and its adapter
-change land together. Its tests run from this folder and test only the adapter:
+This adapter is the component `html` of obs (obs's `spec/design_input/components.md`), in a
+repository of its own; from 5 to 22 Nov 2026 it was the folder `adapters/html` of obs, whose history
+this repository continues. It depends on one core release, the tag of obs that `[tool.uv.sources]`
+in `pyproject.toml` names: the adapter reads the core's schemas, its Document contract, as the `obs`
+package's data and imports no core module. Its tests read the core's checkout at that tag beside
+this repository, `../obs` (or the folder `OBS_CORE_ROOT` names), and install this checkout as the
+component `html` of a machine folder of their own. With that checkout set up
+(`uv run python test/suite.py --setup` in it), the tests run from here and test only the adapter:
 
-```powershell
+```sh
+git clone --branch <the pinned tag> <obs's address> ../obs
 uv run pytest
 ```
+
+Moving the pin is one change of that tag, made with `uv lock`. CI does the same
+(`.github/workflows/test.yml`).
+
+## Release
+
+A release is the tag `obs-component/adapter/html/v<version>` on main, at the version
+`pyproject.toml` holds; `.github/workflows/release.yml` checks the tag against it and publishes the
+release. obs's `obs-components install html` finds it among the repositories of the owner that
+carry the topic `obs-component`.
 
 ## Adapter
 
@@ -35,7 +51,7 @@ The adapter's own features are documented as capability notes in
 [attachment replacement](spec/capabilities/attachment-replacement.md).
 
 The artifact runtime's DOM tests run in Node over a test-only DOM adapter, which the complete
-suite's setup (`uv run python test/suite.py --setup` from the repository root) installs; then `uv run pytest -m dom`
+test run installs from `test/browser/package-lock.json`; then `uv run pytest -m dom`
 runs that tier alone.
 
 The artifact verification harness, `test/browser/artifact-harness.cjs`, opens a rendered artifact in that

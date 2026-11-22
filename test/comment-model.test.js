@@ -11,6 +11,8 @@ const path = require("node:path");
 const vm = require("node:vm");
 
 const root = path.resolve(__dirname, "..");
+// The core's checkout, which test/test_node_units.py names (test/conftest.py, CORE_ROOT).
+const core = process.env.OBS_CORE_ROOT || path.resolve(root, "..", "obs");
 vm.runInThisContext(fs.readFileSync(path.join(root, "src", "obs_html", "comment-model.js"), "utf8"));
 const model = globalThis.obsCommentModel;
 const read = (...parts) => JSON.parse(fs.readFileSync(path.join(...parts), "utf8"));
@@ -30,7 +32,7 @@ const reply = {id: "r", author: "A", created: "2026-11-09T10:00:00Z", body: {med
 assert.throws(() => model.fromCore({version: 1, files: [], comments: [reply], decisions: []}), /answers/);
 assert.throws(() => model.fromCore({version: 2, annotations: []}), /version 1/);
 
-const conformance = read(root, "..", "..", "test", "fixtures", "review-state-conformance.json");
+const conformance = read(core, "test", "fixtures", "review-state-conformance.json");
 for (const {target, reviewer, expected} of conformance.cases) {
     assert.equal(model.reviewState(conformance.decisions, target, reviewer), expected,
         `${JSON.stringify(target)} ${reviewer ?? "aggregate"}`);

@@ -1,9 +1,12 @@
 """Runs the standalone Node unit tests (``test/*.test.js`` and ``test/*.test.mjs``) and syntax-checks every runtime ``.js``."""
+import os
 import shutil
 import subprocess
 from pathlib import Path
 
 import pytest
+
+from conftest import CORE_ROOT
 
 TEST_ROOT = Path(__file__).resolve().parent
 NODE_TESTS = sorted([*TEST_ROOT.glob("*.test.js"), *TEST_ROOT.glob("*.test.mjs")])
@@ -44,5 +47,6 @@ def test_runtime_script_syntax(script: Path):
 
 @pytest.mark.parametrize("script", NODE_TESTS, ids=lambda path: path.name)
 def test_node_unit(script: Path):
-    result = subprocess.run([_node(), str(script)], cwd=TEST_ROOT.parent, capture_output=True, text=True)
+    result = subprocess.run([_node(), str(script)], cwd=TEST_ROOT.parent, capture_output=True, text=True,
+                            env={**os.environ, "OBS_CORE_ROOT": str(CORE_ROOT)})
     assert result.returncode == 0, result.stdout + result.stderr

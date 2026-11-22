@@ -1,8 +1,9 @@
 # Agent guide
 
-This folder is the HTML adapter of the obs repository. The repository's
-[AGENTS.md](../../AGENTS.md) applies here in full: its public safety policy, authored-prose rule,
-invariants and commit identity. This file adds only what is specific to the adapter.
+This repository is obs's HTML adapter, the component `html`. obs's `AGENTS.md` applies here in full:
+its public safety policy, authored-prose rule, invariants and commit identity. This file adds only
+what is specific to the adapter. The [README](README.md#core) owns how the adapter depends on a core
+release and how its tests reach the core's checkout.
 
 ## Commands
 

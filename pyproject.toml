@@ -1,6 +1,6 @@
 [project]
 name = "obs-html"
-version = "0.1.0"
+version = "1.0.0"
 description = "Render a JSON Document as portable HTML or PDF."
 requires-python = ">=3.11"
 license = "MIT"
@@ -23,7 +23,10 @@ obs-html = "obs_html.cli:main"
 obs-html-inspect = "obs_html.pdf_inspect:main"
 
 [tool.uv.sources]
-obs = { workspace = true }
+# The core release this adapter is built and tested against: it reads the core's schemas, its Document
+# contract, as the obs package's data, and imports no core module. The tests read the core's checkout
+# at the same tag beside this repository, ../obs (README "Core").
+obs = { git = "https://github.com/mb-89/obs", tag = "v7.0.0" }
 
 [dependency-groups]
 dev = [

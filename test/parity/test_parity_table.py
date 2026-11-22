@@ -35,7 +35,17 @@ import pytest
 
 TABLE = Path(__file__).with_name("features.md")
 ADAPTER = Path(__file__).parents[2]
-ROOT = ADAPTER.parents[1]
+# The core's checkout (test/conftest.py, CORE_ROOT). The table names a file by its path in obs's tree,
+# where this adapter was the folder adapters/html: located() reads such a path in this repository and
+# any other in the core's checkout.
+from conftest import CORE_ROOT as ROOT  # noqa: E402
+PREFIX = "adapters/html/"
+SHOWN = PREFIX + "test/parity/features.md"
+
+
+def located(path: str) -> Path:
+    """The file the table's ``path`` names: this repository's for a path under adapters/html, else the core's."""
+    return ADAPTER / path.removeprefix(PREFIX) if path.startswith(PREFIX) else ROOT / path
 OWNER = "adapters/html/test/parity/test_parity_table.py"
 STATUSES = {"same", "added", "known difference", "missing"}
 SECTIONS = ("CLI options", "Settings", "Capabilities", "Reader controls", "Input and checks", "Output forms")
@@ -59,7 +69,7 @@ class Row:
         return match[1] if match else self.feature
 
     def where(self) -> str:
-        return f"{TABLE.relative_to(ROOT).as_posix()}:{self.line}: {self.section}, {self.key!r}"
+        return f"{SHOWN}:{self.line}: {self.section}, {self.key!r}"
 
 
 def rows() -> list[Row]:
@@ -75,7 +85,7 @@ def rows() -> list[Row]:
             continue
         if len(cells) != 5:
             raise AssertionError(
-                f"{TABLE.relative_to(ROOT).as_posix()}:{number}: has {len(cells)} cells, not 5 "
+                f"{SHOWN}:{number}: has {len(cells)} cells, not 5 "
                 "(Feature, Interim, Integrated, Status, Evidence). Write | inside a cell as \\| or "
                 f"reword it; see {OWNER}")
         found.append(Row(number, section, cells))
@@ -99,7 +109,7 @@ def problems(row: Row) -> list[str]:
             return [f"says {row.status} but names no test. Name the test that shows it as `path::test_name`, "
                     "or add the smallest one"]
         return [f"names {path}::{name}, which is not a test there. Correct the name or the path"
-                for path, name in references if not defines(ROOT / path, name)]
+                for path, name in references if not defines(located(path), name)]
     if row.status == "known difference":
         if ISSUE.search(row.evidence):
             return []
@@ -108,7 +118,7 @@ def problems(row: Row) -> list[str]:
             return ["says known difference but names no issue (#n) or design note (path.md#anchor) "
                     "that decided it. Name it, or the row is missing"]
         return [f"names the design note {path}, which does not exist. Correct the path"
-                for path, _ in decisions if not (ROOT / path).is_file()]
+                for path, _ in decisions if not located(path).is_file()]
     if row.status == "missing":
         return [] if ISSUE.search(row.evidence) else [
             "says missing but names no issue (#n). Name the issue that tracks the gap"]
@@ -208,7 +218,7 @@ def named(section: str) -> list[tuple[Row, str, str]]:
 def compare(listed: set[str], offered: set[str], section: str, source: str) -> None:
     unlisted = sorted(offered - listed)
     assert not unlisted, (
-        f"{TABLE.relative_to(ROOT).as_posix()}: {section}: {source} offers {', '.join(unlisted)}, which no "
+        f"{SHOWN}: {section}: {source} offers {', '.join(unlisted)}, which no "
         f"row lists. Add a row each (status added for a feature the interim did not have); see {OWNER}")
 
 
@@ -266,7 +276,7 @@ def test_every_capability_has_a_row() -> None:
            for note in (ROOT / "spec" / "capabilities").glob("*.md")}
     compare(set(keys("Capabilities")), ids, "Capabilities", "spec/capabilities")
     unknown = sorted(set(keys("Capabilities")) - ids)
-    assert not unknown, (f"{TABLE.relative_to(ROOT).as_posix()}: Capabilities: rows list {', '.join(unknown)}, "
+    assert not unknown, (f"{SHOWN}: Capabilities: rows list {', '.join(unknown)}, "
                          f"which spec/capabilities does not hold. Correct or remove them; see {OWNER}")
 
 
@@ -362,7 +372,7 @@ def test_a_shared_setting_keeps_its_schema_default_limits_and_reader(row, owner,
     name = key.rsplit(".", 1)[-1]
     readers = [path for path in sources if name in path.read_text(encoding="utf-8")]
     assert readers or name_only(key), (
-        f"{row.where()}: no code of {package.relative_to(ROOT).as_posix()} reads {key}: the setting "
+        f"{row.where()}: no code of {(PREFIX + package.relative_to(ADAPTER).as_posix() if package.is_relative_to(ADAPTER) else package.relative_to(ROOT).as_posix())} reads {key}: the setting "
         f"is accepted but changes nothing. Read it, or say missing; see {OWNER}")
 
 

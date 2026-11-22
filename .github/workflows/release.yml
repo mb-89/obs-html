@@ -1,0 +1,37 @@
+name: release
+
+# A release of the component html is a tag obs-component/adapter/html/v<major>.<minor>.<patch> (obs's
+# spec/design_input/components.md, A component). On such a tag this checks that it names the version
+# pyproject.toml holds and that adapter.json names the component, then publishes the GitHub release.
+on:
+  push:
+    tags: ["obs-component/adapter/html/v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: The tag names this release
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          python3 - <<'PY'
+          import json, os, re, sys, tomllib
+          tag = os.environ["TAG"]
+          match = re.fullmatch(r"obs-component/adapter/html/v(\d+\.\d+\.\d+)", tag)
+          version = tomllib.load(open("pyproject.toml", "rb"))["project"]["version"]
+          name = json.load(open("adapter.json", encoding="utf-8"))["name"]
+          if not match or match.group(1) != version or name != "html":
+              sys.exit(f"release: {tag}: names version {match and match.group(1)}, but pyproject.toml holds "
+                       f"{version} and adapter.json names {name!r}. Remedy: tag obs-component/adapter/html/v{version}.")
+          print(f"release: {tag} is html {version}")
+          PY
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: gh release create "$TAG" --verify-tag --title "html ${TAG##*/v}" --notes "The adapter component html at ${TAG##*/}."

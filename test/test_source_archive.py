@@ -206,15 +206,15 @@ def test_reproduce_runs_recorded_command_fences_only_when_asked(tmp_path: Path) 
     assert "--execute-commands" in reproduce.steps(config, here, BUILD["repository"], execute_commands=True)[-1].command
 
 
-CORE_ROOT = ROOT.parents[1]
-OBS_VERSION = tomllib.loads((CORE_ROOT / "se.toml").read_text(encoding="utf-8"))["project"]["version"]
-"""obs's version, at which the adapter of obs's tree is the component html (obs's components note,
-Recording what built a page)."""
+INSTALLED = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"]["version"]
+"""The version at which test/conftest.py installs this checkout as the component html (obs's components
+note, Installed components)."""
 
 
 def rebuilt(folder: Path, *recorded: dict[str, str]) -> subprocess.CompletedProcess:
     """The recorded command of an archive whose build used the ``recorded`` components, run as
-    reproduce.py runs it, from the extracted folder, on a machine with no installed component."""
+    reproduce.py runs it, from the extracted folder, on the machine test/conftest.py makes, whose one
+    installed component is this checkout as html."""
     source = archived()
     source["sourceArchive"]["files"] = [
         {"path": "manifest.md", "data": base64.b64encode(b"- [[one]]\n").decode("ascii")},
@@ -226,10 +226,8 @@ def rebuilt(folder: Path, *recorded: dict[str, str]) -> subprocess.CompletedProc
     with zipfile.ZipFile(io.BytesIO(embedded(render(source, CONFIG), "artifact.html"))) as opened:
         opened.extractall(folder)
     command = json.loads((folder / "build-config.json").read_text(encoding="utf-8"))["command"]
-    machine = folder.parent / "machine"
-    machine.mkdir()
     return subprocess.run([sys.executable, "-m", "obs.document", *command[1:]], capture_output=True, text=True,
-                          cwd=folder, env={**os.environ, "OBS_LOCAL_FOLDER": str(machine)})
+                          cwd=folder, env=os.environ)
 
 
 def test_a_rebuild_with_another_installed_version_warns_naming_the_component_and_both_versions(
@@ -240,12 +238,12 @@ def test_a_rebuild_with_another_installed_version_warns_naming_the_component_and
     assert result.returncode == 0, result.stderr
     warning = next(line for line in result.stderr.splitlines() if "--recorded-components" in line)
     assert "components[0]" in warning and "'html'" in warning
-    assert "0.0.1" in warning and OBS_VERSION in warning
+    assert "0.0.1" in warning and INSTALLED in warning
     assert (tmp_path / "archive" / "report.html").is_file()
 
 
 def test_a_rebuild_whose_recorded_component_is_absent_fails_naming_it(tmp_path: Path) -> None:
-    html = {"name": "html", "kind": "adapter", "version": OBS_VERSION, "commit": "ab" * 20}
+    html = {"name": "html", "kind": "adapter", "version": INSTALLED, "commit": "ab" * 20}
     absent = {"name": "paper", "kind": "style", "version": "1.0.0", "commit": "cd" * 20}
 
     result = rebuilt(tmp_path / "archive", html, absent)
