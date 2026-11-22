@@ -77,10 +77,8 @@ scripts folder first on `PATH`: a fence finds the programs installed beside obs-
 whose build wrote no specification fails naming the missing manifest and the remedy, to build the
 package again; a failed core build names the core's message.
 
-The command exists so that a vault can carry this specification without reaching outside itself:
-obs's specification builds it into its References with this command (obs's appendix, obs-html
-specification: [[obs-specification|obs's specification]]), so its source archive rebuilds it with
-the installed obs at the recorded commit ([[input-model#Optional reproduction archive]]).
+The command exists because obs-html is a component in its own repository, so it builds its own
+specification from the package it ships.
 
 ## One Document per call
 
