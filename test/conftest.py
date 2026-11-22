@@ -232,6 +232,7 @@ def pytest_sessionfinish(session):
         pool.close()
     POOLS.clear()
     PROCESS_POOLS.clear()
+    FAKE_BROWSER.close()
     if process_playwright.cache_info().currsize:
         process_playwright().stop()
         process_playwright.cache_clear()
@@ -240,6 +241,7 @@ def pytest_sessionfinish(session):
 @pytest.hookimpl(wrapper=True)
 def pytest_runtest_makereport(item, call):
     report = yield
+    fake_defaults(report)
     network_guard.fail(report)
     crashed(report)
     if bounds.timed_out(report):
@@ -827,3 +829,42 @@ def overlay_scrollbar_browser(overlay_scrollbar_pool):
         yield lease
     finally:
         lease.close()
+
+
+# The fake browser (test/browser/browser-door.md, The fake browser): one Node process per test
+# process hosts happy-dom, started on the first ``fake_page``; pytest_sessionfinish ends it.
+from browser.fake_page import FakeBrowser  # noqa: E402
+
+FAKE_BROWSER = FakeBrowser()
+# The fake pages of the running test, whose default answers its report lists (fake_defaults).
+FAKE_PAGES: list = []
+# The report section that lists them.
+FAKE_DEFAULTS_SECTION = "fake browser: default answers"
+
+
+@pytest.fixture
+def fake_page():
+    """A page of the fake browser, happy-dom in Node, at Playwright's default viewport; a logic test
+    takes it in place of ``reader_browser`` (browser-door.md, Classification). It starts no Chromium."""
+    page = FAKE_BROWSER.new_page()
+    FAKE_PAGES.append(page)
+    try:
+        yield page
+    finally:
+        page.close()
+
+
+def fake_defaults(report) -> None:
+    """Add to a test phase's report the default answers its fake pages gave during that phase: each
+    call, the element's key and the answer, with how often (browser-door.md, Recording and replay)."""
+    if not FAKE_PAGES:
+        return
+    given: dict[str, int] = {}
+    for page in FAKE_PAGES:
+        for entry in page.take_defaults():
+            given[entry["answer"]] = given.get(entry["answer"], 0) + entry["times"]
+    if report.when == "teardown":
+        FAKE_PAGES.clear()
+    if given:
+        report.sections.append((f"{FAKE_DEFAULTS_SECTION} ({report.when})", "\n".join(
+            f"{answer} ({times}x)" for answer, times in sorted(given.items()))))

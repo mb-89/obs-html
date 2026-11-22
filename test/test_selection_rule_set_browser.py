@@ -1,4 +1,4 @@
-"""Native-browser tier: every live selection follows the one rule set (obs capabilities/bases#Comparisons).
+"""Fake-browser tier: every live selection follows the one rule set (obs capabilities/bases#Comparisons).
 
 The reader's filter, the counts recomputed under it, facet pills and Sankey drill-downs select
 with one evaluator (query.js); the shared fixture's cases run in bases-filter-conformance.test.js.
@@ -9,11 +9,12 @@ import json
 import pytest
 
 from artifacts import artifact_html
+from browser.fake_page import expect
 
 from documents import card_document, chapter, document as build, heading, node
 
 
-pytestmark = pytest.mark.browser
+pytestmark = pytest.mark.dom
 # Values and property names that differ only in case.
 FLOW = (("a", "flow-record", "target", "approved"), ("b", "flow-record", "target", "Approved"),
         ("c", "Flow-Record", "Target", "APPROVED"), ("d", "flow-record", "target", "rejected"),
@@ -51,10 +52,11 @@ def _sankey(graph: dict) -> dict:
     return {"type": "figures", "attrs": {"kind": "sankey"}, "children": [node("sankey", graph=graph)]}
 
 
-def _open(tmp_path, reader_browser, source: dict, start: str = "flow"):
+def _open(tmp_path, fake_page, source: dict, start: str = "flow"):
     artifact = tmp_path / "artifact.html"
     artifact.write_text(artifact_html(source), encoding="utf-8")
-    page = reader_browser.new_page(viewport={"width": 1440, "height": 1000})
+    page = fake_page
+    page.set_viewport_size({"width": 1440, "height": 1000})
     errors: list[str] = []
     page.on("pageerror", lambda error: errors.append(str(error)))
     page.goto(artifact.as_uri())
@@ -64,11 +66,11 @@ def _open(tmp_path, reader_browser, source: dict, start: str = "flow"):
 
 
 @pytest.fixture
-def flow_page(tmp_path, reader_browser):
+def flow_page(tmp_path, fake_page):
     records = tuple(_record(f"record-{name}", {"kind": kind, key: target}) for name, kind, key, target in FLOW)
     source = build("Flow", chapter("flow", "Flow", heading(1, "Flow"), _sankey(GRAPH)), records=records,
                    metadata=_scope("flow-record"))
-    page, errors = _open(tmp_path, reader_browser, source)
+    page, errors = _open(tmp_path, fake_page, source)
     yield page
     assert errors == []
 
@@ -104,7 +106,7 @@ def test_reader_filter_and_where_equals_select_the_same_rows(flow_page, expressi
     assert counted == expected
 
 
-def test_a_distinct_count_reads_its_property_as_conditions_do(tmp_path, reader_browser) -> None:
+def test_a_distinct_count_reads_its_property_as_conditions_do(tmp_path, fake_page) -> None:
     """A distinct count resolves its property's name and reads its text like a condition: a
     slug is the reader's own field, no property, so it counts nothing."""
     spec = {"version": 1, "cards": [{"title": "Flow", "metrics": [
@@ -119,8 +121,7 @@ def test_a_distinct_count_reads_its_property_as_conditions_do(tmp_path, reader_b
     records = tuple(_record(f"record-{name}", {"kind": kind, key: target, "owner": {"name": owners[name]}})
                     for name, kind, key, target in FLOW)
     source = build("Cards", chapter("flow", "Flow", heading(1, "Flow")), abstract=(cards,), records=records)
-    page, errors = _open(tmp_path, reader_browser, source, "home")
-    from playwright.sync_api import expect
+    page, errors = _open(tmp_path, fake_page, source, "home")
     card = page.locator("[data-active-chapter] [data-record-card]").first
     # Distinct texts: approved, Approved, APPROVED, rejected, Rejected.
     expect(card.locator("[data-record-metric='0'] strong")).to_have_text("5")
@@ -130,15 +131,14 @@ def test_a_distinct_count_reads_its_property_as_conditions_do(tmp_path, reader_b
     assert errors == []
 
 
-def test_a_facet_pill_retains_exactly_the_rows_it_counts(tmp_path, reader_browser) -> None:
+def test_a_facet_pill_retains_exactly_the_rows_it_counts(tmp_path, fake_page) -> None:
     """A pill counts one spelling; values differing only in case are other pills."""
     statuses = ["open", "open", "open", "Open", "Open", "closed"]
     records = tuple(_record(f"item-{index}", {"kind": "item", "status": status})
                     for index, status in enumerate(statuses))
     source = build("Facets", chapter("flow", "Flow", heading(1, "Flow")), records=records,
                    metadata=_scope("item"))
-    page, errors = _open(tmp_path, reader_browser, source, "home")
-    from playwright.sync_api import expect
+    page, errors = _open(tmp_path, fake_page, source, "home")
     page.evaluate("obsArtifact.openBar('filter')")
     page.locator(".filter-field-button", has_text="status").click()
     pill = page.locator('[role="menuitemcheckbox"][data-filter-value="open"]')

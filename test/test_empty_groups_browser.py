@@ -1,4 +1,4 @@
-"""Native-browser tier: a view's groupOrder, and the listed groups no row has (obsHtml.showEmptyGroups).
+"""Fake-browser tier: a view's groupOrder, and the listed groups no row has (obsHtml.showEmptyGroups).
 
 The owner is generic-tables.md (the grouping rules, the group anchor rule and pagination): groupOrder
 lists a grouped property's values in display order, unlisted values following in the groupBy
@@ -14,7 +14,7 @@ from artifacts import artifact_html
 from documents import chapter, document as build, heading, node
 
 
-pytestmark = pytest.mark.browser
+pytestmark = pytest.mark.dom
 ORDER = ["design", "build", "commissioning"]
 TASKS = (("t1", "design"), ("t2", "design"), ("t3", "build"), ("t4", "build"))
 # Rows of another kind, whose phases groupOrder does not list.
@@ -85,8 +85,9 @@ def artifacts(tmp_path_factory) -> dict[str, str]:
 
 
 @pytest.fixture
-def open_chapter(artifacts, reader_browser):
-    page = reader_browser.new_page(viewport={"width": 1280, "height": 900})
+def open_chapter(artifacts, fake_page):
+    page = fake_page
+    page.set_viewport_size({"width": 1280, "height": 900})
     page.set_default_timeout(5000)
     errors: list[str] = []
     page.on("pageerror", lambda error: errors.append(str(error)))

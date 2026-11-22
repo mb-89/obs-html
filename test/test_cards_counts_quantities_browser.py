@@ -1,20 +1,22 @@
-"""Native-browser tier: the cards runtime (cards.js) counts as the interim adapter's did.
+"""Fake-browser tier: the cards runtime (cards.js) counts as the interim adapter's did.
 
 Moved from the interim's native card and quantity checks (obs test_cards_browser.py,
 test_query_quantities_browser.py), rebuilt on Documents as the core emits them.
 """
 import json
+import re
 from urllib.parse import quote
 
 import pytest
 
 from artifacts import artifact_html
+from browser.fake_page import expect
 from conftest import ROOT
 
 from documents import card_document, chapter, document as build, heading, node, paragraph, text
 
 
-pytestmark = pytest.mark.browser
+pytestmark = pytest.mark.dom
 SERVICES = [("one", "a", "yes", "yes", "north"), ("two", "b", "no", "no", "south"),
             ("three", "a", "yes", "yes", "north")]
 
@@ -59,10 +61,11 @@ def _link(target: str, chapter_id: str, label: str = "") -> dict:
     return node("wikilinks", target=target, chapter=chapter_id, heading="", label=label or target)
 
 
-def _open(tmp_path, reader_browser, source: dict):
+def _open(tmp_path, fake_page, source: dict):
     artifact = tmp_path / "artifact.html"
     artifact.write_text(artifact_html(source), encoding="utf-8")
-    page = reader_browser.new_page(viewport={"width": 1440, "height": 900})
+    page = fake_page
+    page.set_viewport_size({"width": 1440, "height": 900})
     errors: list[str] = []
     page.on("pageerror", lambda error: errors.append(str(error)))
     page.goto(artifact.as_uri())
@@ -82,11 +85,10 @@ GLOBAL_CARDS = _cards(
 )
 
 
-def test_cards_follow_the_global_filter(tmp_path, reader_browser) -> None:
+def test_cards_follow_the_global_filter(tmp_path, fake_page) -> None:
     source = build("Cards", chapter("chapter", "Chapter", heading(1, "Operations")),
                    abstract=(GLOBAL_CARDS,), records=tuple(_services()))
-    page, errors = _open(tmp_path, reader_browser, source)
-    from playwright.sync_api import expect
+    page, errors = _open(tmp_path, fake_page, source)
     page.evaluate("obsPages.setPaged(false); obsArtifact.activateChapter('home')")
     card = page.locator("[data-active-chapter] [data-record-card]").first
     expect(card.locator("strong").first).to_have_text("66.7%")
@@ -103,7 +105,7 @@ def test_cards_follow_the_global_filter(tmp_path, reader_browser) -> None:
     assert errors == []
 
 
-def test_a_metric_drill_down_shows_exactly_its_counted_rows(tmp_path, reader_browser) -> None:
+def test_a_metric_drill_down_shows_exactly_its_counted_rows(tmp_path, fake_page) -> None:
     """A metric link names its table; its filter derives from the metric's from and where
     (obs capabilities/cards-metrics), so the table shows exactly the rows the value counts."""
     north = {"kind": "quantity", "aliases": ["northCount"], "source": "[[chapter]]",
@@ -119,8 +121,7 @@ def test_a_metric_drill_down_shows_exactly_its_counted_rows(tmp_path, reader_bro
                    _quantity("counts/north", "North", north), abstract=(cards,),
                    records=(*_services(("four", "c", "yes", "yes", "south")),
                             _record("counts/north", north, "counts/north.md")))
-    page, errors = _open(tmp_path, reader_browser, source)
-    from playwright.sync_api import expect
+    page, errors = _open(tmp_path, fake_page, source)
     page.evaluate("obsPages.setPaged(false); obsArtifact.activateChapter('home')")
     metric = page.locator("[data-active-chapter] .record-metrics--pills .record-metric-value").first
     expect(metric.locator("strong")).to_have_text("100.0%")
@@ -138,7 +139,7 @@ def test_a_metric_drill_down_shows_exactly_its_counted_rows(tmp_path, reader_bro
     assert errors == []
 
 
-def test_a_metric_series_drill_down_shows_exactly_its_counted_rows(tmp_path, reader_browser) -> None:
+def test_a_metric_series_drill_down_shows_exactly_its_counted_rows(tmp_path, fake_page) -> None:
     """A series metric selects the series' where plus its group's value, folded as every
     condition is (obs capabilities/cards-metrics#Drill-downs); its count and its drill-down
     both read that selection. A service outside where shares a label, and ``STRASSE`` folds to
@@ -154,8 +155,7 @@ def test_a_metric_series_drill_down_shows_exactly_its_counted_rows(tmp_path, rea
                    abstract=(cards,),
                    records=(*_services(("four", "c", "yes", "yes", "STRASSE")), _record("groups", groups),
                             _record("stray", {"kind": "note", "identity": "z", "region": "north"})))
-    page, errors = _open(tmp_path, reader_browser, source)
-    from playwright.sync_api import expect
+    page, errors = _open(tmp_path, fake_page, source)
     page.evaluate("obsPages.setPaged(false)")
     for index, (label, value) in enumerate((("north", "1"), ("Straße", "1"))):
         page.evaluate("obsArtifact.activateChapter('home')")
@@ -170,7 +170,7 @@ def test_a_metric_series_drill_down_shows_exactly_its_counted_rows(tmp_path, rea
     assert errors == []
 
 
-def test_a_projected_metric_drill_down_selects_through_its_projection(tmp_path, reader_browser) -> None:
+def test_a_projected_metric_drill_down_selects_through_its_projection(tmp_path, fake_page) -> None:
     """A metric with obs.projection counts the projected fields; its drill-down selects through
     the same projection (obs capabilities/cards-metrics#Drill-downs), so while the projection
     makes service two healthy and service one not, the table shows two and three."""
@@ -181,8 +181,7 @@ def test_a_projected_metric_drill_down_selects_through_its_projection(tmp_path, 
             "views": [{"type": "table", "name": "Services", "order": ["healthy"]}]}
     source = build("Cards", chapter("chapter", "Chapter", heading(1, "Operations"), node("bases", source="", spec=spec)),
                    abstract=(cards,), records=tuple(_services()))
-    page, errors = _open(tmp_path, reader_browser, source)
-    from playwright.sync_api import expect
+    page, errors = _open(tmp_path, fake_page, source)
     page.evaluate("obsPages.setPaged(false); obsArtifact.activateChapter('home')")
     page.evaluate("obsCards.setProjection('review', {'one.md': {healthy: 'no'}, 'two.md': {healthy: 'yes'}})")
     metric = page.locator("[data-active-chapter] .record-metric-value").first
@@ -197,7 +196,7 @@ def test_a_projected_metric_drill_down_selects_through_its_projection(tmp_path, 
     assert errors == []
 
 
-def test_quantities_count_through_their_selection_chain_and_refresh(tmp_path, reader_browser) -> None:
+def test_quantities_count_through_their_selection_chain_and_refresh(tmp_path, fake_page) -> None:
     total = {"kind": "quantity", "aliases": ["serviceCount"], "source": "[[chapter]]",
              "query": {"where": [{"field": "kind", "equals": "service"}], "distinct": "identity"}}
     subset = {"kind": "quantity", "aliases": ["activeCount"], "source": "[[chapter]]",
@@ -223,8 +222,7 @@ def test_quantities_count_through_their_selection_chain_and_refresh(tmp_path, re
                  *_services(), _record("other", {"kind": "operator", "identity": "z"})),
         metadata={"obsHtml": {"query": {
             "scope": "records", "where": [{"field": "kind", "equals": "service"}]}}})
-    page, errors = _open(tmp_path, reader_browser, source)
-    from playwright.sync_api import expect
+    page, errors = _open(tmp_path, fake_page, source)
     page.evaluate("obsPages.setPaged(false); obsArtifact.activateChapter('chapter')")
     summary = page.locator("[data-active-chapter] .record-card p")
     expect(summary).to_have_text("Items 2 (1 active).")
@@ -277,7 +275,7 @@ def test_quantities_count_through_their_selection_chain_and_refresh(tmp_path, re
     assert errors == []
 
 
-def test_ignored_notes_are_never_counted(tmp_path, reader_browser) -> None:
+def test_ignored_notes_are_never_counted(tmp_path, fake_page) -> None:
     total = {"kind": "quantity", "aliases": ["serviceCount"], "source": "[[chapter]]",
              "query": {"where": [{"field": "kind", "equals": "service"}], "distinct": "identity"}}
     ignored = _record("four", {"kind": "service", "identity": "c", "active": "yes", "healthy": "yes",
@@ -289,8 +287,7 @@ def test_ignored_notes_are_never_counted(tmp_path, reader_browser) -> None:
         _quantity("counts-total", "Total", total),
         abstract=(GLOBAL_CARDS,),
         records=(_record("chapter", {}), _record("counts-total", total, "counts/total.md"), *_services(), ignored))
-    page, errors = _open(tmp_path, reader_browser, source)
-    from playwright.sync_api import expect
+    page, errors = _open(tmp_path, fake_page, source)
     page.evaluate("obsPages.setPaged(false); obsArtifact.activateChapter('home')")
     card = page.locator("[data-active-chapter] [data-record-card]").first
     expect(card.locator("strong").first).to_have_text("66.7%")
@@ -300,7 +297,7 @@ def test_ignored_notes_are_never_counted(tmp_path, reader_browser) -> None:
     assert errors == []
 
 
-def test_every_metric_field_and_a_metric_series_count_as_the_interim_runtime_counts(tmp_path, reader_browser) -> None:
+def test_every_metric_field_and_a_metric_series_count_as_the_interim_runtime_counts(tmp_path, fake_page) -> None:
     """The ``cards`` vault of fixtures/build_documents.py, built by the core. Three points: a and c
     open (owners ada, lin), b closed (lin); no point has a reviewer. The expectations are the interim runtime's
     (obs cards.js): a denominator makes a percentage, the first matching tone rule wins over the
@@ -313,16 +310,16 @@ def test_every_metric_field_and_a_metric_series_count_as_the_interim_runtime_cou
     queries = {record["path"]: record["fields"]["query"] for record in document["records"]
                if str(record.get("path", "")).startswith("counts/")}
     points, open_points = queries["counts/points.md"]["where"], queries["counts/open.md"]["where"]
-    page, errors = _open(tmp_path, reader_browser, document)
+    page, errors = _open(tmp_path, fake_page, document)
 
     def drill_down(link: str, where: list[dict]) -> str:
         expression = page.evaluate("where => obsQuery.conditionsExpression(where)", where)
         return f"{link}?tableFilter={quote(expression, safe='')}"
 
-    from playwright.sync_api import expect
     page.evaluate("obsPages.setPaged(false); obsArtifact.activateChapter('overview')")
     cards = page.locator("[data-active-chapter] [data-record-card]")
-    outer, metrics, series = (cards.filter(has=page.locator(f":scope > .content-card-title:text-is('{title}')"))
+    outer, metrics, series = (cards.filter(has=page.locator(":scope > .content-card-title",
+                                                            has_text=re.compile(f"^{title}$")))
                               for title in ("Outer", "Metrics", "Series"))
     expect(page.locator("[data-active-chapter] .record-card [data-data-table='overview-base-1'] [data-row-key]")).to_have_count(3)
     expect(outer.locator("[data-record-card] .content-card-title")).to_have_text("Inner")
@@ -357,15 +354,14 @@ def test_every_metric_field_and_a_metric_series_count_as_the_interim_runtime_cou
     assert errors == []
 
 
-def test_every_drill_down_shows_exactly_the_rows_its_count_counted(tmp_path, reader_browser) -> None:
+def test_every_drill_down_shows_exactly_the_rows_its_count_counted(tmp_path, fake_page) -> None:
     """The ``cards`` fixture Document holds every kind of count with a drill-down: card metrics,
     a projected metric (under an active projection), a count query (a secondary quantity), a
     metric series and a dynamic Sankey. Each drill-down, followed as a reader follows it, shows
     exactly the rows its count counted (obs capabilities/cards-metrics#Drill-downs)."""
     document = json.loads((ROOT / "test" / "fixtures" / "documents" / "cards.json").read_text(encoding="utf-8"))
     records = {record["path"].removesuffix(".md"): record["fields"] for record in document["records"] if "path" in record}
-    page, errors = _open(tmp_path, reader_browser, document)
-    from playwright.sync_api import expect
+    page, errors = _open(tmp_path, fake_page, document)
     page.evaluate("obsPages.setPaged(false); obsArtifact.activateChapter('overview')")
     page.evaluate("obsCards.setProjection('review', {'b-point.md': {status: 'open'}})")
     select = "([query, key]) => obsRecordMetrics.select(query, key).map(record => `note:${record.slug}`).sort()"
