@@ -1,6 +1,6 @@
 [project]
 name = "obs-html"
-version = "1.0.0"
+version = "0.1.0"
 description = "Render a JSON Document as portable HTML or PDF."
 requires-python = ">=3.11"
 license = "MIT"

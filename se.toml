@@ -1,0 +1,32 @@
+[project]
+authored_content = [
+  "spec/**/*.md",
+  "README.md",
+  "AGENTS.md",
+]
+identity = "mb <mb>"
+public_check = true
+# Releases are plain tags v<version>, which se's release workflow pushes on landing
+# (.github/workflows/release-tag.yml; se's docs/components.md), never tagged by hand.
+release = "workflow"
+# pyproject.toml holds the same version (README "Release").
+version = "0.1.0"
+
+# How a landing reaches main: se's README "Landing on main" owns the setting.
+[integrate]
+landing = "fast-forward"
+
+[tests]
+# The complete suite, with the core checked out beside as ../obs at the pinned tag (README "Core",
+# .github/workflows/test.yml); setup installs the core's test packages and browser there.
+setup = ["uv", "run", "--directory", "../obs", "python", "test/suite.py", "--setup"]
+command = ["uv", "run", "pytest", "-q"]
+# Measured once on 22 Nov 2026: CI's Suite step 409 s, a 4-core cloud session 421 s.
+target_seconds = 420
+limit_seconds = 480
+# Hosts differ by minutes for the same tree, so an overrun warns rather than refuses a landing.
+over_limit = "warn"
+
+[modules.se]
+url = "../SE.git"
+version = "^5.0"

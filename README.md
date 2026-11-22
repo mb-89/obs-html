@@ -24,10 +24,12 @@ Moving the pin is one change of that tag, made with `uv lock`. CI does the same
 
 ## Release
 
-A release is the tag `obs-component/adapter/html/v<version>` on main, at the version
-`pyproject.toml` holds; `.github/workflows/release.yml` checks the tag against it and publishes the
-release. obs's `obs-components install html` finds it among the repositories of the owner that
-carry the topic `obs-component`.
+A release is the tag `v<version>` on main, at the version `se.toml` holds. Nobody tags by hand:
+each landing bumps that version, and on each push to main
+`.github/workflows/release-tag.yml` runs se's release workflow (its copy,
+`.github/workflows/release.yml`), which tags every version main carried without a tag. obs's
+`obs-components install html` finds it among the repositories of the owner that carry the topic
+`component`.
 
 ## Adapter
 
