@@ -5,7 +5,8 @@ Reader: whoever writes or changes a browser test of this adapter.
 The owner is obs quality.md (Testing boundaries): each test process starts one browser and leases
 every test a page from its pool, and an artifact a browser test opens is built once, by a
 shared fixture. A browser test is a test function that requests a browser fixture
-(BROWSER_FIXTURES) or a fixture of its own module that does. Neither it nor a function of its
+(BROWSER_FIXTURES), the fake browser's page (FAKE_BROWSER_FIXTURES, test/browser/browser-door.md)
+or a fixture of its own module that does. Neither it nor a function of its
 module that it calls may start Playwright (``sync_playwright``), launch or connect a browser,
 open a browser context, or build an artifact with this adapter (``render`` or the CLI's
 ``main``). An artifact is built by a shared fixture (SHARED_FIXTURES, or a module fixture
@@ -51,6 +52,9 @@ TESTS = Path(__file__).parents[1]
 BROWSER_FIXTURES = {"reader_browser", "shared_reader_browser", "overlay_scrollbar_browser", "page_pool",
                     "overlay_scrollbar_pool", "worker_playwright", "full_chromium_browser",
                     "shared_full_chromium_browser", "full_page_pool", "phone_browser", "phone_pool"}
+# The fixtures that hand a test a page of the fake browser, happy-dom in Node (test/browser/
+# browser-door.md); test/conftest.py owns them. They start no Chromium.
+FAKE_BROWSER_FIXTURES = {"fake_page"}
 # The fixtures that run a test on full Chromium instead of the headless shell; test/conftest.py
 # owns them. The PDF path's browser (``pdf_browser``) is full Chromium too.
 FULL_CHROMIUM_FIXTURES = {"full_chromium_browser", "shared_full_chromium_browser", "full_page_pool", "pdf_browser"}
@@ -86,6 +90,8 @@ REAL_LIBRARY_TESTS = {
     "test_figures.py": "the plotting library embedded with its licence (libraries.py)",
     "test_features.py": "the maths library embedded whole from its lockfile, with its licence (libraries.py)",
 }
+# Every fixture that hands a browser test its page, a real browser's or the fake's.
+PAGE_FIXTURES = BROWSER_FIXTURES | FAKE_BROWSER_FIXTURES
 # The fixtures that build an artifact once per run, wherever they are defined; a browser test
 # reads what they built, and the check does not look into them.
 SHARED_FIXTURES = {"fixture_artifact", "feature_artifact", "spec_html", "spec_artifact"}
@@ -197,11 +203,11 @@ def violations(path: Path) -> list[str]:
     clocks = clock_names(module)
     exempt = built_once_builds(module, functions) | SHARED_FIXTURES
     browser_fixtures = {name for name, function in functions.items() if isinstance(function, ast.FunctionDef)
-                        and is_fixture(function) and fixture_names(function) & BROWSER_FIXTURES}
+                        and is_fixture(function) and fixture_names(function) & PAGE_FIXTURES}
     found = []
     for name, test in functions.items():
         if (not name.startswith("test_") or not isinstance(test, ast.FunctionDef)
-                or not fixture_names(test) & (BROWSER_FIXTURES | browser_fixtures)):
+                or not fixture_names(test) & (PAGE_FIXTURES | browser_fixtures)):
             continue
         reached, pending = set(), [name, *(fixture_names(test) & browser_fixtures)]
         while pending:
@@ -226,7 +232,7 @@ def violations(path: Path) -> list[str]:
                     pending.append(called_name)
     if any(line.split(":")[0].startswith("test_") for line in found) or any(
             name.startswith("test_") and isinstance(test, ast.FunctionDef)
-            and fixture_names(test) & (BROWSER_FIXTURES | browser_fixtures) for name, test in functions.items()):
+            and fixture_names(test) & (PAGE_FIXTURES | browser_fixtures) for name, test in functions.items()):
         found += [f"{path.name}:{timing}; read the artifact's own performance marks" for timing in own_timings(module)]
     return found
 

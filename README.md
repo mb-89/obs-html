@@ -77,7 +77,8 @@ The adapter's own features are documented as capability notes in
 
 The artifact runtime's DOM tests run in Node over a test-only DOM adapter, which the complete
 test run installs from `test/browser/package-lock.json`; then `uv run pytest -m dom`
-runs that tier alone.
+runs that tier alone. The tier also holds the logic tests that run on the fake browser, happy-dom
+in Node behind the `fake_page` fixture ([the browser door](test/browser/browser-door.md)).
 
 The artifact verification harness, `test/browser/artifact-harness.cjs`, opens a rendered artifact in that
 DOM and drives it step by step (data, chapter, table, page mode, print and presentation geometry);

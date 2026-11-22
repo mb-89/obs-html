@@ -7,7 +7,8 @@ Reader: whoever writes a test that needs data from outside, or changes this part
 loopback or unspecified address and a local socket stay open: preview servers and the browser
 driver use them. A refused call raises `NetworkGuardError` and is recorded; `fail()` turns the
 report of the test phase that made it into a failure, so a test fails even where the code under
-test catches the error, as the vault does for a remote image.
+test catches the error, as the vault does for a remote image. The fake browser refuses its pages'
+requests the same way and records each with `refused()`.
 """
 from __future__ import annotations
 
@@ -46,6 +47,14 @@ def _refuse(host, port) -> None:
                f"reaches the network. Remedy: {REMEDY}.")
     _attempts.append(message)
     raise NetworkGuardError(message)
+
+
+def refused(host, port, what: str) -> None:
+    """Record a connection that another process refused on the test's behalf, the fake browser's page
+    (test/browser/fake-browser.cjs): the test fails as if it had opened it itself."""
+    _attempts.append(f"{OWNER}: test {_test[-1]} opened a network connection to {host}:{port} ({what}). No "
+                     "test reaches the network. Remedy: serve what the page needs from a local server the test "
+                     "starts, or write it into the artifact.")
 
 
 def _getaddrinfo(host, port, *args, **kwargs):

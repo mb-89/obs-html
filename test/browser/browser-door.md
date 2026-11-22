@@ -15,7 +15,9 @@ them, and if the browser behaves as expected, then everything else can run again
 
 This note is the design. [test_browser_door.py](../structure/test_browser_door.py) holds its
 classification to the tests as they are: every browser test file has one row, with its class, its
-package and its reason.
+package and its reason. Once its package has landed, a row's package reads ``moved by `<package>` ``
+(``added by `<package>` `` for a file written on the fake browser), and the file's tests take
+`fake_page` and no real browser.
 
 ## What a browser test asks today
 
@@ -58,6 +60,7 @@ tests go. The reason names each test that goes the other way.
 | `test_document_number_browser.py` | logic | `more-logic-to-fake-browser` | The running footer's text and the copied comments: DOM and clipboard on a top-level page. |
 | `test_empty_groups_browser.py` | logic | `fake-browser-door` | Group order, muted empty groups, zero counts and the table's row pages are runtime logic; the muted tone is a computed style the fake's cascade gives. |
 | `test_equation_figures_browser.py` | hot | `hot-tests-record` | It embeds the real math.js and Plotly (structure/test_quality.py's real-library set): Plotly needs a real layout engine to draw, zoom and print. |
+| `test_fake_browser.py` | logic | added by `fake-browser-door` | The fake browser's own contract: the facade's refusals, the stand-ins, the page's clock, the default answers in the report and the blocked network. |
 | `test_feature_layout_browser.py` | hot | `hot-tests-record` | The faults the feature fixture's card group found at their widths: buttons apart, clear of the arrow, scrolled into view. Except `test_the_home_chooser_closes_on_a_click_on_the_menu_or_a_docked_bar`, which moves to the fake. |
 | `test_features_browser.py` | logic | `viewer-logic-to-fake-browser` | What each canary says about a refusing host, from the viewer frame's recorded refusals. Except `test_a_host_stand_in_is_in_place_before_the_artifacts_first_script`, which is the order of scripts in a srcdoc frame and stays hot. |
 | `test_figure_frame.py` | hot | `hot-tests-record` | One frame and caption position for every kind, a border token, and a legend moved back inside after a resize are layout. Except `test_only_kinds_with_options_show_the_tables_options_menu_whose_changes_stay_in_the_view`, which moves to the fake. |
@@ -167,6 +170,34 @@ Playwright's text and role selectors do not exist there: a test that moves rewri
 and a text filter. A method the facade lacks fails, naming the method and this note. The fake
 blocks the network as `network_guard.py` does, through happy-dom's fetch interceptor, and lets
 through only the local servers a test starts.
+
+**As built** (`fake-browser-door`): the host is [fake-browser.cjs](fake-browser.cjs), the facade
+[fake_page.py](fake_page.py) with its `expect`, and `fake_page` in `test/conftest.py` hands a test
+one page; the moved files carry the `dom` mark instead of `browser`. Four things the design above
+did not name were needed:
+
+- **The page's clock.** A page's timers, animation frames and idle callbacks run on a virtual
+  clock. A wait runs the page until its condition holds, moving the clock to the next task only
+  when the page has nothing else to do, and fails once nothing is left to run or the clock passes
+  the timeout; between two requests one frame passes. Work the page awaits outside happy-dom, its
+  compression streams and digests, keeps it busy until it ends. No wait reads wall time.
+- **`light-dark()`.** happy-dom 21 drops a colour it cannot parse, so every colour the stylesheets
+  give through `light-dark()` computed empty. The fake resolves it by the root's computed
+  `color-scheme` and the device's preference, light in print; the colours it gives are hex, where
+  Chromium gives `rgb()`, so a test compares two computed colours, never a colour with a literal.
+- **Scoped selectors.** A locator inside another matches within the outer element's subtree only,
+  as Playwright's do, so an ancestor outside it never satisfies a descendant selector.
+- **User-agent rules.** happy-dom 21 has no rule for `[hidden]` or a closed popover; the fake adds
+  Chromium's, display `none` at the user-agent level, so an author's display still wins.
+
+happy-dom also asks a preflight `OPTIONS` before every cross-origin request, where Chromium asks
+only before one that is not simple: a local server a test starts for a file page answers it. And
+`print()` fires `beforeprint` and `afterprint` with no print media in between, since nothing is
+laid out for print; `emulate_media` gives print media.
+
+The default answers are listed in each test's report, in the section "fake browser: default
+answers", as `<call> <element key> -> <answer> (<times>x)`; the key is
+[door-key.js](door-key.js)'s, which `browser-door-recorder` reuses.
 
 ## The browser door's expectations
 
