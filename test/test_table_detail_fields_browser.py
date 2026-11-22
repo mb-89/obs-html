@@ -1,4 +1,4 @@
-"""Native-browser tier: a view chooses the fields an opened row shows (obsHtml.detailFields).
+"""Fake-browser tier: a view chooses the fields an opened row shows (obsHtml.detailFields).
 
 The owners are input-model.md (Compact declarative table presentation: the option, its omission
 rules and its field path) and generic-tables.md (the note detail row). With the option, an opened
@@ -23,7 +23,7 @@ from artifacts import artifact_html
 from documents import chapter, document as build, heading, node, paragraph
 
 
-pytestmark = pytest.mark.browser
+pytestmark = pytest.mark.dom
 SHELL = "[data-active-chapter] .data-table-shell"
 DETAIL = f"{SHELL} .data-table-detail-row"
 # A task's frontmatter, in the note's order; blocker is blank, so it is never shown.
@@ -82,8 +82,9 @@ def artifact(tmp_path_factory) -> str:
 
 
 @pytest.fixture
-def open_chapter(artifact, reader_browser):
-    page = reader_browser.new_page(viewport={"width": 1280, "height": 900})
+def open_chapter(artifact, fake_page):
+    page = fake_page
+    page.set_viewport_size({"width": 1280, "height": 900})
     page.set_default_timeout(5000)
     errors: list[str] = []
     page.on("pageerror", lambda error: errors.append(str(error)))

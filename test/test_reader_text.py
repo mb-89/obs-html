@@ -25,12 +25,11 @@ from html.parser import HTMLParser
 from pathlib import Path
 
 import pytest
-from playwright.sync_api import expect
-
 import obs_html
 from obs_html.config import load_config
 from obs_html.render import render
 
+from browser.fake_page import expect
 from documents import paragraph, text
 
 RUNTIME = Path(obs_html.__file__).parent
@@ -203,16 +202,16 @@ DAMAGE = {
 }
 
 
-@pytest.mark.browser
+@pytest.mark.dom
 @pytest.mark.parametrize("damage", DAMAGE)
 def test_an_html_whose_embedded_data_is_damaged_says_so_and_how_to_recover(
-        tmp_path: Path, reader_browser, fixture_artifact: Path, damage: str) -> None:
+        tmp_path: Path, fake_page, fixture_artifact: Path, damage: str) -> None:
     page_html = fixture_artifact.read_text(encoding="utf-8")
     island = re.search(r'<script id="artifact-data"[^>]*>.*?</script>', page_html, re.S)
     assert island, "test_reader_text.py: the fixture artifact carries no artifact-data island"
     damaged = tmp_path / "damaged.html"
     damaged.write_text(page_html[:island.start()] + DAMAGE[damage] + page_html[island.end():], encoding="utf-8")
-    page = reader_browser.new_page()
+    page = fake_page
     page.goto(damaged.as_uri())
     expect(page.locator("html")).to_have_attribute("data-artifact-status", "error")
     message = page.locator("#artifact-initialization-error").inner_text()

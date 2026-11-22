@@ -17,7 +17,7 @@ from obs_html.features import FEATURES, included
 from test_features import PUGH, SANKEY, plain, with_figure, with_guided_card
 from obs_html.render import render
 
-pytestmark = pytest.mark.browser
+pytestmark = pytest.mark.dom
 
 # Document -> the selector of what its features draw once its chapter shows.
 DOCUMENTS = {
@@ -63,11 +63,11 @@ def test_a_document_without_tables_cards_bless_or_popups_carries_none_of_their_s
 
 
 @pytest.mark.parametrize("name", DOCUMENTS)
-def test_an_artifact_without_some_features_opens_without_errors(name: str, tmp_path, reader_browser) -> None:
+def test_an_artifact_without_some_features_opens_without_errors(name: str, tmp_path, fake_page) -> None:
     build, drawn = DOCUMENTS[name]
     artifact = tmp_path / "artifact.html"
     artifact.write_text(artifact_html(build()), encoding="utf-8")
-    page = reader_browser.new_page()
+    page = fake_page
     errors: list[str] = []
     page.on("pageerror", lambda error: errors.append(str(error)))
     page.on("console", lambda message: errors.append(message.text) if message.type == "error" else None)

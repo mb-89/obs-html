@@ -1,4 +1,4 @@
-"""Native-browser tier: a view's passing rows fold into one count line (obsHtml.passing).
+"""Fake-browser tier: a view's passing rows fold into one count line (obsHtml.passing).
 
 The owners are generic-tables.md (Query and filtering: the fold, its count line and the all-pass
 sentence; Columns and cells: the footer count while folded), input-model.md (Compact declarative
@@ -15,7 +15,7 @@ from artifacts import artifact_html
 from documents import card_document, chapter, document as build, heading, node
 
 
-pytestmark = pytest.mark.browser
+pytestmark = pytest.mark.dom
 FAILING = {7, 200}
 PASSING = {"filters": 'status == "verified"', "label": "verified"}
 SHELL = "[data-active-chapter] .data-table-shell"
@@ -91,8 +91,9 @@ def artifact(tmp_path_factory) -> str:
 
 
 @pytest.fixture
-def open_chapter(artifact, reader_browser):
-    page = reader_browser.new_page(viewport={"width": 1280, "height": 900})
+def open_chapter(artifact, fake_page):
+    page = fake_page
+    page.set_viewport_size({"width": 1280, "height": 900})
     page.set_default_timeout(5000)
     errors: list[str] = []
     page.on("pageerror", lambda error: errors.append(str(error)))
