@@ -18,7 +18,7 @@ def test_each_test_names_its_tier_in_its_report(request) -> None:
 # package for it, which put it in the browser and build tiers by the tier rule (the core's
 # spec/design_input/quality.md, Testing boundaries).
 OPENS_A_PAGE = "worker_playwright"
-BUILDS = {"installed_wheels", "rebuilt"}
+BUILDS = {"installed_wheels", "rebuilt", "own_spec"}
 BUILD_MODULES = {"test/test_spec_archive_rebuild.py"}
 
 

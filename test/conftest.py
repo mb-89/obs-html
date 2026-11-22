@@ -166,6 +166,19 @@ def feature_artifact(tmp_path_factory) -> str:
     return (built_once(tmp_path_factory, "feature-artifact", build) / "artifact.html").read_text(encoding="utf-8")
 
 
+@pytest.fixture(scope="session")
+def own_spec(tmp_path_factory) -> Path:
+    """The adapter's own specification as ``obs-html --build-own-spec`` builds it (spec/cli.md,
+    Building its own specification), once per run and shared by every worker; tests only read it."""
+    from obs_html import cli
+
+    def build(folder: Path) -> None:
+        assert cli.main(["--build-own-spec", str(folder / "obs-html-specification.html")]) == 0, \
+            "test/conftest.py: obs-html --build-own-spec could not build the adapter's specification"
+
+    return built_once(tmp_path_factory, "own-spec", build) / "obs-html-specification.html"
+
+
 def _uv(*arguments: str, cwd: Path, environment: dict[str, str]) -> None:
     result = subprocess.run(["uv", *arguments], cwd=cwd, env=environment, capture_output=True, text=True)
     assert result.returncode == 0, f"test/conftest.py: uv {' '.join(arguments)} failed:\n{result.stderr}"
