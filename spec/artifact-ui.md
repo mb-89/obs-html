@@ -223,9 +223,8 @@ failures have their form in [[input-model#Chapter content]].
 
   Packaged rules give these classes no meaning; only author snippets do, so a vault without
   snippets keeps the shared visual system.
-- Navigating to a metadata-only note automatically opens the existing frontmatter panel.
-  Its canonical fields remain readable without requiring duplicated body prose; notes
-  with body content retain the normal collapsed-panel default.
+- A metadata-only note shows empty: its canonical fields are on its front matter card in the
+  [[#Dock menu|Comments bar]], which the reader opens; nothing opens it for them.
 
 ## Takeaways and orientation
 
@@ -1091,8 +1090,8 @@ row order; this section owns how this adapter draws it.
   From a note outside the TOC, the Home icon always navigates Home; the note's current crumb
   neither invents a TOC path nor intercepts the Home link.
 - No table of contents, filter, toolbar, or navigation bar is open initially.
-- The top band is one row and holds every top control: Home, the breadcrumbs, the
-  frontmatter chevron, the title of [[#Screens]], the bless controls
+- The top band is one row and holds every top control: Home, the breadcrumbs, the title of
+  [[#Screens]], the bless controls
   ([[#Bless verdicts]]), the notice icons and the menu.
   The notice icons sit directly left of the menu.
   The bless controls sit directly left of them.
@@ -1157,15 +1156,19 @@ row order; this section owns how this adapter draws it.
   alongside manifest child chapters. All branches start collapsed. Heading links open the
   chapter, expand the target's collapsed content ancestors, and scroll to that heading.
 - Touch layouts keep chapter controls visible enough to discover without hover.
-- A small top-center chevron follows the side controls' restrained visual behavior where the
-  active page's note has frontmatter or a `Source file` row. It toggles a field/value table above
-  the chapter body and reports its expanded state; changing chapters closes the table.
-- The table's last row, after the fields, is `Source file`: the note's vault path, wherever the
-  Document names it, and the manifest note's on home. It is a relative link that opens in a new
-  tab where the build knew where the vault lies from the page ([[cli#Source file links]]), and
-  plain text elsewhere. The label is `Source file`, not `Source`, because notes carry an authored
-  `source` field. A copy the reader saves holds the row empty, and the reopened copy fills it for
-  the active note again.
+- A note's front matter shows on its first card in the [[#Dock menu|Comments bar]], not above the
+  chapter body: the page has no chevron and no field table.
+
+  Decided by the owner, 22 Nov 2026 (work issue `metadata-cards-in-the-bar`): one bar holds
+  comments and metadata as cards in document order with their path, and it replaces the chevron,
+  its table above the chapter and the rule that a metadata-only note opens it. Not picked: strips
+  of fields under each block, or a rail beside them.
+- The front matter card's last row, after the fields, is `Source file`: the note's vault path,
+  wherever the Document names it, and the manifest note's on home. It is a relative link that
+  opens in a new tab where the build knew where the vault lies from the page
+  ([[cli#Source file links]]), and plain text elsewhere. The label is `Source file`, not `Source`,
+  because notes carry an authored `source` field. A copy the reader saves holds the bar's cards
+  empty, and the reopened copy fills them again.
 
   Decided by the owner, 17 Nov 2026 (work issue `metadata-caret-source-link`): on by default
   (`artifact.sourceFileLinks`), an exception to the rule of [[architecture#Rendering and runtime]]
@@ -1271,8 +1274,8 @@ decision is a one-pager, not a document page, so an artifact can be read as scre
 `obsHtml.layout: screens` ([[input-model#Artifact presentation profile]]) shows each chapter of
 the walk as one screen: the chapter at the reader's full width inside a side gutter that holds
 the chapter arrows, with no page frame, cover, running header, footer or page number. The
-manifest's title shows only in the top band, between the breadcrumbs and the frontmatter
-chevron; it truncates first, its full text its tooltip.
+manifest's title shows only in the top band, between the breadcrumbs and the controls at the band's
+end; it truncates first, its full text its tooltip.
 
 Decided by the user, 6 Nov 2026 (work issue `feature/deck-shell-verdicts-20261106`): screens have
 no title screen. The walk holds the chapters only, and the deck opens on its first chapter. Home,
@@ -2175,10 +2178,11 @@ separate from artifact presentation.
   Anchors are not re-anchored across regenerated artifacts.
 
   Comment queries use the shared
-  language and match only comment records, including `status`, `author`, `chapter`, `quote`,
-  and comment text fields.
-- The comment count is the only empty-state message. An empty list does not repeat that state
-  with text such as `No comments yet` or `No comments match`.
+  language and match comment records, including `status`, `author`, `chapter`, `quote`,
+  and comment text fields, and metadata cards by their fields, as below.
+- The counts are the only empty-state message: of the comments, the metadata cards or both, as the
+  kind filter shows them, such as `1 of 3 comments, 2 of 9 metadata cards`. An empty list does not
+  repeat that state with text such as `No comments yet` or `No comments match`.
 - Root comment cards stand in document order, by where each comment's target sits in the
   Document: its chapter's place in the contents, then its block's place in the chapter, then
   its text position. A note outside the contents follows them, and comments on one place keep
@@ -2187,6 +2191,28 @@ separate from artifact presentation.
   Every card's target shows its path, `Chapter › Section › block`: the chapter's title, the
   headings it sits under, outermost first and without the chapter's own title heading, and
   the block by its marked text. Activating the path navigates to the comment, as below.
+- Metadata cards stand beside the comment cards in the same document order: a read-only card for
+  each block or section that sets a field (obs's input model, Block fields), at its block and
+  before the comments on it, and each note's front matter as the note's first card, with its
+  `Source file` row ([[#Reading shell]]).
+
+  A block's card shows the fields set on that block, each value as its text; an empty `key::`
+  shows `unset`. Where its section, a container around it or its note's front matter has a value
+  for the key, the card marks the override and names that value (`review overrides draft`). Its
+  path names the block by its kind (`Chapter › Part › paragraph`), a section by its own title.
+
+  Activating a metadata card's path opens its chapter and scrolls its block into view, and
+  highlights it with the CSS Custom Highlight API: the block, or a section's heading and body.
+  A front matter card's path opens its note.
+
+  While the bar is open, the cards of what is on screen are marked, and scrolling moves the mark:
+  a comment's marked text, a block's element, and a front matter card while its note is open.
+- A kind filter beside the query shows comments and metadata, comments only, or metadata only.
+  The query matches a metadata card by its block's effective values, as the core's block records
+  hold them, or by its note's front matter, so `owner: lin` keeps the cards of the blocks whose
+  nearest `owner` is `lin`; a bare term searches its path, keys and values. A search match only
+  in a note's fields opens the bar on its front matter card and marks the match there.
+- Print and PDF show no fields: the bar does not print.
 - Every comment and nested reply renders as the same compact key/value card, with labels for
   values such as author, status, and text rather than relying on position.
 

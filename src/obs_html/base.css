@@ -495,7 +495,7 @@ input[data-property-single-line]:focus {
     margin-block-end: 0;
 }
 
-/* The top band: Home and the crumbs take what the chevron, the notice icons and the menu leave,
+/* The top band: Home and the crumbs take what the notice icons and the menu leave,
    on one line; a crumb that does not fit truncates, its full title in its text and tooltip.
    Its squares share one size: the full size, or, where the row would not hold the squares the
    band can show (--top-band-squares) and the crumbs' least width, the size that fits it. */
@@ -503,8 +503,8 @@ input[data-property-single-line]:focus {
     --top-band-bless: 0;
     --top-band-send: 0;
     --top-band-notices: 0;
-    /* Home, the chevron and the menu, the pill and the four verdict keys, Send and the notice icons. */
-    --top-band-squares: calc(3 + var(--top-band-bless) + var(--top-band-send) + var(--top-band-notices));
+    /* Home and the menu, the pill and the four verdict keys, Send and the notice icons. */
+    --top-band-squares: calc(2 + var(--top-band-bless) + var(--top-band-send) + var(--top-band-notices));
     --top-control-size: min(var(--top-control-full), (100cqw - var(--top-band-crumbs)
         - (var(--top-band-squares) - 1) * var(--top-band-gap)) / var(--top-band-squares));
     align-items: center;
@@ -552,7 +552,6 @@ input[data-property-single-line]:focus {
     position: relative;
 }
 
-.top-band > .frontmatter-toggle,
 .top-band-end > * {
     flex: none;
     height: var(--top-control-size);
@@ -1720,74 +1719,6 @@ math {
     }
 }
 
-/* The frontmatter chevron keeps the chapter arrows' restraint: faint at rest, clear on use. */
-.frontmatter-toggle {
-    opacity: 0.12;
-    transition: opacity var(--transition-fast);
-}
-
-.frontmatter-toggle span {
-    font-size: 1rem;
-    line-height: 1;
-    transition: transform var(--transition-fast);
-}
-
-.frontmatter-toggle:focus-visible,
-.frontmatter-toggle[aria-expanded="true"] {
-    opacity: 0.8;
-}
-
-.frontmatter-toggle:hover {
-    opacity: 1;
-}
-
-.frontmatter-toggle:hover span {
-    transform: scale(1.04);
-}
-
-.frontmatter-toggle[aria-expanded="true"] span {
-    transform: rotate(180deg);
-}
-
-.frontmatter-toggle:focus-visible {
-    outline: 2px solid var(--color-focus);
-    outline-offset: 3px;
-}
-
-.frontmatter-panel {
-    font-family: var(--font-interface);
-    margin: 1rem auto 0;
-    max-width: var(--content-inline-size);
-    padding-inline: 1.5rem;
-}
-
-.frontmatter-panel table {
-    border-collapse: collapse;
-    font-size: 0.85rem;
-    table-layout: fixed;
-    width: 100%;
-}
-
-.frontmatter-panel th,
-.frontmatter-panel td {
-    border-bottom: var(--border-width) solid var(--color-border);
-    overflow-wrap: anywhere;
-    padding: 0.45rem 0.6rem;
-    text-align: start;
-    vertical-align: top;
-}
-
-.frontmatter-panel th {
-    color: var(--color-text-muted);
-    font-weight: 650;
-    width: 35%;
-}
-
-.frontmatter-panel thead th {
-    background: var(--color-canvas-secondary);
-    color: var(--color-text);
-}
-
 .dock-region {
     background: var(--color-surface);
     display: flex;
@@ -2178,6 +2109,10 @@ math {
     background: var(--color-annotation);
 }
 
+::highlight(obs-metadata) {
+    background: var(--color-annotation-hover);
+}
+
 ::highlight(obs-comments-hover) {
     background: var(--color-annotation-hover);
     text-decoration: underline;
@@ -2315,7 +2250,8 @@ math {
     overflow-wrap: anywhere;
 }
 
-.comment-target {
+.comment-target,
+.metadata-target {
     background: transparent;
     border: 0;
     color: var(--color-accent);
@@ -2327,6 +2263,45 @@ math {
     text-align: start;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+/* Metadata cards (artifact-ui.md, Comments bar): a field's key as written, an unset key and an
+   override in the muted text, and a mark on the cards of what is on screen. */
+.comment-kind-label {
+    align-items: center;
+    color: var(--color-text-muted);
+    display: flex;
+    font-size: 0.75rem;
+    gap: 0.45rem;
+    margin-block-start: 0.55rem;
+}
+
+.comment-kind-label select {
+    background: var(--color-surface-raised);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-small);
+    color: var(--color-text);
+    font: inherit;
+    min-width: 0;
+    padding: 0.25rem 0.35rem;
+}
+
+[data-metadata-field] > .comment-key,
+[data-metadata-source-file] > .comment-key {
+    text-transform: none;
+}
+
+.metadata-unset,
+.metadata-override {
+    color: var(--color-text-muted);
+}
+
+.metadata-override {
+    font-size: 0.75rem;
+}
+
+.comment-list > [data-on-screen] > .comment-card {
+    border-inline-start: 0.2rem solid var(--color-accent);
 }
 
 .comment-children {

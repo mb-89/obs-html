@@ -8,11 +8,14 @@ Document is a core node id of its chapter, one to one), kept so it is checked on
 """
 import copy
 import json
+import subprocess
+import sys
+from pathlib import Path
 
 import pytest
 
 from artifacts import artifact_html
-from conftest import FIXTURE, ROOT
+from conftest import FIXTURE, ROOT, built_once
 from core_calls import unresolved_targets, with_ids
 from documents import chapter, document as build_document, heading, node, paragraph
 
@@ -382,3 +385,138 @@ def test_a_selection_in_a_note_detail_comments_on_the_notes_block(tmp_path, read
         await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))); }""")
     assert reopened.evaluate(HIGHLIGHTS) == [QUOTE]
     assert errors == reopened_errors == []
+
+
+# Artifact-ui.md "Comments bar": metadata cards. A chapter whose blocks and section set fields, built by
+# the core, with prose enough before its section that the section starts off screen, and a note of
+# front matter only.
+FILLER = "".join(f"Filler paragraph {index} keeps the section below the first screen.\n\n" for index in range(40))
+FIELDS_NOTE = ("---\nowner: ana\nstatus: draft\n---\n# Chapter\n\nIntro text.\n\n" + FILLER +
+               "## Part\n\nstatus:: review\n\nPart prose.\nowner:: lin\n\n- item one\n- item two\n\n"
+               "reviewer::\nowner::\n")
+CARDS = "[data-comment-list] > [data-metadata-card]"
+CARD_STATE = f"""() => [...document.querySelectorAll("{CARDS}")].map((card) => ({{
+    id: card.dataset.metadataCard,
+    path: card.querySelector(".metadata-target").textContent,
+    fields: [...card.querySelectorAll("[data-metadata-field], [data-metadata-source-file]")].map((row) => [
+        row.querySelector(".comment-key").textContent, row.querySelector(".comment-value").textContent,
+        row.hasAttribute("data-override")]),
+    onScreen: card.hasAttribute("data-on-screen"),
+}}))"""
+SHOWN = """() => ({
+    comments: document.querySelectorAll("[data-comment-list] > .comment-node").length,
+    metadata: document.querySelectorAll("[data-comment-list] > [data-metadata-card]").length,
+    state: document.querySelector("[data-comment-filter-state]").textContent,
+})"""
+METADATA_HIGHLIGHT = ("[...(CSS.highlights.get('obs-metadata') || [])].map(String).join(' ')"
+                      ".replace(/\\s+/g, ' ').trim()")
+
+
+def _fields_vault(folder: Path, core_root: Path) -> None:
+    vault = folder / "vault"
+    vault.mkdir()
+    (vault / "manifest.md").write_text("---\ntitle: Fields\n---\n- [[chapter]]\n- [[only]]\n", encoding="utf-8")
+    (vault / "chapter.md").write_text(FIELDS_NOTE, encoding="utf-8")
+    (vault / "only.md").write_text("---\nowner: ana\n---\n", encoding="utf-8")
+    run = [sys.executable, "-m"]
+    subprocess.run([*run, "obs.capabilities", "--notes", str(core_root / "spec" / "capabilities"),
+                    "--output", str(folder / "capabilities.json")], check=True)
+    subprocess.run([*run, "obs.document", "--source", str(vault / "manifest.md"),
+                    "--document", str(folder / "document.json"),
+                    "--capability-reference", str(folder / "capabilities.json")], check=True)
+    (folder / "artifact.html").write_text(
+        artifact_html(json.loads((folder / "document.json").read_text(encoding="utf-8"))), encoding="utf-8")
+
+
+@pytest.fixture(scope="module")
+def fields_artifact(tmp_path_factory, core_root) -> Path:
+    """The block-fields Document the core builds, rendered once per run."""
+    return built_once(tmp_path_factory, "metadata-cards", lambda folder: _fields_vault(folder, core_root)) \
+        / "artifact.html"
+
+
+def _bar(page) -> None:
+    page.evaluate(f"""async () => {{ obsArtifact.openBar("comments", "right"); await {SETTLED}; }}""")
+
+
+def test_each_block_with_fields_has_a_card_in_order_with_its_path_and_its_click_jumps_and_highlights(
+        fields_artifact, reader_browser) -> None:
+    page, errors = _open(reader_browser, fields_artifact)
+    _bar(page)
+    cards = page.evaluate(CARD_STATE)
+    # Each note's front matter is its first card, with Source file; then a card per block that sets a field.
+    assert [card["path"] for card in cards] == [
+        "Fields › front matter", "Chapter › front matter", "Chapter › Part", "Chapter › Part › paragraph",
+        "Chapter › Part › list", "Only › front matter"]
+    assert cards[1]["fields"] == [["owner", "ana", False], ["status", "draft", False],
+                                  ["Source file", "chapter.md", False]]
+    # A card shows the fields set on its block, marks an override of an inherited value, and an empty key:: as unset.
+    assert cards[2]["fields"] == [["status", "review overrides draft", True]]
+    assert cards[3]["fields"] == [["owner", "lin overrides ana", True]]
+    assert cards[4]["fields"] == [["reviewer", "unset", False], ["owner", "unset overrides ana", True]]
+    assert cards[5]["fields"] == [["owner", "ana", False], ["Source file", "only.md", False]]
+    # Home is open: only its card marks what is on screen.
+    assert [card["onScreen"] for card in cards] == [True, False, False, False, False, False]
+
+    page.locator(f"{CARDS}[data-metadata-kind='block'] .metadata-target").nth(1).click()
+    page.wait_for_function("document.querySelector('[data-active-chapter]').dataset.chapter === 'chapter'")
+    page.evaluate(SETTLED)
+    assert page.evaluate(METADATA_HIGHLIGHT) == "Part prose."
+    assert page.evaluate("""() => { const block = document.querySelector('[data-chapter-body] p:has(+ ul)');
+        const view = document.querySelector('[data-chapter-scroll]').getBoundingClientRect();
+        const box = block.getBoundingClientRect(); return box.top >= view.top && box.bottom <= view.bottom; }""")
+    # Scrolling marks the cards of what is on screen: the section start and the list are near the paragraph.
+    assert [card["onScreen"] for card in page.evaluate(CARD_STATE)] == [False, True, True, True, True, False]
+    page.evaluate(f"""async () => {{ document.querySelector('[data-chapter-scroll]').scrollTop = 0; await {SETTLED}; }}""")
+    assert [card["onScreen"] for card in page.evaluate(CARD_STATE)] == [False, True, False, False, False, False]
+    # A section's card highlights its section, heading and blocks.
+    page.locator(f"{CARDS}[data-metadata-kind='block'] .metadata-target").first.click()
+    page.evaluate(SETTLED)
+    assert page.evaluate(METADATA_HIGHLIGHT) == "Part Part prose. item one item two"
+    assert errors == []
+
+
+def test_the_kind_filter_and_field_queries_choose_the_metadata_cards(fields_artifact, reader_browser) -> None:
+    page, errors = _open(reader_browser, fields_artifact)
+    _bar(page)
+    page.evaluate("""() => obsComments.data.annotations.push({id: "c1", author: "Ada", created: "2026-11-22T10:00:00Z",
+        mediaType: "text/plain", text: "On the intro.", state: "open", replies: [],
+        target: {chapter: "chapter", quote: "Intro text.", prefix: "", suffix: "", start: 8, end: 19}})""")
+    kind = page.locator("[data-comment-kind]")
+    filter_input = page.locator("[data-comment-filter-input]")
+    filter_input.dispatch_event("input")
+    assert page.evaluate(SHOWN) == {"comments": 1, "metadata": 6, "state": "1 of 1 comments, 6 of 6 metadata cards"}
+    # The comment on the intro stands after its chapter's front matter and before the Part section's cards.
+    assert page.evaluate("""() => [...document.querySelector("[data-comment-list]").children].map((card) =>
+        card.dataset.metadataCard?.startsWith("block:") ? "block" : card.dataset.metadataCard || card.dataset.commentId)""") == [
+        "frontmatter:home", "frontmatter:chapter", "c1", "block", "block", "block", "frontmatter:only"]
+    kind.select_option("comments")
+    assert page.evaluate(SHOWN) == {"comments": 1, "metadata": 0, "state": "1 of 1 comments"}
+    kind.select_option("metadata")
+    assert page.evaluate(SHOWN) == {"comments": 0, "metadata": 6, "state": "6 of 6 metadata cards"}
+    # A field query matches a card by its block's effective values, as the core's block records do.
+    filter_input.fill("owner: lin")
+    assert [card["path"] for card in page.evaluate(CARD_STATE)] == ["Chapter › Part › paragraph"]
+    filter_input.fill("status: review")
+    assert [card["path"] for card in page.evaluate(CARD_STATE)] == [
+        "Chapter › Part", "Chapter › Part › paragraph", "Chapter › Part › list"]
+    filter_input.fill("owner: ana")
+    assert [card["path"] for card in page.evaluate(CARD_STATE)] == [
+        "Chapter › front matter", "Chapter › Part", "Only › front matter"]
+    kind.select_option("all")
+    assert page.evaluate(SHOWN)["state"] == "0 of 1 comments, 3 of 6 metadata cards"
+    assert errors == []
+
+
+def test_a_metadata_only_note_shows_empty_with_the_bar_closed_and_the_page_has_no_chevron(
+        fields_artifact, reader_browser) -> None:
+    page, errors = _open(reader_browser, fields_artifact)
+    page.evaluate("""async () => { await obsArtifact.activateChapter("only"); await obsArtifact.whenChapterReady(); }""")
+    # The page shows its frame, the note's title and page number, and none of its fields.
+    assert page.evaluate("""() => ({
+        body: document.querySelector("[data-chapter-body]").textContent.includes("ana"),
+        bar: obsArtifact.isBarOpen("comments"),
+        chevron: document.querySelectorAll("[data-frontmatter-toggle], .frontmatter-toggle").length,
+        table: document.querySelectorAll("[data-frontmatter-panel], .frontmatter-panel").length,
+    })""") == {"body": False, "bar": False, "chevron": 0, "table": 0}
+    assert errors == []

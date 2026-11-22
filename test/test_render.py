@@ -198,6 +198,35 @@ def test_chapter_frontmatter_feeds_the_note_not_its_body(document) -> None:
     assert "owner" not in intro["html"]
 
 
+def test_the_page_has_no_chevron_and_no_table_above_the_chapter(document) -> None:
+    """Artifact-ui.md "Comments bar": the note's front matter is its first card in the bar, which
+    replaces the chevron and its field table."""
+    html = _render(document)
+    assert "frontmatter-toggle" not in html and "frontmatter-panel" not in html
+    assert "data-frontmatter-" not in html
+
+
+def test_a_block_that_sets_a_key_from_farther_out_names_the_value_it_overrides() -> None:
+    """A block record's own key that its section or its note's front matter also has reaches the bar
+    with the inherited value, so its card marks the override; an unset key too, a key nothing farther
+    out has not (artifact-ui.md, Comments bar)."""
+    section = node("section", level=2)
+    section.update(id="section-a", children=[text("Part")], fields={"status": "review"})
+    prose = paragraph("Part prose.")
+    prose.update(id="paragraph-a", fields={"owner": "lin", "extra": 1})
+    listing = node("list", tight=True)
+    listing.update(id="list-a", fields={"owner": None, "reviewer": None})
+    source = build("Fields", chapter("one", "One", heading(1, "One"), section, prose, listing,
+                                     metadata={"owner": "ana", "status": "draft"}))
+    source["records"] = [*source.get("records", []), *(
+        {"id": f"block-one-{block['id']}", "type": "block", "note": "one",
+         "block": {"node": block["id"], "chapter": "one", "kind": block["type"], "path": "One",
+                   "fields": block["fields"]}, "fields": {}} for block in (section, prose, listing))]
+    blocks = {entry["block"]["node"]: entry.get("inherited") for entry in _model(source)["blocks"]}
+    assert blocks == {"section-a": {"status": "draft"}, "paragraph-a": {"owner": "ana"},
+                      "list-a": {"owner": "ana"}}
+
+
 def test_marks_render_a_semantic_paragraph_with_a_named_icon_rail(document) -> None:
     html = _render(document)
     intro = decode_artifact_data(html)["notes"][1]

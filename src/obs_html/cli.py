@@ -37,9 +37,9 @@ EPILOG = f"""Rendering:
   --vault-root ROOT names the Document's vault-relative paths below ROOT in messages
   (ROOT/manifest.md: ...) and supplies the target Git root for generation provenance;
   the Document and the artifact never carry it.
-  Every page's frontmatter table ends with a Source file row, the vault path of the note it
-  shows, while artifact.sourceFileLinks is true, as the packaged cfg.json sets it; false builds
-  the page without it. --vault-link LINK, the vault folder's place from DESTINATION's folder
+  Every note's front matter card in the Comments bar ends with a Source file row, the vault
+  path of the note, while artifact.sourceFileLinks is true, as the packaged cfg.json sets it;
+  false builds the page without it. --vault-link LINK, the vault folder's place from DESTINATION's folder
   such as ../notes, makes the path a link that opens the note in a new tab; the core passes it
   where DESTINATION lies in the vault's parent folder or below it. Where the local list
   (.public-check.local) names the vault folder, the page gets no link (spec/cli.md, Source file links).

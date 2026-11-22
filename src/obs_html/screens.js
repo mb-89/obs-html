@@ -1,6 +1,6 @@
 /* Screens (features.py, screens; artifact-ui.md, Screens): an artifact that opens in screens shows
-   the manifest's title in the top band, between the breadcrumbs and the frontmatter chevron, and no
-   chapter counter. screens.css lays the screen out; pages.js prints it. */
+   the manifest's title in the top band, between the breadcrumbs and the band's end, and no chapter
+   counter. screens.css lays the screen out; pages.js prints it. */
 (() => {
   const data = JSON.parse(document.querySelector("[data-artifact-data]").textContent);
   const band = document.querySelector("[data-top-band]");
@@ -10,5 +10,5 @@
   title.dataset.transientView = "";
   title.textContent = title.title = data.document.title;
   title.hidden = !data.document.title;
-  band.querySelector("[data-frontmatter-toggle]").before(title);
+  band.querySelector("[data-top-band-end]").before(title);
 })();

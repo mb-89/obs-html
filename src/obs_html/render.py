@@ -1194,6 +1194,7 @@ def _model(document: dict[str, object], config: Config, context: Context, built:
     for note in notes:
         if note["frontmatter"].get("kind") == "quantity" and "value" in note["frontmatter"]:
             note["valueLabel"] = _quantity_label(note["frontmatter"])  # Its hover card shows it.
+    inherited = _inherited_fields(document)
     return {
         "assets": context.assets.resources,
         "embeddedAssets": context.assets.embedded_assets,
@@ -1224,12 +1225,57 @@ def _model(document: dict[str, object], config: Config, context: Context, built:
         "query": profile["query"],
         "filterPresets": settings["filterPresets"],
         "toc": [HOME, *_listed(document["chapters"])],
-        # Each block record, a register's block row (obs input-model#Block records; artifact.js, blockTableRows).
+        # Each block record, a register's block row (obs input-model#Block records; artifact.js, blockTableRows)
+        # and a metadata card of the Comments bar, with the values from farther out its own keys override.
         "blocks": [{"key": f"block:{record['id']}", "note": record["note"], "block": record["block"],
-                    "fields": record["fields"]} for record in document["records"] if record["type"] == "block"],
+                    "fields": record["fields"], **({"inherited": inherited[key]} if key in inherited else {})}
+                   for record in document["records"] if record["type"] == "block"
+                   for key in [(record["block"]["chapter"], record["block"]["node"])]],
         "rowRecords": {key: record for record, key in context.row_keys.items()},
         "notes": [{key: value for key, value in note.items() if key != "record"} for note in notes],
     }
+
+
+def _inherited_fields(document: dict[str, object]) -> dict[tuple[str, str], dict[str, object]]:
+    """Per (chapter, node) of each block or section that sets a key, the values from farther out that
+    its own keys replace or unset: its containers', its sections' and its note's front matter, as the
+    core resolves them (obs input-model#Inheritance). The Comments bar marks each as an override."""
+    found: dict[tuple[str, str], dict[str, object]] = {}
+
+    def flat(metadata: dict[str, object], prefix: str = "") -> dict[str, object]:
+        values: dict[str, object] = {}
+        for key, value in metadata.items():
+            if isinstance(value, dict) and value:
+                values.update(flat(value, f"{prefix}{key}."))
+            else:
+                values[f"{prefix}{key}"] = value
+        return values
+
+    def walk(chapter: str, nodes: list[dict[str, object]], outer: dict[str, object]) -> None:
+        sections: list[tuple[int, dict[str, object]]] = []
+        for item in nodes:
+            level = item["attrs"].get("level", 1) if item["type"] == "section" else 0
+            while level and sections and sections[-1][0] >= level:
+                sections.pop()
+            around = sections[-1][1] if sections else outer
+            own = item.get("fields") or {}
+            prior = {key: around[key] for key in own if around.get(key) is not None}
+            if prior and "id" in item:
+                found[(chapter, item["id"])] = prior
+            scope = {**around, **own}
+            if level:
+                sections.append((level, scope))
+            elif item.get("children"):
+                walk(chapter, item["children"], scope)
+
+    manifest = document["manifest"]
+    walk(HOME, manifest.get("abstract", []), flat(manifest.get("metadata") or {}))
+    stack = list(document["chapters"])
+    while stack:
+        chapter = stack.pop()
+        walk(chapter["id"], chapter["content"], flat(chapter.get("metadata") or {}))
+        stack.extend(chapter["children"])
+    return found
 
 
 def _listed(chapters: list[dict[str, object]]) -> list[str]:
@@ -2067,11 +2113,6 @@ def _shell(model: dict[str, object], limits: list[dict[str, str]], overlay: str,
 <body>
   {limited_host}<header class="top-band" data-top-band>
     <div class="top-band-path" data-top-band-path data-transient-content></div>
-    <button class="icon-button frontmatter-toggle" type="button" data-frontmatter-toggle
-            aria-label="Show frontmatter" aria-expanded="false"
-            aria-controls="frontmatter-panel" title="Show frontmatter" hidden>
-      {markup("frontmatter")}
-    </button>
     <div class="top-band-end" data-top-band-end>
       <button class="icon-button menu-button" type="button" data-menu-button
               aria-label="Open bars menu" aria-expanded="false" title="Bars" disabled>{markup("menu")}</button>
@@ -2082,13 +2123,6 @@ def _shell(model: dict[str, object], limits: list[dict[str, str]], overlay: str,
     {_dock_region("left")}
     <main class="reader-shell">
       <div class="chapter-scroll" data-chapter-scroll tabindex="-1">
-        <section class="frontmatter-panel" id="frontmatter-panel" data-frontmatter-panel
-                 aria-label="Frontmatter" hidden>
-          <table>
-            <thead><tr><th scope="col">Field</th><th scope="col">Value</th></tr></thead>
-            <tbody data-frontmatter-body data-transient-content></tbody>
-          </table>
-        </section>
         <article class="chapter" data-active-chapter>
           <div class="chapter-body" data-chapter-body data-transient-content>
           </div>

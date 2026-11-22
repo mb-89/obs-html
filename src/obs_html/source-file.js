@@ -1,53 +1,23 @@
-/* Source file row (features.py, source-file): the frontmatter table's last row names the vault
-   path of the note the page shows, after its fields (artifact-ui.md, Reading shell; cli.md, Source
-   file links). It reads each note's sourceFilePath and sourceFileHref from the data island; on each
-   chapter change it fills a tbody of its own, which a saved copy holds empty (data-transient-content),
-   with one row for a note that has a path: a link that opens in a new tab where the build knew where
-   the vault lies from the page, plain text elsewhere. It then shows the chevron; for a note without a
-   path it leaves the tbody empty and the chevron as artifact.js set it. */
+/* Source file row (features.py, source-file): the last row of each note's front matter card in the
+   Comments bar names the vault path of the note, after its fields (artifact-ui.md, Comments bar;
+   cli.md, Source file links). It reads each note's sourceFilePath and sourceFileHref from the data
+   island; the bar asks it for the value of each card it shows (bars/comments.js), in a list a saved
+   copy holds empty (data-transient-content): a link that opens in a new tab where the build knew
+   where the vault lies from the page, plain text elsewhere, and none for a note without a path. */
 (() => {
   const data = JSON.parse(document.querySelector("[data-artifact-data]").textContent);
   const notes = new Map(data.notes.map(note => [note.slug, note]));
-  const fields = document.querySelector("[data-frontmatter-body]");
-  const toggle = document.querySelector("[data-frontmatter-toggle]");
-  const own = () => {
-    let body = fields.parentElement.querySelector("[data-source-file-body]");
-    if (!body) {
-      body = document.createElement("tbody");
-      body.dataset.sourceFileBody = "";
-      body.dataset.transientContent = "";
-      fields.after(body);
-    }
-    return body;
-  };
-  const row = note => {
-    const heading = document.createElement("th");
-    heading.scope = "row";
-    heading.textContent = "Source file";
-    const cell = document.createElement("td");
-    if (note.sourceFileHref) {
+  globalThis.obsSourceFile = {
+    value: slug => {
+      const note = notes.get(slug);
+      if (!note?.sourceFilePath) return null;
+      if (!note.sourceFileHref) return document.createTextNode(note.sourceFilePath);
       const link = document.createElement("a");
       link.href = note.sourceFileHref;
       link.target = "_blank";
       link.rel = "noopener noreferrer";
       link.textContent = note.sourceFilePath;
-      cell.append(link);
-    } else {
-      cell.textContent = note.sourceFilePath;
-    }
-    const line = document.createElement("tr");
-    line.append(heading, cell);
-    return line;
+      return link;
+    },
   };
-  document.addEventListener("obs-chapter-change", ({detail}) => {
-    if (!detail?.slug) return;  // An event that names no chapter leaves the row as it is.
-    const note = notes.get(detail.slug);
-    const body = own();
-    if (!note?.sourceFilePath) {
-      body.replaceChildren();
-      return;
-    }
-    body.replaceChildren(row(note));
-    toggle.hidden = false;
-  });
 })();

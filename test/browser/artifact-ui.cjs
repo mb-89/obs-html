@@ -324,14 +324,17 @@ if (process.argv[7] === "--artifact-change-only") {
     console.log("PASS artifact/review dirty, reader state never a change, revert, invalid draft, save/cancel/failure/download/newer edits.");
     return;
 }
+// Artifact-ui.md "Comments bar": a metadata-only note shows empty, and the page has no chevron and no
+// field table; its fields show on its front matter card, each value as its display HTML.
 navigate("metadata-only");
-assert.equal(document.querySelector("[data-frontmatter-panel]").hidden, false);
-assert.equal(document.querySelector("[data-frontmatter-toggle]").getAttribute("aria-expanded"), "true");
-assert.ok(document.querySelector("[data-frontmatter-body]").textContent.includes("Ada"));
-assert.ok(document.querySelector("[data-frontmatter-body] strong"));
-assert.ok(document.querySelector('[data-frontmatter-body] a[href="#details"]'));
+assert.equal(body.textContent.includes("Ada"), false);
+assert.equal(document.querySelector("[data-frontmatter-toggle], [data-frontmatter-panel]"), null);
+const metadataOnly = context.obsArtifact.records.find((record) => record.slug === "metadata-only");
+const citationCell = document.createElement("div");
+context.obsArtifact.appendFieldValue(citationCell, metadataOnly, "citation", "");
+assert.ok(citationCell.querySelector("strong"));
+assert.ok(citationCell.querySelector('a[href="#details"]'));
 navigate("home");
-assert.equal(document.querySelector("[data-frontmatter-panel]").hidden, true);
 const openChildren = (labels) => {
     const crumb = band.querySelector("[data-breadcrumb-current]");
     const chapter = current();
@@ -405,13 +408,11 @@ assert.equal(current(), "node");
 click(band.querySelector(".chapter-breadcrumbs > a[href='#parent']"));
 assert.equal(current(), "parent");
 navigate("child");
-// Artifact-ui.md "Styling" and "Reading shell": a note with body content shows its frontmatter, such as
-// its `bottom line` field, only in the frontmatter panel, which stays collapsed behind the chevron; a
-// bottom line is a [!bluf] callout.
+// Artifact-ui.md "Styling" and "Comments bar": a note with body content shows its frontmatter, such as
+// its `bottom line` field, only on its front matter card; a bottom line is a [!bluf] callout.
 assert.equal(body.textContent.includes("Child result."), false);
-assert.equal(document.querySelector("[data-frontmatter-panel]").hidden, true);
-assert.equal(document.querySelector("[data-frontmatter-toggle]").getAttribute("aria-expanded"), "false");
-assert.ok(document.querySelector("[data-frontmatter-body]").textContent.includes("Child result."));
+assert.ok(context.obsArtifact.records.find((record) => record.slug === "child").metadataEntries
+    .some(([, value]) => value.includes("Child result.")));
 navigate("home");
 let shell = tables()[0];
 assert.equal(shell.querySelector('tr[data-row-key="parent"] td:last-child').textContent, "");

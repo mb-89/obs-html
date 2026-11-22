@@ -191,9 +191,9 @@ def test_a_word_only_in_a_hidden_field_finds_the_note_but_not_its_row(open_chapt
     notes = [index for index, result in enumerate(results) if result["slug"] == "t1" and result["kind"] != "row"]
     assert notes
     page.locator(f"[data-search-hit='{notes[0]}']").click()
-    # The note's page shows every field, its date in its frontmatter panel, highlighted.
+    # The note's page shows every field, its date on its front matter card in the Comments bar, highlighted.
     page.locator("[data-active-chapter]#t1").wait_for()
-    page.locator("#frontmatter-panel .search-highlight", has_text=DATE).wait_for()
+    page.locator("[data-metadata-card='frontmatter:t1'] .search-highlight", has_text=DATE).wait_for()
 
 
 def test_a_row_preview_in_a_text_only_view_prints_no_hidden_value(open_chapter) -> None:
