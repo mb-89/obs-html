@@ -34,6 +34,24 @@ each landing bumps that version, and on each push to main
 `obs-components install obs-html` finds it among the repositories of the owner that carry the topic
 `component`.
 
+## Branch cleanup
+
+`.github/workflows/clean-branches.yml` deletes spent branches, as no session can delete one itself.
+This repository owns it; se does not regenerate it.
+
+- When a pull request closes, merged or not, it deletes that pull request's head branch.
+- A run by hand (Actions, clean-branches, Run workflow) deletes every branch whose newest pull
+  request is closed and whose work issue, the issue that pull request's description names, is
+  closed. A landing branch's work issue is the one its work pull request names. The run's summary
+  lists each branch it deleted and each it kept, with why. Its dry run lists the same and deletes
+  nothing.
+- It never deletes `main`, the default branch, a cloud session's `ccr-` or `claude/` branch, a fork's
+  branch, a branch an open pull request heads or one that moved since its pull request's head; the
+  workflow's header owns these guards.
+
+To switch it off, disable it (Actions, clean-branches, the menu's Disable workflow), or delete the
+file.
+
 ## Adapter
 
 obs finds this folder as the adapter component `obs-html` (obs's
