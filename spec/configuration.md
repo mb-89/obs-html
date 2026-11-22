@@ -79,8 +79,8 @@ it; `--config` does not.
 
 ## Declared style
 
-obs's plugins note (`spec/design_input/plugins.md`) replaces the style named by its address: a
-style becomes a plugin the manifest names by name alone, installed on the machine by obs's plugin
+obs's components note (`spec/design_input/components.md`) replaces the style named by its address: a
+style becomes a component the manifest names by name alone, installed on the machine by obs's component
 command, and obs-html no longer fetches a style itself. Until its implementation lands, this
 section describes the build as it is.
 

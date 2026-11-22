@@ -48,8 +48,7 @@ def steps(config: dict, here: Path, repository: str, execute_commands: bool) -> 
                  f"pass a clone that holds commit {commit} with --repository, after deleting {checkout}"),
             Step("install", ["uv", "sync", "--frozen", "--project", str(checkout)],
                  "install uv (https://docs.astral.sh/uv/) and check that the package index is reachable"),
-            Step("rebuild", ["uv", "run", "--frozen", "--project", str(checkout), *command,
-                             "--adapter-config", str(checkout / "adapters.json")],
+            Step("rebuild", ["uv", "run", "--frozen", "--project", str(checkout), *command],
                  "the obs-document message above names the cause", {"UV_PROJECT": str(checkout)})]
 
 

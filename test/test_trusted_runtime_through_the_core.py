@@ -39,7 +39,7 @@ def _vault(folder: Path) -> Path:
 def _one_call(vault: Path, destination: Path, *options: str) -> subprocess.CompletedProcess:
     return subprocess.run(
         [sys.executable, "-m", "obs.document", "--source", str(vault / "manifest.md"), "--adapter", "html",
-         "--adapter-config", str(CORE_ROOT / "adapters.json"), "--destination", str(destination), *options],
+         "--destination", str(destination), *options],
         capture_output=True, text=True, env={**os.environ, "UV_OFFLINE": "1"}, check=False)
 
 

@@ -15,7 +15,7 @@ uv run pytest
 
 ## Adapter
 
-obs's root `adapters.json` registers the `html` adapter and `adapter.json` declares the contract version,
+obs finds this folder as the adapter component `html` (obs's `spec/design_input/components.md`), and `adapter.json` declares the contract version,
 the `obs-html` command and the capability identifiers it renders. `uv run obs-html --help` is the
 command reference. Run the focused contract check with:
 

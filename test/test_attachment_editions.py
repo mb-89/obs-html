@@ -121,7 +121,7 @@ def test_the_one_call_build_through_the_core_with_the_option_yields_the_evidence
 
     completed = subprocess.run(
         [sys.executable, "-m", "obs.document", "--source", str(vault / "manifest.md"), "--adapter", "html",
-         "--adapter-config", str(core_root / "adapters.json"), "--destination", str(destination),
+         "--destination", str(destination),
          "--adapter-option", "embed-attachments=true"],
         capture_output=True, text=True, env={**os.environ, "UV_OFFLINE": "1"}, check=False)
 

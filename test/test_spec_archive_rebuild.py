@@ -55,7 +55,7 @@ def test_reproduce_rebuilds_obs_spec_from_its_archive_with_the_references_entry(
     built = tmp_path / "built" / "spec.html"
     run([uv(), "run", "--offline", "--project", str(CORE_ROOT), "python", str(OFFLINE_DOCUMENT), "--source",
          str(vault / "manifest.md"), "--adapter", "html", "--destination", str(built), "--execute-commands",
-         "--embed-source", "--adapter-config", str(CORE_ROOT / "adapters.json")], CORE_ROOT,
+         "--embed-source"], CORE_ROOT,
         "building a copy of obs's spec with its source archive")
     here = tmp_path / "extracted"
     with zipfile.ZipFile(io.BytesIO(embedded(built.read_text(encoding="utf-8"), built))) as archive:
@@ -68,8 +68,7 @@ def test_reproduce_rebuilds_obs_spec_from_its_archive_with_the_references_entry(
 
     assert [step.name for step in steps] == ["clone", "checkout", "install", "rebuild"]
     rebuild = steps[-1]
-    assert rebuild.command == ["uv", "run", "--frozen", "--project", str(checkout), *config["command"],
-                               "--adapter-config", str(checkout / "adapters.json")]
+    assert rebuild.command == ["uv", "run", "--frozen", "--project", str(checkout), *config["command"]]
     environment = {key: value for key, value in os.environ.items() if key != "VIRTUAL_ENV"}
     environment.update({name: value.replace(str(checkout), str(CORE_ROOT))
                         for name, value in rebuild.environment.items()})

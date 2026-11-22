@@ -55,9 +55,10 @@ def test_each_declared_option_is_a_flag_of_the_cli() -> None:
     assert "embed-attachments" in declared  # The evidence edition (spec/design_input/cli.md, Attachments per build).
 
 
-def test_adapters_configuration_names_the_cli_as_the_executable() -> None:
-    adapters = json.loads((CORE_ROOT / "adapters.json").read_text(encoding="utf-8"))
-    assert adapters == {"adapters": {"html": "adapters/html/adapter.json"}}
+def test_the_core_finds_this_adapter_as_the_component_html_and_its_cli_as_the_executable() -> None:
+    """obs finds this folder's adapter.json as the component html (obs's test/test_components.py checks the lookup)."""
+    assert (CORE_ROOT / "adapters" / "html" / "adapter.json").samefile(ROOT / "adapter.json")
+    assert not (CORE_ROOT / "adapters.json").exists()
     scripts = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"]["scripts"]
     assert _manifest()["command"] == ["uv", "run", "obs-html"]
     assert scripts["obs-html"] == "obs_html.cli:main"  # Other scripts, such as obs-html-inspect, are tools.

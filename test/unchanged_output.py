@@ -157,7 +157,7 @@ def build(page: Page, root: Path, folder: Path, side: str) -> Path:
         if page.kind == "spec":
             shutil.copytree(source.parent, work / page.source.parent, ignore=shutil.ignore_patterns("design_output"))
             command = ["obs-document", "--source", page.source.as_posix(), "--execute-commands", "--adapter", "html",
-                       "--adapter-config", str(root / "adapters.json"), "--destination", str(html)]
+                       "--destination", str(html)]
             _run([*uv, *command], work, root, page, side)
         else:
             _run([*uv, "obs-html", "--build-own-spec", str(html)], work, root, page, side)

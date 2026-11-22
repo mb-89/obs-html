@@ -180,8 +180,7 @@ def test_reproduce_installs_the_recorded_commit_and_reruns_the_recorded_command(
         ("clone", ["git", "clone", "--quiet", "--no-checkout", BUILD["repository"], str(checkout)]),
         ("checkout", ["git", "-C", str(checkout), "checkout", "--quiet", "--detach", BUILD["commit"]]),
         ("install", ["uv", "sync", "--frozen", "--project", str(checkout)]),
-        ("rebuild", ["uv", "run", "--frozen", "--project", str(checkout), *config["command"],
-                     "--adapter-config", str(checkout / "adapters.json")]),
+        ("rebuild", ["uv", "run", "--frozen", "--project", str(checkout), *config["command"]]),
     ]
     assert steps[-1].environment == {"UV_PROJECT": str(checkout)}
     checkout.mkdir()
@@ -197,7 +196,7 @@ def test_reproduce_runs_recorded_command_fences_only_when_asked(tmp_path: Path) 
         reproduce.steps(config, here, BUILD["repository"], execute_commands=False)
 
     assert "reproduce.py" in str(refused.value.code) and "--execute-commands" in str(refused.value.code)
-    assert reproduce.steps(config, here, BUILD["repository"], execute_commands=True)[-1].command[-3] == \
+    assert reproduce.steps(config, here, BUILD["repository"], execute_commands=True)[-1].command[-1] == \
         "--embed-source"
 
 

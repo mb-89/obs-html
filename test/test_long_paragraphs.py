@@ -17,7 +17,7 @@ def test_a_one_call_build_warns_once_per_long_paragraph_and_keeps_it_out_of_the_
 
     completed = subprocess.run(
         [sys.executable, "-m", "obs.document", "--source", str(vault / "manifest.md"), "--adapter", "html",
-         "--adapter-config", str(core_root / "adapters.json"), "--destination", str(destination)],
+         "--destination", str(destination)],
         capture_output=True, text=True, env={**os.environ, "UV_OFFLINE": "1"}, check=False)
 
     assert completed.returncode == 0, completed.stderr

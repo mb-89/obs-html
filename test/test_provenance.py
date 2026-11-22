@@ -642,7 +642,7 @@ def test_a_one_call_build_with_the_finding_digests_option_prints_each_digest(tmp
     (vault / "chapter.md").write_text(f"# Chapter\n\nMet at {TIME}.\n", encoding="utf-8")
     completed = subprocess.run(
         [sys.executable, "-m", "obs.document", "--source", str(vault / "manifest.md"), "--adapter", "html",
-         "--adapter-config", str(core_root / "adapters.json"), "--destination", str(tmp_path / "page.html"),
+         "--destination", str(tmp_path / "page.html"),
          "--adapter-option", "finding-digests=true"],
         capture_output=True, text=True, env={**os.environ, "UV_OFFLINE": "1"}, check=False)
     assert completed.returncode == 0, completed.stderr

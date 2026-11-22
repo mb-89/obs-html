@@ -230,7 +230,7 @@ def test_a_one_call_build_prints_a_core_warning_once_by_the_core(tmp_path, core_
 
     completed = subprocess.run(
         [sys.executable, "-m", "obs.document", "--source", str(vault / "manifest.md"), "--adapter", "html",
-         "--adapter-config", str(core_root / "adapters.json"), "--destination", str(tmp_path / "once.html")],
+         "--destination", str(tmp_path / "once.html")],
         capture_output=True, text=True, env={**os.environ, "UV_OFFLINE": "1"}, check=False)
 
     assert completed.returncode == 0, completed.stderr

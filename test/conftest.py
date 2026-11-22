@@ -29,6 +29,9 @@ LOCAL_THEMES = ROOT / "test" / "fixtures" / "local-themes"
 # No test, and no build a test starts, reads the build machine's local themes: the folder named
 # here does not exist. A test that needs themes sets the variable for its own call.
 os.environ["OBS_HTML_LOCAL_FOLDER"] = str(ROOT.resolve() / "test" / "fixtures" / "no-local-folder")
+# No build a test starts reads the build machine's installed components (obs's
+# spec/design_input/components.md, Installed components): the core finds html in obs's tree.
+os.environ["OBS_LOCAL_FOLDER"] = str(ROOT.resolve() / "test" / "fixtures" / "no-local-folder")
 
 
 def _core_module(name: str) -> types.ModuleType:

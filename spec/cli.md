@@ -132,19 +132,18 @@ false in its `cfg.json`, since the site does not serve the linked notes.
 
 ## Running from another folder
 
-The one-call build reads the adapter registry `adapters.json` from the current folder unless
-`--adapter-config` names it. RUNME names obs's registry, so a call through RUNME runs from any
-folder, and a relative path resolves from the folder it is run in; a later `--adapter-config`
-overrides it:
+The one-call build finds the adapter `html` in the checkout the core runs from (obs's
+`spec/design_input/components.md`, Naming a component), not in the current folder, so a call through
+RUNME runs from any folder, and a relative path resolves from the folder it is run in:
 
 ```sh
 /path/to/obs/RUNME.sh --adapter html --source vault/manifest.md --destination document.html
 ```
 
-Without RUNME, a call from another folder names the checkout's project and its registry:
+Without RUNME, a call from another folder names the checkout's project:
 
 ```powershell
-uv run --project C:\path\to\obs obs-document --adapter-config C:\path\to\obs\adapters.json `
+uv run --project C:\path\to\obs obs-document `
     --adapter html --source C:\path\to\vault\manifest.md --destination C:\path\to\document.html
 ```
 

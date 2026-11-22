@@ -32,7 +32,7 @@ def test_a_vault_cfg_json_sets_the_filter_presets_of_a_one_call_build(tmp_path, 
 
     completed = subprocess.run(
         [sys.executable, "-m", "obs.document", "--source", str(vault), "--adapter", "html",
-         "--adapter-config", str(core_root / "adapters.json"), "--destination", str(destination)],
+         "--destination", str(destination)],
         capture_output=True, text=True, env={**os.environ, "UV_OFFLINE": "1"}, check=False)
 
     assert completed.returncode == 0, completed.stderr
