@@ -627,7 +627,7 @@ def _register(node: dict[str, object], context: Context) -> str:
 def _row_keys(records: list[dict[str, object]]) -> dict[str, str]:
     """Each record's key among the runtime's table rows, by record id: the keys artifact.js gives
     the rows it builds per record type (noteTableRows, chapterTableRows, tagTableRows,
-    glossaryTableRows, documentMetadataRows, documentHistoryRows)."""
+    glossaryTableRows, documentMetadataRows, documentHistoryRows, blockTableRows)."""
     history = [record["id"] for record in records if record["type"] == "documentHistory"]
     keys = {
         "note": lambda record: f"note:{record['id']}",
@@ -636,6 +636,7 @@ def _row_keys(records: list[dict[str, object]]) -> dict[str, str]:
         "glossary": lambda record: f"glossary:{record['note']}",
         "documentMetadata": lambda record: f"metadata:{record['fields']['key']}",
         "documentHistory": lambda record: f"history:{history.index(record['id'])}",
+        "block": lambda record: f"block:{record['id']}",
     }
     return {record["id"]: keys[record["type"]](record) for record in records}
 
@@ -1223,6 +1224,9 @@ def _model(document: dict[str, object], config: Config, context: Context, built:
         "query": profile["query"],
         "filterPresets": settings["filterPresets"],
         "toc": [HOME, *_listed(document["chapters"])],
+        # Each block record, a register's block row (obs input-model#Block records; artifact.js, blockTableRows).
+        "blocks": [{"key": f"block:{record['id']}", "note": record["note"], "block": record["block"],
+                    "fields": record["fields"]} for record in document["records"] if record["type"] == "block"],
         "rowRecords": {key: record for record, key in context.row_keys.items()},
         "notes": [{key: value for key, value in note.items() if key != "record"} for note in notes],
     }

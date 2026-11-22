@@ -261,7 +261,7 @@ def structural(root: Path) -> None:
 def registers(root: Path) -> None:
     """test_registers.py's vault: register embeds whose rows the core selects. ``points.base`` has
     two views with different view-level members, embedded whole and by one view heading;
-    ``types.base`` has one view per record type."""
+    ``types.base`` has one view per record type; the list in ``types.md`` is its one block record."""
     (root / "manifest.md").write_text(
         "---\ntitle: Registers\nstatus: draft\nhistory:\n  - {version: '1', date: '2026-01-01', author: Ann, change: First}\n"
         "  - {version: '2', author: Ann, change: Second}\n---\n- [[points]]\n- [[second]]\n- [[types]]\n",
@@ -285,14 +285,16 @@ def registers(root: Path) -> None:
         "  - {type: table, name: Glossary, order: [term, definition], obs: {records: glossary}}\n"
         "  - {type: table, name: Metadata, filters: 'key != \"title\"', order: [key, value],"
         " obs: {records: documentMetadata}}\n"
-        "  - {type: table, name: History, order: [version, date, change], obs: {records: documentHistory}}\n",
+        "  - {type: table, name: History, order: [version, date, change], obs: {records: documentHistory}}\n"
+        "  - {type: table, name: Blocks, filters: 'owner == \"ann\"', order: [block.path, owner], obs: {records: block}}\n",
         encoding="utf-8",
     )
     (root / "points.md").write_text("# Points\n\nAll views.\n\n![[points.base]]\n", encoding="utf-8")
     (root / "second.md").write_text(
         "# Second\n\nOne view. #mark/risk/second_risk\n\n![[points.base#Second]]\n", encoding="utf-8")
     (root / "types.md").write_text(
-        "# Types\n\nSee [[datum]]. #mark/open_point/types_open\n\n![[types.base]]\n", encoding="utf-8")
+        "# Types\n\nSee [[datum]]. #mark/open_point/types_open\n\n- one\n- two\n\nowner:: ann\n\n![[types.base]]\n",
+        encoding="utf-8")
     for name in ("a", "b", "c", "d"):
         (root / f"{name}-point.md").write_text(f"---\nkind: point\n---\n# Point {name.upper()}\n", encoding="utf-8")
     (root / "datum.md").write_text(

@@ -1055,11 +1055,19 @@
         return cachedDocumentHistoryRows;
     };
 
+    // A block row's own fields are its effective values, then block.node, block.chapter, block.kind
+    // and block.path (obs input-model#Block records).
+    const blockTableRows = () => artifactData.blocks.map(({key, note, block, fields}) => tableRecord(key, {
+        recordType: "block", ...Object.fromEntries(Object.entries(fields).map(
+            ([field, value]) => [field, formatStructuredValue(value)])),
+        ...Object.fromEntries(["node", "chapter", "kind", "path"].map((name) => [`block.${name}`, block[name]])),
+    }, {noteId: note}));
+
     let cachedArtifactTableRows;
     const artifactTableRows = () => {
         if (!cachedArtifactTableRows) {
             cachedArtifactTableRows = [
-                ...contentTableRows(), ...documentMetadataRows(), ...documentHistoryRows(),
+                ...contentTableRows(), ...documentMetadataRows(), ...documentHistoryRows(), ...blockTableRows(),
             ];
         }
         return cachedArtifactTableRows;

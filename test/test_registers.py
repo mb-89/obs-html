@@ -75,6 +75,7 @@ TYPE_VIEWS = {
     "documentMetadata": ("Metadata", ["metadata:status", "generation:timestamp", "generation:generator",
                                       "generation:target", "generation:components"]),
     "documentHistory": ("History", ["history:0", "history:1"]),
+    "block": ("Blocks", ["block:block-types-list-37db52ec"]),
 }
 
 

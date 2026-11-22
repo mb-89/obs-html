@@ -468,6 +468,89 @@
           "id": "paragraph-9fc53c51"
         },
         {
+          "type": "list",
+          "attrs": {
+            "ordered": false,
+            "tight": true
+          },
+          "children": [
+            {
+              "type": "list-item",
+              "attrs": {},
+              "children": [
+                {
+                  "type": "paragraph",
+                  "attrs": {},
+                  "children": [
+                    {
+                      "type": "text",
+                      "attrs": {},
+                      "children": [],
+                      "text": "one"
+                    }
+                  ],
+                  "id": "paragraph-7692c3ad",
+                  "effective": {
+                    "owner": {
+                      "value": "ann",
+                      "node": "list-37db52ec"
+                    }
+                  }
+                }
+              ],
+              "id": "list-item-7692c3ad",
+              "effective": {
+                "owner": {
+                  "value": "ann",
+                  "node": "list-37db52ec"
+                }
+              }
+            },
+            {
+              "type": "list-item",
+              "attrs": {},
+              "children": [
+                {
+                  "type": "paragraph",
+                  "attrs": {},
+                  "children": [
+                    {
+                      "type": "text",
+                      "attrs": {},
+                      "children": [],
+                      "text": "two"
+                    }
+                  ],
+                  "id": "paragraph-3fc4ccfe",
+                  "effective": {
+                    "owner": {
+                      "value": "ann",
+                      "node": "list-37db52ec"
+                    }
+                  }
+                }
+              ],
+              "id": "list-item-3fc4ccfe",
+              "effective": {
+                "owner": {
+                  "value": "ann",
+                  "node": "list-37db52ec"
+                }
+              }
+            }
+          ],
+          "fields": {
+            "owner": "ann"
+          },
+          "id": "list-37db52ec",
+          "effective": {
+            "owner": {
+              "value": "ann",
+              "node": "list-37db52ec"
+            }
+          }
+        },
+        {
           "type": "registers",
           "attrs": {
             "target": "types.base",
@@ -541,6 +624,18 @@
                   "obs": {
                     "records": "documentHistory"
                   }
+                },
+                {
+                  "type": "table",
+                  "name": "Blocks",
+                  "filters": "owner == \"ann\"",
+                  "order": [
+                    "block.path",
+                    "owner"
+                  ],
+                  "obs": {
+                    "records": "block"
+                  }
                 }
               ]
             },
@@ -569,6 +664,9 @@
               [
                 "document-history-1",
                 "document-history-2"
+              ],
+              [
+                "block-types-list-37db52ec"
               ]
             ]
           },
@@ -1368,6 +1466,23 @@
         "author": "Ann",
         "change": "Second",
         "date": ""
+      }
+    },
+    {
+      "id": "block-types-list-37db52ec",
+      "type": "block",
+      "note": "types",
+      "block": {
+        "node": "list-37db52ec",
+        "chapter": "types",
+        "kind": "list",
+        "path": "Types \u203a Types \u203a list",
+        "fields": {
+          "owner": "ann"
+        }
+      },
+      "fields": {
+        "owner": "ann"
       }
     }
   ],
