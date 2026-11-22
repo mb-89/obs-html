@@ -1,0 +1,410 @@
+# The browser door's expectations and the states they are asked in (test/browser/browser-door.md,
+# The browser door's expectations; Recording and replay).
+#
+# Reader: whoever adds an expectation or a state, records them, or changes what the fake browser
+# answers.
+#
+# An expectation is one thing obs-html relies on the browser for, in kern#8's form: its name, the
+# "given" state it is asked in, and the minimal answer the runtime relies on. It names no engine: the
+# one Chromium and the fake answer the same expectation. `statement` says it as a sentence, `kind`
+# says who answers it in the fake (supplied: the fake replays the recording; computed: happy-dom or
+# a stand-in computes it, and test/test_browser_door.py holds that answer to the recording), and
+# `probe` asks it in a page. A probe is a page function of `door`: `door.asked` lists, by
+# expectation name, the element keys (test/browser/door-key.js), text keys and queries the page
+# asked at that step, `door.element(key)` finds the element a key names and `door.key(element)`
+# gives an element's key. Its answer is plain data, rounded to hundredths of a pixel.
+#
+# `given` names the context a state must have for the expectation to be asked there: `frame: top`
+# for a top-level page, `frame: viewer` for the viewer's scripts-only sandboxed srcdoc frame; and
+# `step: last` asks it only after the state's last step. `given: {}` asks it in every state after
+# every step.
+#
+# A state is a fixture artifact, its context and the steps that lead there. Its artifact is a
+# Document file, or `<module>.py::<function>` for a Document a test module writes. Step 0 is always
+# the opened page. test/browser/door.py records each state with `uv run pytest -m hot --record`
+# into test/browser/recordings/<state>.yaml.
+
+states:
+  features-desktop:
+    artifact: test/fixtures/documents/features.json
+    context: {viewport: [1280, 720], scale: 1, touch: false, scheme: light, motion: no-preference, media: screen, frame: top}
+    steps:
+      - {open: page}
+      - {open: chapter, id: figures}
+      - {open: chapter, id: prose}
+  preview-viewer-frame:
+    artifact: test/preview.py::preview_document
+    context: {viewport: [1100, 700], scale: 1, touch: false, scheme: light, motion: no-preference, media: screen, frame: viewer}
+    steps:
+      - {open: page}
+
+expectations:
+  - name: box
+    statement: An element's border box and client rects, in viewport pixels.
+    kind: supplied
+    given: {}
+    answer: {"<key>": {border: [x, y, width, height], rects: [[x, y, width, height]]}}
+    probe: |
+      (door) => {
+          const four = (rect) => [rect.x, rect.y, rect.width, rect.height].map((value) => Math.round(value * 100) / 100);
+          const answers = {};
+          for (const key of door.asked.box || []) {
+              const element = door.element(key);
+              if (element) answers[key] = {border: four(element.getBoundingClientRect()), rects: [...element.getClientRects()].map(four)};
+          }
+          return answers;
+      }
+
+  - name: sizes
+    statement: An element's client, scroll and offset sizes, its offsets and its scroll position; the window's inner size.
+    kind: supplied
+    given: {}
+    answer: {window: {innerWidth: number, innerHeight: number}, "<key>": {clientWidth: number, scrollTop: number}}
+    probe: |
+      (door) => {
+          const names = ["clientWidth", "clientHeight", "scrollWidth", "scrollHeight", "offsetWidth", "offsetHeight",
+              "offsetLeft", "offsetTop", "clientLeft", "clientTop", "scrollTop", "scrollLeft"];
+          const round = (value) => Math.round(value * 100) / 100;
+          const answers = {window: {innerWidth: window.innerWidth, innerHeight: window.innerHeight}};
+          for (const key of door.asked.sizes || []) {
+              const element = door.element(key);
+              if (!element) continue;
+              answers[key] = Object.fromEntries(names.filter((name) => name in element).map((name) => [name, round(element[name])]));
+          }
+          return answers;
+      }
+
+  - name: resize
+    statement: A ResizeObserver reports an observed element's content and border box once after it is observed.
+    kind: supplied
+    given: {}
+    answer: {"<key>": {content: [width, height], border: [width, height]}}
+    probe: |
+      async (door) => {
+          const round = (value) => Math.round(value * 100) / 100;
+          const elements = (door.asked.resize || []).map((key) => door.element(key)).filter(Boolean);
+          const answers = {};
+          if (!elements.length) return answers;
+          const observer = new ResizeObserver((entries) => {
+              for (const entry of entries) {
+                  const border = entry.borderBoxSize[0];
+                  answers[door.key(entry.target)] = {content: [round(entry.contentRect.width), round(entry.contentRect.height)],
+                      border: [round(border.inlineSize), round(border.blockSize)]};
+              }
+          });
+          for (const element of elements) observer.observe(element);
+          // An element without a box is never reported: three frames end the wait.
+          await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+          observer.disconnect();
+          return answers;
+      }
+
+  - name: scroll-into-view
+    statement: After scrollIntoView, the element's top and the document's scroll position.
+    kind: supplied
+    given: {}
+    answer: {"<key>": {top: number, scrollTop: number}}
+    probe: |
+      (door) => {
+          const round = (value) => Math.round(value * 100) / 100;
+          const scroller = document.scrollingElement || document.documentElement;
+          const answers = {};
+          for (const key of door.asked["scroll-into-view"] || []) {
+              const element = door.element(key);
+              if (!element) continue;
+              const [top, left] = [scroller.scrollTop, scroller.scrollLeft];
+              element.scrollIntoView();
+              answers[key] = {top: round(element.getBoundingClientRect().top), scrollTop: round(scroller.scrollTop)};
+              scroller.scrollTop = top;
+              scroller.scrollLeft = left;
+          }
+          return answers;
+      }
+
+  - name: text-width
+    statement: A canvas 2D context measures a text's width in a font.
+    kind: supplied
+    given: {}
+    answer: {"<font>|<text>": width}
+    probe: |
+      (door) => {
+          const context = document.createElement("canvas").getContext("2d");
+          const answers = {};
+          for (const key of door.asked["text-width"] || []) {
+              const separator = key.indexOf("|");
+              context.font = key.slice(0, separator);
+              answers[key] = Math.round(context.measureText(key.slice(separator + 1)).width * 100) / 100;
+          }
+          return answers;
+      }
+
+  - name: image-size
+    statement: An image of an asset decodes to its natural width and height.
+    kind: supplied
+    given: {}
+    answer: {"<key>": [width, height]}
+    probe: |
+      async (door) => {
+          const answers = {};
+          for (const key of door.asked["image-size"] || []) {
+              const element = door.element(key);
+              if (!element || !("naturalWidth" in element)) continue;
+              await element.decode?.().catch(() => {});
+              answers[key] = [element.naturalWidth, element.naturalHeight];
+          }
+          return answers;
+      }
+
+  - name: fonts
+    statement: document.fonts.ready resolves, and the font set's status is loaded, before the first chapter is painted.
+    kind: supplied
+    given: {}
+    answer: {status: loaded}
+    probe: |
+      async () => {
+          if (!document.fonts) return null;
+          await document.fonts.ready;
+          return {status: document.fonts.status};
+      }
+
+  - name: viewer-frame
+    statement: >-
+      In a scripts-only sandboxed srcdoc frame, storage, cookies and history throw, window.open returns
+      null, modal dialogs and print return at once and fire nothing, and the clipboard refuses.
+    kind: supplied
+    given: {frame: viewer}
+    answer: {"<call path>": {throws: "<error name>"}, "window.open()": {returns: null}, "navigator.clipboard.writeText()": {rejects: "<error name>"}}
+    probe: |
+      async () => {
+          const plain = (value) => value === undefined || value === null ? null : typeof value === "object" ? "object" : value;
+          const attempt = async (call) => {
+              const fired = [];
+              const listen = (event) => fired.push(event.type);
+              for (const type of ["beforeprint", "afterprint"]) window.addEventListener(type, listen);
+              let outcome;
+              try {
+                  const value = call();
+                  if (value && typeof value.then === "function") {
+                      try {
+                          outcome = {resolves: plain(await value)};
+                      } catch (error) {
+                          outcome = {rejects: error.name};
+                      }
+                  } else outcome = {returns: plain(value)};
+              } catch (error) {
+                  outcome = {throws: error.name};
+              }
+              for (const type of ["beforeprint", "afterprint"]) window.removeEventListener(type, listen);
+              if (fired.length) outcome.fires = fired;
+              return outcome;
+          };
+          return {
+              "window.localStorage": await attempt(() => window.localStorage.length),
+              "window.sessionStorage": await attempt(() => window.sessionStorage.length),
+              "document.cookie": await attempt(() => document.cookie),
+              "window.open()": await attempt(() => {
+                  const opened = window.open("about:blank");
+                  opened?.close();
+                  return opened;
+              }),
+              "window.alert()": await attempt(() => window.alert("obs-html")),
+              "window.confirm()": await attempt(() => window.confirm("obs-html")),
+              "window.prompt()": await attempt(() => window.prompt("obs-html")),
+              "window.print()": await attempt(() => window.print()),
+              "navigator.clipboard.writeText()": await attempt(() => navigator.clipboard.writeText("obs-html")),
+              // A new address, as the runtime's chapter addresses and the history canary replace it.
+              "history.replaceState()": await attempt(() => {
+                  const address = location.href;
+                  history.replaceState(history.state, "", "#obs-door");
+                  history.replaceState(history.state, "", address);
+              }),
+          };
+      }
+
+  - name: cascade
+    statement: >-
+      Each computed value the runtime reads of an element, such as its display, visibility, font,
+      line height, left padding, side borders, overflow and the hover card's gap.
+    kind: computed
+    given: {}
+    answer: {"<key>|<property>": "<computed value>"}
+    probe: |
+      (door) => {
+          // A colour as rgb() or rgba(): the fake writes hex where Chromium writes rgb().
+          const colour = (value) => {
+              const hex = /^#([0-9a-f]{6})([0-9a-f]{2})?$/i.exec(value);
+              if (!hex) return value;
+              const [red, green, blue] = [0, 2, 4].map((at) => parseInt(hex[1].slice(at, at + 2), 16));
+              if (!hex[2] || hex[2].toLowerCase() === "ff") return `rgb(${red}, ${green}, ${blue})`;
+              return `rgba(${red}, ${green}, ${blue}, ${Math.round(parseInt(hex[2], 16) / 255 * 1000) / 1000})`;
+          };
+          const answers = {};
+          for (const read of door.asked.cascade || []) {
+              const separator = read.lastIndexOf("|");
+              const element = door.element(read.slice(0, separator));
+              if (!element) continue;
+              const property = read.slice(separator + 1);
+              const style = getComputedStyle(element);
+              answers[read] = colour(String(property.includes("-") ? style.getPropertyValue(property) : style[property]));
+          }
+          return answers;
+      }
+
+  - name: media
+    statement: matchMedia matches each query the runtime asks and each media rule of the stylesheets at the state's viewport, colour scheme, reduced motion and media.
+    kind: computed
+    given: {}
+    answer: {"<query>": boolean}
+    probe: |
+      (door) => Object.fromEntries((door.asked.media || []).map((query) => [query, matchMedia(query).matches]))
+
+  - name: events
+    statement: A click on a button, a checkbox, its label and a summary fires its events in order and toggles the checkbox and the details.
+    kind: computed
+    given: {}
+    answer: ["<tag>:<event>"]
+    probe: |
+      () => {
+          const box = document.createElement("div");
+          box.innerHTML = '<button type="button">a</button><label><input type="checkbox">b</label><details><summary>c</summary>d</details>';
+          document.body.append(box);
+          const log = [];
+          for (const type of ["click", "input", "change"]) box.addEventListener(type, (event) => log.push(`${event.target.localName}:${type}`), true);
+          box.querySelector("button").click();
+          box.querySelector("input").click();
+          log.push(`checked:${box.querySelector("input").checked}`);
+          box.querySelector("label").click();
+          log.push(`checked:${box.querySelector("input").checked}`);
+          box.querySelector("summary").click();
+          log.push(`open:${box.querySelector("details").open}`);
+          box.remove();
+          return log;
+      }
+
+  - name: focus
+    statement: focus() moves activeElement to a focusable element and not to a disabled or plain one, a modal dialog takes focus and gives it back when it closes.
+    kind: computed
+    given: {}
+    answer: {"<case>": "<tag of the active element>"}
+    probe: |
+      () => {
+          const box = document.createElement("div");
+          box.innerHTML = '<button type="button">a</button><input><button type="button" disabled>c</button>' +
+              '<span tabindex="-1">d</span><span>e</span><dialog><p>f</p><button type="button">g</button></dialog>';
+          document.body.append(box);
+          const before = document.activeElement;
+          const [button, input, disabled, focusable, plain] = box.children;
+          const dialog = box.querySelector("dialog");
+          const active = () => {
+              const element = document.activeElement;
+              if (!element || element === document.body) return "body";
+              return box.contains(element) ? `${element.localName}:${[...box.querySelectorAll("*")].indexOf(element)}` : "outside";
+          };
+          const answer = {};
+          button.focus();
+          answer.button = active();
+          input.focus();
+          answer.input = active();
+          disabled.focus();
+          answer.disabled = active();
+          focusable.focus();
+          answer.tabindex = active();
+          plain.focus();
+          answer.plain = active();
+          dialog.showModal();
+          answer.dialog = active();
+          dialog.close();
+          answer.closed = active();
+          box.remove();
+          before?.focus?.();
+          return answer;
+      }
+
+  - name: popover
+    statement: showPopover opens a popover and :popover-open matches it, an auto popover closes when another auto one opens and a manual one stays, and hidePopover and togglePopover close and open it.
+    kind: computed
+    given: {}
+    answer: {"<case>": boolean}
+    probe: |
+      () => {
+          const box = document.createElement("div");
+          document.body.append(box);
+          const [one, two, manual] = ["auto", "auto", "manual"].map((kind) => {
+              const element = document.createElement("div");
+              element.popover = kind;
+              box.append(element);
+              return element;
+          });
+          const open = (element) => element.matches(":popover-open");
+          const answer = {};
+          one.showPopover();
+          answer.shown = open(one);
+          manual.showPopover();
+          two.showPopover();
+          answer.another = [open(one), open(two), open(manual)];
+          two.hidePopover();
+          answer.hidden = open(two);
+          answer.toggled = [two.togglePopover(), open(two)];
+          two.hidePopover();
+          manual.hidePopover();
+          box.remove();
+          return answer;
+      }
+
+  - name: frames
+    statement: requestAnimationFrame callbacks run once each, in order, a nested one in a later frame, and a cancelled one never.
+    kind: computed
+    given: {}
+    answer: ["<callback>"]
+    probe: |
+      async () => {
+          const order = [];
+          await new Promise((resolve) => {
+              requestAnimationFrame(() => order.push("first"));
+              requestAnimationFrame(() => {
+                  order.push("second");
+                  requestAnimationFrame(() => {
+                      order.push("nested");
+                      resolve();
+                  });
+              });
+              cancelAnimationFrame(requestAnimationFrame(() => order.push("cancelled")));
+          });
+          return order;
+      }
+
+  - name: storage
+    statement: localStorage and sessionStorage keep a value of the page's origin.
+    kind: computed
+    given: {frame: top}
+    answer: {local: kept, session: kept}
+    probe: |
+      () => {
+          const answer = {};
+          for (const [name, area] of [["local", localStorage], ["session", sessionStorage]]) {
+              area.setItem("obs-door", "kept");
+              answer[name] = area.getItem("obs-door");
+              area.removeItem("obs-door");
+          }
+          return answer;
+      }
+
+  - name: print
+    statement: >-
+      window.print() fires beforeprint first. Asked once, after a state's last step: the one Chromium
+      fires beforeprint on a page's first print only and no afterprint, so the probe ends the print
+      with an afterprint of its own. The printed PDF of a state is a supplied answer that test_pdf.py
+      records.
+    kind: computed
+    given: {frame: top, step: last}
+    answer: beforeprint
+    probe: |
+      () => {
+          const fired = [];
+          const listen = (event) => fired.push(event.type);
+          for (const type of ["beforeprint", "afterprint"]) window.addEventListener(type, listen);
+          window.print();
+          for (const type of ["beforeprint", "afterprint"]) window.removeEventListener(type, listen);
+          if (fired.includes("beforeprint") && !fired.includes("afterprint")) window.dispatchEvent(new Event("afterprint"));
+          return fired[0] ?? null;
+      }

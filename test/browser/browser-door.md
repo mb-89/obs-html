@@ -52,12 +52,14 @@ tests go. The reason names each test that goes the other way.
 | `test_attachment_replacement_browser.py` | logic | `more-logic-to-fake-browser` | The trusted extension's one transaction over records; no layout. |
 | `test_bars.py` | logic | `layout-logic-to-fake-browser` | Bar discovery and the dock's order are DOM. Except `test_native_splitter_anchors_and_neighbor_only_geometry`, which measures the splitter's geometry and stays hot. |
 | `test_bless_browser.py` | logic | `layout-logic-to-fake-browser` | Verdicts, drafts in session storage, Send's payload and the swipe walk are runtime state; the swipe's coordinates come from recorded boxes. Except the band and pill fits: `test_the_pill_and_keys_show_only_on_asking_chapters_and_the_page_fits_a_phone`, `test_the_band_holds_every_key_in_one_row_at_phone_width_with_the_notices_shown`, `test_the_pill_keeps_its_text_while_the_band_has_room`, `test_the_band_of_a_nested_bless_chapter_fits_at_360_px`, `test_the_pill_names_the_pick_by_its_short_name_where_the_band_has_room`, `test_the_deck_opens_in_screens_on_a_phone_that_fit_and_walk_by_swipe_and_keys` and `test_printing_from_screens_prints_each_screen_from_a_new_page_without_a_page_frame`, which stay hot. |
+| `test_browser_door.py` | logic | added by `browser-door-recorder` | The conformance check: the fake's computed answers held to the recordings, and the fake answering a recorded box, text width and refusal. |
 | `test_callouts_embeds_attachments.py` | hot | `hot-tests-record` | Two of its three browser tests are painted tones and a bottom line that leads its page in every layout. Except `test_a_parent_s_preview_begins_with_its_bottom_line_and_holds_no_child_s_lead`, which moves to the fake. |
 | `test_cards_counts_quantities_browser.py` | logic | moved by `fake-browser-door` | Counts and drill-downs over the selection chain: pure runtime logic. |
 | `test_chapter_sweep_browser.py` | hot | `hot-tests-record` | Every chapter opens and scrolls at real viewports with and without reduced motion, and a locked page fails its sweep: the browser's scrolling and main thread. |
 | `test_columns_browser.py` | hot | `hot-tests-record` | Side by side at the weights, stacked when narrow and printed side by side are layout. Except `test_a_comment_on_a_block_in_the_right_column_anchors_to_it_after_a_reload` and `test_search_finds_a_columns_text_and_the_filter_reads_its_marked_paragraph`, which move to the fake. |
 | `test_comments_browser.py` | logic | `viewer-logic-to-fake-browser` | The resolved model, review items, selections, resolve state and painted quotes are DOM and runtime state; selections are made with the fake's Selection API, not by dragging the mouse. Some open the viewer frame. |
 | `test_document_number_browser.py` | logic | `more-logic-to-fake-browser` | The running footer's text and the copied comments: DOM and clipboard on a top-level page. |
+| `test_door_recordings_browser.py` | hot | `browser-door-recorder` | It records each top-level state in the one Chromium with `--record`: what Chromium answers is its subject. |
 | `test_empty_groups_browser.py` | logic | moved by `fake-browser-door` | Group order, muted empty groups, zero counts and the table's row pages are runtime logic; the muted tone is a computed style the fake's cascade gives. |
 | `test_equation_figures_browser.py` | hot | `hot-tests-record` | It embeds the real math.js and Plotly (structure/test_quality.py's real-library set): Plotly needs a real layout engine to draw, zoom and print. |
 | `test_fake_browser.py` | logic | added by `fake-browser-door` | The fake browser's own contract: the facade's refusals, the stand-ins, the page's clock, the default answers in the report and the blocked network. |
@@ -103,6 +105,8 @@ That makes 35 logic files with 299 collected tests and 17 hot files with 188. Of
 exceptions, 36 collected tests of logic files stay hot and 19 of hot files move to the fake. Once
 every package has landed, 205 of the 487 run in the one real Chromium, and a landing runs them only
 when a recording is stale (below).
+`browser-door-recorder` added two files: `test_browser_door.py`, logic, with 5 tests, and
+`test_door_recordings_browser.py`, hot, with one test per top-level state.
 
 ## The fake browser
 
@@ -203,93 +207,150 @@ laid out for print; `emulate_media` gives print media.
 
 The default answers are listed in each test's report, in the section "fake browser: default
 answers", as `<call> <element key> -> <answer> (<times>x)`; the key is
-[door-key.js](door-key.js)'s, which `browser-door-recorder` reuses.
+[door-key.js](door-key.js)'s, which the recorder and the replay share.
+
+**As built** (`browser-door-recorder`): replay, below, and the stand-ins its conformance check
+required, each found where the fake answered otherwise than the recorded Chromium:
+
+- **`popstate`.** Chromium fires `popstate` and then `hashchange` on a fragment navigation;
+  happy-dom fires only `hashchange`, and the runtime opens a chapter on `popstate`. The fake fires
+  `popstate` just before it.
+- **Focus.** `focus()` on an element that cannot take focus (a plain `span`, a hidden or disabled
+  control) does nothing, and a dialog that opens focuses its first focusable descendant and gives
+  focus back to the element that had it as it closes; happy-dom focused anything and moved no
+  focus for a dialog.
+- **Initial values.** happy-dom leaves a computed property that no rule sets empty; the fake gives
+  the initial value of each the runtime reads (padding, margin and border widths `0px`, visibility
+  and overflow `visible`, a transparent background).
+- **The window's own properties.** A getter that throws, defined on happy-dom's window object, reads
+  as `undefined` inside the page; the viewer frame's refusals are defined on the page's own global.
 
 ## The browser door's expectations
 
-An expectation is one thing obs-html relies on the browser for, stated as a sentence, with a probe
-that asks it in a page. Each has an id, its statement, its kind and its probe. The kind is either
+An expectation is one thing obs-html relies on the browser for. They live in
+[expectations.yaml](expectations.yaml), in the form of the fakes decision of 22 Nov (kern#8,
+`expectations-pooled-by-name`): each holds its **name**, its id; the **given** precondition, the
+context a state must have for it to be asked there (`frame: top`, `frame: viewer`, and `step: last`
+for one asked only after a state's last step); and the minimal **answer** the runtime relies on.
+It names no engine: the one Chromium and the fake answer the same expectation. Each also has its
+**statement**, a sentence, its **probe**, a page function that asks it, and its **kind**:
 **supplied** (the fake answers from the recording) or **computed** (happy-dom or a stand-in
-answers, and the conformance check holds that answer to the recording).
+answers, and the conformance check holds that answer to the recording). An expectation states only
+what would break its reader if it changed: `cascade` records each property the runtime read of each
+element, not every property of it.
 
-They live in `test/browser/expectations.py`. The hot test runs each probe in the one Chromium and
-records the answer. The form follows the fakes decision of 22 Nov (pooled expectations, hot tests
-that record); this branch could not read kern#8, which the work issue names as the model, so the
-field reports of `browser-door-recorder` align the two.
-
-| Id | obs-html expects | Kind | Runtime callers |
+| Name | obs-html expects | Kind | Runtime callers |
 |---|---|---|---|
-| `box` | An element's border box and client rects, in viewport pixels, for each state below. | supplied | `pages.js`, `table.js`, `figures.js`, `hover-card.js`, `options-menu.js`, `pugh-figure.js`, `timeline-figure.js`, `bars/comments.js` |
-| `sizes` | An element's client, scroll and offset sizes and its scroll position; the window's inner size. | supplied | `pages.js`, `table.js`, `pipe-tables.js`, `artifact.js`, `equations.js` |
-| `resize` | A `ResizeObserver` reports an observed element's new size once after its box changes. | supplied | `figures.js`, `table.js`, `pipe-tables.js`, `pugh-figure.js`, `equations.js` |
-| `scroll-into-view` | After `scrollIntoView`, the element's top lies at the scroll container's top plus its scroll margin, below the sticky band. | supplied | `artifact.js`, `bars/search.js`, `bars/comments.js` |
+| `box` | An element's border box and client rects, in viewport pixels. | supplied | `pages.js`, `table.js`, `figures.js`, `hover-card.js`, `options-menu.js`, `pugh-figure.js`, `timeline-figure.js`, `bars/comments.js` |
+| `sizes` | An element's client, scroll and offset sizes, its offsets and its scroll position; the window's inner size. | supplied | `pages.js`, `table.js`, `pipe-tables.js`, `artifact.js`, `equations.js` |
+| `resize` | A `ResizeObserver` reports an observed element's content and border box once after it is observed. | supplied | `figures.js`, `table.js`, `pipe-tables.js`, `pugh-figure.js`, `equations.js` |
+| `scroll-into-view` | After `scrollIntoView`, the element's top and the document's scroll position. | supplied | `artifact.js`, `bars/search.js`, `bars/comments.js` |
 | `text-width` | A canvas 2D context measures a text's width in a font. | supplied | `table.js` |
-| `image-size` | A `data:` image of an asset decodes to its natural width and height. | supplied | the image tests (`test_images_from_assets.py`) |
-| `fonts` | `document.fonts.ready` resolves before the first chapter is painted. | supplied | `pages.js`, `table.js` |
-| `print` | `window.print()` fires `beforeprint`, lays out under print media, then fires `afterprint`. The printed PDF of a state is its answer. | supplied (PDF), computed (events) | `pages.js`, `figures.js`, `hover-card.js` |
-| `viewer-frame` | In a scripts-only sandboxed srcdoc frame, storage throws `SecurityError`, `window.open` returns `null`, modal dialogs return at once, a download does nothing and the clipboard refuses. | supplied | the canaries, `capabilities.js`, `storage.js` |
-| `cascade` | The computed values the runtime reads (`display`, `visibility`, `font`, `fontSize`, `lineHeight`, `paddingLeft`, `borderLeftWidth`, `borderRightWidth`, `overflowX`, `overflowY`, `--hover-card-gap`), and the colours the appearance tests read. | computed | `pages.js`, `table.js`, `figures.js`, `hover-card.js`, `pugh-figure.js`, `artifact.js`, `bars/comments.js` |
-| `media` | `matchMedia` and the stylesheets' media rules match at each state's viewport, colour scheme, reduced motion and print. | computed | `notices.js`, the stylesheets |
-| `events` | A click, a tap and a key fire their events in order, and Enter or Space on a button clicks it. | computed | every control |
-| `focus` | `focus()` and Tab move `activeElement` in document order, and a dialog or popover takes focus. | computed | `artifact.js`, `bars/search.js`, `guided-card.js`, `notices.js` |
-| `popover` | `showPopover` opens a popover, `:popover-open` matches it, and an `auto` popover closes on Escape, on a pointerdown outside it and when another opens. | computed (stand-in) | `filter-fields.js`, `hover-card.js`, `options-menu.js` |
-| `frames` | `requestAnimationFrame` callbacks run once each, in order, after the DOM changes made before them. | computed | `artifact.js`, `pages.js`, `figures.js`, `artifact-data.js` |
-| `storage` | `localStorage` and `sessionStorage` keep a value per origin across a reload, and a file page has one origin for both. | computed | `storage.js`, `bless.js`, `tables.js` |
+| `image-size` | An image of an asset decodes to its natural width and height. | supplied | the image tests (`test_images_from_assets.py`) |
+| `fonts` | `document.fonts.ready` resolves, and the font set's status is loaded, before the first chapter is painted. | supplied | `pages.js`, `table.js` |
+| `viewer-frame` | In a scripts-only sandboxed srcdoc frame, storage, cookies and history throw, `window.open` returns `null`, modal dialogs and print return at once and fire nothing, and the clipboard refuses. | supplied | the canaries, `capabilities.js`, `storage.js` |
+| `cascade` | Each computed value the runtime reads of an element, such as its `display`, `visibility`, `font`, `lineHeight`, `paddingLeft`, side borders, overflow and `--hover-card-gap`. | computed | `pages.js`, `table.js`, `figures.js`, `hover-card.js`, `pugh-figure.js`, `artifact.js`, `bars/comments.js` |
+| `media` | `matchMedia` matches each query the runtime asks and each media rule of the stylesheets at the state's context. | computed | `notices.js`, the stylesheets |
+| `events` | A click on a button, a checkbox, its label and a summary fires its events in order and toggles the checkbox and the details. | computed | every control |
+| `focus` | `focus()` moves `activeElement` to a focusable element and not to a disabled or plain one, and a modal dialog takes focus and gives it back when it closes. | computed | `artifact.js`, `bars/search.js`, `guided-card.js`, `notices.js` |
+| `popover` | `showPopover` opens a popover and `:popover-open` matches it, an `auto` popover closes when another opens and a `manual` one stays, and `hidePopover` and `togglePopover` close and open it. | computed (stand-in) | `filter-fields.js`, `hover-card.js`, `options-menu.js` |
+| `frames` | `requestAnimationFrame` callbacks run once each, in order, a nested one in a later frame, and a cancelled one never. | computed | `artifact.js`, `pages.js`, `figures.js`, `artifact-data.js` |
+| `storage` | `localStorage` and `sessionStorage` keep a value of the page's origin. | computed | `storage.js`, `bless.js`, `tables.js` |
+| `print` | `window.print()` fires `beforeprint` first. The printed PDF of a state is a supplied answer that `test_pdf.py` records. | computed | `pages.js`, `figures.js`, `hover-card.js` |
+
+A probe asks only what a page function can: the light dismiss of a popover on Escape or a
+pointerdown outside it, Tab's order and Enter or Space on a button need trusted input, which a page
+function cannot give, so they are no probe's answer. The one Chromium fires `beforeprint` on a
+page's first `print()` only and never `afterprint`: the `print` probe runs once, after a state's
+last step, and ends the print with an `afterprint` of its own, so the runtime leaves its print
+preparation.
 
 Two kinds of hot check record nothing the fake replays: paint timing (`test_startup_browser.py`)
 and the page pool's own behaviour (`test_page_pool_browser.py`). They stay hot because only a real
-browser shows them.
+browser shows them, and carry the `hot` mark.
 
 ## Recording and replay
 
 **A state** is what a recording is taken in: a fixture artifact, a context (viewport, device scale,
 touch, colour scheme, reduced motion, screen or print media, top-level page or viewer frame) and
-the steps that lead there (open a chapter, open a row). The states are those the hot tests visit,
-plus one per fixture and context that the logic tests open: desktop 1280 by 720, the viewer frame
-1100 by 700, and a phone 390 by 844.
+the steps that lead there (open the page, open a chapter). Step 0 is always the opened page. The
+states are those the hot tests visit, plus one per fixture and context that the logic tests open:
+desktop 1280 by 720, the viewer frame 1100 by 700, and a phone 390 by 844.
+[expectations.yaml](expectations.yaml) holds them; `browser-door-recorder` recorded two,
+`features-desktop`, the feature fixture opening `figures` and then `prose`, and
+`preview-viewer-frame`, the preview of `test_sandboxed_preview_browser.py` in the viewer frame.
+The phone needs a phone context of the one Chromium, which `hot-tests-record` adds.
 
 **An element's key** is the same in both engines: the id of its nearest ancestor that has one,
 then its tag and position among its siblings of that tag below it. `test/browser/door-key.js`
-computes it, and both the recorder and the fake load it.
+computes it and finds the element a key names; both the recorder and the fake load it.
 
-**Recording.** First the fake runs each state and lists the keys and calls the runtime asked
-there. Then the hot test opens the state in the one Chromium and, after each step, measures those
-keys and evaluates every expectation's probe. It writes the answers to
-`test/browser/recordings/<state>.json`:
+**Recording.** `uv run pytest -m hot --record` runs the hot tests that record:
+[test_door_recordings_browser.py](../test_door_recordings_browser.py) for each top-level state and
+`test_sandboxed_preview_browser.py` for the viewer frame; without `--record` they skip and start no
+browser. [door.py](door.py) records a state. First the fake runs it, on the door's defaults and
+with the previous recording where there is one, and lists, by step, each key and call the runtime
+asked, and the stylesheets' media rules. Then the one Chromium opens the state, takes each step
+and, after it, runs every expectation's probe over those keys. It writes
+`test/browser/recordings/<state>.yaml`:
 
-```json
-{
-  "state": "features-phone",
-  "artifact": "test/fixtures/documents/features.json",
-  "context": {"viewport": [390, 844], "scale": 3, "touch": true, "scheme": "light", "media": "screen"},
-  "steps": [{"open": "chapter", "id": "overview"}],
-  "artifactDigest": "sha256:…",
-  "chromium": "<revision> (Playwright <version>)",
-  "answers": [{"step": 0, "box": {"<key>": [0, 52, 390, 48]}, "sizes": {"<key>": {"clientWidth": 390}},
-               "textWidth": {"14px Inter|Status": 41.5}, "cascade": {"<key>": {"display": "flex"}},
-               "media": {"(max-width: 40rem)": true}}]
-}
+```yaml
+state: features-desktop
+artifact: test/fixtures/documents/features.json
+context: {viewport: [1280, 720], scale: 1, touch: false, scheme: light, motion: no-preference, media: screen, frame: top}
+steps:
+- open: page
+- {open: chapter, id: figures}
+- {open: chapter, id: prose}
+artifactDigest: sha256:…
+chromium: <version> (Playwright <version>)
+answers:
+- step: 0
+  asked:
+    box:
+    - '#overview > div:1'
+    cascade:
+    - html:1 > body:1|font
+    - html:1|fontSize
+  box:
+    '#overview > div:1':
+      border: [0, 64, 1265, 316.52]
+      rects: [[0, 64, 1265, 316.52]]
+  text-width:
+    16px Georgia, "Times New Roman", serif|10: 16
+  cascade:
+    html:1 > body:1|font: 16px Georgia, "Times New Roman", serif
+    html:1|fontSize: 16px
 ```
 
 `artifactDigest` is the SHA-256 of the artifact the state opens, built with the library fakes and
-the build time fixed by `SOURCE_DATE_EPOCH`. Two such builds of the feature fixture were
-byte-identical on 22 Nov 2026, so the digest changes exactly when the page does. The recordings are committed: every landing reads them without a
-browser.
+the build time fixed by `SOURCE_DATE_EPOCH`. It is built from its own folder, outside this
+checkout: a build records the commit and version of the repository it runs in as its target
+(spec/artifact-ui.md, Generation provenance), which made every commit change every digest. Built
+so, two builds were byte-identical across a commit on 22 Nov 2026. The page still records
+obs-html's own version, so a landing that bumps the version changes every digest: the staleness
+rule below meets that. The recordings are committed: every landing reads them without a browser.
 
-**Replay.** The fake opens a state with its recording. After each step it answers every supplied
-call for a key from that step's answers, the latest step the test has reached. It keeps no call
-order: a logic test asserts no layout, so it needs answers that send the runtime down the real
-browser's branches, not a replay of one run.
+**Replay.** The fake opens a state with its recording. A step counts as reached as it begins, and
+from then on the fake answers every supplied call for a key from the latest step reached that
+recorded it: boxes and client rects, sizes and offsets, the window's inner size, the observers'
+entries, text widths by font and text, decoded image sizes, `document.fonts` and where
+`scrollIntoView` scrolls the document. It keeps no call order: a logic test asserts no layout, so it
+needs answers that send the runtime down the real browser's branches, not a replay of one run. A
+recorded scroll position is not replayed: the runtime sets its own.
 
 A key with no recorded answer gets the door's default: an empty box for an element whose computed
 display is `none` or that is not in the document, else the DOM tier's 384 by 24 box. The fake lists
-each default it gave in the test's report. An expectation the viewer frame refuses is applied as
-the recording says: the call throws, returns `null` or rejects.
+each default it gave in the test's report. In a viewer-frame state each call the recording lists
+under `viewer-frame` is applied as it says: it throws, returns its value (`null` for
+`window.open`) or rejects, and fires the events recorded with it.
 
-**Conformance.** `test/test_browser_door.py` runs without a browser in every landing. For each
-computed expectation in each state, it asks the fake and compares with the recorded Chromium
-answer, naming the state, the key and both answers where they differ. This is the proof that the
-fake answers like the browser for what obs-html relies on.
+**Conformance.** [test_browser_door.py](../test_browser_door.py) runs without a browser in every
+landing. For each state, it opens the state in the fake with its recording and, after each step,
+asks every computed expectation with the keys the recording lists, and compares with the recorded
+Chromium answer, naming the state, the step, the key and both answers where they differ; where the
+state's artifact no longer builds to the recording's digest, it says that too. This is the proof
+that the fake answers like the browser for what obs-html relies on.
 
 ## When hot tests run
 
@@ -328,7 +389,7 @@ it updates the Package column of the rows it moves.
    `test_document_number_browser.py`, `test_live_source_browser.py`,
    `test_property_editors_browser.py`, `test_references_browser.py` and
    `test_table_headers_browser.py`.
-3. **`browser-door-recorder`**: the expectations (`test/browser/expectations.py`), `door-key.js`,
+3. **`browser-door-recorder`**: the expectations (`test/browser/expectations.yaml`), `door-key.js`,
    the `hot` mark, the recorder on the one Chromium with `--record`, the recordings' format, replay
    in the fake, and the conformance check `test/test_browser_door.py`. It records the viewer frame
    from `test_sandboxed_preview_browser.py` and marks the hot tests that need no change

@@ -6,6 +6,19 @@ import http.server
 import threading
 from pathlib import Path
 
+from documents import chapter, document, heading, paragraph
+
+
+def preview_document() -> dict:
+    """The three-chapter Document the preview tests open (test/test_sandboxed_preview_browser.py), and
+    the browser door's viewer-frame state (test/browser/expectations.yaml)."""
+    return document(
+        "Preview",
+        chapter("one", "One", heading(1, "One"), paragraph("First chapter text.")),
+        chapter("two", "Two", heading(1, "Two"), paragraph("Second chapter text.")),
+        chapter("three", "Three", heading(1, "Three"), paragraph("Third chapter text.")),
+    )
+
 
 # The two preview-like frames: Claude's preview as srcdoc of a frame sandboxed to scripts only
 # (null origin), and as srcdoc of a same-origin frame with the flags a preview host grants,

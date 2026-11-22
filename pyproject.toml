@@ -57,5 +57,6 @@ testpaths = ["test"]
 markers = [
     "dom: runs the embedded artifact runtime in Node (needs `npm --prefix test/browser ci`).",
     "browser: opens a real Chromium through Playwright.",
+    "hot: a hot test of the browser door (test/browser/browser-door.md): it checks in the one real Chromium what obs-html expects of the browser, and the tests that record write the recordings with --record.",
     "build: builds a whole Document, artifact or package from inputs it does not make itself (the tier rule: the core's spec/design_input/quality.md, Testing boundaries).",
 ]

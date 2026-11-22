@@ -70,6 +70,7 @@ def alone(config: pytest.Config) -> bool:
     return not hasattr(config, "workerinput") and not os.environ.get("PYTEST_XDIST_WORKER")
 
 
+@pytest.mark.hot
 @pytest.mark.browser
 def test_the_spec_artifact_shows_its_first_chapter_within_a_second(
         request, tmp_path: Path, full_chromium_browser, spec_html: str, record_property) -> None:

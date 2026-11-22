@@ -142,7 +142,10 @@ def moved_rows_wrong(rows: list[dict[str, str]], files: dict[str, Path]) -> list
 
 
 def test_a_row_says_moved_exactly_where_its_file_takes_only_the_fake_browser() -> None:
-    files = {path.name: path for path in TESTS.rglob("test_*.py") if "node_modules" not in path.parts}
+    # By name, as the rows name them: test_browser_door.py is both this file and the conformance
+    # check, and only the check is a browser test file.
+    files = {path.name: path for path in TESTS.rglob("test_*.py")
+             if "node_modules" not in path.parts and is_browser_test_file(path)}
     wrong = moved_rows_wrong(classification(), files)
     assert not wrong, (f"{NOTE.relative_to(ROOT).as_posix()}, Classification: {wrong}. Remedy: a package that moves "
                        "a file to fake_page writes its row's Package as moved by `<package>`; a file that still "

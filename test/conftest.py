@@ -16,6 +16,7 @@ from referencing import Registry, Resource
 
 import library_fakes
 import network_guard
+from browser import door
 
 network_guard.install()
 library_fakes.install()
@@ -33,7 +34,7 @@ if not (CORE_ROOT / "src" / "obs" / "document.schema.json").is_file():
                             "pyproject.toml's [tool.uv.sources] obs names beside this repository, as ../obs, or name "
                             "the checkout in OBS_CORE_ROOT (README, Core).")
 # The made-up local themes the feature fixture carries (spec/configuration.md, Local themes).
-LOCAL_THEMES = ROOT / "test" / "fixtures" / "local-themes"
+LOCAL_THEMES = door.LOCAL_THEMES
 # No test, and no build a test starts, reads the build machine's local themes: the folder named
 # here does not exist. A test that needs themes sets the variable for its own call.
 os.environ["OBS_HTML_LOCAL_FOLDER"] = str(ROOT.resolve() / "test" / "fixtures" / "no-local-folder")
@@ -73,6 +74,22 @@ _core_part_name = suite.part_name
 suite.part_name = lambda part: "adapters/html" if part.resolve() == ROOT.resolve() else _core_part_name(part)
 # This repository's Node test package, which the core's suite does not hold.
 NODE_PACKAGE = ROOT / "test" / "browser"
+
+
+def pytest_addoption(parser):
+    parser.addoption("--record", action="store_true", default=False,
+                     help="the hot tests that record write the browser door's recordings, "
+                          "test/browser/recordings/<state>.yaml (test/browser/browser-door.md, Recording and replay); "
+                          "run as `uv run pytest -m hot --record`")
+
+
+@pytest.fixture
+def recording(request) -> bool:
+    """Whether this run records the browser door's states (``--record``); a hot test that records
+    skips without it, so a run without it starts no browser for one (browser-door.md, When hot tests run)."""
+    if not request.config.getoption("--record"):
+        pytest.skip(f"records the browser door's states only with --record: run `{door.REMEDY}`")
+    return True
 
 
 def pytest_sessionstart(session):
@@ -146,24 +163,23 @@ def fixture_artifact(tmp_path_factory) -> Path:
 def feature_artifact(tmp_path_factory) -> str:
     """The feature fixture rendered by this adapter, once per run and shared by every worker; the
     browser tier's reading script and covered-control sweep read it in place of obs's spec."""
-    from obs_html import cli
-
     def build(folder: Path) -> None:
-        # With its notes' way from the page, so the source file row is a link (spec/cli.md, Source file links),
-        # and with the fixture's local themes, so it carries the popups feature's style-sync part.
-        earlier = os.environ.get("OBS_HTML_LOCAL_FOLDER")
-        os.environ["OBS_HTML_LOCAL_FOLDER"] = str(LOCAL_THEMES)
-        try:
-            built = cli.main([str(FEATURE_FIXTURE), str(folder / "artifact.html"), "--vault-link", "../vault"])
-        finally:
-            if earlier is None:
-                os.environ.pop("OBS_HTML_LOCAL_FOLDER", None)
-            else:
-                os.environ["OBS_HTML_LOCAL_FOLDER"] = earlier
-        assert built == 0, \
-            "test/conftest.py: obs-html could not render the feature fixture test/fixtures/documents/features.json"
+        # With its notes' way from the page and the fixture's local themes (browser/door.py,
+        # build_feature_file), as the browser door's states build it.
+        door.build_feature_file(FEATURE_FIXTURE, folder / "artifact.html")
 
     return (built_once(tmp_path_factory, "feature-artifact", build) / "artifact.html").read_text(encoding="utf-8")
+
+
+@pytest.fixture(scope="session")
+def door_artifact(tmp_path_factory):
+    """The artifact of a browser door's state (test/browser/expectations.yaml), as a function of the
+    state's name: built once per run with the library fakes and the build instant fixed
+    (browser/door.py, build_artifact), and shared by every worker; tests only read it."""
+    def artifact(name: str) -> Path:
+        return built_once(tmp_path_factory, f"door-{name}", lambda folder: door.build_artifact(name, folder)) / "artifact.html"
+
+    return artifact
 
 
 @pytest.fixture(scope="session")
@@ -261,6 +277,11 @@ def pytest_collection_modifyitems(config, items):
     heaviest_first). It runs before
     xdist's own hook, which reads the groups as it collects."""
     bounds.mark(items)
+    if not config.getoption("--record"):
+        for item in items:
+            if "recording" in getattr(item, "fixturenames", ()):
+                item.add_marker(pytest.mark.skip(
+                    reason=f"records the browser door's states only with --record: run `{door.REMEDY}`"))
     own = [item for item in items if item.get_closest_marker("xdist_group")]
     rest = [item for item in items if not item.get_closest_marker("xdist_group")]
     for item in rest:
@@ -672,7 +693,9 @@ def process_pool(name: str) -> PagePool:
 def warm(item) -> None:
     """Launch the browser of each pool the test needs, so that no test's timeout pays for a cold
     launch. A pool whose engine is missing or whose launch fails is left cold: its fixture or its
-    first lease fails the test, naming the engine."""
+    first lease fails the test, naming the engine. A test that skips starts none."""
+    if item.get_closest_marker("skip"):
+        return
     for name in POOL_KINDS.keys() & set(getattr(item, "fixturenames", ())):
         with contextlib.suppress(BrowserEngineError):
             process_pool(name).warm()
