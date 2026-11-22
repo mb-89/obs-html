@@ -199,6 +199,11 @@ def test_dock_buttons_use_left_right_top_bottom_order() -> None:
     assert positions == sorted(positions)
 
 
+# Resolves once the dock has laid out what opening a bar changed: the bar's own frame callback and the
+# dock's ResizeObserver, which runs in that frame's rendering step, are both done by the next frame.
+DOCK_LAID_OUT = "() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))"
+
+
 @pytest.mark.browser
 @pytest.mark.parametrize("edge", ["left", "right", "top", "bottom"])
 def test_native_splitter_anchors_and_neighbor_only_geometry(tmp_path, reader_browser, edge):
@@ -215,7 +220,7 @@ def test_native_splitter_anchors_and_neighbor_only_geometry(tmp_path, reader_bro
     region = page.locator(f"[data-dock-region='{edge}']")
     dividers = region.locator(":scope > [data-bar-resize]")
     panes = region.locator(":scope > .dock-bar")
-    page.wait_for_timeout(100)
+    page.evaluate(DOCK_LAID_OUT)
     initial = [pane.bounding_box()[size] for pane in panes.all()]
     assert max(initial) - min(initial) < 1
     before = [divider.bounding_box()[axis] for divider in dividers.all()]
@@ -229,7 +234,7 @@ def test_native_splitter_anchors_and_neighbor_only_geometry(tmp_path, reader_bro
     assert moved[0] - before[0] == pytest.approx(36, abs=1)
     assert moved[1] == pytest.approx(before[1], abs=1)
     page.evaluate("edge => obsArtifact.openBar('settings',edge)", edge)
-    page.wait_for_timeout(100)
+    page.evaluate(DOCK_LAID_OUT)
     added = [divider.bounding_box()[axis] for divider in dividers.all()]
     assert added[0] == pytest.approx(moved[0], abs=1)
     tail = [pane.bounding_box()[size] for pane in panes.all()[1:]]

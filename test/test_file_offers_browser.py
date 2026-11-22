@@ -50,8 +50,7 @@ def fake_claude(downloads: str) -> str:
         },
     });
     globalThis.claude = Object.freeze({
-        use: (name) => new Promise((resolve) => setTimeout(
-            () => resolve(name === "downloads" && mode !== "absent" ? downloads : null), 0)),
+        use: async (name) => name === "downloads" && mode !== "absent" ? downloads : null,
     });
 })();""" % json.dumps(downloads)
 

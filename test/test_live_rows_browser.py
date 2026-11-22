@@ -200,9 +200,10 @@ def test_the_comments_bar_shows_the_saved_rows_and_a_comment_there_survives_reop
         const start = text.textContent.indexOf("Running");
         range.setStart(text, start);
         range.setEnd(text, start + 7);
+        const selected = new Promise((resolve) => document.addEventListener("selectionchange", resolve, {once: true}));
         getSelection().removeAllRanges();
         getSelection().addRange(range);
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await selected;
         document.querySelector("[data-comment-add]").click();
         await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
         return obsComments.data.annotations.at(-1).target;

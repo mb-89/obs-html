@@ -189,9 +189,14 @@ def test_a_legend_laid_out_past_the_plot_is_moved_back_inside_again_after_a_resi
     assert errors == [], page.evaluate(LEGEND_AND_CHART)
 
 
-# Resolves, with the afterplot count so far, after a few timer turns and frames.
-FRAMES_LATER = """() => new Promise(resolve => setTimeout(() => requestAnimationFrame(() =>
-    requestAnimationFrame(() => setTimeout(() => resolve(globalThis.legendRelayouts), 100))), 100))"""
+# Resolves, with the afterplot count so far, once the test's relayout is drawn and four frames have
+# passed: the correction runs at most once per frame, so a correction that loops counts one more
+# afterplot in each of them.
+FRAMES_LATER = """async () => {
+    await globalThis.legendRelayout;
+    for (let frame = 0; frame < 4; frame++) await new Promise(requestAnimationFrame);
+    return globalThis.legendRelayouts;
+}"""
 
 
 @pytest.mark.browser
@@ -208,7 +213,7 @@ def test_a_legend_whose_box_never_moves_leaves_the_page_answering(figures_artifa
         }};
         globalThis.legendRelayouts = 0;
         chart.on("plotly_afterplot", () => globalThis.legendRelayouts++);
-        setTimeout(() => Plotly.relayout(chart, {{"legend.x": 0.5}}));
+        globalThis.legendRelayout = Plotly.relayout(chart, {{"legend.x": 0.5}});
     }}""")
 
     # A page whose main thread locks never answers: the test then runs past its tier's timeout

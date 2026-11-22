@@ -94,8 +94,8 @@ STAND_IN = """
             calls.push({kind: "watch", server, tool, input, options});
             let active = true;
             const events = watchEvents.length ? watchEvents.shift() : [{items}];
-            setTimeout(() => events.forEach(event => active && handler(event.error
-                ? {type: "error", error: event.error} : {type: "data", result: result(event.items)})), 0);
+            queueMicrotask(() => events.forEach(event => active && handler(event.error
+                ? {type: "error", error: event.error} : {type: "data", result: result(event.items)})));
             return () => { active = false; };
         },
         async listTools(server) {
@@ -110,8 +110,8 @@ STAND_IN = """
             return consent;
         },
     });
-    globalThis.claude = Object.freeze({use: name => new Promise(resolve => setTimeout(() => resolve(
-        name === "mcp" ? (config.mcp === false ? null : mcp) : name === "permissions" ? permissions : null), 0))});
+    globalThis.claude = Object.freeze({use: async name =>
+        name === "mcp" ? (config.mcp === false ? null : mcp) : name === "permissions" ? permissions : null});
 })();"""
 
 

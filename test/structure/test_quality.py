@@ -31,6 +31,13 @@ Every artifact a test builds embeds the browser libraries' fakes (test/library_f
 quality.md, Testing boundaries). A build inside ``library_fakes.real()`` embeds the real
 libraries: only the modules REAL_LIBRARY_TESTS names enter it, each with why the real library is
 its subject. A module outside the set that enters it, and a named module that does not, both fail.
+
+No test waits on time (SE's tst-002: no wall clock, no sleeping): a test waits on an event or a
+state the page exposes, such as a frame, a page event or a Playwright wait for a selector or a
+function. No test file calls Playwright's ``wait_for_timeout`` or ``waitForTimeout``, Python's
+``time.sleep`` or ``asyncio.sleep``, or a page timer ``setTimeout``; a fake that needs to answer
+later answers in a microtask or a resolved promise. This file is not scanned, as its check below
+writes each refused call as an example.
 """
 import re
 import ast
@@ -105,6 +112,13 @@ OWN_TIME = re.compile(r"performance\.now\(|Date\.now\(")
 # ``main`` builds, as ``cli.main(...)`` calls it.
 BUILDERS = {("obs_html.render", "render"), ("obs_html.cli", "main")}
 BUILDER_MODULES = {("obs_html", "cli")}
+
+# A wait on time, in Python or in a page script, wherever a test file writes it; test/structure/
+# test_quality.py's module docstring names what a test waits on instead.
+TIMED_WAITS = re.compile(r"\b(?:wait_for_timeout|waitForTimeout|setTimeout)\s*\(|\b(?:time|asyncio)\.sleep\s*\("
+                         r"|\bfrom\s+(?:time|asyncio)\s+import\b[^\n]*\bsleep\b")
+# The files a test is written in: Python and the page scripts of test/browser and test/fakes.
+TEST_SOURCES = {".py", ".js", ".cjs", ".mjs"}
 
 
 def fixture_names(function: ast.FunctionDef) -> set[str]:
@@ -465,3 +479,57 @@ def test_the_library_check_names_a_real_build_outside_the_set(tmp_path: Path) ->
 
     assert [line.split(" ")[0] for line in found] == [
         "test_imported.py:4", "test_named.py:", "test_outside.py:4", "test_gone.py:"], found
+
+
+def timed_waits(tests: Path) -> list[str]:
+    """Each line of a test file under ``tests`` that waits on time, as ``<path>:<line>``; installed
+    packages (node_modules) and this file are not scanned."""
+    found = []
+    for path in sorted(tests.rglob("*")):
+        if (path.suffix not in TEST_SOURCES or "node_modules" in path.parts or not path.is_file()
+                or path.resolve() == Path(__file__).resolve()):
+            continue
+        for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+            match = TIMED_WAITS.search(line)
+            if match:
+                found.append(f"{path.relative_to(tests).as_posix()}:{number} waits on time ({match[0].strip()}); "
+                             "wait on an event or a state the page exposes (test/structure/test_quality.py)")
+    return found
+
+
+def test_no_test_waits_on_time() -> None:
+    found = timed_waits(TESTS)
+    assert found == [], "test/structure/test_quality.py: " + "\n".join(found)
+
+
+def test_the_wait_check_names_each_timed_wait_with_its_line(tmp_path: Path) -> None:
+    """The check is not vacuous: each kind of timed wait it refuses, in Python and in a page script,
+    is named with its file and line, and a wait on an event or a fake's timer property is not."""
+    (tmp_path / "test_waits_browser.py").write_text('''import time
+from time import sleep
+import asyncio
+
+
+def test_waits(reader_browser):
+    page = reader_browser.new_page()
+    page.wait_for_timeout(100)
+    time.sleep(0.1)
+    sleep(0.1)
+    asyncio.sleep(0)
+    page.evaluate("new Promise(resolve => setTimeout(resolve, 0))")
+    page.evaluate("new Promise(resolve => requestAnimationFrame(resolve))")
+    page.wait_for_function("document.documentElement.dataset.artifactStatus === 'ready'")
+''', encoding="utf-8")
+    (tmp_path / "browser").mkdir()
+    (tmp_path / "browser" / "sweep.js").write_text(
+        "await page.waitForTimeout(25);\nconst fake = {setTimeout: (callback, delay) => 0};\n"
+        "await new Promise((resolve) => setTimeout (resolve, 25));\n", encoding="utf-8")
+    (tmp_path / "browser" / "node_modules").mkdir()
+    (tmp_path / "browser" / "node_modules" / "library.js").write_text("setTimeout(run, 10);\n", encoding="utf-8")
+
+    found = timed_waits(tmp_path)
+
+    assert [line.split(" ")[0] for line in found] == [
+        "browser/sweep.js:1", "browser/sweep.js:3", "test_waits_browser.py:2", "test_waits_browser.py:8",
+        "test_waits_browser.py:9", "test_waits_browser.py:11", "test_waits_browser.py:12"], found
+    assert "(waitForTimeout(); wait on an event" in found[0]

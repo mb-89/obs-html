@@ -35,9 +35,12 @@
             }
             return null;
         };
+        // While a card waits for its delay the card carries data-pending, so a reader of the page
+        // can tell a hover that will show a card from one that shows none without waiting.
         const cancel = () => {
             clearTimeout(timer);
             pending = null;
+            delete card.dataset.pending;
         };
         const describe = (element, on) => {
             const ids = (element.getAttribute("aria-describedby") || "").split(/\s+/)
@@ -111,6 +114,7 @@
             if (resolved.trigger === trigger || resolved.trigger === pending) return;
             cancel();
             pending = resolved.trigger;
+            card.dataset.pending = "";
             timer = setTimeout(() => show(resolved.trigger), delayMilliseconds);
         };
         document.addEventListener("pointerover", schedule);
