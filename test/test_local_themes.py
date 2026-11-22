@@ -19,7 +19,7 @@ import pytest
 
 from artifacts import artifact_html
 from conftest import FIXTURE, ROOT
-from obs_html import cli, style_choice
+from obs_html import cli, render as renderer, style_choice
 from obs_html.artifact_data import decode_artifact_data
 from obs_html.semantic_assets import color_variable
 from obs_html.source_archive import embedded
@@ -167,6 +167,8 @@ def test_the_own_specification_reads_no_local_theme(tmp_path, monkeypatch) -> No
 
     def never(_environ):
         raise AssertionError("--build-own-spec read the local folder")
+    monkeypatch.setattr(renderer, "_generator_commit", lambda: "test")
+    monkeypatch.setattr(renderer, "_git_output", lambda *_args: None)
     monkeypatch.setattr(cli.subprocess, "run", core)
     monkeypatch.setattr(cli, "local_style_choice", never)
     monkeypatch.setenv(VARIABLE, str(LOCAL_THEMES))

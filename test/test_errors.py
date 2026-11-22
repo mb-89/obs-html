@@ -185,8 +185,8 @@ def _note_error_document(tmp_path: Path) -> Path:
 @pytest.mark.parametrize(("arguments", "root"), [(["--vault-root", "spec"], "spec/"), ([], "")])
 def test_the_vault_root_the_core_passes_prefixes_the_vault_relative_paths_of_a_message(
         tmp_path, capsys, build, source, arguments, root) -> None:
-    """The core passes the vault root as its user gave it, only for messages (architecture.md,
-    Adapter call); a direct call on a Document names vault-relative paths."""
+    """The core passes the vault root as its user gave it (architecture.md, Adapter call); a direct
+    call on a Document names vault-relative paths."""
     with pytest.raises(SystemExit):
         cli.main([str(build(tmp_path)), str(tmp_path / "out.html"), *arguments])
 

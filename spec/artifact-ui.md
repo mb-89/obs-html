@@ -2365,6 +2365,21 @@ separate from artifact presentation.
 - On narrow screens, docked bars overlay the reading shell and use constrained dimensions
   so chapter controls and content remain reachable.
 
+## Generation provenance
+
+The generation record names the generator and target:
+
+- `generator.commit` uses the commit declared by the installed distribution's Git origin, or the
+  HEAD of a verified source checkout of this `obs-html` project. If its own source commit cannot
+  be verified, it is `"unknown"`; a consumer repository's Git commit is never a substitute.
+- `target.version` uses nonempty `product.version` metadata when supplied; otherwise it uses
+  the target vault's Git description (`git describe --tags --always`).
+- `target.commit` is the target vault's HEAD commit.
+
+The core passes the vault as `--vault-root`; a direct `obs-html` call uses its working
+directory. Unresolved values are `"unknown"`. When none of these provenance values resolves,
+the build warns once.
+
 ## What counts as a change
 
 This section owns which actions change the artifact; every other note points here. The

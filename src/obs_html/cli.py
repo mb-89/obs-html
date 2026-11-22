@@ -35,15 +35,16 @@ EPILOG = f"""Rendering:
   The core calls this command as an adapter with DOCUMENT and DESTINATION, the vault root as
   --vault-root ROOT when it built the Document, and the options adapter.json declares.
   --vault-root ROOT names the Document's vault-relative paths below ROOT in messages
-  (ROOT/manifest.md: ...); the Document and the artifact never carry it.
+  (ROOT/manifest.md: ...) and supplies the target Git root for generation provenance;
+  the Document and the artifact never carry it.
   Every page's frontmatter table ends with a Source file row, the vault path of the note it
   shows, while artifact.sourceFileLinks is true, as the packaged cfg.json sets it; false builds
   the page without it. --vault-link LINK, the vault folder's place from DESTINATION's folder
   such as ../notes, makes the path a link that opens the note in a new tab; the core passes it
   where DESTINATION lies in the vault's parent folder or below it. Where the local list
   (.public-check.local) names the vault folder, the page gets no link (spec/cli.md, Source file links).
-  obs-html never runs a command: a command fence shows the output the core captured while it
-  built the Document (obs-document --execute-commands), and a Document without it fails.
+  obs-html never runs a command fence: one shows the output the core captured while it built
+  the Document (obs-document --execute-commands), and a Document without it fails.
   An artifact that names the build machine's home folder or user name fails before writing
   (README, "Command fences").
   --check renders without writing output.
@@ -190,7 +191,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("destination", type=Path, nargs="?", metavar="DESTINATION",
                         help="Output file: .pdf for PDF, otherwise HTML.")
     parser.add_argument("--vault-root", metavar="ROOT",
-                        help="The vault root as the core's user gave it, for messages only.")
+                        help="The vault root as the core's user gave it, for messages and target provenance.")
     parser.add_argument("--vault-link", metavar="LINK",
                         help="The vault's place from DESTINATION's folder, as the core passes it.")
     parser.add_argument("--config", type=Path, help="Settings JSON merged over the packaged cfg.json.")
@@ -317,6 +318,7 @@ def _write_artifact(document: dict, options: argparse.Namespace, config, destina
     paths = _vault_paths(document)
     start = (Path(options.vault_root) if options.vault_root
              else options.document.resolve().parent if options.document else Path.cwd())
+    target_root = Path(options.vault_root) if options.vault_root else Path.cwd()
     link = None if options.vault_link is None else _source_file_link(options.vault_link, start, destination)
     try:
         with vault_naming(options.vault_root, paths):
@@ -324,7 +326,8 @@ def _write_artifact(document: dict, options: argparse.Namespace, config, destina
             local = {"style_choice": local_style_choice(os.environ)} if local_themes else {}
             artifact = render(document, config, style_folder=options.style,
                               trusted_runtime=_trusted_runtime(options.trusted_runtime_bundle),
-                              embed_attachments=options.embed_attachments, built=fixed, vault_link=link, **local)
+                              embed_attachments=options.embed_attachments, built=fixed, vault_link=link,
+                              target_root=target_root, **local)
     except InputError as error:
         raise in_vault(error, options.vault_root, paths) from error
     check_artifact(artifact)

@@ -4,7 +4,7 @@ import pytest
 
 from obs_html.config import load_config
 from obs_html.errors import InputError
-from obs_html.render import render
+from obs_html.render import _cover, render
 from obs_html.artifact_data import decode_artifact_data, prepare_artifact_scripts
 
 from conftest import PIXEL
@@ -70,6 +70,46 @@ def test_empty_cover_fields_are_left_out_of_the_cover_and_the_artifact_metadata(
     for shown in (model["document"]["metadata"], model["document"]["metadataHtml"]):
         assert not set(empty) & set(shown), shown
     assert model["document"]["metadata"]["document type"] == "Specification"
+
+
+@pytest.mark.parametrize(("compact", "expected"), [
+    (False, '<header class="document-heading"><div class="cover-band"></div><div class="cover-frame">'
+            '<h1 class="document-title">Only</h1></div><div class="cover-facts-frame"><dl class="cover-facts">'
+            '</dl></div></header>\n'),
+    (True, '<header class="document-heading document-heading--compact"><div class="compact-heading">'
+           '<h1 class="document-title">Only</h1></div></header>\n'),
+], ids=["cover", "compact"])
+def test_nonempty_title_cover_markup_is_unchanged(compact, expected) -> None:
+    assert _cover("Only", {}, {}, compact) == expected
+
+
+@pytest.mark.parametrize(("product_name", "path", "identity"), [
+    ("Project identity", "technical-manifest.md", "Project identity"),
+    (None, "technical-manifest.md", "Technical Manifest"),
+], ids=["metadata-identity", "filename-fallback"])
+@pytest.mark.parametrize("compact", [False, True], ids=["cover", "compact"])
+def test_empty_manifest_title_omits_heading_but_keeps_document_identity(document, product_name, path,
+                                                                         identity, compact) -> None:
+    document["manifest"]["title"] = ""
+    document["manifest"]["path"] = path
+    metadata = document["manifest"]["metadata"]
+    metadata["title"] = ""
+    if product_name is None:
+        metadata.pop("product", None)
+    else:
+        metadata["product"] = {"name": product_name}
+    if compact:
+        metadata["obsHtml"].update(heading="compact")
+
+    html = _render(document)
+    model = decode_artifact_data(html)
+    home = model["notes"][0]
+
+    assert '<h1 class="document-title">' not in home["html"]
+    assert model["document"]["title"] == identity
+    assert model["document"]["generation"]["target"]["name"] == identity
+    assert home["title"] == identity
+    assert f"<title>{identity}</title>" in html
 
 
 def test_defaults_apply_without_a_profile(document) -> None:

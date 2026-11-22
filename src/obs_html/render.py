@@ -1,24 +1,28 @@
 """Render a JSON Document as one portable, interactive HTML artifact.
 
-The Document is the only input: no vault, no core package. Each capability this adapter
-renders registers one node renderer in ``CAPABILITIES``; ``adapter.json`` declares the same
-identifiers. Chapters become the notes of the artifact-data island, which the embedded
-runtime (artifact.js and its companions) reads to build the reader, the bars and the pages.
+The Document is the only source of content: no vault or core package is read. The target root,
+when supplied, is used only for Git provenance. Each capability this adapter renders registers
+one node renderer in ``CAPABILITIES``; ``adapter.json`` declares the same identifiers. Chapters
+become the notes of the artifact-data island, which the embedded runtime (artifact.js and its
+companions) reads to build the reader, the bars and the pages.
 """
 from __future__ import annotations
 
 import base64
 import json
 import re
+import subprocess
+import tomllib
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime
 from html import escape, unescape
-from importlib.metadata import version
+from importlib.metadata import PackageNotFoundError, distribution, version
 from importlib.resources import files
 from pathlib import Path, PurePosixPath
 from typing import Callable, Iterator
-from urllib.parse import unquote
+from urllib.parse import unquote, urlsplit
+from urllib.request import url2pathname
 
 from jsonschema import Draft202012Validator, validators
 from jsonschema.exceptions import ValidationError
@@ -1028,7 +1032,8 @@ def render(document: dict[str, object], config: Config,
            styles: DeclaredStyles | None = None,
            built: datetime | None = None,
            vault_link: str | None = None,
-           style_choice: StyleChoice | None = None) -> str:
+           style_choice: StyleChoice | None = None,
+           target_root: Path | None = None) -> str:
     """The artifact of ``document``, styled by ``style_folder``, else by the style the Document
     declares (fetched through ``styles``, by default git into the user's cache), else by the packaged
     generic module (spec/configuration.md, Declared style). ``built`` is the build's instant, by
@@ -1036,7 +1041,8 @@ def render(document: dict[str, object], config: Config,
     from the page's folder, which makes each source file row a link (spec/cli.md, Source file links).
     ``style_choice`` is the build machine's local themes (style_choice.py), laid over the style as
     themes beside Default; without one, or without a theme in it, the page carries none
-    (spec/artifact-ui.md, Styling)."""
+    (spec/artifact-ui.md, Styling). ``target_root`` is the vault whose Git version and commit the
+    artifact records, defaulting to the current working directory."""
     if style_choice is not None and not style_choice.extras:
         style_choice = None
     if document.get("schemaVersion") != 1:
@@ -1067,9 +1073,10 @@ def render(document: dict[str, object], config: Config,
     )
     _index(document["chapters"], context)
     _index_headings(HOME, document["manifest"].get("abstract", []), context)
-    context.chapters[HOME] = document["manifest"]["title"]  # The core links the manifest as home.
+    context.chapters[HOME] = _document_identity(document["manifest"])
     built = build_time.instant({}) if built is None else built
-    model = _resolve_icons(_model(document, config, context, built, vault_link, style_choice), assets)
+    target_root = Path.cwd() if target_root is None else target_root
+    model = _resolve_icons(_model(document, config, context, built, vault_link, style_choice, target_root), assets)
     archive = source_archive.package(document, embed_attachments)
     if archive is not None:
         model = source_archive.share(model, archive)
@@ -1143,7 +1150,8 @@ def _profile(manifest: dict[str, object], chapters: list[dict[str, object]]) -> 
 
 
 def _model(document: dict[str, object], config: Config, context: Context, built: datetime,
-           vault_link: str | None = None, style_choice: StyleChoice | None = None) -> dict[str, object]:
+           vault_link: str | None = None, style_choice: StyleChoice | None = None,
+           target_root: Path | None = None) -> dict[str, object]:
     """The artifact-data island: the runtime's only model of the artifact. With local themes
     (``style_choice``), its ``reading`` names them, Default first, and the start theme."""
     manifest = document["manifest"]
@@ -1157,6 +1165,7 @@ def _model(document: dict[str, object], config: Config, context: Context, built:
     settings = config.artifact
     context.bordered_tags = tuple(settings["borderedTags"])
     title = manifest["title"]
+    identity = _document_identity(manifest)
     metadata = _filled({key: value for key, value in manifest["metadata"].items() if key not in {"obs", "obsHtml"}})
     _check_bottom_lines(document)
     context.percolated = percolated(document)
@@ -1164,7 +1173,7 @@ def _model(document: dict[str, object], config: Config, context: Context, built:
                           manifest.get("bottomLine"), context.percolated[HOME], after_heading=False)
     metadata_html = _frontmatter_html(metadata, HOME, context)  # The display HTML of each value that shows.
     home_html = _cover(title, metadata, metadata_html, profile["heading"] == "compact") + abstract
-    notes = [_note(0, title, HOME, HOME, {}, home_html, context)]
+    notes = [_note(0, identity, HOME, HOME, {}, home_html, context)]
     notes.extend(_chapter_notes(document["chapters"], context, 0, ["chapters"]))
     _attach_records(document["records"], notes, context)
     if settings.get("sourceFileLinks", True):  # Each page's Source file row (source_files.py).
@@ -1178,15 +1187,11 @@ def _model(document: dict[str, object], config: Config, context: Context, built:
         "assets": context.assets.resources,
         "embeddedAssets": context.assets.embedded_assets,
         "document": {
-            "title": title,
+            "title": identity,
             "metadata": metadata,
             "metadataHtml": metadata_html,
             "pages": profile["pages"],
-            "generation": {
-                "timestamp": build_time.iso(built),
-                "generator": {"name": "obs-html", "version": version("obs-html"), "commit": "unknown"},
-                "target": {"name": title, "version": "unknown", "commit": "unknown"},
-            },
+            "generation": _generation(manifest, built, target_root or Path.cwd(), identity),
         },
         "paper": paper({**config.print_default, **profile["print"]}, config, lambda key: (
             (manifest["path"], f"obsHtml.print.{key}") if key in profile["print"]
@@ -1456,6 +1461,132 @@ def _empty(value: object) -> bool:
     return value is None or value in ("", [], {}) or isinstance(value, str) and not value.strip()
 
 
+def _document_identity(manifest: dict[str, object]) -> str:
+    """The document title, else its product name, else its manifest filename."""
+    title = manifest["title"]
+    if title:
+        return str(title)
+    metadata = manifest["metadata"]
+    product = metadata.get("product") if isinstance(metadata, dict) else None
+    name = product.get("name") if isinstance(product, dict) else None
+    if isinstance(name, str) and name.strip():
+        return name
+    return PurePosixPath(manifest["path"]).stem.replace("-", " ").title()
+
+
+def _git_output(directory: Path, *arguments: str) -> str | None:
+    """Run a bounded read-only Git query; unavailable Git or a non-checkout resolves to None."""
+    try:
+        result = subprocess.run(["git", "-C", str(directory), *arguments], capture_output=True, text=True,
+                                encoding="utf-8", check=False)
+    except FileNotFoundError:
+        return None
+    if result.returncode:
+        return None
+    return result.stdout.strip() or None
+
+
+def _project_name(path: Path) -> str | None:
+    try:
+        project = tomllib.loads(path.read_text(encoding="utf-8")).get("project")
+    except (OSError, UnicodeDecodeError, tomllib.TOMLDecodeError):
+        return None
+    return project.get("name") if isinstance(project, dict) else None
+
+
+def _editable_source_commit(source: Path) -> str | None:
+    try:
+        source = source.resolve(strict=True)
+    except (OSError, RuntimeError):
+        return None
+    if not source.is_dir():
+        return None
+    repository_text = _git_output(source, "rev-parse", "--show-toplevel")
+    if repository_text is None:
+        return None
+    try:
+        repository = Path(repository_text).resolve(strict=True)
+        relative = source.relative_to(repository).as_posix()
+    except (OSError, RuntimeError, ValueError):
+        return None
+    if (relative != "adapters/html" or _project_name(repository / "pyproject.toml") != "obs"
+            or _project_name(source / "pyproject.toml") != "obs-html"):
+        return None
+    return _git_output(repository, "rev-parse", "HEAD")
+
+
+def _generator_commit() -> str | None:
+    """Resolve only a commit tied to the installed obs-html distribution's source."""
+    try:
+        origin_text = distribution("obs-html").read_text("direct_url.json")
+    except (PackageNotFoundError, OSError):
+        return None
+    if not origin_text:
+        return None
+    try:
+        origin = json.loads(origin_text)
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(origin, dict):
+        return None
+
+    vcs = origin.get("vcs_info")
+    directory = origin.get("dir_info")
+    if isinstance(directory, dict) and directory.get("editable") is True:
+        url = origin.get("url")
+        if isinstance(url, str):
+            try:
+                parsed = urlsplit(url)
+            except ValueError:
+                parsed = None
+            if parsed and parsed.scheme == "file" and parsed.netloc in ("", "localhost"):
+                try:
+                    source = Path(url2pathname(parsed.path))
+                except (OSError, ValueError):
+                    source = None
+            elif isinstance(vcs, dict) and vcs.get("vcs") == "git":
+                source = Path(__file__).resolve().parents[2]
+            else:
+                source = None
+            if source is not None:
+                commit = _editable_source_commit(source)
+                if commit is not None:
+                    return commit
+
+    if isinstance(vcs, dict) and vcs.get("vcs") == "git":
+        commit = vcs.get("commit_id")
+        if not isinstance(commit, str) or not re.fullmatch(
+            r"(?:[0-9a-f]{40}|[0-9a-f]{64})", commit, re.IGNORECASE
+        ):
+            return None
+        return commit.lower()
+    return None
+
+
+def _generation(manifest: dict[str, object], built: datetime, target_root: Path,
+                identity: str) -> dict[str, object]:
+    """Record the running generator and target repository provenance, warning only when none resolves."""
+    product = manifest["metadata"].get("product")
+    declared_version = product.get("version") if isinstance(product, dict) else None
+    if not isinstance(declared_version, str) or not declared_version.strip():
+        declared_version = None
+    generator_commit = _generator_commit()
+    target_version = declared_version or _git_output(target_root, "describe", "--tags", "--always")
+    target_commit = _git_output(target_root, "rev-parse", "HEAD")
+    if not any((generator_commit, target_version, target_commit)):
+        warn(InputError("obs-html (src/obs_html/render.py)", "generation provenance",
+                        "cannot resolve the generator commit, target version, or target commit",
+                        "Build from a Git checkout or provide nonempty product.version metadata; "
+                        "see spec/design_input/input-model.md"))
+    return {
+        "timestamp": build_time.iso(built),
+        "generator": {"name": "obs-html", "version": version("obs-html"), "commit": generator_commit or "unknown"},
+        "target": {
+            "name": identity, "version": target_version or "unknown", "commit": target_commit or "unknown",
+        },
+    }
+
+
 def _cover(title: str, metadata: dict[str, object], html: dict[str, str], compact: bool) -> str:
     """The cover or compact heading: each metadata value as its display HTML (_frontmatter_html)."""
     def value(key: str) -> str:
@@ -1468,7 +1599,8 @@ def _cover(title: str, metadata: dict[str, object], html: dict[str, str], compac
         parts = [("cover-organization", value("organization")),
                  ("cover-product", " ".join(products)), ("cover-type", value("document type"))]
         line = "".join(f'<span class="{name}">{text}</span>' for name, text in parts if text)
-        line += f'<h1 class="document-title">{escape(title)}</h1>'
+        if title:
+            line += f'<h1 class="document-title">{escape(title)}</h1>'
         if subtitle:
             line += f'<span class="document-subtitle">{subtitle}</span>'
         return ('<header class="document-heading document-heading--compact">'
@@ -1484,7 +1616,7 @@ def _cover(title: str, metadata: dict[str, object], html: dict[str, str], compac
         '<header class="document-heading">'
         + (f'<div class="cover-product">{product_html}</div>' if product_html else "")
         + f'<div class="cover-band">{band}</div><div class="cover-frame">'
-        + f'<h1 class="document-title">{escape(title)}</h1>'
+        + (f'<h1 class="document-title">{escape(title)}</h1>' if title else "")
         + (f'<p class="cover-type">{value("document type")}</p>' if metadata.get("document type") else "")
         + (f'<div class="document-subtitle">{subtitle}</div>' if subtitle else "")
         + legal + "</div>"
