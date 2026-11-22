@@ -13,11 +13,16 @@
 // the request's timeout.
 //
 // The page gets the stand-ins the design lists (Option, the Popover API, print, the compression
-// streams, structuredClone, crypto and a canvas text measure) and the door's default answers for
-// layout: an element whose computed display is `none`, or that is not in the document, has an empty
-// box; every other element is 384 by 24 pixels at the viewport's origin. Each default the page was
-// given is listed, by call and element key (door-key.js), in the `defaults` request's answer, which
-// the test's report shows. Network requests to anything but a loopback server are refused, as
+// streams, structuredClone, crypto and a canvas text measure). A page opened with a state's
+// recording (the `replay` request, test/browser/door.py) answers every supplied call for an
+// element's key (door-key.js) from the latest step the test has reached (`reach`): boxes, client
+// rects, sizes, the observers' entries, text widths, decoded image sizes, `document.fonts` and, in
+// the viewer frame, the refusals Chromium gave. A call without a recorded answer gets the door's
+// default for layout: an element whose computed display is `none`, or that is not in the document,
+// has an empty box; every other element is 384 by 24 pixels at the viewport's origin. Each default
+// the page was given is listed, by call and element key, in the `defaults` request's answer, which
+// the test's report shows; the `asked` request lists, by step, each key and call the page asked,
+// which the recorder measures in Chromium. Network requests to anything but a loopback server are refused, as
 // test/network_guard.py refuses them, and each refusal is an event the facade fails the test with.
 "use strict";
 
@@ -101,7 +106,7 @@ function schemeOf(page) {
         if (resolving) return preferred;
         resolving = true;
         try {
-            const declared = String(window.getComputedStyle(window.document.documentElement).colorScheme || "").split(/\s+/);
+            const declared = String(ownStyle(window, window.document.documentElement).colorScheme || "").split(/\s+/);
             if (declared.includes(preferred)) return preferred;
             return declared.includes("dark") ? "dark" : declared.includes("light") ? "light" : preferred;
         } finally {
@@ -348,6 +353,31 @@ class FakePage {
         this.hovered = null;
         this.dirty = new WeakSet();
         this.pending = 0;
+        // The state's recording the page replays (null: the door's defaults), the step it has
+        // reached, and what it asked at each step, by expectation and key.
+        this.recording = null;
+        this.reached = 0;
+        this.asked = new Map();
+    }
+
+    // The page asked `kind` (an expectation's name) of `key`: listed for the recorder by step.
+    ask(kind, key) {
+        if (!this.asked.has(this.reached)) this.asked.set(this.reached, {});
+        const step = this.asked.get(this.reached);
+        (step[kind] = step[kind] || new Set()).add(key);
+    }
+
+    // The answer of the latest step reached that recorded `kind` for `key` (for the whole answer
+    // where `key` is undefined), or undefined where no step did.
+    recorded(kind, key) {
+        const answers = this.recording?.answers || [];
+        for (let index = answers.length - 1; index >= 0; index -= 1) {
+            const answer = answers[index];
+            if (answer.step > this.reached || !answer[kind]) continue;
+            if (key === undefined) return answer[kind];
+            if (Object.prototype.hasOwnProperty.call(answer[kind], key)) return answer[kind][key];
+        }
+        return undefined;
     }
 
     // Work the page awaits outside happy-dom: it is busy until the promise settles.
@@ -441,7 +471,11 @@ class FakePage {
             for (let index = 0; index < storage.length; index += 1) entries[storage.key(index)] = storage.getItem(storage.key(index));
             return entries;
         };
-        this.storage[origin] = {local: read(window.localStorage), session: read(window.sessionStorage)};
+        try {
+            this.storage[origin] = {local: read(window.localStorage), session: read(window.sessionStorage)};
+        } catch {
+            // The viewer frame's replayed refusal: its storage keeps nothing.
+        }
     }
 
     restoreStorage(window, url) {
@@ -535,12 +569,26 @@ function storageOrigin(url) {
     }
 }
 
+// The initial values of the computed properties the runtime reads, which happy-dom leaves empty
+// where no rule sets them (the expectation cascade).
+const INITIAL_VALUES = Object.fromEntries([
+    ...["padding", "margin"].flatMap((box) => ["Top", "Right", "Bottom", "Left"].map((side) => [`${box}${side}`, "0px"])),
+    ...["Top", "Right", "Bottom", "Left"].map((side) => [`border${side}Width`, "0px"]),
+    ["visibility", "visible"], ["overflowX", "visible"], ["overflowY", "visible"], ["backgroundColor", "rgba(0, 0, 0, 0)"],
+]);
+
+// The fake's own reading of a computed style, which the page's `asked` does not list.
+const OWN_STYLE = Symbol("ownStyle");
+function ownStyle(window, element) {
+    return (window[OWN_STYLE] || window.getComputedStyle).call(window, element);
+}
+
 // Whether the element takes part in layout: in the document, and neither it nor an ancestor has a
 // computed display of `none` (as `[hidden]` and a closed popover have by the user-agent rules above).
 function rendered(window, element) {
     if (!element || !element.isConnected) return false;
     for (let current = element; current && current.nodeType === 1; current = current.parentElement) {
-        if (window.getComputedStyle(current).display === "none") return false;
+        if (ownStyle(window, current).display === "none") return false;
     }
     return true;
 }
@@ -595,6 +643,11 @@ function install(window, page) {
         const message = error && error.message !== undefined ? String(error.message) : String(error);
         window.dispatchEvent(new window.ErrorEvent("error", {message, error, cancelable: true}));
     };
+    // A fragment navigation fires popstate and then hashchange, as Chromium fires them; happy-dom
+    // fires only hashchange. The runtime opens a chapter on popstate.
+    window.addEventListener("hashchange", () => {
+        window.dispatchEvent(new window.PopStateEvent("popstate", {state: window.history.state}));
+    }, true);
     window.addEventListener("error", (event) => {
         if (event.target !== window) return;
         const error = event.error;
@@ -640,8 +693,11 @@ function install(window, page) {
         const context = {
             canvas, font: "10px sans-serif",
             measureText(text) {
-                const width = String(text).length * CHARACTER_WIDTH;
-                page.gave("measureText", null, `${width}`);
+                const key = `${context.font}|${text}`;
+                page.ask("text-width", key);
+                const recorded = page.recorded("text-width", key);
+                const width = recorded ?? String(text).length * CHARACTER_WIDTH;
+                if (recorded === undefined) page.gave("measureText", null, `${width}`);
                 return {width, actualBoundingBoxLeft: 0, actualBoundingBoxRight: width,
                     actualBoundingBoxAscent: 8, actualBoundingBoxDescent: 2, fontBoundingBoxAscent: 8,
                     fontBoundingBoxDescent: 2};
@@ -651,8 +707,145 @@ function install(window, page) {
     };
 
     installPopovers(window, page);
+    installFocus(window);
     installLayout(window, page);
+    installRecorded(window, page);
     installNetwork(window, page);
+}
+
+// What the page asks that the recorder measures, and the supplied answers that are not layout: the
+// computed styles and media queries the page reads (listed, never replayed: happy-dom computes
+// them), decoded image sizes, `document.fonts`, where `scrollIntoView` scrolls to, and the viewer
+// frame's refusals (browser-door.md, Recording and replay).
+function installRecorded(window, page) {
+    const getComputedStyle = window.getComputedStyle;
+    window[OWN_STYLE] = getComputedStyle;
+    // Each property the page reads of an element's computed style is listed as `<key>|<property>`;
+    // one no rule sets has its initial value, where happy-dom leaves it empty.
+    window.getComputedStyle = function (element, pseudo) {
+        const style = getComputedStyle.call(window, element, pseudo);
+        if (!element || element.nodeType !== 1 || pseudo) return style;
+        const key = doorKey(element);
+        const initial = (property, value) => value === "" && INITIAL_VALUES[property] !== undefined ? INITIAL_VALUES[property] : value;
+        return new Proxy(style, {get(target, name) {
+            if (name === "getPropertyValue") {
+                return (property) => {
+                    page.ask("cascade", `${key}|${property}`);
+                    const camel = String(property).replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
+                    return initial(camel, target.getPropertyValue(property));
+                };
+            }
+            const value = target[name];
+            if (typeof value === "function") return value.bind(target);
+            if (typeof name === "string" && /^[a-z]/i.test(name) && name !== "length") {
+                page.ask("cascade", `${key}|${name}`);
+                return initial(name, value);
+            }
+            return value;
+        }});
+    };
+    const matchMedia = window.matchMedia;
+    window.matchMedia = function (query) {
+        page.ask("media", String(query));
+        return matchMedia.call(window, query);
+    };
+    for (const [name, side] of [["naturalWidth", 0], ["naturalHeight", 1]]) {
+        Object.defineProperty(window.HTMLImageElement.prototype, name, {configurable: true, get() {
+            const key = doorKey(this);
+            page.ask("image-size", key);
+            const recorded = page.recorded("image-size", key);
+            if (recorded) return recorded[side];
+            page.gave(name, this, "0");
+            return 0;
+        }});
+    }
+    const scrollIntoView = window.Element.prototype.scrollIntoView;
+    window.Element.prototype.scrollIntoView = function (...args) {
+        const key = doorKey(this);
+        page.ask("scroll-into-view", key);
+        if (scrollIntoView) scrollIntoView.apply(this, args);
+        const recorded = page.recorded("scroll-into-view", key);
+        const scroller = window.document.scrollingElement || window.document.documentElement;
+        if (recorded && scroller) scroller.scrollTop = recorded.scrollTop;
+    };
+    const fonts = page.recorded("fonts");
+    if (fonts) {
+        const set = {
+            status: fonts.status, size: 0,
+            check: () => true, load: () => Promise.resolve([]), forEach() {}, addEventListener() {},
+            removeEventListener() {}, [Symbol.iterator]: function* () {},
+        };
+        set.ready = Promise.resolve(set);
+        Object.defineProperty(window.document, "fonts", {configurable: true, get: () => set});
+    }
+    if (page.recording?.context?.frame === "viewer") refuse(window, page.recorded("viewer-frame") || {});
+}
+
+// The viewer frame's refusals as Chromium gave them (the expectation viewer-frame): each call path,
+// `window.open()` for a method and `window.localStorage` for a property, throws, returns or rejects
+// as recorded, and fires the events recorded with it.
+function refuse(window, refusals) {
+    for (const [path, outcome] of Object.entries(refusals)) {
+        const method = path.endsWith("()");
+        const names = path.replace(/\(\)$/, "").split(".");
+        const parts = names[0] === "window" ? names.slice(1) : names;
+        let owner = window;
+        for (const name of parts.slice(0, -1)) owner = owner?.[name];
+        if (!owner) continue;
+        const refusal = (name) => new window.DOMException(
+            `${path} is refused in the viewer frame, as the recorded Chromium refused it (${NOTE}).`, name);
+        const act = () => {
+            for (const type of outcome.fires || []) window.dispatchEvent(new window.Event(type));
+            if (outcome.throws) throw refusal(outcome.throws);
+            if (outcome.rejects) return Promise.reject(refusal(outcome.rejects));
+            if (Object.prototype.hasOwnProperty.call(outcome, "resolves")) return Promise.resolve(outcome.resolves);
+            return outcome.returns ?? (method ? undefined : null);
+        };
+        const last = parts[parts.length - 1];
+        const descriptor = method ? {configurable: true, writable: true, value: () => act()}
+            : {configurable: true, get: act, set() { if (outcome.throws) throw refusal(outcome.throws); }};
+        // A property of the window is defined on the page's own global: a getter that throws on the
+        // window object outside it reads as undefined inside the page.
+        if (owner === window) window.eval("(name, descriptor) => Object.defineProperty(globalThis, name, descriptor)")(last, descriptor);
+        else Object.defineProperty(owner, last, descriptor);
+    }
+}
+
+// Focus as Chromium moves it (the expectation focus): focus() on an element that cannot take focus
+// does nothing, and a dialog that opens focuses its first focusable descendant and, as it closes,
+// gives focus back to the element that had it.
+function installFocus(window) {
+    const prototype = window.HTMLElement.prototype;
+    const focus = prototype.focus;
+    const focusable = (element) => element.isConnected && element.matches(FOCUSABLE) && !element.disabled &&
+        !(element.localName === "input" && element.type === "hidden") && rendered(window, element);
+    prototype.focus = function (...args) {
+        if (focusable(this)) focus.apply(this, args);
+    };
+    const dialog = window.HTMLDialogElement?.prototype;
+    if (!dialog) return;
+    const before = new WeakMap();
+    for (const name of ["show", "showModal"]) {
+        const open = dialog[name];
+        dialog[name] = function (...args) {
+            const wasOpen = this.open;
+            before.set(this, window.document.activeElement);
+            const result = open.apply(this, args);
+            if (!wasOpen) {
+                const first = [...this.querySelectorAll("*")].find(focusable);
+                if (first) first.focus();
+            }
+            return result;
+        };
+    }
+    const close = dialog.close;
+    dialog.close = function (...args) {
+        const wasOpen = this.open;
+        const result = close.apply(this, args);
+        const previous = before.get(this);
+        if (wasOpen && previous && previous.isConnected && previous !== window.document.body) previous.focus();
+        return result;
+    };
 }
 
 function installPopovers(window, page) {
@@ -712,13 +905,25 @@ function installPopovers(window, page) {
     }, true);
 }
 
-// The door's default answers for layout (browser-door.md, Recording and replay).
+// Layout: the recorded answers of the latest step reached, else the door's defaults
+// (browser-door.md, Recording and replay).
 function installLayout(window, page) {
     // The root element's box is the viewport, the window's inner size, which happy-dom knows.
     const measure = (element) => element === window.document.documentElement
         ? {x: 0, y: 0, width: page.viewport[0], height: page.viewport[1]}
         : rendered(window, element) ? {x: 0, y: 0, ...BOX} : {x: 0, y: 0, width: 0, height: 0};
+    const fromRecording = (element) => {
+        const recorded = page.recorded("box", doorKey(element));
+        if (!recorded) return null;
+        const [x, y, width, height] = recorded.border;
+        return {x, y, width, height};
+    };
+    // `call` is the runtime's call, listed for the recorder; the fake's own hit test lists nothing.
     const box = (element, call) => {
+        const key = doorKey(element);
+        if (call !== "elementFromPoint") page.ask("box", key);
+        const recorded = fromRecording(element);
+        if (recorded) return recorded;
         const answer = measure(element);
         if (element !== window.document.documentElement) {
             page.gave(call, element, answer.width ? `${answer.width}x${answer.height}` : "empty");
@@ -730,6 +935,8 @@ function installLayout(window, page) {
     window.Element.prototype.getBoundingClientRect = function () { return rect(box(this, "getBoundingClientRect")); };
     window.Element.prototype.getClientRects = function () {
         const answer = box(this, "getClientRects");
+        const recorded = page.recorded("box", doorKey(this));
+        if (recorded) return recorded.rects.map(([x, y, width, height]) => rect({x, y, width, height}));
         return answer.width || answer.height ? [rect(answer)] : [];
     };
     if (window.HTMLElement.prototype.hasOwnProperty("getBoundingClientRect")) {
@@ -740,9 +947,17 @@ function installLayout(window, page) {
         clientWidth: "width", clientHeight: "height", offsetWidth: "width", offsetHeight: "height",
         scrollWidth: "width", scrollHeight: "height",
     };
+    const recordedSize = (element, name) => {
+        const key = doorKey(element);
+        page.ask("sizes", key);
+        const recorded = page.recorded("sizes", key);
+        return recorded && Object.prototype.hasOwnProperty.call(recorded, name) ? recorded[name] : undefined;
+    };
     for (const [name, side] of Object.entries(sizes)) {
         for (const prototype of prototypes) {
             Object.defineProperty(prototype, name, {configurable: true, get() {
+                const recorded = recordedSize(this, name);
+                if (recorded !== undefined) return recorded;
                 const value = measure(this)[side];
                 if (this !== window.document.documentElement) page.gave(name, this, String(value));
                 return value;
@@ -750,7 +965,14 @@ function installLayout(window, page) {
         }
     }
     for (const name of ["offsetLeft", "offsetTop", "clientLeft", "clientTop"]) {
-        for (const prototype of prototypes) Object.defineProperty(prototype, name, {configurable: true, get() { return 0; }});
+        for (const prototype of prototypes) {
+            Object.defineProperty(prototype, name, {configurable: true, get() { return recordedSize(this, name) ?? 0; }});
+        }
+    }
+    // The window's inner size, where the state's recording holds it.
+    for (const name of ["innerWidth", "innerHeight"]) {
+        const recorded = page.recorded("sizes", "window")?.[name];
+        if (recorded !== undefined) Object.defineProperty(window, name, {configurable: true, get: () => recorded});
     }
     // The point under the pointer: the last shown element whose box holds it.
     window.document.elementFromPoint = (x, y) => window.document.elementsFromPoint(x, y)[0] || null;
@@ -773,12 +995,17 @@ function installLayout(window, page) {
 
         observe(element) {
             this.observed.add(element);
+            page.ask("resize", doorKey(element));
             page.clock.frame(() => {
                 if (!this.observed.has(element)) return;
                 const answer = box(element, "ResizeObserver");
-                const size = [{inlineSize: answer.width, blockSize: answer.height}];
-                this.callback([{target: element, contentRect: rect(answer), borderBoxSize: size, contentBoxSize: size,
-                    devicePixelContentBoxSize: size}], this);
+                const recorded = page.recorded("resize", doorKey(element));
+                const [contentWidth, contentHeight] = recorded?.content || [answer.width, answer.height];
+                const [borderWidth, borderHeight] = recorded?.border || [answer.width, answer.height];
+                const content = [{inlineSize: contentWidth, blockSize: contentHeight}];
+                const border = [{inlineSize: borderWidth, blockSize: borderHeight}];
+                this.callback([{target: element, contentRect: rect({x: 0, y: 0, width: contentWidth, height: contentHeight}),
+                    borderBoxSize: border, contentBoxSize: content, devicePixelContentBoxSize: content}], this);
             });
         }
 
@@ -889,7 +1116,7 @@ function describe(chain) {
 
 function visible(window, element) {
     if (!rendered(window, element)) return false;
-    const visibility = window.getComputedStyle(element).visibility;
+    const visibility = ownStyle(window, element).visibility;
     return visibility !== "hidden" && visibility !== "collapse";
 }
 
@@ -1538,6 +1765,24 @@ const OPERATIONS = {
     async defaults(page) {
         const listed = [...page.defaults.entries()].map(([answer, times]) => ({answer, times}));
         page.defaults.clear();
+        return listed;
+    },
+    // The state's recording the page replays from its next open on, or null for the door's defaults.
+    async replay(page, request) {
+        page.recording = request.recording;
+        page.reached = 0;
+    },
+    // The test begins a state's step: from now on the page answers from that step's recording.
+    async reach(page, request) {
+        page.reached = request.step;
+    },
+    // What the page asked since the last call, by step, expectation and key, each list sorted.
+    async asked(page) {
+        const listed = {};
+        for (const [step, kinds] of page.asked) {
+            listed[step] = Object.fromEntries(Object.entries(kinds).map(([kind, keys]) => [kind, [...keys].sort()]));
+        }
+        page.asked.clear();
         return listed;
     },
 };

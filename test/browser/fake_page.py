@@ -7,7 +7,8 @@ worker's one Node process, test/browser/fake-browser.cjs. The facade has what th
 ``goto``, ``evaluate``, ``wait_for_function``, ``keyboard.press``, ``mouse``,
 ``set_viewport_size`` (it reopens the page) and ``emulate_media``; and ``locator`` with CSS
 selectors, its ``first``, ``nth`` and ``filter`` (``has_text``, ``has``), its actions and reads, and
-``expect`` for its retried assertions. Waits and retries run on the page's own clock in the host,
+``expect`` for its retried assertions; and the browser door's ``replay``, ``reach`` and ``asked``,
+through which test/browser/door.py opens a state with its recording and lists what the page asked. Waits and retries run on the page's own clock in the host,
 never on wall time. A method the facade lacks fails with :class:`FakeBrowserUnsupported`, naming
 the method and the design note; Playwright's text and role selectors do not exist here, so a test
 that moves writes them as CSS and a text filter.
@@ -462,6 +463,20 @@ class FakePage:
 
     def content(self) -> str:
         return self._call("state")["content"]
+
+    def replay(self, recording: dict | None) -> None:
+        """Answer from a state's recording from the next ``goto`` on (test/browser/door.py), or, with
+        None, from the door's defaults; the page starts at the recording's step 0."""
+        self._call("replay", recording=recording)
+
+    def reach(self, step: int) -> None:
+        """The test begins the state's step ``step``: the page answers from its recording from now on."""
+        self._call("reach", step=step)
+
+    def asked(self) -> dict[int, dict[str, list[str]]]:
+        """What the page asked since the last call, by step, expectation and key (browser-door.md,
+        Recording and replay): what the recorder measures in Chromium."""
+        return {int(step): kinds for step, kinds in self._call("asked").items()}
 
     def take_defaults(self) -> list[dict]:
         """The default answers the page gave since the last call, each with how often (browser-door.md)."""
