@@ -233,7 +233,7 @@ Any other set value, an empty one included, is an input error of source `obs-htm
 fails before a browser starts.
 
 The calls that write a build time read the variable: every call that renders a Document (a
-DESTINATION, `--check`, `--build-own-spec`, and `obs-document --adapter html`, which passes its
+DESTINATION, `--check`, `--build-own-spec`, and `obs-document --adapter obs-html`, which passes its
 environment to the adapter) and `--export-pdf`.
 
 The calls that write none never read it, so an invalid value does not fail them:

@@ -111,7 +111,7 @@ def test_the_evidence_download_help_names_the_downloads_remedy_where_downloads_a
 
 def test_the_one_call_build_through_the_core_with_the_option_yields_the_evidence_edition(
         tmp_path, core_root) -> None:
-    """obs-document --adapter html --adapter-option embed-attachments=true: the option adapter.json declares."""
+    """obs-document --adapter obs-html --adapter-option embed-attachments=true: the option adapter.json declares."""
     vault = tmp_path / "vault"
     (vault / "input").mkdir(parents=True)
     (vault / "input" / "report.pdf").write_bytes(REPORT)
@@ -120,7 +120,7 @@ def test_the_one_call_build_through_the_core_with_the_option_yields_the_evidence
     destination = tmp_path / "evidence.html"
 
     completed = subprocess.run(
-        [sys.executable, "-m", "obs.document", "--source", str(vault / "manifest.md"), "--adapter", "html",
+        [sys.executable, "-m", "obs.document", "--source", str(vault / "manifest.md"), "--adapter", "obs-html",
          "--destination", str(destination),
          "--adapter-option", "embed-attachments=true"],
         capture_output=True, text=True, env={**os.environ, "UV_OFFLINE": "1"}, check=False)

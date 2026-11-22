@@ -141,7 +141,7 @@ def test_a_build_resolves_generation_provenance_from_the_generator_and_target(
 
 def test_the_generation_record_names_each_component_that_built_the_page(tmp_path: Path, monkeypatch) -> None:
     """The page shows the Document's components as they are (artifact-ui, Generation provenance)."""
-    built_by = [{"name": "html", "kind": "adapter", "version": "5.0.0", "commit": "ab" * 20},
+    built_by = [{"name": "obs-html", "kind": "adapter", "version": "5.0.0", "commit": "ab" * 20},
                 {"name": "paper", "kind": "style", "version": "1.2.3", "commit": "cd" * 20}]
     source = tmp_path / "document.json"
     source.write_text(json.dumps({**document("Target", chapter("one", "One", paragraph("Content."))),
@@ -657,7 +657,7 @@ def test_a_one_call_build_with_the_finding_digests_option_prints_each_digest(tmp
     (vault / "manifest.md").write_text("---\ntitle: Digests\n---\n- [[chapter]]\n", encoding="utf-8")
     (vault / "chapter.md").write_text(f"# Chapter\n\nMet at {TIME}.\n", encoding="utf-8")
     completed = subprocess.run(
-        [sys.executable, "-m", "obs.document", "--source", str(vault / "manifest.md"), "--adapter", "html",
+        [sys.executable, "-m", "obs.document", "--source", str(vault / "manifest.md"), "--adapter", "obs-html",
          "--destination", str(tmp_path / "page.html"),
          "--adapter-option", "finding-digests=true"],
         capture_output=True, text=True, env={**os.environ, "UV_OFFLINE": "1"}, check=False)

@@ -16,7 +16,7 @@ def test_a_one_call_build_warns_once_per_long_paragraph_and_keeps_it_out_of_the_
     destination = tmp_path / "long.html"
 
     completed = subprocess.run(
-        [sys.executable, "-m", "obs.document", "--source", str(vault / "manifest.md"), "--adapter", "html",
+        [sys.executable, "-m", "obs.document", "--source", str(vault / "manifest.md"), "--adapter", "obs-html",
          "--destination", str(destination)],
         capture_output=True, text=True, env={**os.environ, "UV_OFFLINE": "1"}, check=False)
 

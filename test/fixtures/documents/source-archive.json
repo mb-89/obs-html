@@ -260,7 +260,7 @@
       },
       "arguments": [
         "--adapter",
-        "html",
+        "obs-html",
         "--destination",
         "document.html",
         "--embed-source"
