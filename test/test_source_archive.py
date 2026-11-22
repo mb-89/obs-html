@@ -13,9 +13,11 @@ import base64
 import hashlib
 import io
 import json
+import os
 import re
 import subprocess
 import sys
+import tomllib
 import zipfile
 from pathlib import Path
 
@@ -41,7 +43,8 @@ STYLE = re.compile(r"<style\b[^>]*>")
 BUILD = {"repository": "https://example.invalid/obs", "commit": "0123456789abcdef0123456789abcdef01234567",
          "lockfiles": {"uv.lock": {"obs": "0.2.3", "pypdf": "6.21.2"}},
          "arguments": ["--adapter", "html", "--destination", "report.html", "--adapter-option",
-                       "embed-attachments=true", "--embed-source"]}
+                       "embed-attachments=true", "--embed-source"],
+         "components": [{"name": "html", "kind": "adapter", "version": "4.9.0", "commit": "ab" * 20}]}
 
 
 def archived(snippets: list[str] | None = None) -> dict:
@@ -100,7 +103,9 @@ def test_build_config_records_what_rebuilds_the_artifact() -> None:
         "obs": {"repository": BUILD["repository"], "commit": BUILD["commit"]},
         "lockfiles": BUILD["lockfiles"],
         "adapterOptions": {"embed-attachments": True},
-        "command": ["obs-document", "--source", "vault/manifest.md", *BUILD["arguments"]],
+        "command": ["obs-document", "--source", "vault/manifest.md", *BUILD["arguments"],
+                    "--recorded-components", "build-config.json"],
+        "components": BUILD["components"],
     }
     assert files["reproduce.py"] == (Path(reproduce.__file__).read_bytes())
     assert not any(name.startswith("generator/") for name in files)
@@ -196,8 +201,57 @@ def test_reproduce_runs_recorded_command_fences_only_when_asked(tmp_path: Path) 
         reproduce.steps(config, here, BUILD["repository"], execute_commands=False)
 
     assert "reproduce.py" in str(refused.value.code) and "--execute-commands" in str(refused.value.code)
-    assert reproduce.steps(config, here, BUILD["repository"], execute_commands=True)[-1].command[-1] == \
-        "--embed-source"
+    assert "--execute-commands" in reproduce.steps(config, here, BUILD["repository"], execute_commands=True)[-1].command
+
+
+CORE_ROOT = ROOT.parents[1]
+OBS_VERSION = tomllib.loads((CORE_ROOT / "se.toml").read_text(encoding="utf-8"))["project"]["version"]
+"""obs's version, at which the adapter of obs's tree is the component html (obs's components note,
+Recording what built a page)."""
+
+
+def rebuilt(folder: Path, *recorded: dict[str, str]) -> subprocess.CompletedProcess:
+    """The recorded command of an archive whose build used the ``recorded`` components, run as
+    reproduce.py runs it, from the extracted folder, on a machine with no installed component."""
+    source = archived()
+    source["sourceArchive"]["files"] = [
+        {"path": "manifest.md", "data": base64.b64encode(b"- [[one]]\n").decode("ascii")},
+        {"path": "one.md", "data": base64.b64encode(b"# One\n\nText.\n").decode("ascii")},
+    ]
+    source["sourceArchive"]["build"]["arguments"] = ["--adapter", "html", "--destination", "report.html",
+                                                     "--embed-source"]
+    source["sourceArchive"]["build"]["components"] = list(recorded)
+    with zipfile.ZipFile(io.BytesIO(embedded(render(source, CONFIG), "artifact.html"))) as opened:
+        opened.extractall(folder)
+    command = json.loads((folder / "build-config.json").read_text(encoding="utf-8"))["command"]
+    machine = folder.parent / "machine"
+    machine.mkdir()
+    return subprocess.run([sys.executable, "-m", "obs.document", *command[1:]], capture_output=True, text=True,
+                          cwd=folder, env={**os.environ, "OBS_LOCAL_FOLDER": str(machine)})
+
+
+def test_a_rebuild_with_another_installed_version_warns_naming_the_component_and_both_versions(
+        tmp_path: Path) -> None:
+    result = rebuilt(tmp_path / "archive", {"name": "html", "kind": "adapter", "version": "0.0.1",
+                                            "commit": "ab" * 20})
+
+    assert result.returncode == 0, result.stderr
+    warning = next(line for line in result.stderr.splitlines() if "--recorded-components" in line)
+    assert "components[0]" in warning and "'html'" in warning
+    assert "0.0.1" in warning and OBS_VERSION in warning
+    assert (tmp_path / "archive" / "report.html").is_file()
+
+
+def test_a_rebuild_whose_recorded_component_is_absent_fails_naming_it(tmp_path: Path) -> None:
+    html = {"name": "html", "kind": "adapter", "version": OBS_VERSION, "commit": "ab" * 20}
+    absent = {"name": "paper", "kind": "style", "version": "1.0.0", "commit": "cd" * 20}
+
+    result = rebuilt(tmp_path / "archive", html, absent)
+
+    assert result.returncode != 0
+    assert "--recorded-components build-config.json: components[1]" in result.stderr and "'paper'" in result.stderr
+    assert "spec/design_input/components.md (Naming a component)" in result.stderr
+    assert not (tmp_path / "archive" / "report.html").exists()
 
 
 def test_a_failed_clone_names_the_commit_and_the_remedy(tmp_path: Path) -> None:

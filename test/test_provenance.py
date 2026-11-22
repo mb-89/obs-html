@@ -139,6 +139,22 @@ def test_a_build_resolves_generation_provenance_from_the_generator_and_target(
     assert "generation provenance" not in capsys.readouterr().err
 
 
+def test_the_generation_record_names_each_component_that_built_the_page(tmp_path: Path, monkeypatch) -> None:
+    """The page shows the Document's components as they are (artifact-ui, Generation provenance)."""
+    built_by = [{"name": "html", "kind": "adapter", "version": "5.0.0", "commit": "ab" * 20},
+                {"name": "paper", "kind": "style", "version": "1.2.3", "commit": "cd" * 20}]
+    source = tmp_path / "document.json"
+    source.write_text(json.dumps({**document("Target", chapter("one", "One", paragraph("Content."))),
+                                  "components": built_by}), encoding="utf-8")
+    monkeypatch.setattr(renderer, "_generator_commit", lambda: "generator-commit", raising=False)
+    destination = tmp_path / "artifact.html"
+
+    assert cli.main(["--vault-root", str(tmp_path), str(source), str(destination)]) == 0
+
+    generation = artifact_data.decode_artifact_data(destination.read_text(encoding="utf-8"))["document"]["generation"]
+    assert generation["components"] == built_by
+
+
 def test_a_build_warns_when_no_generation_provenance_resolves(tmp_path: Path, capsys, monkeypatch) -> None:
     source = tmp_path / "document.json"
     target_root = tmp_path / "target"

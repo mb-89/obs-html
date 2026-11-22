@@ -23,7 +23,8 @@ REPORT = b"%PDF-1.4\n% obs file offers fixture\n%%EOF\n"
 BUILD = {"repository": "https://example.invalid/obs", "commit": "0123456789abcdef0123456789abcdef01234567",
          "lockfiles": {"uv.lock": {"obs": "0.2.3"}},
          "arguments": ["--adapter", "html", "--destination", "report.html", "--adapter-option",
-                       "embed-attachments=true", "--embed-source"]}
+                       "embed-attachments=true", "--embed-source"],
+         "components": []}
 WIDTHS = {"wide": 1100, "phone": 390}
 # The file offers of the fixture and the file each one hands over.
 OFFERS = {"reviewed": "[data-comment-save]", "source": "[data-source-exports] [data-source-download]",

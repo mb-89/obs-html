@@ -264,5 +264,6 @@
     "markdown-frontmatter",
     "property-editors"
   ],
-  "cssSnippets": []
+  "cssSnippets": [],
+  "components": []
 }

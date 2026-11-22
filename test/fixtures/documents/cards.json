@@ -1883,5 +1883,6 @@
     "queries",
     "wikilinks"
   ],
-  "cssSnippets": []
+  "cssSnippets": [],
+  "components": []
 }

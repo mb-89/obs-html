@@ -1193,7 +1193,7 @@ def _model(document: dict[str, object], config: Config, context: Context, built:
             "metadata": metadata,
             "metadataHtml": metadata_html,
             "pages": profile["pages"],
-            "generation": _generation(manifest, built, target_root or Path.cwd(), identity),
+            "generation": _generation(manifest, built, target_root or Path.cwd(), identity, document["components"]),
         },
         "paper": paper({**config.print_default, **profile["print"]}, config, lambda key: (
             (manifest["path"], f"obsHtml.print.{key}") if key in profile["print"]
@@ -1566,8 +1566,10 @@ def _generator_commit() -> str | None:
 
 
 def _generation(manifest: dict[str, object], built: datetime, target_root: Path,
-                identity: str) -> dict[str, object]:
-    """Record the running generator and target repository provenance, warning only when none resolves."""
+                identity: str, components: list[dict[str, str]]) -> dict[str, object]:
+    """Record the running generator and target repository provenance, warning only when none resolves,
+    and the ``components`` that built the page as the Document names them (artifact-ui, Generation
+    provenance)."""
     product = manifest["metadata"].get("product")
     declared_version = product.get("version") if isinstance(product, dict) else None
     if not isinstance(declared_version, str) or not declared_version.strip():
@@ -1586,6 +1588,7 @@ def _generation(manifest: dict[str, object], built: datetime, target_root: Path,
         "target": {
             "name": identity, "version": target_version or "unknown", "commit": target_commit or "unknown",
         },
+        "components": [dict(component) for component in components],
     }
 
 

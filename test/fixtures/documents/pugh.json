@@ -464,5 +464,6 @@
     "markdown-frontmatter",
     "pugh-decisions"
   ],
-  "cssSnippets": []
+  "cssSnippets": [],
+  "components": []
 }

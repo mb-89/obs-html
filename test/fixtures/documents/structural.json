@@ -662,5 +662,6 @@
     "markdown",
     "markdown-frontmatter"
   ],
-  "cssSnippets": []
+  "cssSnippets": [],
+  "components": []
 }

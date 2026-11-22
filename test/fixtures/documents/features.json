@@ -6078,6 +6078,7 @@
     "wikilinks"
   ],
   "cssSnippets": [],
+  "components": [],
   "sourceArchive": {
     "files": [
       {
@@ -6271,7 +6272,8 @@
         "--destination",
         "document.html",
         "--embed-source"
-      ]
+      ],
+      "components": []
     }
   }
 }

@@ -353,11 +353,11 @@ assert.equal(body.querySelector(".content-emphasis p").textContent.trim(), "Abst
 const pageNumber = (element) => Number(element.textContent.match(/^Page (\d+) of \d+$/)[1]);
 assert.equal(tables().length, 2);
 assert.equal(tables()[0].querySelectorAll("tbody tr").length, 3);
-assert.equal(tables()[1].querySelectorAll("tbody tr").length, 5);
+assert.equal(tables()[1].querySelectorAll("tbody tr").length, 6);
 assert.deepEqual(
-    ["timestamp", "generator", "target"].map((key) =>
+    ["timestamp", "generator", "target", "components"].map((key) =>
         tables()[1].querySelector(`[data-row-key="generation:${key}"]`)?.firstElementChild.textContent),
-    ["timestamp", "generator", "target"],
+    ["timestamp", "generator", "target", "components"],
 );
 assert.match(
     tables()[1].querySelector('[data-row-key="generation:target"] .data-table-preformatted').textContent,
@@ -565,7 +565,7 @@ shell = tables()[0];
 assert.equal(shell.dataset.queryView, "false");
 assert.equal(shell.querySelectorAll("tbody tr").length, 2);
 assert.equal(shell.querySelector("thead th").dataset.columnKey, "term");
-assert.equal(tables()[1].querySelectorAll("tbody tr").length, 5);
+assert.equal(tables()[1].querySelectorAll("tbody tr").length, 6);
 navigate("parent");
 navigate("home");
 assert.equal(tables()[0].querySelectorAll("tbody tr").length, 2);

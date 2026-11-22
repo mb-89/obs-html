@@ -830,5 +830,6 @@
     "markdown-frontmatter",
     "wikilinks"
   ],
-  "cssSnippets": []
+  "cssSnippets": [],
+  "components": []
 }

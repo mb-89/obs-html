@@ -2397,6 +2397,9 @@ The generation record names the generator and target:
 - `target.version` uses nonempty `product.version` metadata when supplied; otherwise it uses
   the target vault's Git description (`git describe --tags --always`).
 - `target.commit` is the target vault's HEAD commit.
+- `components` lists each component that built the page, its `name`, `kind`, `version` and
+  `commit`, as the Document's `components` carries them (obs's components note, Recording what built
+  a page); the page shows the list as it is and resolves none of it.
 
 The core passes the vault as `--vault-root`; a direct `obs-html` call uses its working
 directory. Unresolved values are `"unknown"`. When none of these provenance values resolves,

@@ -226,6 +226,7 @@
       "text": "p { color: rgb(1, 2, 3); }\n"
     }
   ],
+  "components": [],
   "sourceArchive": {
     "files": [
       {
@@ -263,7 +264,8 @@
         "--destination",
         "document.html",
         "--embed-source"
-      ]
+      ],
+      "components": []
     }
   }
 }

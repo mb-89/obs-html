@@ -73,7 +73,7 @@ TYPE_VIEWS = {
     "tag": ("Tags", ["second:risk:second_risk"]),
     "glossary": ("Glossary", ["glossary:datum"]),
     "documentMetadata": ("Metadata", ["metadata:status", "generation:timestamp", "generation:generator",
-                                      "generation:target"]),
+                                      "generation:target", "generation:components"]),
     "documentHistory": ("History", ["history:0", "history:1"]),
 }
 
