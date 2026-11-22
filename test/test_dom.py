@@ -55,6 +55,19 @@ def test_comment_export_dom_contract(tmp_path: Path) -> None:
                             package / "bars" / "settings.js", package / "storage.js")
 
 
+def test_comment_cards_stand_in_document_order_with_their_path(tmp_path: Path) -> None:
+    source = document(
+        "Comment order",
+        chapter("parent", "Parent", heading(1, "Parent"), paragraph("Intro prose."), heading(2, "Context"),
+                paragraph("Context prose."), heading(3, "Deep"), paragraph("Deep prose.")),
+        chapter("child", "Child", heading(1, "Child"), paragraph("Child paragraph.")),
+    )
+    artifact = write_artifact(tmp_path / "artifact.html", with_ids(source))
+    package = files("obs_html")
+    run_artifact_dom_contract(artifact, "--comment-order-only", package / "bars" / "comments.js",
+                              package / "bars" / "settings.js", package / "storage.js")
+
+
 def test_filter_and_search_are_separate_discovered_bars(tmp_path: Path) -> None:
     names = [f"chapter-{index}" for index in range(6)]
     artifact = write_artifact(tmp_path / "artifact.html", document("Query controls", *(

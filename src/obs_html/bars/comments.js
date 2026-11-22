@@ -181,7 +181,77 @@
         return null;
     };
 
-    const targetLabel = (target) => target.quote || target.chapter;
+    // Where each target sits in the Document (artifact-ui.md "Comments bar"): its chapter's place in
+    // the contents, then its block's in the chapter, read from the chapter's own HTML, so a target of
+    // a chapter that is not open has a place too. A note outside the contents follows them.
+    const placeCache = new Map();
+    const chapterPlaces = (record) => {
+        const cached = placeCache.get(record.slug);
+        if (cached?.html === record.html) return cached;
+        const template = document.createElement("template");
+        template.innerHTML = record.html || "";
+        const blocks = new Map();
+        const spans = [];
+        const sections = [];
+        let order = 0;
+        let offset = 0;
+        // Each top-level heading opens a section that runs to the next heading of its level or
+        // higher; a block's sections are the open ones, outermost first.
+        [...template.content.childNodes].forEach((child) => {
+            const level = child.nodeType === Node.ELEMENT_NODE ? /^H([1-6])$/.exec(child.tagName)?.[1] : undefined;
+            if (level) while (sections.length && sections.at(-1).level >= Number(level)) sections.pop();
+            const place = {order: order++, sections: sections.map((section) => section.title)};
+            const length = (child.textContent || "").length;
+            spans.push({start: offset, end: offset + length, place});
+            offset += length;
+            if (child.nodeType !== Node.ELEMENT_NODE) return;
+            [child, ...child.querySelectorAll("[data-node-id]")].forEach((element) => {
+                if (element.dataset.nodeId && !blocks.has(element.dataset.nodeId)) {
+                    blocks.set(element.dataset.nodeId, element === child ? place : {...place, order: order++});
+                }
+            });
+            if (level) sections.push({level: Number(level), title: child.textContent.replace(/\s+/g, " ").trim()});
+        });
+        // The chapter's own title heading names no section of its own.
+        const title = record.title;
+        const own = (place) => ({...place, sections: place.sections[0] === title ? place.sections.slice(1) : place.sections});
+        const places = {
+            html: record.html,
+            block: (node) => (blocks.has(node) ? own(blocks.get(node)) : null),
+            at: (start) => {
+                const span = spans.find((candidate) => start < candidate.end) || spans.at(-1);
+                return span ? own(span.place) : null;
+            },
+        };
+        placeCache.set(record.slug, places);
+        return places;
+    };
+    const targetPlace = (target) => {
+        const records = globalThis.obsArtifact?.records || [];
+        const toc = artifactData.toc || [];
+        const index = records.findIndex((record) => record.slug === target.chapter);
+        const record = records[index];
+        const inContents = toc.indexOf(target.chapter);
+        const chapter = inContents >= 0 ? inContents : toc.length + Math.max(index, 0);
+        const places = record ? chapterPlaces(record) : null;
+        const node = keyedRow(target)?.table ?? target.node;
+        const place = (node !== undefined && places?.block(node)) ||
+            (Number.isInteger(target.start) && places?.at(target.start)) || {order: -1, sections: []};
+        return {chapter, order: place.order, start: Number.isInteger(target.start) ? target.start : 0,
+            path: [record?.title || target.chapter, ...place.sections]};
+    };
+    // Root comments in document order; comments on one place keep the order they were made in.
+    const documentOrder = (annotations) => annotations
+        .map((annotation, index) => ({annotation, index, place: targetPlace(annotation.target)}))
+        .sort((first, second) => first.place.chapter - second.place.chapter ||
+            first.place.order - second.place.order || first.place.start - second.place.start ||
+            first.index - second.index)
+        .map(({annotation}) => annotation);
+    // A card's label is its path, `Chapter › Section › block`, the block named by its marked text.
+    const targetLabel = (target) => {
+        const quote = (target.quote || "").replace(/\s+/g, " ").trim();
+        return [...targetPlace(target).path, ...(quote ? [quote] : [])].join(" › ");
+    };
 
     const recordFor = (annotation) => {
         const authors = [];
@@ -381,7 +451,7 @@
         list.replaceChildren();
         const visible = data.annotations.filter((annotation) => activeFilter.match(recordFor(annotation)));
         filterState.textContent = `${visible.length} of ${data.annotations.length} comments`;
-        visible.forEach((annotation) => list.append(renderNode(annotation, annotation)));
+        documentOrder(visible).forEach((annotation) => list.append(renderNode(annotation, annotation)));
     };
 
     filterInput.addEventListener("input", () => {
