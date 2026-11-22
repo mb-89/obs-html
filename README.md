@@ -137,6 +137,17 @@ core has none. A query the reader edits in the table's Query view narrows the re
 Members need the core's rows, so a `base` fence whose view declares them fails the build; the
 remedy is to move the Base into a `.base` file and embed it.
 
+## Browser tests
+
+Reader: whoever writes a test that opens a page.
+
+The browser is an outside thing with one door. One real Chromium serves only the hot tests, which
+check what obs-html expects of the browser and record its answers; every other page test is to run
+on a fake browser that answers from those recordings. The design, which test file goes where and
+the packages that get there, is [test/browser/browser-door.md](test/browser/browser-door.md); until
+those packages land, every browser test still opens a real Chromium, as `test/conftest.py`'s page
+pools hand it out.
+
 ## License
 
 [MIT](LICENSE).
