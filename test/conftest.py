@@ -195,11 +195,12 @@ def installed_wheels(tmp_path_factory) -> Path:
     def build(folder: Path) -> None:
         environment = {key: value for key, value in os.environ.items() if key not in ("VIRTUAL_ENV", "PYTHONPATH")}
         environment["UV_PROJECT_ENVIRONMENT"] = str(folder / "venv")
-        _uv("build", "--all-packages", "--wheel", "--offline", "--out-dir", str(folder / "dist"),
-            cwd=CORE_ROOT, environment=environment)
-        # The lockfile's dependencies of obs-html, from uv's cache; then the two wheels just built.
-        _uv("sync", "--frozen", "--offline", "--no-dev", "--no-install-workspace", "--package", "obs-html",
-            cwd=CORE_ROOT, environment=environment)
+        # The core's wheel from its checkout, this adapter's from this one.
+        for checkout in (CORE_ROOT, ROOT):
+            _uv("build", "--wheel", "--offline", "--out-dir", str(folder / "dist"), cwd=checkout, environment=environment)
+        # The lockfile's dependencies of obs-html but the core, from uv's cache; then the two wheels just built.
+        _uv("sync", "--frozen", "--offline", "--no-dev", "--no-install-project", "--no-install-package", "obs",
+            cwd=ROOT, environment=environment)
         _uv("pip", "install", "--offline", "--no-deps", "--python", str(_venv_python(folder)),
             *map(str, sorted((folder / "dist").glob("*.whl"))), cwd=folder, environment=environment)
 
