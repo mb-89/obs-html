@@ -190,7 +190,7 @@
         if (cached?.html === record.html) return cached;
         // An inert copy: a parsed document runs no script and loads nothing.
         const content = new DOMParser().parseFromString(
-            `<!doctype html><html><body>${record.html || ""}</body></html>`, "text/html").body;
+            `<!doctype html><html><body>${record.html || ""}`, "text/html").body;
         const blocks = new Map();
         const spans = [];
         const sections = [];
