@@ -122,6 +122,76 @@ for (const [tag, rule] of Object.entries(elementDefaults)) {
         [CLOSED_POPOVER]: "display: none;"};
 }
 
+// The cascade's speed: happy-dom matches every style rule against every element it computes. A rule
+// whose selectors each need, in their rightmost compound, an id, a class or a tag the element lacks
+// cannot match it, so the full match is skipped; every other rule is matched as before. Only the
+// cascade's calls are filtered (they ignore errors); a page's own matches() is not.
+const QuerySelector = require(path.join(HAPPY_DOM, "lib", "query-selector", "QuerySelector.js")).default;
+const fullMatch = QuerySelector.matches;
+const requirements = new Map();
+
+function topLevel(text, separators) {
+    const parts = [];
+    let depth = 0;
+    let quote = "";
+    let start = 0;
+    for (let index = 0; index < text.length; index += 1) {
+        const character = text[index];
+        if (quote) {
+            if (character === "\\") index += 1;
+            else if (character === quote) quote = "";
+        } else if (character === "\"" || character === "'") quote = character;
+        else if (character === "(" || character === "[") depth += 1;
+        else if (character === ")" || character === "]") depth -= 1;
+        else if (depth === 0 && separators.includes(character)) {
+            parts.push(text.slice(start, index));
+            start = index + 1;
+        }
+    }
+    parts.push(text.slice(start));
+    return parts;
+}
+
+// For each comma-separated selector, what its subject must have, or null where nothing is sure.
+function required(selector) {
+    if (requirements.has(selector)) return requirements.get(selector);
+    let needs = [];
+    if (/[\\|]/.test(selector)) needs = null;
+    else {
+        for (const part of topLevel(selector, ",")) {
+            const compounds = topLevel(part.trim(), " >+~").filter(Boolean);
+            const subject = (compounds[compounds.length - 1] || "").split("::")[0];
+            const outside = subject.replace(/\([^()]*\)|\[[^\]]*\]/g, "");
+            const id = /#([\w-]+)/.exec(outside);
+            const name = /\.([\w-]+)/.exec(outside);
+            const tag = /^([a-zA-Z][\w-]*)/.exec(outside);
+            if (id) needs.push({id: id[1]});
+            else if (name) needs.push({className: name[1]});
+            else if (tag) needs.push({tag: tag[1].toLowerCase()});
+            else {
+                needs = null;
+                break;
+            }
+        }
+    }
+    requirements.set(selector, needs);
+    return needs;
+}
+
+function possible(element, needs) {
+    return needs.some((need) => need.id !== undefined ? element.id === need.id
+        : need.className !== undefined ? element.classList.contains(need.className)
+            : element.localName.toLowerCase() === need.tag);
+}
+
+QuerySelector.matches = function (element, selector, options) {
+    if (options?.ignoreErrors && typeof selector === "string") {
+        const needs = required(selector);
+        if (needs && !possible(element, needs)) return null;
+    }
+    return fullMatch.call(this, element, selector, options);
+};
+
 // A structured clone in the page's own realm, so a clone's objects are the page's objects. It is
 // evaluated in the page; it closes over nothing of this file.
 function structuredCloneStandIn(value) {

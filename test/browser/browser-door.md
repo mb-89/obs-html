@@ -190,6 +190,12 @@ did not name were needed:
 - **User-agent rules.** happy-dom 21 has no rule for `[hidden]` or a closed popover; the fake adds
   Chromium's, display `none` at the user-agent level, so an author's display still wins.
 
+happy-dom's cascade matches every style rule against every element it computes, which made a page
+of 266 rows several times slower than Chromium; the host skips a rule whose subject needs an id,
+class or tag the element lacks. The fake is still slower than the headless shell on large tables:
+`test_register_passing_browser.py` took 38 s alone where Chromium took 13 s, mostly in the
+runtime's own `getComputedStyle` calls.
+
 happy-dom also asks a preflight `OPTIONS` before every cross-origin request, where Chromium asks
 only before one that is not simple: a local server a test starts for a file page answers it. And
 `print()` fires `beforeprint` and `afterprint` with no print media in between, since nothing is

@@ -136,3 +136,20 @@ def test_the_page_runs_on_its_own_clock_and_a_wait_that_cannot_hold_ends_at_once
     # A promise evaluate returns settles as the page's frames run.
     assert page.evaluate("new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve('two'))))") \
         == "two"
+
+
+def test_the_cascade_still_applies_every_rule_that_can_match(tmp_path, fake_page) -> None:
+    """The host skips a style rule whose subject needs an id, class or tag the element lacks; each
+    kind of selector below still applies where it matches, and only there."""
+    styles = ("<style>.outer .inner { color: rgb(1, 0, 0); } div.box > span { color: rgb(2, 0, 0); }"
+              " #named { color: rgb(3, 0, 0); } :is(.wrap) em { color: rgb(4, 0, 0); }"
+              " [data-mark] { color: rgb(5, 0, 0); } p:not(.skip) b, i.alt { color: rgb(6, 0, 0); }</style>")
+    page = _open(tmp_path, fake_page, '<div class="outer"><span class="inner">1</span></div><div class="box"><span>2</span>'
+                                      '</div><span id="named">3</span><div class="wrap"><em>4</em></div><u data-mark>5</u>'
+                                      '<p><b>6</b></p><p class="skip"><b>7</b></p><i class="alt">8</i><span class="inner">9</span>',
+                 head=styles)
+    colours = page.evaluate("""() => ['.outer .inner', '.box span', '#named', '.wrap em', 'u', 'p:first-of-type b',
+        'p.skip b', 'i', 'body > .inner'].map(selector => getComputedStyle(document.querySelector(selector)).color)""")
+    assert colours[:6] == [f"rgb({index}, 0, 0)" for index in range(1, 6)] + ["rgb(6, 0, 0)"]
+    assert colours[7] == "rgb(6, 0, 0)"
+    assert "rgb(6, 0, 0)" != colours[6] and colours[8] != "rgb(1, 0, 0)"
