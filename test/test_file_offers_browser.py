@@ -22,7 +22,7 @@ from documents import chapter, document, heading, node, paragraph
 REPORT = b"%PDF-1.4\n% obs file offers fixture\n%%EOF\n"
 BUILD = {"repository": "https://example.invalid/obs", "commit": "0123456789abcdef0123456789abcdef01234567",
          "lockfiles": {"uv.lock": {"obs": "0.2.3"}},
-         "arguments": ["--adapter", "html", "--destination", "report.html", "--adapter-option",
+         "arguments": ["--adapter", "obs-html", "--destination", "report.html", "--adapter-option",
                        "embed-attachments=true", "--embed-source"],
          "components": []}
 WIDTHS = {"wide": 1100, "phone": 390}

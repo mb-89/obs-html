@@ -54,7 +54,7 @@ def package(document: dict, embed_attachments: bool = False) -> bytes | None:
     if "--adapter" not in build["arguments"]:
         raise InputError(source, "sourceArchive.build.arguments", "names no --adapter: a call without one wrote "
                          "the Document, so no recorded command rebuilds this artifact", "Build the artifact in "
-                         "one call: obs-document --source <manifest> --adapter html --destination <file> "
+                         "one call: obs-document --source <manifest> --adapter obs-html --destination <file> "
                          "--embed-source")
     command = ["obs-document", "--source", f"vault/{document['manifest']['path']}", *build["arguments"],
                "--recorded-components", "build-config.json"]  # The rebuild checks the recorded components.

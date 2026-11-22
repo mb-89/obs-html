@@ -1,5 +1,5 @@
 {
-  "name": "html",
+  "name": "obs-html",
   "command": [
     "uv",
     "run",

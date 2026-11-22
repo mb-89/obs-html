@@ -640,7 +640,7 @@ The builder alone may select one regular vault-local JavaScript bundle with
 `--trusted-runtime-bundle ID=PATH`. Markdown, Base definitions, metadata, ordinary
 assets and uploaded evidence never authorize executable code.
 
-Through the core the builder names it with `obs-document --adapter html --adapter-option
+Through the core the builder names it with `obs-document --adapter obs-html --adapter-option
 trusted-runtime-bundle=ID=PATH`, PATH relative to the vault: `adapter.json` declares the option
 as a vault-file option, so the core refuses a file outside the vault and passes the resolved file
 (obs cli.md, Adapter options). The Document never carries the bundle.

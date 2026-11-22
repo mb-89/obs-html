@@ -114,7 +114,7 @@ def _one_call_build(tmp_path, core_root, value: str) -> subprocess.CompletedProc
     (vault / "manifest.md").write_text("---\ntitle: Dated\n---\n- [[chapter]]\n", encoding="utf-8")
     (vault / "chapter.md").write_text("# Chapter\n\nText.\n", encoding="utf-8")
     return subprocess.run(
-        [sys.executable, "-m", "obs.document", "--source", str(vault / "manifest.md"), "--adapter", "html",
+        [sys.executable, "-m", "obs.document", "--source", str(vault / "manifest.md"), "--adapter", "obs-html",
          "--destination", str(tmp_path / "dated.html")],
         capture_output=True, text=True, env={**os.environ, "UV_OFFLINE": "1", VARIABLE: value}, check=False)
 

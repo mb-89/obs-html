@@ -171,6 +171,11 @@ if (process.argv[7] === "--inspect-json") {
     console.log(JSON.stringify({records, chapters}));
     return;
 }
+if (process.argv[7] === "--comment-order-only") {
+    progress.step = "verifyCommentOrderOnly";
+    await verifyCommentOrderOnly();
+    return;
+}
 if (process.argv[7] === "--comments-only") {
     progress.step = "verifyCommentExportOnly";
     await verifyCommentExportOnly();
@@ -1426,6 +1431,68 @@ async function verifyComments() {
     finish("verifyComments", "PASS verifyComments: shared images, Appearance, the export row, review rails, " +
         "detail selections, table identities, the reviewed copy, clipboard states and storage failures.");
 }
+// Artifact-ui.md "Comments bar": the cards stand in document order, each labelled by its path.
+async function verifyCommentOrderOnly() {
+    context.localStorage = {getItem: () => null, setItem() {}};
+    vm.runInContext(fs.readFileSync(process.argv[6], "utf8"), context, {filename: "storage.js"});
+    context.Node = window.Node;
+    context.NodeFilter = {SHOW_TEXT: 4};
+    context.CSS = {escape: (value) => value};
+    context.getSelection = () => null;
+    vm.runInContext(fs.readFileSync(process.argv[5], "utf8"), context, {filename: "settings.js"});
+    vm.runInContext(fs.readFileSync(process.argv[4], "utf8"), context, {filename: "comments.js"});
+    navigate("child");
+    context.obsArtifact.openBar("comments", "right");
+    // A block's core id, found by its text in its chapter's HTML.
+    const nodeOf = (slug, text) => new RegExp(`data-node-id="([^"]+)">${text}<`).exec(
+        context.obsArtifact.records.find((record) => record.slug === slug).html)[1];
+    const chapterText = (slug) => {
+        const template = document.createElement("template");
+        template.innerHTML = context.obsArtifact.records.find((record) => record.slug === slug).html;
+        return template.content.textContent;
+    };
+    const on = (slug, text, id, created) => thread({
+        id, created, author: "Reviewer", text: `On ${text}`, state: "open",
+        target: {chapter: slug, node: nodeOf(slug, text), quote: text, prefix: "", suffix: "",
+            start: 0, end: text.length},
+    });
+    // Made in another order than the document's: the last chapter first, a deep section before its parents.
+    context.obsComments.data.annotations.push(
+        on("child", "Child paragraph.", "child-comment", "2026-11-09T10:00:00Z"),
+        on("parent", "Deep prose.", "deep-comment", "2026-11-09T10:01:00Z"),
+        {...on("parent", "Context prose.", "context-comment", "2026-11-09T10:02:00Z"),
+            replies: [thread({id: "context-reply", author: "Replier", text: "Reply.", state: "open"})]},
+        on("parent", "Intro prose.", "intro-comment", "2026-11-09T10:03:00Z"),
+        // A chapter's text without a block: its position places it.
+        thread({id: "chapter-comment", created: "2026-11-09T10:04:00Z", author: "Reviewer", text: "On the chapter.",
+            state: "open", target: {chapter: "parent", quote: "Context", prefix: "", suffix: "",
+                start: chapterText("parent").indexOf("Context"),
+                end: chapterText("parent").indexOf("Context") + "Context".length}}),
+    );
+    const filter = document.querySelector("[data-comment-filter-input]");
+    filter.dispatchEvent(new window.Event("input"));
+    const roots = () => [...document.querySelectorAll("[data-comment-list] > .comment-node")];
+    assert.deepEqual(roots().map((card) => card.dataset.commentId),
+        ["intro-comment", "chapter-comment", "context-comment", "deep-comment", "child-comment"],
+        "Root cards stand in document order, whatever order the comments were made in.");
+    const path = (card) => card.querySelector(":scope > .comment-card .comment-target").textContent;
+    assert.deepEqual(roots().map(path), [
+        "Parent › Intro prose.",
+        "Parent › Context",
+        "Parent › Context › Context prose.",
+        "Parent › Context › Deep › Deep prose.",
+        "Child › Child paragraph.",
+    ], "Each card names its chapter, its sections and its block.");
+    const reply = document.querySelector('[data-comment-id="context-reply"]');
+    assert.equal(reply.closest("[data-comment-list] > .comment-node").dataset.commentId, "context-comment",
+        "A reply stays under its root.");
+    assert.equal(path(reply), "Parent › Context › Context prose.");
+    // The island keeps the order the comments were made in.
+    assert.deepEqual([...context.obsComments.data.annotations].map((annotation) => annotation.id),
+        ["child-comment", "deep-comment", "context-comment", "intro-comment", "chapter-comment"]);
+    finish("verifyCommentOrderOnly", "PASS: comment cards in document order, each with its chapter › section › block path.");
+}
+
 async function verifyCommentExportOnly() {
     navigate("parent");
     // The synthetic detail table below stands in for a register: the build maps its row key to a record.

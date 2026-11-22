@@ -8,7 +8,7 @@ uv run obs-html --help
 ````
 
 This command fence derives the artifact's reference from the running CLI. `obs-html` renders
-one Document; a build from a vault is the core's one-call build, `obs-document --adapter html`
+one Document; a build from a vault is the core's one-call build, `obs-document --adapter obs-html`
 (obs's CLI, One-call build: [[obs-specification|obs's specification]]).
 
 See [[input-model]] for source semantics, [[artifact-ui]] for presentation requirements, and
@@ -20,7 +20,7 @@ records how both differ from the interim adapter they replaced.
 obs's CLI note owns how a build through the core authorizes command fences.
 
 The adapter then renders from the Document alone, so `obs-html` has no command options and one
-Document renders the same through `obs-document --adapter html` and through `obs-html`.
+Document renders the same through `obs-document --adapter obs-html` and through `obs-html`.
 
 ## Attachments per build
 
@@ -35,7 +35,7 @@ is a download of those bytes showing its name, type and size; without it, the li
 attachment shows its label and vault path and its bytes stay out of the HTML.
 
 Through the core,
-`obs-document --adapter html` builds the light edition, and with `--adapter-option
+`obs-document --adapter obs-html` builds the light edition, and with `--adapter-option
 embed-attachments=true`, the option `adapter.json` declares, the evidence edition (obs's CLI,
 Adapter options: [[obs-specification|obs's specification]]).
 
@@ -47,7 +47,7 @@ obs-html packages and embeds them whenever they are there
 ([[input-model#Optional reproduction archive]]).
 
 A `.pdf` destination of such a Document carries the ZIP as a PDF attachment, so
-`obs-document --embed-source --adapter html --destination artifact.pdf` attaches it in one call.
+`obs-document --embed-source --adapter obs-html --destination artifact.pdf` attaches it in one call.
 
 `obs-html --export-pdf HTML --output file.pdf` prints an existing artifact the same way: it
 attaches the ZIP the HTML embeds, and prints an HTML without one with no attachment.
@@ -132,19 +132,20 @@ false in its `cfg.json`, since the site does not serve the linked notes.
 
 ## Running from another folder
 
-The one-call build finds the adapter `html` in the checkout the core runs from (obs's
-`spec/design_input/components.md`, Naming a component), not in the current folder, so a call through
+The one-call build finds the adapter `obs-html` among the machine's installed components, where
+`obs-components install obs-html` puts it (obs's `spec/design_input/components.md`, Naming a
+component), not in the current folder, so a call through
 RUNME runs from any folder, and a relative path resolves from the folder it is run in:
 
 ```sh
-/path/to/obs/RUNME.sh --adapter html --source vault/manifest.md --destination document.html
+/path/to/obs/RUNME.sh --adapter obs-html --source vault/manifest.md --destination document.html
 ```
 
 Without RUNME, a call from another folder names the checkout's project:
 
 ```powershell
 uv run --project C:\path\to\obs obs-document `
-    --adapter html --source C:\path\to\vault\manifest.md --destination C:\path\to\document.html
+    --adapter obs-html --source C:\path\to\vault\manifest.md --destination C:\path\to\document.html
 ```
 
 It runs the checkout's sources with the dependencies `uv.lock` pins.
@@ -152,7 +153,7 @@ It runs the checkout's sources with the dependencies `uv.lock` pins.
 ## PDF output
 
 A DESTINATION ending in `.pdf` prints the rendered HTML to PDF in the same call, through
-`obs-html` and through `obs-document --adapter html` alike; any other name receives HTML.
+`obs-html` and through `obs-document --adapter obs-html` alike; any other name receives HTML.
 `--export-pdf` prints an HTML built before. The PDF row of the
 [parity table](../test/parity/features.md) records the issue that decided it.
 
@@ -184,7 +185,7 @@ live source's declaration against its rows still runs ([[generic-tables#The chec
 `--finding-digests` makes each provenance warning, and each place of a refusal, also name the
 digest of every finding there that no exception covers (`timestamp, sha256:...`), so an author
 copies it into an exception on their own machine ([[architecture#Exceptions]]). A one-call build
-passes it with `obs-document --adapter html --adapter-option finding-digests=true`. It is off by
+passes it with `obs-document --adapter obs-html --adapter-option finding-digests=true`. It is off by
 default, so no build's log names a digest, and a call that renders no Document refuses it, naming
 the remedy.
 
@@ -205,7 +206,7 @@ depends on the reader's filter. Chapter ids are the note slugs the artifact's ta
 contents uses; an unknown id lists the available ones.
 
 `obs-html` reads the built artifact, not a Document: a build through the core, `obs-document
---adapter html`, writes the artifact and no Document file, and the artifact stores the chapters
+--adapter obs-html`, writes the artifact and no Document file, and the artifact stores the chapters
 as the adapter rendered them from its Document.
 
 `obs-html` also takes a chapter's title for
@@ -296,7 +297,7 @@ with `Continue` in scope and judge it by `$LASTEXITCODE`:
 $previous = $ErrorActionPreference
 $ErrorActionPreference = 'Continue'
 try {
-    & uv run --quiet obs-document --source $manifest --adapter html --destination $html
+    & uv run --quiet obs-document --source $manifest --adapter obs-html --destination $html
 } finally {
     $ErrorActionPreference = $previous
 }

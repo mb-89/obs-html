@@ -7,7 +7,7 @@ what its printed PDF holds.
     uv run python adapters/html/test/measure/artifact_bytes.py [NAME ...] [--output DIRECTORY]
 
 It builds, with this checkout's core and adapter, each committed deck through the core as a deck
-is built (``obs-document --source <manifest> --adapter html``): ``bless-deck``
+is built (``obs-document --source <manifest> --adapter obs-html``): ``bless-deck``
 (spec/examples/bless-deck) and ``phone-deck`` (test/fixtures/phone-deck); and each committed
 fixture report, every Document in test/fixtures/documents, with ``obs-html DOCUMENT``. Each is
 also printed to PDF (``obs-html DOCUMENT out.pdf``). NAME limits the run to those artifacts.
@@ -217,7 +217,7 @@ def build(folder: Path, names: list[str]) -> dict[str, tuple[Path, Path]]:
         if document is None:
             document = folder / f"{name}.json"
             subprocess.run([sys.executable, "-m", "obs.document", "--source", str(DECKS[name] / "manifest.md"),
-                            "--document", str(document), "--adapter", "html", "--destination", str(html)],
+                            "--document", str(document), "--adapter", "obs-html", "--destination", str(html)],
                            check=True, cwd=ROOT, stdout=subprocess.DEVNULL)
         elif cli.main([str(document), str(html)]) != 0:
             raise SystemExit(f"artifact_bytes.py: obs-html could not build {document}")

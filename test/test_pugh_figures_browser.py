@@ -301,6 +301,25 @@ def test_the_reader_expands_an_option_changes_weights_and_marks_and_rules_a_worl
     reader.clean()
 
 
+def test_an_option_the_reader_opens_stays_open_through_a_redraw_before_its_toggle_event(artifact, reader_browser) -> None:
+    """A details element's toggle event is a task of its own, queued after the click that opened it,
+    so a redraw that runs first (a weight's change, CI's flake on the test above) must still find
+    the option open: here the click and the redraw share one task, before any toggle event fires."""
+    reader = Reader(reader_browser, artifact)
+    opened = reader.page.evaluate("""anchor => {
+        const figure = document.getElementById(anchor), option = () => figure.querySelector('.pugh-option-list [data-pugh-option="B"] details');
+        option().querySelector('summary').click();
+        const field = figure.querySelector('[data-pugh-weight="speed"]');
+        field.value = '9';
+        field.dispatchEvent(new Event('change'));
+        return {redrawn: !figure.contains(field), open: option().open};
+    }""", OPTION)
+
+    assert opened == {"redrawn": True, "open": True}
+    assert reader.view(OPTION)["options"][1] == ["B", True]
+    reader.clean()
+
+
 def test_a_print_reads_the_readers_view_and_never_writes_it(artifact, reader_browser) -> None:
     """artifact-ui.md, Printing: Export PDF prints the reader's weights with every option expanded,
     and afterwards the reader's view shows only the option the reader opened, on the tab they left."""

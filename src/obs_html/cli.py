@@ -73,9 +73,9 @@ Editions:
   Without --embed-attachments, the light edition: a marked attachment (![label](file) or
   ![[file]]) shows its label and vault path. With it, the self-contained evidence edition: the
   attachment is a download of the bytes the Document embeds, with its name, type and size.
-  Images always render from their bytes. Through the core, obs-document --adapter html builds the
-  light edition, and with --adapter-option embed-attachments=true (adapter.json declares it) the
-  evidence edition.
+  Images always render from their bytes. Through the core, obs-document --adapter obs-html builds
+  the light edition, and with --adapter-option embed-attachments=true (adapter.json declares it)
+  the evidence edition.
 
 Settings:
   --config FILE merges a JSON settings file over the packaged cfg.json, validated by
@@ -88,8 +88,8 @@ Trusted runtime:
   --trusted-runtime-bundle ID=PATH explicitly trusts one local JavaScript application
   bundle (a regular .js file, not a link) and embeds it in the HTML after the artifact
   runtime. The Document itself can never opt into executable code. Through the core:
-  obs-document --adapter html --adapter-option trusted-runtime-bundle=ID=PATH, PATH a file of
-  the vault; --embed-source keeps it in the archive, and its reproduce.py names it again.
+  obs-document --adapter obs-html --adapter-option trusted-runtime-bundle=ID=PATH, PATH a file
+  of the vault; --embed-source keeps it in the archive, and its reproduce.py names it again.
 
 Figures:
   DOCUMENT --export-figures FOLDER writes each figure of the Document as a standalone SVG,
@@ -454,7 +454,7 @@ def _attach_source(options: argparse.Namespace) -> None:
     archive = embedded(artifact, html)
     if archive is None:
         raise InputError(html, "--source-artifact", "embeds no source archive", "Build it from a Document "
-                         "with the sources: obs-document --embed-source --adapter html")
+                         "with the sources: obs-document --embed-source --adapter obs-html")
     _write_if_changed(output.resolve(), attach(saved, archive, pdf))
     print(f"Generated PDF {output.resolve()} with {html.name}'s source ZIP.")
 
@@ -560,7 +560,7 @@ def _print_chapter(options: argparse.Namespace) -> None:
         artifact = path.read_text(encoding="utf-8")
     except (OSError, UnicodeError) as error:
         raise InputError(path, "HTML", f"cannot be read ({error})",
-                         "Name a built artifact, written by obs-html or obs-document --adapter html") from error
+                         "Name a built artifact, written by obs-html or obs-document --adapter obs-html") from error
     try:
         html = chapter_html(artifact, chapter)
     except InputError as error:

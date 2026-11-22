@@ -2179,6 +2179,14 @@ separate from artifact presentation.
   and comment text fields.
 - The comment count is the only empty-state message. An empty list does not repeat that state
   with text such as `No comments yet` or `No comments match`.
+- Root comment cards stand in document order, by where each comment's target sits in the
+  Document: its chapter's place in the contents, then its block's place in the chapter, then
+  its text position. A note outside the contents follows them, and comments on one place keep
+  the order they were made in. The bar's order is a view: the saved comments keep the core's.
+
+  Every card's target shows its path, `Chapter › Section › block`: the chapter's title, the
+  headings it sits under, outermost first and without the chapter's own title heading, and
+  the block by its marked text. Activating the path navigates to the comment, as below.
 - Every comment and nested reply renders as the same compact key/value card, with labels for
   values such as author, status, and text rather than relying on position.
 
