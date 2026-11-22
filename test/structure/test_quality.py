@@ -74,7 +74,10 @@ FULL_CHROMIUM_TESTS = {
     "test_sandboxed_preview_browser.py": {
         "test_artifact_runs_as_srcdoc_of_a_scripts_only_sandbox", "test_canaries_find_what_a_scripts_only_sandbox_limits",
         "test_each_canary_says_what_it_observed", "test_a_sandboxed_frame_lists_its_limits_as_warning_notices",
-        "test_print_to_pdf_in_a_sandboxed_frame_ends_in_an_inline_message"},
+        "test_print_to_pdf_in_a_sandboxed_frame_ends_in_an_inline_message",
+        "test_the_viewer_frame_and_its_refusals_are_recorded"},
+    # The browser door's recordings: the one Chromium is full Chromium (browser/browser-door.md, When hot tests run).
+    "test_door_recordings_browser.py": EVERY_TEST,
     # The startup marks: the first chapter's paint in the browser a reader opens.
     "test_startup_browser.py": {"test_the_spec_artifact_shows_its_first_chapter_within_a_second"},
 }
@@ -94,7 +97,7 @@ REAL_LIBRARY_TESTS = {
 PAGE_FIXTURES = BROWSER_FIXTURES | FAKE_BROWSER_FIXTURES
 # The fixtures that build an artifact once per run, wherever they are defined; a browser test
 # reads what they built, and the check does not look into them.
-SHARED_FIXTURES = {"fixture_artifact", "feature_artifact", "spec_html", "spec_artifact"}
+SHARED_FIXTURES = {"fixture_artifact", "feature_artifact", "spec_html", "spec_artifact", "door_artifact"}
 # What denotes obs's checkout in a test of this adapter (test/conftest.py owns CORE_ROOT).
 CORE_ROOTS = r"CORE_ROOT|core_root"
 # The tests that build obs's spec themselves, by module: test -> why it is a variant of its own.
