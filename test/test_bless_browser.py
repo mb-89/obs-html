@@ -163,7 +163,7 @@ def test_the_band_holds_every_key_in_one_row_at_phone_width_with_the_notices_sho
     page.evaluate("""() => obsNotices.severities.forEach(severity =>
         obsNotices.post({id: severity, severity, title: severity}))""")
     names = [item["name"] for item in _fits(page)]
-    assert names == ["Home", "Choose chapter", "Show frontmatter", PENDING, "Bless", "Decline", "Ask", "Pick", "Comment",
+    assert names == ["Home", "Choose chapter", PENDING, "Bless", "Decline", "Ask", "Pick", "Comment",
                      "Send 0 of 2 verdicts",
                      "Errors: 1 notice", "Warnings: 1 notice", "Information: 1 notice", "Open bars menu"]
     # Short of space, the breadcrumb has shrunk and the pill is a square of the band's size showing
@@ -423,7 +423,7 @@ def test_the_band_of_a_nested_bless_chapter_fits_at_360_px(phone_browser, tmp_pa
     page.wait_for_function("document.documentElement.dataset.artifactStatus === 'ready'")
     expect(page.locator("[data-active-chapter]")).to_have_attribute("data-chapter", "child")
     names = [item["name"] for item in _fits(page)]
-    assert names == ["Home", "Choose chapter", "Choose subchapter", "Show frontmatter", PENDING,
+    assert names == ["Home", "Choose chapter", "Choose subchapter", PENDING,
                      "Bless", "Decline", "Ask", "Pick", "Comment",
                      "Send 0 of 2 verdicts", "Open bars menu"]
     # A pick names its option by the figure's short name; the band still fits.

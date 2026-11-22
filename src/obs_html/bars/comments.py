@@ -35,6 +35,14 @@ def render() -> str:
       <button class="icon-button query-help-button" type="button" aria-label="Query language help" data-hover-help="{escape(QUERY_HELP)}"><span class="resource-icon" data-icon="help" aria-hidden="true"></span></button>
     </span>
   </div>
+  <label class="comment-kind-label">
+    <span>Show</span>
+    <select data-comment-kind>
+      <option value="all" selected>Comments and metadata</option>
+      <option value="comments">Comments</option>
+      <option value="metadata">Metadata</option>
+    </select>
+  </label>
     <div class="comment-review-summary" data-review-summary>
         <button type="button" data-review-summary-state="accepted"><span>Accepted</span><strong data-review-summary-count>0</strong></button>
         <button type="button" data-review-summary-state="rejected"><span>Rejected</span><strong data-review-summary-count>0</strong></button>

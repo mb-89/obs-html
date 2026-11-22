@@ -390,10 +390,7 @@
     const activeChapter = document.querySelector("[data-active-chapter]");
     const chapterBody = document.querySelector("[data-chapter-body]");
     const chapterScroll = document.querySelector("[data-chapter-scroll]");
-    const frontmatterToggle = document.querySelector("[data-frontmatter-toggle]");
     const bandPath = document.querySelector("[data-top-band-path]");
-    const frontmatterPanel = document.querySelector("[data-frontmatter-panel]");
-    const frontmatterBody = document.querySelector("[data-frontmatter-body]");
     const tocTree = document.querySelector("[data-toc-tree]");
     const stepButtons = [...document.querySelectorAll("[data-step]")];
     const rootStyle = document.documentElement.style;
@@ -731,13 +728,6 @@
         else clearScrollCues();
     }, {passive: true});
 
-    const setFrontmatterExpanded = (expanded) => {
-        frontmatterPanel.hidden = !expanded;
-        frontmatterToggle.setAttribute("aria-expanded", String(expanded));
-        frontmatterToggle.setAttribute("aria-label", `${expanded ? "Hide" : "Show"} frontmatter`);
-        frontmatterToggle.title = `${expanded ? "Hide" : "Show"} frontmatter`;
-    };
-
     const metadataRows = (record) => record.metadataEntries.map(([field, value]) => {
         const row = document.createElement("tr");
         row.dataset.frontmatterField = field.toLocaleLowerCase();
@@ -750,11 +740,6 @@
         row.append(heading, cell);
         return row;
     });
-    const renderFrontmatter = (record) => {
-        frontmatterBody.replaceChildren(...metadataRows(record));
-        frontmatterToggle.hidden = !record.metadataEntries.length;
-        setFrontmatterExpanded(!record.html.trim() && record.metadataEntries.length > 0);
-    };
 
     const trustedFragment = (markup) => {
         const template = document.createElement("template");
@@ -1503,7 +1488,6 @@
             }
         };
         if (!deferred.length) completeTables();
-        renderFrontmatter(record);
         initializeHeadingSections();
         document.dispatchEvent(new CustomEvent("obs-chapter-change", {
             detail: {slug: record.slug},
@@ -1545,12 +1529,8 @@
                     (sourceCell === null || element.dataset.sourceCell === sourceCell),
             ));
         }
-        if (sourceField !== null) {
-            setFrontmatterExpanded(true);
-            revealSource([...frontmatterBody.querySelectorAll("[data-frontmatter-field]")].find(
-                (element) => element.dataset.frontmatterField === sourceField.toLocaleLowerCase(),
-            ));
-        }
+        // A note's field shows on its front matter card in the Comments bar (artifact-ui.md, Comments bar).
+        if (sourceField !== null) globalThis.obsComments?.revealFrontmatter(record.slug, sourceField);
 
         const hash = `#${slug}`;
         // A sandboxed or srcdoc frame (Claude's preview) cannot change its URL; navigation
@@ -1914,19 +1894,26 @@
     const highlight = (query) => {
         clearSearchHighlights();
         markMatches(chapterBody, (node) => node.parentElement.closest("h1") ? "title" : "text", query);
-        markMatches(frontmatterBody, (node) => {
-            const row = node.parentElement.closest("[data-frontmatter-field]");
-            return node.parentElement.matches("th")
-                ? ""
-                : [row.dataset.frontmatterField, `frontmatter.${row.dataset.frontmatterField}`];
-        }, query);
-        const metadataMark = frontmatterBody.querySelector(".search-highlight");
-        if (metadataMark) setFrontmatterExpanded(true);
         // part pipe-table-rows-one-line {
         // A pipe table's row whose cut cell holds a highlight opens first, so it shows (generic-tables.md, Pipe tables).
         globalThis.obsPipeTables?.reveal(chapterBody.querySelectorAll(".search-highlight"));
         // } part pipe-table-rows-one-line
-        const firstMark = chapterBody.querySelector(".search-highlight") || metadataMark;
+        const chapterMark = chapterBody.querySelector(".search-highlight");
+        // The note's fields show on its front matter card in the Comments bar, which a match only there
+        // opens (artifact-ui.md, Comments bar): a field's name matches as any text, its value as the field.
+        const slug = activeChapter.dataset.chapter;
+        const record = recordsBySlug.get(slug);
+        const metadataMatch = record?.metadataEntries.some(([field, value]) => query.ranges(field, "").length ||
+            query.ranges(value, [field.toLocaleLowerCase(), `frontmatter.${field.toLocaleLowerCase()}`]).length);
+        const card = !chapterMark && metadataMatch ? globalThis.obsComments?.revealFrontmatter(slug)
+            : globalThis.obsComments?.frontmatterCard(slug);
+        card?.querySelectorAll("[data-metadata-field]").forEach((row) => {
+            const field = row.dataset.metadataField.toLocaleLowerCase();
+            markMatches(row, (node) => node.parentElement.closest(".comment-key") ? "" : [field, `frontmatter.${field}`],
+                query);
+        });
+        const metadataMark = card?.querySelector(".search-highlight");
+        const firstMark = chapterMark || metadataMark;
         if (firstMark) scrollToHit(firstMark);
         return Boolean(firstMark);
     };
@@ -2092,10 +2079,6 @@
         });
     });
 
-    frontmatterToggle.addEventListener("click", () => {
-        setFrontmatterExpanded(frontmatterToggle.getAttribute("aria-expanded") !== "true");
-    });
-
     stepButtons.forEach((button) => {
         button.addEventListener("click", () => {
             const step = Number(button.dataset.step);
@@ -2114,7 +2097,7 @@
     const floatingWindow = globalThis.ObsHtmlGuidedCard?.createHost({
         window, size: artifactData.guidedCard, applyLinkPolicy,
     });
-    const contextSources = "[data-chapter-body], [data-frontmatter-panel], #hover-card";
+    const contextSources = "[data-chapter-body], [data-metadata-card], #hover-card";
     const noteTarget = (href) => {
         const slug = href.slice(1);
         const noteSlug = decodeURIComponent(slug.split("?", 1)[0]).split("/", 1)[0];
@@ -2857,6 +2840,12 @@
         openBar,
         closeBar,
         isBarOpen,
+        // A note field's value as its front matter card shows it: its display HTML, Home's the
+        // manifest's, or its text.
+        appendFieldValue: (cell, record, field, value) => {
+            const html = (record.generated === "home" ? artifactData.document.metadataHtml : record.frontmatterHtml)?.[field];
+            appendTableCell(cell, html ? {type: "html", html} : null, value);
+        },
         activateChapter,
         activateSearchResult,
         renderStatic: (slug, root, respectFilter = true, firstTableFilter = "", firstTableProjection = "") => {

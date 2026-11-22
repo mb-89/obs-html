@@ -71,10 +71,10 @@ def test_top_band_is_one_row_of_equal_squares() -> None:
     shell = _flat(_section(artifact_ui, "## Reading shell"))
 
     assert "The top band is one row and holds every top control: Home, the breadcrumbs, " \
-        "the frontmatter chevron, the title of [[#Screens]], the bless controls " \
+        "the title of [[#Screens]], the bless controls " \
         "([[#Bless verdicts]]), the notice icons and the menu." in shell
     assert "Home, the breadcrumbs, the chapter controls," not in shell, (
-        "artifact-ui.md, Reading shell: the top band names the frontmatter chevron, not 'the chapter controls'")
+        "artifact-ui.md, Reading shell: the top band names its controls, not 'the chapter controls'")
     assert "The notice icons sit directly left of the menu." in shell
     assert "Every control in the band is a square of one size." in shell
     assert "No control takes a row of its own." in shell
