@@ -185,3 +185,73 @@ def test_every_fetcher_fetches_a_commit_s_tree_and_fails_on_an_unknown_commit(tm
     assert (tmp_path / "tree" / "styles/house/style.css").read_text(encoding="utf-8") == HOUSE["styles/house/style.css"]
     (tmp_path / "missing").mkdir()
     assert fetcher.fetch(url, "f" * 40, tmp_path / "missing")
+
+
+# A style module's cover.html (spec/artifact-ui.md, Styling).
+
+from obs_html.artifact_data import decode_artifact_data  # noqa: E402
+
+
+def _home(document: dict, style: Path | None = None) -> str:
+    return decode_artifact_data(render(document, CONFIG, style_folder=style))["notes"][0]["html"]
+
+
+def _covered(root: Path, template: str) -> Path:
+    style = _style(root, "")
+    (style / "cover.html").write_text(template, encoding="utf-8")
+    return style
+
+
+def test_a_style_cover_shows_the_title_and_the_present_metadata_as_the_packaged_cover_does(
+        document, tmp_path: Path) -> None:
+    style = _covered(tmp_path, '<h1 class="document-title">{{ title }}</h1><p>{{metadata.organization}}</p>'
+                               "<p>{{ metadata.authors }}</p><p>{{ metadata.product.name }}</p>"
+                               "<b>{{ metadata.copyright }}</b><i>{{ metadata.obsHtml.layout }}</i>")
+    document["manifest"]["title"] = '<Title & "quoted">'
+    packaged = _home(document)
+
+    home = _home(document, style)
+
+    assert home.startswith('<header class="document-heading"><h1 class="document-title">&lt;Title &amp; ')
+    assert "<p>Example org</p><p>Ada, Lin</p><p>Widget</p><b></b><i></i></header>" in home
+    assert "cover-band" not in home
+    assert home.split("</header>", 1)[1] == packaged.split("</header>", 1)[1]
+
+
+def test_a_style_cover_gives_nothing_for_an_explicitly_empty_title_and_keeps_its_other_markup(
+        document, tmp_path: Path) -> None:
+    style = _covered(tmp_path, '<h1 class="document-title">{{ title }}</h1><p>{{ metadata.organization }}</p>')
+    document["manifest"]["title"] = ""
+
+    model = decode_artifact_data(render(document, CONFIG, style_folder=style))
+
+    assert model["notes"][0]["html"].startswith(
+        '<header class="document-heading"><h1 class="document-title"></h1><p>Example org</p></header>')
+    assert model["notes"][0]["title"] != ""
+
+
+@pytest.mark.parametrize("template, placeholder", [
+    ("{{ unknown }}", "{{ unknown }}"), ("{{ metadata['organization'] }}", "{{ metadata['organization'] }}"),
+    ("{{ title.__class__ }}", "{{ title.__class__ }}"), ("{{ metadata.organization | safe }}",
+                                                        "{{ metadata.organization | safe }}"),
+    ("<p>{{ title</p>", "{{"), ("<p>title }}</p>", "}}"),
+])
+def test_a_cover_placeholder_that_is_no_title_or_metadata_path_fails_every_build_naming_it(
+        document, tmp_path: Path, template: str, placeholder: str) -> None:
+    style = _covered(tmp_path, template)
+    document["manifest"]["metadata"]["obsHtml"]["heading"] = "compact"
+
+    with pytest.raises(InputError) as failure:
+        render(document, CONFIG, style_folder=style)
+    assert (failure.value.source, failure.value.field) == (str((style / "cover.html").resolve()), placeholder)
+
+
+def test_the_compact_heading_and_a_style_without_cover_html_keep_the_packaged_heading(
+        document, tmp_path: Path) -> None:
+    plain = _style(tmp_path, "")
+    assert _home(document, plain) == _home(document)
+    (plain / "cover.html").write_text("<p>{{ title }}</p>", encoding="utf-8")
+    document["manifest"]["metadata"]["obsHtml"]["heading"] = "compact"
+
+    assert _home(document, plain) == _home(document)
+    assert "document-heading--compact" in _home(document, plain)

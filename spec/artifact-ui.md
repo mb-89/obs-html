@@ -121,6 +121,21 @@ failures have their form in [[input-model#Chapter content]].
 
   Page geometry (paper size, orientation, sheet dimensions, margins, and `@page`) belongs only to
   the structural stylesheet; a style module must not declare or assume it.
+
+  A style module may hold `cover.html`, the content of the cover's
+  `<header class="document-heading">` in place of the packaged cover. Its only placeholders are
+  `{{ title }}`, the manifest's title, and `{{ metadata.<path> }}`, a manifest metadata field by
+  its dotted path (`metadata.product.name`), each as the display HTML the packaged cover shows;
+  a list is its items joined by commas. A path the manifest does not fill, and any path in
+  `obs` or `obsHtml`, gives nothing, so the cover shows only the facts the Document states and
+  never a default of its own; the module's CSS hides an element left empty (`:empty`). An
+  explicitly empty manifest title gives nothing for `{{ title }}` in the same way, never the
+  filename fallback that names the document ([[#Reading shell]] owns the title heading's
+  omission). A path is letters, digits, spaces, `_` and `-` between dots. Any other placeholder, expression
+  or unmatched `{{` or `}}` fails every build that uses the module, naming `cover.html` and the
+  placeholder. There are no conditionals, loops, includes or code: the module is trusted
+  presentation, as its `style.css` is. The compact heading never uses `cover.html`, and a module
+  without one keeps the packaged cover.
 - A theme is a named local layer over the style module. The build's style module, whichever
   `--style`, `obs.style` or `generic` chose, is the theme Default. A build on a machine with local
   themes ([[configuration#Local themes]]) carries each of them as well, laid over Default: a

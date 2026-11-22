@@ -45,7 +45,7 @@ from obs_html.figures import FIGURE_KINDS, render_figure
 from obs_html.artifact_data import encode_artifact_data, prepare_artifact_scripts, serialize_artifact_data
 from obs_html.semantic_assets import SemanticAssets, markup
 from obs_html.declared_style import DeclaredStyles, GitFetcher, user_cache
-from obs_html.styles import load_style
+from obs_html.styles import Style, load_style
 from obs_html.style_choice import StyleChoice
 from obs_html import source_archive
 from obs_html.bless_record import record_html
@@ -1076,7 +1076,8 @@ def render(document: dict[str, object], config: Config,
     context.chapters[HOME] = _document_identity(document["manifest"])
     built = build_time.instant({}) if built is None else built
     target_root = Path.cwd() if target_root is None else target_root
-    model = _resolve_icons(_model(document, config, context, built, vault_link, style_choice, target_root), assets)
+    model = _resolve_icons(_model(document, config, context, built, vault_link, style_choice, target_root, style),
+                           assets)
     archive = source_archive.package(document, embed_attachments)
     if archive is not None:
         model = source_archive.share(model, archive)
@@ -1151,9 +1152,10 @@ def _profile(manifest: dict[str, object], chapters: list[dict[str, object]]) -> 
 
 def _model(document: dict[str, object], config: Config, context: Context, built: datetime,
            vault_link: str | None = None, style_choice: StyleChoice | None = None,
-           target_root: Path | None = None) -> dict[str, object]:
+           target_root: Path | None = None, style: Style | None = None) -> dict[str, object]:
     """The artifact-data island: the runtime's only model of the artifact. With local themes
-    (``style_choice``), its ``reading`` names them, Default first, and the start theme."""
+    (``style_choice``), its ``reading`` names them, Default first, and the start theme; ``style``,
+    the style module, may give the cover (styles.py, cover.html)."""
     manifest = document["manifest"]
     profile = _profile(manifest, document["chapters"])
     context.figures = profile["figures"]
@@ -1172,7 +1174,7 @@ def _model(document: dict[str, object], config: Config, context: Context, built:
     abstract = _note_body(manifest.get("abstract", []), "", ["manifest", "abstract"], context,  # It holds the metadata's field nodes.
                           manifest.get("bottomLine"), context.percolated[HOME], after_heading=False)
     metadata_html = _frontmatter_html(metadata, HOME, context)  # The display HTML of each value that shows.
-    home_html = _cover(title, metadata, metadata_html, profile["heading"] == "compact") + abstract
+    home_html = _cover(title, metadata, metadata_html, profile["heading"] == "compact", style) + abstract
     notes = [_note(0, identity, HOME, HOME, {}, home_html, context)]
     notes.extend(_chapter_notes(document["chapters"], context, 0, ["chapters"]))
     _attach_records(document["records"], notes, context)
@@ -1587,8 +1589,10 @@ def _generation(manifest: dict[str, object], built: datetime, target_root: Path,
     }
 
 
-def _cover(title: str, metadata: dict[str, object], html: dict[str, str], compact: bool) -> str:
-    """The cover or compact heading: each metadata value as its display HTML (_frontmatter_html)."""
+def _cover(title: str, metadata: dict[str, object], html: dict[str, str], compact: bool,
+           style: Style | None = None) -> str:
+    """The cover or compact heading: each metadata value as its display HTML (_frontmatter_html).
+    A style module's cover.html replaces the cover's content; the compact heading stays."""
     def value(key: str) -> str:
         return html.get(key, "") if metadata.get(key) else ""
 
@@ -1605,6 +1609,9 @@ def _cover(title: str, metadata: dict[str, object], html: dict[str, str], compac
             line += f'<span class="document-subtitle">{subtitle}</span>'
         return ('<header class="document-heading document-heading--compact">'
                 f'<div class="compact-heading">{line}</div></header>\n')
+    custom = style.render_cover(escape(title), html) if style else None
+    if custom is not None:
+        return f'<header class="document-heading">{custom}</header>\n'
     product_html = "".join(f"<div>{item}</div>" for item in products)
     band = "".join(f'<span class="cover-{key}">{value(key)}</span>'
                    for key in ("template", "organization") if metadata.get(key))
