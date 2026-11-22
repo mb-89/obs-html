@@ -188,8 +188,9 @@
     const chapterPlaces = (record) => {
         const cached = placeCache.get(record.slug);
         if (cached?.html === record.html) return cached;
-        const template = document.createElement("template");
-        template.innerHTML = record.html || "";
+        // An inert copy: a parsed document runs no script and loads nothing.
+        const content = new DOMParser().parseFromString(
+            `<!doctype html><html><body>${record.html || ""}</body></html>`, "text/html").body;
         const blocks = new Map();
         const spans = [];
         const sections = [];
@@ -197,7 +198,7 @@
         let offset = 0;
         // Each top-level heading opens a section that runs to the next heading of its level or
         // higher; a block's sections are the open ones, outermost first.
-        [...template.content.childNodes].forEach((child) => {
+        [...content.childNodes].forEach((child) => {
             const level = child.nodeType === Node.ELEMENT_NODE ? /^H([1-6])$/.exec(child.tagName)?.[1] : undefined;
             if (level) while (sections.length && sections.at(-1).level >= Number(level)) sections.pop();
             const place = {order: order++, sections: sections.map((section) => section.title)};

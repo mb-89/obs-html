@@ -148,6 +148,7 @@ async function open(artifactPath, linkedomPath) {
     const context = vm.createContext({
         window, document, console, CustomEvent: window.CustomEvent, AbortController, URLSearchParams, URL,
         MutationObserver: window.MutationObserver,
+        DOMParser: window.DOMParser,
         TextEncoder, TextDecoder, ReadableStream, Response, CompressionStream, DecompressionStream,
         atob, btoa, structuredClone, performance,
         addEventListener: window.addEventListener.bind(window),
