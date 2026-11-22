@@ -14,7 +14,7 @@ every command is ``uv run`` in that side's root (UV_PROJECT), without the caller
 release that side's lockfile pins. The core finds that side's checkout as the component ``html``
 of a machine folder of the side's own (OBS_LOCAL_FOLDER), as test/conftest.py installs it, so no
 build reads the machine's installed components. The pages go to a temporary folder, or to
-``FOLDER/base`` and ``FOLDER/head``.
+``FOLDER/base`` and ``FOLDER/head``, each with its side's machine folder in it (MACHINE).
 
 The set (``reference_set``) holds, in this order:
 
@@ -41,11 +41,13 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import json
 import os
 import shutil
 import subprocess
 import sys
 import tempfile
+import tomllib
 from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
@@ -59,6 +61,11 @@ CORE_ROOT = Path(os.environ.get("OBS_CORE_ROOT") or ADAPTER.parent / "obs").reso
 EPOCH = "1700000000"
 # The start of each worktree's folder name.
 PREFIX = "obs-unchanged-output-"
+# The machine folder of a side's builds, in that side's output folder (machine_folder).
+MACHINE = ".machine"
+# The commit every side's component html records, so a build records the same component on both sides
+# where their versions agree, as test/conftest.py records it.
+COMMIT = "0" * 40
 SIDES = ("base", "head")
 # What a side holds, relative to its root: the fixture Documents and its deck.
 DOCUMENTS = PurePosixPath("test/fixtures/documents")
@@ -146,18 +153,35 @@ def report(pairs: Iterable[tuple[str, str | None, str | None]]) -> tuple[list[st
     return lines, 1 if differ else 0
 
 
-def _environment(root: Path) -> dict[str, str]:
-    """A side's environment: the caller's without ``VIRTUAL_ENV``, with the fixed instant, and with
-    obs-html's local folder at one that nothing creates, so a build on a machine with local themes
-    equals one on CI (spec/configuration.md, Local themes)."""
+def machine_folder(root: Path, folder: Path) -> Path:
+    """The machine folder in ``folder`` whose one installed component is the side's checkout
+    ``root``, as the adapter component html, as test/conftest.py installs it: at the version the
+    side's pyproject.toml holds, with the commit COMMIT (obs's spec/design_input/components.md,
+    Installed components). A ``KeyError`` or an ``OSError`` names a side without that version."""
+    version = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))["project"]["version"]
+    machine = folder / MACHINE
+    (machine / "components").mkdir(parents=True, exist_ok=True)
+    link = machine / "components" / "html"
+    if not link.is_symlink():
+        link.symlink_to(root.resolve(), target_is_directory=True)
+    entry = {"name": "html", "kind": "adapter", "version": version, "commit": COMMIT}
+    (machine / "components.json").write_text(json.dumps({"components": [entry]}), encoding="utf-8")
+    return machine
+
+
+def _environment(root: Path, machine: Path) -> dict[str, str]:
+    """A side's environment: the caller's without ``VIRTUAL_ENV``, with the fixed instant, with the
+    side's machine folder (machine_folder) as the core's, so no build reads the machine's installed
+    components, and with obs-html's local folder at one that nothing creates, so a build on a
+    machine with local themes equals one on CI (spec/configuration.md, Local themes)."""
     environment = {key: value for key, value in os.environ.items() if key != "VIRTUAL_ENV"}
-    environment.update(SOURCE_DATE_EPOCH=EPOCH, UV_PROJECT=str(root),
+    environment.update(SOURCE_DATE_EPOCH=EPOCH, UV_PROJECT=str(root), OBS_LOCAL_FOLDER=str(machine),
                        OBS_HTML_LOCAL_FOLDER=str(root / ".no-local-folder"))
     return environment
 
 
-def _run(command: list[str], cwd: Path, root: Path, page: Page, side: str) -> None:
-    result = subprocess.run(command, cwd=cwd, env=_environment(root), text=True, encoding="utf-8",
+def _run(command: list[str], cwd: Path, root: Path, machine: Path, page: Page, side: str) -> None:
+    result = subprocess.run(command, cwd=cwd, env=_environment(root, machine), text=True, encoding="utf-8",
                             errors="replace", capture_output=True)
     if result.returncode:
         lines = [line.strip() for line in (result.stderr or result.stdout).splitlines() if line.strip()]
@@ -165,18 +189,22 @@ def _run(command: list[str], cwd: Path, root: Path, page: Page, side: str) -> No
 
 
 def build(page: Page, root: Path, folder: Path, side: str) -> Path:
-    """``page`` built by the side whose root is ``root``, with that side's own environment, into
-    ``folder``; the HTML file. Its source is in that root or, for a page of the core, in CORE_ROOT.
-    A ``BuildError`` names the page and the side."""
+    """``page`` built by the side whose root is ``root``, with that side's own environment and its
+    machine folder in ``folder``, into ``folder``; the HTML file. Its source is in that root or, for a
+    page of the core, in CORE_ROOT. A ``BuildError`` names the page and the side."""
     folder.mkdir(parents=True, exist_ok=True)
     html = (folder / f"{page.name}.html").resolve()
+    try:
+        machine = machine_folder(root, folder)
+    except (KeyError, OSError) as error:
+        raise BuildError(page.name, side, f"{root / 'pyproject.toml'} names no project version: {error}") from error
     uv = ["uv", "run", "--locked"]
     source = (CORE_ROOT if page.origin == CORE else root) / page.source
     if page.kind == "document":
-        _run([*uv, "obs-html", str(source), str(html)], root, root, page, side)
+        _run([*uv, "obs-html", str(source), str(html)], root, root, machine, page, side)
     elif page.kind == "deck":
         _run([*uv, "obs-document", "--source", str(source), "--adapter", "html", "--destination", str(html)],
-             root, root, page, side)
+             root, root, machine, page, side)
     else:
         work = folder / f"{page.name}-work"
         shutil.rmtree(work, ignore_errors=True)
@@ -185,9 +213,9 @@ def build(page: Page, root: Path, folder: Path, side: str) -> Path:
             shutil.copytree(source.parent, work / page.source.parent, ignore=shutil.ignore_patterns("design_output"))
             command = ["obs-document", "--source", page.source.as_posix(), "--execute-commands", "--adapter", "html",
                        "--destination", str(html)]
-            _run([*uv, *command], work, root, page, side)
+            _run([*uv, *command], work, root, machine, page, side)
         else:
-            _run([*uv, "obs-html", "--build-own-spec", str(html)], work, root, page, side)
+            _run([*uv, "obs-html", "--build-own-spec", str(html)], work, root, machine, page, side)
         shutil.rmtree(work, ignore_errors=True)
     return html
 

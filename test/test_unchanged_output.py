@@ -1,5 +1,6 @@
 """The check that a change leaves obs's reference pages as they were, test/unchanged_output.py:
 issue unchanged-output-check."""
+import json
 from pathlib import Path, PurePosixPath
 
 import pytest
@@ -9,8 +10,8 @@ import unchanged_output
 from artifacts import artifact_html
 from compare_builds import compare
 from documents import chapter, document, paragraph
-from unchanged_output import (CORE, SIDE, BuildError, Page, build, check, core_files, paired, reference_set, report,
-                              side_files)
+from unchanged_output import (CORE, SIDE, BuildError, Page, build, check, core_files, machine_folder, paired,
+                              reference_set, report, side_files)
 
 # This checkout's root, as test/unchanged_output.py takes a side's root.
 CHECKOUT = Path(__file__).resolve().parents[1]
@@ -149,3 +150,26 @@ def test_the_build_step_builds_one_document_twice_alike(tmp_path):
     first, second = (build(page("structural"), CHECKOUT, tmp_path / side, "head").read_text(encoding="utf-8")
                      for side in ("first", "second"))
     assert report([("structural", first, second)]) == (["same structural", "1 same, 0 differ"], 0)
+
+
+def test_a_side_builds_with_its_checkout_installed_as_html_as_the_tests_install_it(tmp_path):
+    machine = machine_folder(CHECKOUT, tmp_path / "head")
+    assert machine == tmp_path / "head" / unchanged_output.MACHINE
+    assert [path.name for path in (machine / "components").iterdir()] == ["html"]
+    assert (machine / "components" / "html").resolve() == CHECKOUT.resolve()
+    listed = json.loads((machine / "components.json").read_text(encoding="utf-8"))
+    assert listed == json.loads((conftest.MACHINE / "components.json").read_text(encoding="utf-8"))
+    assert machine_folder(CHECKOUT, tmp_path / "head") == machine
+    assert unchanged_output._environment(CHECKOUT, machine)["OBS_LOCAL_FOLDER"] == str(machine)
+
+
+def test_a_side_without_a_project_version_fails_naming_its_pyproject(tmp_path):
+    (tmp_path / "no-project").mkdir()
+    with pytest.raises(BuildError) as raised:
+        build(page("phone-deck"), tmp_path / "no-project", tmp_path / "out", "head")
+    assert "pyproject.toml" in raised.value.detail and raised.value.side == "head"
+
+
+def test_a_deck_builds_through_the_core_with_the_sides_checkout(tmp_path):
+    html = build(page("phone-deck"), CHECKOUT, tmp_path / "head", "head").read_text(encoding="utf-8")
+    assert "<html" in html
