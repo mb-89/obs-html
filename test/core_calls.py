@@ -68,13 +68,3 @@ def validate_overlays(overlays: list[dict], path: Path) -> None:
 def with_comments(document: dict, manifest: Path) -> dict:
     """The Document with ``obs.comments.apply_comments`` applied: the union of the manifest's overlay files."""
     return _call(call="apply", document=document, manifest=str(manifest))
-
-
-def import_comments(manifest: Path, imports: list[tuple[Path, str]], document: Path) -> None:
-    """``obs-document --source MANIFEST --import-comments RETURNED --principal PRINCIPAL ...``, a pair per
-    import: the core writes each principal's overlay file, then builds the Document into ``document``."""
-    pairs = [argument for returned, principal in imports
-             for argument in ("--import-comments", str(returned), "--principal", principal)]
-    done = subprocess.run([sys.executable, "-m", "obs.document", "--source", str(manifest), *pairs,
-                           "--document", str(document)], capture_output=True, text=True, encoding="utf-8")
-    assert done.returncode == 0, done.stderr

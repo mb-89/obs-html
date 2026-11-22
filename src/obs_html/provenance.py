@@ -8,7 +8,8 @@ module is pure where it can be: ``findings`` takes the artifact's text, the loca
 the exceptions and returns what it found, each finding covered or not, and the CLI (cli.py,
 ``_check_provenance``) warns of the uncovered ones, or refuses the build where
 ``artifact.refuseProvenance`` is true. A finding names its place (an HTML line, or a field path of
-the decoded data island, as the exposure check names them: exposure.py, ``artifact_texts``), the
+the decoded data island, as the exposure check names them: exposure.py, ``artifact_texts``, or of
+the comment island where it has the shape the build writes: ``comment_island``), the
 label of what it found and the digest of the text it matched, never the text, as se's public check
 reports a hit. The readers of files, ``local_terms`` and ``local_exceptions``, find their file as
 ``local_list`` finds se's local list.
@@ -23,9 +24,10 @@ import re
 
 from jsonschema import Draft202012Validator
 
+from obs_html.comments import ISLAND, _resolved
 from obs_html.config import SCHEMA_PATH
 from obs_html.errors import InputError, schema_error
-from obs_html.exposure import artifact_html, artifact_texts
+from obs_html.exposure import _strings, artifact_html, artifact_texts
 from obs_html.libraries import LIBRARIES
 
 
@@ -56,6 +58,16 @@ VENDORED = (*(library.element for library in LIBRARIES.values()), "yaml-script")
 """The script elements that embed a third-party library as its release ships it (libraries.py, and
 js-yaml in render.py): their own text, such as Plotly's example dates, says nothing of the build.
 A finding on one of their lines is covered by the exemption ``vendored-library:<element id>``."""
+
+ISLAND_TAG = '<script id="obs-comments" type="application/json" data-comment-island>'
+"""The comment island's start tag exactly as the build writes it (render.py)."""
+REVIEW_TIME = "review-time"
+_REVIEW_TIMES = re.compile(
+    rf"{re.escape(ISLAND)}\.(?:comments\[\d+\]\.(?:created|modified)|(?:decisions|states)\[\d+\]\.created)")
+"""The comment island's places the exemption ``review-time`` covers: the time each review entry was
+made, which the core's schema allows to be an RFC 3339 time and nothing else (``$defs/time``)."""
+_ISLAND_ID = re.compile(r"""<script\b[^>]*?\sid\s*=\s*(?:"obs-comments"|'obs-comments'|obs-comments(?=[\s/>]))""",
+                        re.IGNORECASE)
 
 _SEGMENT = r"""[^\s/\\:*?"'<>|`,;()\[\]{}=]+"""
 _URL_CHARACTERS = r"""[^\s"'<>()\\]"""
@@ -122,11 +134,60 @@ def findings(artifact: str, local_terms: tuple[tuple[str, re.Pattern[str]], ...]
     place, one per place, label and digest, each covered as ``excepted`` says. ``local_terms`` are
     labelled patterns, as ``local_terms`` reads them."""
     found: list[Finding] = []
-    vendored = _vendored_lines(artifact_html(artifact))
-    for where, text in artifact_texts(artifact):
-        exemption = EXEMPTIONS.get(where) or vendored.get(where)
+    html = artifact_html(artifact)
+    vendored = _vendored_lines(html)
+    island = comment_island(html)
+    texts = artifact_texts(artifact)
+    if island:
+        place, line, model = island
+        texts = (*((where, line if where == place else text) for where, text in texts), *_strings(model, ISLAND))
+    for where, text in texts:
+        exemption = EXEMPTIONS.get(where) or vendored.get(where) or review_time(where)
         found += (Finding(where, label, hashed, exemption) for label, hashed in _hits(text, local_terms))
     return excepted(found, exceptions)
+
+
+def review_time(where: str) -> str | None:
+    """``review-time`` where ``where`` is a review entry's time in the comment island, else None."""
+    return REVIEW_TIME if _REVIEW_TIMES.fullmatch(where) else None
+
+
+def comment_island(html: str) -> tuple[str, str, object] | None:
+    """The comment island of ``html`` (the artifact without the data island's content) where it has
+    the shape the build writes: its place as an HTML line, that line without the island's JSON, and
+    the JSON's value. None for an island of any other shape, whose line is then read as it is: not
+    exactly one script element with the id, another start tag, JSON past its line, a key twice, or
+    JSON the core's schema of a resolved model refuses."""
+    start = html.find(ISLAND_TAG)
+    if start < 0 or len(_ISLAND_ID.findall(html)) != 1 or html.count(ISLAND_TAG) != 1:
+        return None
+    body = start + len(ISLAND_TAG)
+    end = html.find("</script>", body)
+    if end < 0 or len(html[start:end + len("</script>")].splitlines()) != 1:
+        return None
+    model = _unique_json(html[body:end])
+    if model is None or not _resolved().is_valid(model):
+        return None
+    # Numbered as artifact_texts numbers them, by str.splitlines.
+    number = len((html[:start] + "<").splitlines())
+    return f"HTML line {number}", (html[:body] + html[end:]).splitlines()[number - 1], model
+
+
+def _unique_json(text: str) -> object | None:
+    """The JSON value of ``text``, or None where it is not JSON or an object holds a key twice, which
+    would hide its first value from the check."""
+    twice = False
+
+    def unique(pairs: list[tuple[str, object]]) -> dict[str, object]:
+        nonlocal twice
+        twice = twice or len({key for key, _ in pairs}) != len(pairs)
+        return dict(pairs)
+
+    try:
+        value = json.loads(text, object_pairs_hook=unique)
+    except ValueError:
+        return None
+    return None if twice else value
 
 
 def _hits(text: str, local_terms: tuple[tuple[str, re.Pattern[str]], ...]) -> list[tuple[str, str]]:

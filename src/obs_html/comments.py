@@ -116,7 +116,8 @@ def extract_comments(artifact_path: Path, output: Path | None = None) -> str:
                 split[kind] = entries
         path.write_text(json.dumps(split, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         pairs.append(f" --import-comments {path} --principal {form}")
-    return text + (f"import: obs-document --source MANIFEST{''.join(pairs)}\n" if pairs else "")
+    return text + (f"import: obs-document --source MANIFEST --document DOCUMENT{''.join(pairs)}\n"
+                   if pairs else "")
 
 
 def file_name_form(author: str) -> str:

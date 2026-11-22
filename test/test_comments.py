@@ -3,11 +3,13 @@ and the import of a returned copy (spec/input-model.md, Comments and the core mo
 import copy
 import json
 import re
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
 
-from core_calls import import_comments, unresolved_targets, validate_overlays, with_comments
+from core_calls import unresolved_targets, validate_overlays, with_comments
 from obs_html.artifact_data import decode_artifact_data
 from obs_html.comments import OWNER, extract_comments
 from obs_html.config import load_config
@@ -135,7 +137,8 @@ def test_extract_comments_requires_exactly_one_island(tmp_path: Path) -> None:
     _refused(artifact, "")
 
 
-IMPORT = re.compile(r"^import: obs-document --source MANIFEST((?: --import-comments \S+ --principal \S+)+)$", re.M)
+IMPORT = re.compile(r"^import: obs-document --source MANIFEST --document DOCUMENT"
+                    r"((?: --import-comments \S+ --principal \S+)+)$", re.M)
 
 
 def _pairs(printed: str) -> list[tuple[str, str]]:
@@ -155,12 +158,37 @@ def _vaults(tmp_path: Path, *names: str) -> list[Path]:
     return folders
 
 
+def _run_printed(printed: str, manifest: Path, document: Path) -> subprocess.CompletedProcess[str]:
+    """The import call the export printed, run in its own words through the core's CLI, with only
+    ``MANIFEST`` and ``DOCUMENT`` replaced and no option added."""
+    line = next(line for line in printed.splitlines() if line.startswith("import: "))
+    words = {"MANIFEST": str(manifest), "DOCUMENT": str(document)}
+    program, *arguments = (words.get(word, word) for word in line.removeprefix("import: ").split())
+    assert program == "obs-document", line
+    return subprocess.run([sys.executable, "-m", "obs.document", *arguments], capture_output=True, text=True,
+                          encoding="utf-8")
+
+
 def _import_printed(printed: str, vault: Path, tmp_path: Path) -> list[tuple[str, str]]:
-    """Run the import call the export printed through the core's CLI; it refuses nothing."""
-    pairs = _pairs(printed)
-    import_comments(vault / "manifest.md", [(Path(file), principal) for file, principal in pairs],
-                    tmp_path / "document.json")
-    return pairs
+    """Run the import call the export printed, as printed once filled in; it refuses nothing."""
+    done = _run_printed(printed, vault / "manifest.md", tmp_path / "document.json")
+    assert done.returncode == 0, done.stderr
+    return _pairs(printed)
+
+
+def test_the_printed_import_call_runs_as_printed_once_manifest_and_document_are_filled(tmp_path: Path) -> None:
+    """The line the extraction prints, its two placeholders filled in and nothing else, exits 0: it
+    writes the principal's overlay file next to the manifest and the Document where DOCUMENT names."""
+    (vault,) = _vaults(tmp_path, "vault")
+    comment = {**ROOT, "target": {"chapter": "intro"}}
+    printed = extract_comments(write_artifact(tmp_path / "reviewed.html", model(comment)), tmp_path / "returned.json")
+    document = tmp_path / "out" / "document.json"
+    document.parent.mkdir()
+    done = _run_printed(printed, vault / "manifest.md", document)
+    assert done.returncode == 0, done.stderr
+    overlay = json.loads((vault / "manifest.comments.alice.json").read_text(encoding="utf-8"))
+    assert overlay["comments"] == [comment]
+    assert json.loads(document.read_text(encoding="utf-8"))["comments"]["comments"] == [comment]
 
 
 def test_extraction_exports_one_file_per_author_in_the_cores_format(tmp_path: Path) -> None:

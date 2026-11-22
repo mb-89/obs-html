@@ -1105,9 +1105,12 @@ lower-cased, each run of characters other than `a`–`z` and `0`–`9` replaced 
 one form are input errors naming the island's field path of the entry and this section.
 
 After the list the export prints the one core call that imports every file, a line
-`import: obs-document --source MANIFEST` followed by `--import-comments <file> --principal
-<author>` per file, in the order the authors first appear among the comments, decisions and
-state entries. A reader whose principal is another name passes that name instead.
+`import: obs-document --source MANIFEST --document DOCUMENT` followed by `--import-comments <file>
+--principal <author>` per file, in the order the authors first appear among the comments, decisions
+and state entries. The reader replaces `MANIFEST` with the vault's manifest note and `DOCUMENT` with
+the JSON Document the core is to write, which `obs-document` needs beside `--source` where it builds
+no artifact; the line then runs as printed, and every later build of the vault carries the returned
+comments. A reader whose principal is another name passes that name instead.
 
 An island the core's schema refuses, and one of the retired version 2, are input errors naming
 the reviewed HTML, the island's field path and this section. Version 2 targets items by

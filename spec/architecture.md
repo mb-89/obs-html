@@ -306,7 +306,7 @@ exposure check does, each HTML line and each string of the decoded data island b
 
 A finding names its place and the label of what it found (`local-term:<line>` for a local term),
 never the matched text. The build (`cli.py`, after the exposure check) warns of each finding; with
-`artifact.refuseProvenance` true it refuses the artifact, naming every place. Two exemptions,
+`artifact.refuseProvenance` true it refuses the artifact, naming every place. Three exemptions,
 each named on the finding it covers, which then neither warns nor refuses:
 
 - `generation-timestamp`: `document.generation.timestamp` of the data island, the build time obs
@@ -316,6 +316,17 @@ each named on the finding it covers, which then neither warns nor refuses:
 - `vendored-library:<element id>`: a line of a script element that embeds a third-party library as
   its release ships it (`plotly-script`, `maths-script`, `pdf-library-script`, `yaml-script`),
   whose own text, such as Plotly's example dates, says nothing of the build.
+- `review-time`: a time of a review entry in the comment island, the `created` of each of its
+  `comments`, `decisions` and `states` and a comment's `modified`. It is the time the reviewer made
+  the entry, which the core's format requires (`$defs/time` of `comments.schema.json`) and the
+  island keeps so that a reviewed copy's comments come back
+  ([[input-model#Comments and the core model]]); it says nothing of the build. The check reads the
+  island by its field paths, as it reads the data island (`script#obs-comments.comments[0].created`),
+  only where it has the shape the build writes: one
+  `<script id="obs-comments" type="application/json" data-comment-island>` element, on one line,
+  whose JSON the core's schema of a resolved model (`$defs/resolved`) accepts. Every other string
+  of the island, such as a comment's body or quote, warns as any text does, and an island of any
+  other shape is read as its HTML line.
 
 A source file link ([[cli#Source file links]]) raises no finding: it is relative and climbs with
 `..` alone to the vault folder, which the path detectors do not match, and obs-html gives no link
@@ -369,8 +380,8 @@ committed list of exceptions does not spell what it covers.
 - **Matching**: a finding is excepted where an exception has its label (`local-term` matching
   every `local-term:<line>`), its digest and, where the exception names one, its place. The
   finding then carries the exemption `exception:settings` or `exception:local`, the committed
-  layer's where both cover it. The two exemptions above come first: an exception never renames the
-  generation timestamp's finding or a vendored line's.
+  layer's where both cover it. The three exemptions above come first: an exception never renames
+  the generation timestamp's finding, a vendored line's or a review time's.
 - **Unused exceptions** are not reported. One `--config` file serves several Documents and a
   vault's settings serve each of its builds, so an exception one build does not use is not stale;
   se reports unused allow entries because its one check sees the whole repository.

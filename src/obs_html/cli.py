@@ -102,8 +102,10 @@ Comments:
   without executing its scripts and prints deterministic comment candidates to stdout. With
   --comments-output FILE it also writes the comments in the core's format, one file per author,
   <FILE's stem>.<author>.json beside FILE, and prints the one call that imports them all,
-  import: obs-document --source MANIFEST --import-comments FILE --principal NAME ..., one pair
-  per file; it writes each author's entries into that principal's overlay file.
+  import: obs-document --source MANIFEST --document DOCUMENT --import-comments FILE --principal
+  NAME ..., one pair per file. With MANIFEST the vault's manifest and DOCUMENT the JSON Document
+  to write, it runs as printed and writes each author's entries into that principal's overlay
+  file.
 
 Printing a chapter:
   --print-chapter HTML CHAPTER prints one chapter of a built artifact to stdout, as the

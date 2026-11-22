@@ -15,7 +15,7 @@ import pytest
 from artifacts import artifact_html
 from conftest import CORE_ROOT, ROOT, spec_build
 from documents import chapter, document, heading, paragraph
-from obs_html import cli, provenance
+from obs_html import cli, exposure, provenance
 from obs_html.errors import InputError
 from obs_html.provenance import CheckException, excepted, findings, local_list, local_terms, reported
 
@@ -243,16 +243,109 @@ def test_a_local_term_exception_covers_the_term_on_any_line(tmp_path: Path) -> N
     assert "local-term:4" not in {finding.label for finding in reported(excepted(moved, rule))}
 
 
-def test_no_exception_renames_the_two_exemptions() -> None:
-    html = artifact_html(planted()).replace(
-        "<body>", '<body>\n<script id="plotly-script">var d = "2016-10-13 09:15:23";\n</script>', 1)
+def test_no_exception_renames_the_exemptions() -> None:
+    html = with_island(artifact_html(planted()).replace(
+        "<body>", '<body>\n<script id="plotly-script">var d = "2016-10-13 09:15:23";\n</script>', 1), REVIEWED)
     found = findings(html)
     every = tuple(CheckException("timestamp", finding.digest, layer)
                   for finding in found if finding.label == "timestamp" for layer in ("settings", "local"))
     exempt = {finding.where: finding.exemption for finding in found if finding.exemption}
     assert {finding.where: finding.exemption for finding in excepted(found, every)
             if finding.where in exempt} == exempt
-    assert set(exempt.values()) == {"generation-timestamp", "vendored-library:plotly-script"}
+    assert set(exempt.values()) == {"generation-timestamp", "vendored-library:plotly-script", "review-time"}
+
+
+# The comment island's review times (architecture.md, Provenance check, review-time).
+ISLAND_TAG = '<script id="obs-comments" type="application/json" data-comment-island>'
+REVIEW_COMMENT = {"id": "c1", "author": "Alice", "created": "2026-11-09T10:00:00Z",
+                  "modified": "2026-11-09T10:30:00Z", "state": "open", "target": {"chapter": "one"},
+                  "body": {"mediaType": "text/plain", "text": f"Seen at {TIME} on the phone."}}
+REVIEWED = {"version": 1, "files": [], "names": ["Alice"], "comments": [REVIEW_COMMENT],
+            "decisions": [{"id": "d1", "reviewer": "Alice", "created": "2026-11-09T10:05:00Z",
+                           "target": {"chapter": "one"}, "state": "accepted"}],
+            "states": [{"id": "s1", "author": "Alice", "created": "2026-11-09T10:10:00Z", "target": "c1",
+                        "state": "resolved"}]}
+"""A reviewed copy's island: a comment with its two times and a timestamp in its body, a decision and
+a state entry."""
+REVIEW_TIMES = {"script#obs-comments.comments[0].created", "script#obs-comments.comments[0].modified",
+                "script#obs-comments.decisions[0].created", "script#obs-comments.states[0].created"}
+
+
+def with_island(html: str, value: object, tag: str = ISLAND_TAG) -> str:
+    """``html`` with its comment island holding ``value``, written as the build writes it, and ``tag``
+    as its start tag."""
+    written = json.dumps(value, ensure_ascii=True, separators=(",", ":")).replace("</", "<\\/")
+    built, count = re.subn(re.escape(ISLAND_TAG) + r".*?</script>", lambda _: f"{tag}{written}</script>", html)
+    assert count == 1
+    return built
+
+
+def island_line(html: str) -> str:
+    """The comment island's place as an HTML line, numbered as the check numbers lines."""
+    lines = exposure.artifact_html(html).splitlines()
+    return f"HTML line {next(number for number, line in enumerate(lines, 1) if 'id=\"obs-comments\"' in line)}"
+
+
+def test_a_review_time_in_the_comment_island_is_exempt_and_every_other_timestamp_warns() -> None:
+    html = with_island(artifact_html(planted("Plain text.")), REVIEWED)
+    found = findings(html)
+    assert {finding.where for finding in found if finding.exemption == "review-time"} == REVIEW_TIMES
+    assert all(finding.label == "timestamp" for finding in found if finding.exemption == "review-time")
+    assert shown(reported(found)) == [("script#obs-comments.comments[0].body.text", "timestamp", None)]
+    refused = {**REVIEWED, "comments": [{**REVIEW_COMMENT, "created": "2026-11-09 10:00"}]}
+    for other in (with_island(html, REVIEWED, ISLAND_TAG.replace(">", " data-edited>")),
+                  with_island(html, refused)):
+        found = findings(other)
+        assert not any(finding.exemption == "review-time" for finding in found)
+        assert {finding.where for finding in reported(found)} == {island_line(other)}
+
+
+JSON = json.dumps(REVIEWED, separators=(",", ":"))
+
+
+@pytest.mark.parametrize("html", [
+    f'<p>\n{ISLAND_TAG}{JSON}</script>\n<script id="obs-comments">{{}}</script>',
+    f"<p>\n{ISLAND_TAG}{JSON}</script>\n<script type=x id=obs-comments></script>",
+    f"<p>\n{ISLAND_TAG.replace(' data-comment-island', '')}{JSON}</script>",
+    f"<p>\n{ISLAND_TAG}{json.dumps(REVIEWED, indent=1)}</script>",
+    f"<p>\n{ISLAND_TAG}{JSON}\n</script>",
+    f"<p>\n{ISLAND_TAG}{JSON[:-1]},\"version\":1}}</script>",
+    f"<p>\n{ISLAND_TAG}{json.dumps({**REVIEWED, 'version': 2})}</script>",
+    f"<p>\n{ISLAND_TAG}{JSON[:-1]}</script>",
+], ids=["a second element", "an unquoted second id", "another start tag", "JSON over lines",
+        "the end tag on another line", "a key twice", "JSON the schema refuses", "not JSON"])
+def test_an_island_of_any_other_shape_than_the_builds_is_its_html_line(html: str) -> None:
+    assert provenance.comment_island(html) is None
+    assert not any(finding.exemption == "review-time" for finding in findings(html))
+
+
+def test_the_builds_island_is_its_line_without_the_json_and_its_value() -> None:
+    assert provenance.comment_island(f"<p>\n  {ISLAND_TAG}{JSON}</script>\n") == (
+        "HTML line 2", f"  {ISLAND_TAG}</script>", REVIEWED)
+    assert provenance.review_time("script#obs-comments.states[3].created") == "review-time"
+    assert {provenance.review_time(where) for where in ("script#obs-comments.comments[0].body.text",
+                                                        "script#obs-comments.comments[0].created (the key)",
+                                                        "script#obs-comments.decisions[0].modified",
+                                                        "artifact-data comments[0].created")} == {None}
+
+
+def test_a_vault_with_a_comment_builds_without_a_provenance_warning(tmp_path: Path, capsys) -> None:
+    """The core builds a vault with an overlay comment into a Document, the CLI that into a page."""
+    vault = tmp_path / "vault"
+    vault.mkdir()
+    (vault / "manifest.md").write_text("- [[intro]]\n", encoding="utf-8")
+    (vault / "intro.md").write_text("# Intro\n\nText.\n", encoding="utf-8")
+    comment = {**REVIEW_COMMENT, "body": {"mediaType": "text/plain", "text": "Sent from the phone."},
+               "target": {"chapter": "intro"}}
+    (vault / "manifest.comments.alice.json").write_text(json.dumps(
+        {"version": 1, "principal": "alice", "names": ["Alice"], "comments": [comment], "decisions": []}),
+        encoding="utf-8")
+    document = tmp_path / "document.json"
+    subprocess.run([sys.executable, "-m", "obs.document", "--source", str(vault / "manifest.md"),
+                    "--document", str(document)], check=True, capture_output=True)
+    assert cli.main([str(document), str(tmp_path / "page.html")]) == 0
+    assert "carries provenance" not in capsys.readouterr().err
+    assert "Sent from the phone." in (tmp_path / "page.html").read_text(encoding="utf-8")
 
 
 def test_a_committed_session_id_exception_and_a_local_timestamp_exception_remove_their_warnings(

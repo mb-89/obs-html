@@ -225,8 +225,8 @@ def test_extract_comments_reads_a_returned_artifact_and_exports_its_comments(tmp
     printed = capsys.readouterr().out
     assert "Tighten this." in printed
     exported = tmp_path / "returned.ada.json"
-    assert (f"import: obs-document --source MANIFEST --import-comments {exported} --principal ada\n"
-            in printed)
+    assert (f"import: obs-document --source MANIFEST --document DOCUMENT --import-comments {exported}"
+            " --principal ada\n" in printed)
     assert json.loads(exported.read_text(encoding="utf-8")) == {**island, "names": ["Ada"]}
     with pytest.raises(SystemExit):
         _run(FIXTURE, "--extract-comments", artifact)
