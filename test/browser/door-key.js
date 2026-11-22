@@ -2,7 +2,8 @@
 // id of its nearest ancestor that has one, then its tag and position among its siblings of that tag
 // below it, as `#<id> > div:2 > span:1` (positions count from 1). An element outside the document
 // starts at its topmost ancestor's tag instead of an id. The fake browser keys its default answers
-// by it; the recorder and the fake's replay load the same function.
+// and its replayed answers by it; the recorder (test/browser/door.py) loads the same file into the
+// one Chromium, and finds the element a key names with doorElement.
 "use strict";
 
 function doorKey(element) {
@@ -28,5 +29,26 @@ function doorKey(element) {
     return parts.join(" > ");
 }
 
-if (typeof module === "object" && module.exports) module.exports = {doorKey};
-else globalThis.obsDoorKey = doorKey;
+// The element of `document` a key names, or null where none has it: the inverse of doorKey for an
+// element in the document.
+function doorElement(key, document) {
+    const parts = String(key).split(" > ");
+    let current = null;
+    let index = 0;
+    if (parts[0].startsWith("#")) {
+        current = document.getElementById(parts[0].slice(1));
+        if (!current) return null;
+        index = 1;
+    }
+    for (; index < parts.length; index += 1) {
+        const separator = parts[index].lastIndexOf(":");
+        const tag = parts[index].slice(0, separator);
+        const position = Number(parts[index].slice(separator + 1));
+        const children = current ? [...current.children] : [document.documentElement];
+        current = children.filter((child) => child.localName === tag)[position - 1] || null;
+        if (!current) return null;
+    }
+    return current;
+}
+
+if (typeof module === "object" && module.exports) module.exports = {doorKey, doorElement};
