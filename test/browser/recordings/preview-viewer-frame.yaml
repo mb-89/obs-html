@@ -1,0 +1,208 @@
+# The browser door's recording of the state preview-viewer-frame (test/browser/expectations.yaml),
+# written by `uv run pytest -m hot --record` (test/browser/door.py); never edited by hand.
+state: preview-viewer-frame
+artifact: test/preview.py::preview_document
+context:
+  viewport: [1100, 700]
+  scale: 1
+  touch: false
+  scheme: light
+  motion: no-preference
+  media: screen
+  frame: viewer
+steps:
+- open: page
+artifactDigest: sha256:ed22b24792880a45562b2a37698bd6713a64d92887cb5f5efdb1358c30772e02
+chromium: 153.0.8010.12 (Playwright 1.64.0)
+answers:
+- step: 0
+  asked:
+    box:
+    - '#home > div:1'
+    - html:1 > body:1 > div:1 > div:1
+    - html:1 > body:1 > div:1 > div:2
+    - html:1 > body:1 > div:1 > div:3
+    - html:1 > body:1 > div:1 > div:4
+    - html:1 > body:1 > div:1 > main:1 > div:1
+    cascade:
+    - '#home > div:1 > div:1 > section:1 > div:1 > header:1 > div:1|display'
+    - '#home > div:1 > div:1 > section:1 > div:1 > header:1 > div:2 > h1:1|display'
+    - '#home > div:1 > div:1 > section:1 > div:1 > header:1 > div:2|display'
+    - '#home > div:1 > div:1 > section:1 > div:1 > header:1|display'
+    - '#home > div:1 > div:1 > section:1 > div:1|display'
+    - '#home > div:1 > div:1 > section:2 > div:1 > h1:1|display'
+    - '#home > div:1 > div:1 > section:2 > div:1|display'
+    - '#home > div:1 > div:1 > section:3 > div:1 > h1:1|display'
+    - '#home > div:1 > div:1 > section:3 > div:1|display'
+    - html:1|fontSize
+    media:
+    - '(max-width: 30rem)'
+    - '(max-width: 44rem)'
+    - '(prefers-reduced-motion: reduce)'
+    - print
+    resize:
+    - '#home > div:1'
+    - html:1 > body:1 > div:1 > div:1
+    - html:1 > body:1 > div:1 > div:2
+    - html:1 > body:1 > div:1 > div:3
+    - html:1 > body:1 > div:1 > div:4
+    sizes:
+    - '#home > div:1 > div:1 > section:1 > div:1'
+    - '#home > div:1 > div:1 > section:2 > div:1'
+    - '#home > div:1 > div:1 > section:3 > div:1'
+    - html:1 > body:1 > div:3 > section:1 > div:1
+  box:
+    '#home > div:1':
+      border: [0, 80, 1085, 1636.64]
+      rects: [[0, 80, 1085, 1636.64]]
+    html:1 > body:1 > div:1 > div:1:
+      border: [0, 0, 0, 0]
+      rects: []
+    html:1 > body:1 > div:1 > div:2:
+      border: [0, 0, 0, 0]
+      rects: []
+    html:1 > body:1 > div:1 > div:3:
+      border: [0, 0, 0, 0]
+      rects: []
+    html:1 > body:1 > div:1 > div:4:
+      border: [0, 0, 0, 0]
+      rects: []
+    html:1 > body:1 > div:1 > main:1 > div:1:
+      border: [0, 64, 1100, 636]
+      rects: [[0, 64, 1100, 636]]
+  sizes:
+    window:
+      innerWidth: 1100
+      innerHeight: 700
+    '#home > div:1 > div:1 > section:1 > div:1':
+      clientWidth: 608
+      clientHeight: 70
+      scrollWidth: 608
+      scrollHeight: 70
+      offsetWidth: 608
+      offsetHeight: 70
+      offsetLeft: 93
+      offsetTop: 76
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    '#home > div:1 > div:1 > section:2 > div:1':
+      clientWidth: 608
+      clientHeight: 50
+      scrollWidth: 608
+      scrollHeight: 50
+      offsetWidth: 608
+      offsetHeight: 50
+      offsetLeft: 93
+      offsetTop: 76
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    '#home > div:1 > div:1 > section:3 > div:1':
+      clientWidth: 608
+      clientHeight: 130
+      scrollWidth: 608
+      scrollHeight: 130
+      offsetWidth: 608
+      offsetHeight: 130
+      offsetLeft: 93
+      offsetTop: 76
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+  resize:
+    '#home > div:1':
+      content: [1085, 1636.64]
+      border: [1085, 1636.64]
+    html:1 > body:1 > div:1 > div:1:
+      content: [0, 0]
+      border: [0, 0]
+    html:1 > body:1 > div:1 > div:2:
+      content: [0, 0]
+      border: [0, 0]
+    html:1 > body:1 > div:1 > div:3:
+      content: [0, 0]
+      border: [0, 0]
+    html:1 > body:1 > div:1 > div:4:
+      content: [0, 0]
+      border: [0, 0]
+  scroll-into-view: {}
+  text-width: {}
+  image-size: {}
+  fonts:
+    status: loaded
+  viewer-frame:
+    window.localStorage:
+      throws: SecurityError
+    window.sessionStorage:
+      throws: SecurityError
+    document.cookie:
+      throws: SecurityError
+    window.open():
+      returns: null
+    window.alert():
+      returns: null
+    window.confirm():
+      returns: false
+    window.prompt():
+      returns: null
+    window.print():
+      returns: null
+    navigator.clipboard.writeText():
+      rejects: NotAllowedError
+    history.replaceState():
+      throws: SecurityError
+  cascade:
+    '#home > div:1 > div:1 > section:1 > div:1 > header:1 > div:1|display': block
+    '#home > div:1 > div:1 > section:1 > div:1 > header:1 > div:2 > h1:1|display': block
+    '#home > div:1 > div:1 > section:1 > div:1 > header:1 > div:2|display': block
+    '#home > div:1 > div:1 > section:1 > div:1 > header:1|display': block
+    '#home > div:1 > div:1 > section:1 > div:1|display': flow-root
+    '#home > div:1 > div:1 > section:2 > div:1 > h1:1|display': block
+    '#home > div:1 > div:1 > section:2 > div:1|display': flow-root
+    '#home > div:1 > div:1 > section:3 > div:1 > h1:1|display': block
+    '#home > div:1 > div:1 > section:3 > div:1|display': flow-root
+    html:1|fontSize: 16px
+  media:
+    '(max-width: 30rem)': false
+    '(max-width: 44rem)': false
+    '(prefers-reduced-motion: reduce)': false
+    print: false
+  events:
+  - button:click
+  - input:click
+  - input:input
+  - input:change
+  - checked:true
+  - label:click
+  - input:click
+  - input:input
+  - input:change
+  - checked:false
+  - summary:click
+  - open:true
+  focus:
+    button: button:0
+    input: input:1
+    disabled: input:1
+    tabindex: span:3
+    plain: span:3
+    dialog: button:7
+    closed: span:3
+  popover:
+    shown: true
+    another:
+    - false
+    - true
+    - true
+    hidden: false
+    toggled:
+    - true
+    - true
+  frames:
+  - first
+  - second
+  - nested
