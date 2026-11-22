@@ -36,7 +36,9 @@ globalThis.obsPugh = (() => {
   const percent = share => `${(100 * share).toFixed(1)} %`;
   const number = value => engine().fmt(value);
   const signed = value => (value > 0 ? `+${number(value)}` : value < 0 ? `−${number(-value)}` : "0");
-  const symbol = mark => (mark === null || mark === undefined ? "?" : engine().SYMBOL[Math.round(mark)]);
+  /** A mark as the figure shows it: the upstream engine's symbol, but 0 as "0", which reads as the
+      number it is; the engine's "S" (Pugh's "same") reads as a tier (artifact-ui.md, Decision figures). */
+  const symbol = mark => (mark === null || mark === undefined ? "?" : Math.round(mark) === 0 ? "0" : engine().SYMBOL[Math.round(mark)]);
   const letterOf = index => String.fromCharCode(65 + index);
   /** Whether an option's label says more than its short name, so the options list and a
       letter's popover show it (artifact-ui.md, Decision figures): not where the short name's words are all the label's
@@ -433,7 +435,7 @@ globalThis.obsPugh = (() => {
         const cell = element("td", {className: `pugh-mark${markChanged ? " pugh-changed" : ""}${candidate.fits ? "" : " pugh-out"}`});
         cell.dataset.pughMark = `${option.letter}:${criterion.key}`;
         if (!shown && !markChanged && option.reasons[criterion.key]) helped(cell, `mark:${option.letter}:${criterion.key}`);
-        if (print || candidate.datum) cell.textContent = candidate.datum ? "S" : symbol(mark);
+        if (print || candidate.datum) cell.textContent = candidate.datum ? symbol(0) : symbol(mark);
         else {
           const button = element("button", {type: "button", className: "pugh-mark-button", textContent: symbol(mark)});
           button.setAttribute("aria-label", `${option.letter}, ${criterion.label}: ${symbol(mark)}${markChanged ? ", changed" : ""}; change it`);
@@ -531,7 +533,7 @@ globalThis.obsPugh = (() => {
         node.dataset.pughMark = `${option.letter}:${criterion.key}`;
         if (!markChanged && option.reasons[criterion.key]) helped(node, `mark:${option.letter}:${criterion.key}`);
         node.append(head(candidate));
-        if (locked || candidate.datum) node.append(element("span", {className: "pugh-cell-value", textContent: candidate.datum ? "S" : symbol(mark)}));
+        if (locked || candidate.datum) node.append(element("span", {className: "pugh-cell-value", textContent: candidate.datum ? symbol(0) : symbol(mark)}));
         else {
           const button = element("button", {type: "button", className: "pugh-mark-button", textContent: symbol(mark)});
           button.setAttribute("aria-label", `${option.letter} ${option.name}, ${criterion.label}: ${symbol(mark)}${markChanged ? ", changed" : ""}; change it`);

@@ -17,8 +17,9 @@ from html import escape
 STATES = {"bless": "Blessed", "decline": "Declined", "ask": "Question", "pick": "Picked"}
 NONE = "None of the above"
 """The state of a pick of none of the options (obs input-model, Answers), as bless.js names it."""
-SYMBOLS = {2: "++", 1: "+", 0: "S", -1: "−", -2: "−−"}
-"""The upstream project's mark symbols, as the decision figure shows them (vendor/pugh.js, SYMBOL)."""
+SYMBOLS = {2: "++", 1: "+", 0: "0", -1: "−", -2: "−−"}
+"""The mark symbols as the decision figure shows them (pugh-figure.js, symbol): the upstream project's
+(vendor/pugh.js, SYMBOL), but 0 as "0" (artifact-ui.md, Decision figures)."""
 
 
 def _matrices(nodes: list[dict]) -> list[dict]:

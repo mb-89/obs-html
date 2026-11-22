@@ -231,7 +231,9 @@ def test_the_page_decides_the_upstream_test_vectors_and_the_matrix_tab_shows_the
     assert wide["criteria"][-1] == "checklist" and wide["tabs"][1] == ["checklist", "false", False, "1"]
     assert reader.page.evaluate("""() => [...document.querySelectorAll(
         '#decisions--block-wide [data-pugh-criterion="checklist"] [data-pugh-mark]')].map(cell => cell.textContent)""") \
-        == ["S"] * 8 + ["−"] * 2
+        == ["0"] * 8 + ["−"] * 2
+    # A mark of 0 reads "0" everywhere the figure shows a mark, the datum's column included (artifact-ui.md, Decision figures).
+    assert reader.page.evaluate("() => [...document.querySelectorAll('[data-pugh-mark]')].filter(cell => cell.textContent.trim() === 'S').length") == 0
     reader.clean()
 
 

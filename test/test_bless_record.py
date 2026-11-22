@@ -73,3 +73,16 @@ def test_the_record_names_the_readers_vetoes_lifted_vetoes_and_datum() -> None:
     assert "<li>Veto of C lifted: the fence&#x27;s verdict that it does not fit</li>" in record
     assert "<li>Veto of C lifted: gate 2</li>" in record
     assert "<li>Datum: B · Two</li>" in record and "<li>Winner with these changes: C</li>" in record
+
+
+def test_the_record_shows_a_readers_mark_of_0_as_0() -> None:
+    """artifact-ui.md, Decision figures: a mark reads as the number it is, 0 as "0", not the engine's "S"."""
+    chapter = _chapter("answer")
+    matrix = {"criteria": [{"key": "cost", "label": "Cost", "weight": 1, "better": "lower"}],
+              "candidates": [{"key": "a", "label": "One"}, {"key": "b", "label": "Two"}]}
+    chapter["content"].append({"type": "figures", "attrs": {"kind": "pugh"}, "children": [
+        {"type": "pugh", "attrs": {"matrix": matrix, "shortNames": [None, None]}, "children": []}]})
+    chapter["bless"]["answer"] = {**VERDICT, "figures": {"choice": {"marks": {"B": {"cost": 0}, "A": {"cost": -2}}}}}
+    record = record_html(chapter)
+
+    assert "<li>Mark of B on Cost: 0</li>" in record and "<li>Mark of A on Cost: −−</li>" in record

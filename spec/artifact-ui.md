@@ -604,6 +604,13 @@ capabilities/pugh-decisions, The rules) run against that file under their upstre
 holds a decision figure: it is the reader feature `pugh` (`features.py`), whose canary reports a
 host that does not run it.
 
+Decided by the user, 22 Nov 2026 (work issue `zero-marks-show-zero`): a mark reads as the number
+it is. Wherever the page shows a mark (the matrix's cells, the datum's column included, the mark
+chooser, a cell's label and the answered record, `bless_record.py`) it is −−, −, 0, + or ++: 0 as
+"0", not the engine's "S" (Pugh's "same"), which a reader takes for a tier. The engine stays
+unchanged; the figure maps its mark to the symbol (`pugh-figure.js`, `symbol`). The engine's own
+plot labels its axis in numbers already.
+
 Every option carries its letter, A, B, C and on in the order the fence lists them, wherever the
 figure names it, its label and its short name (obs input-model, Pugh decision figures). Where
 there is room, an option reads as its letter and short name, "B · Close": in the options list,
@@ -807,7 +814,7 @@ item, at most −2, on a row "Checklist" with the fence's `checklistWeight` (3 b
 is a criterion of the matrix the figure hands the engine (judged against the datum like any
 other), and shows only when such an item fails.
 
-The reader changes a weight in its field and a mark by tapping it and choosing −−, −, S, + or
+The reader changes a weight in its field and a mark by tapping it and choosing −−, −, 0, + or
 ++ in place, with no browser dialog. A changed weight or mark is marked as changed, everything is
 decided again at once, and Reset, in the figure and in its options menu, restores the fence's
 values. A changed mark is the engine's own cell override.
@@ -870,7 +877,7 @@ the tab shows which options are not beaten on every criterion by another.
 
 The chart is the engine's own plot (`plotSvg`, which every decision deck ships already), with
 no second chart library: one line per option that fits, over the criteria, each criterion an
-axis of its mark from −− to ++, the datum's marks S. Decided by the dispatcher, 6 Nov 2026, as a
+axis of its mark from −− to ++, the datum's marks 0. Decided by the dispatcher, 6 Nov 2026, as a
 change to the work issue: not the equation figure's plot, whose figure ships Plotly.
 
 Decided by the user, 6 Nov 2026 (work issue `feat/decision-solutions-and-details-20261106`): the
