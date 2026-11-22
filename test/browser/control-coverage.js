@@ -218,11 +218,15 @@ async (_, {views, layouts, firstChapterLayouts, chapters: only}) => {
     // Waits until the layout a check sees is final. Opening or closing a bar narrows the reader,
     // and the next frame's rendering step lays out again what that changes: the bar's own frame
     // callback, then the ResizeObservers of the dock and of the chapter's figures, tables and
-    // equations, which run after every frame callback. The next frame's callbacks run once that
-    // step is done, so waiting for two frames is enough. Without the wait, a forced layout read sees
-    // the reader before that step: with the Comments bar's review mode, table controls lie under
-    // the next-chapter arrow.
-    const frame = () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    // equations, which run after every frame callback. A message posted from a frame callback is a
+    // task, delivered once that step is done, so one frame and its message are enough; no timer.
+    // Without the wait, a forced layout read sees the reader before that step: with the Comments
+    // bar's review mode, table controls lie under the next-chapter arrow.
+    const frame = () => new Promise((resolve) => requestAnimationFrame(() => {
+        const channel = new MessageChannel();
+        channel.port1.onmessage = () => resolve();
+        channel.port2.postMessage(null);
+    }));
     // A chapter is open once its deferred tables and figures replaced their loading placeholders
     // (artifact.js, aria-busy while they load); a navigation that started meanwhile is waited for too.
     const open = async (slug) => {
