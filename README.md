@@ -22,6 +22,9 @@ uv run pytest
 Moving the pin is one change of that tag, made with `uv lock`. CI does the same
 (`.github/workflows/test.yml`).
 
+This README and the specification name a note of the core as obs's `<path>` and its section, a
+note of that checkout; no link of theirs leaves this repository (`test/structure/test_links.py`).
+
 ## Release
 
 A release is the tag `v<version>` on main, at the version `se.toml` holds. Nobody tags by hand:
@@ -67,7 +70,7 @@ Reader: whoever changes what obs-html refuses, or reads one of its error message
 obs-html trusts a contract-valid Document: the core validates every input contract (Base
 definitions, note profiles, quantities, count queries, cards) while it builds
 the Document and validates the Document before it calls an adapter
-([input-model, Chapter content](../../spec/design_input/input-model.md#chapter-content)), so the
+(obs's `spec/design_input/input-model.md`, "Chapter content"), so the
 adapter does not check them again. It refuses a Document of another schema version and what it
 cannot render, such as a Base filter outside the subset it evaluates.
 
@@ -96,7 +99,7 @@ an error by its source and field path, never by its wording.
 Reader: whoever puts images in a Document for obs-html or changes how it renders them.
 
 An image renders from the bytes of its Document asset
-([Asset bytes](../../spec/design_input/architecture.md#asset-bytes)) as a `data:` URL, whatever
+(obs's `spec/design_input/architecture.md`, "Asset bytes") as a `data:` URL, whatever
 its origin, a vault file or a remote image the build fetched; the artifact never reads the vault
 and never loads an image URL, so it shows every image without the network. An image whose asset
 has no bytes, a remote image the build could not fetch, shows its alt text as a visible label in
@@ -122,8 +125,8 @@ is fixed in the source.
 
 Reader: whoever embeds a `.base` file in a note built with obs-html, or changes how obs-html shows one.
 
-A register renders from its `registers` node alone (obs
-[capabilities/registers](../../spec/capabilities/registers.md), "Document node"): each view shows
+A register renders from its `registers` node alone (obs's
+`spec/capabilities/registers.md`, "Document node"): each view shows
 the rows the core selected for it, and obs-html evaluates no selection of its own. A view's
 `obs.members` only labels those rows as `obsHtml.label`; the core sends them in member order,
 which obs-html keeps ([generic-tables](spec/generic-tables.md)). A `documentMetadata` view also shows
