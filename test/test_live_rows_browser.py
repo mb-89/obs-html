@@ -1,4 +1,4 @@
-"""Browser tier: a live table's rows after a read in Claude's artifact viewer (generic-tables.md,
+"""Fake-browser tier: a live table's rows after a read in Claude's artifact viewer (generic-tables.md,
 Current data: Projection, Never saved, Status line).
 
 Reader: whoever changes how the tables feature's live-source part shows what a read returns.
@@ -12,19 +12,21 @@ without the button or the refresh key. A read is never saved: the reviewed copy'
 generation timestamp and readerState are those of the page before it; the Comments bar shows the
 saved rows, and a comment made there survives Save reviewed HTML and reopening. A column only a
 declared target has is known again when the copy reopens without the viewer. The routes'
-failures are test_live_connector_browser.py's; the pure layer is live-data.test.js's.
+failures are test_live_connector_browser.py's; the pure layer is live-data.test.js's. The viewer is
+the recorded viewer frame (test/browser/viewer.py, ``open_fake_viewer``); print is the print events,
+not print layout.
 """
 import json
 from datetime import datetime, timedelta, timezone
 
 import pytest
-from playwright.sync_api import expect
 
 from artifacts import artifact_html
-from browser.viewer import open_viewer, with_stand_in
+from browser.fake_page import expect
+from browser.viewer import open_fake_viewer
 from live_viewer import LINE, SHELL, SHOW, stand_in, tracker
 
-pytestmark = pytest.mark.browser
+pytestmark = pytest.mark.dom
 ROWS = f"{SHELL} tbody tr[data-row-key]"
 READ_ROWS = """() => [...document.querySelectorAll('[data-active-chapter] .data-table-shell tbody tr[data-row-key]')]
     .map(row => [row.dataset.rowKey, row.innerText.replace(/[\\u25b8\\u25be]/g, '').replace(/\\s+/g, ' ').trim()])"""
@@ -41,12 +43,11 @@ def artifact() -> str:
     return artifact_html(tracker())
 
 
-@pytest.fixture(scope="module")
-def read(artifact, shared_reader_browser, tmp_path_factory):
+@pytest.fixture
+def read(artifact, fake_page, tmp_path):
     """One page in the viewer, consent granted, after its read: the frame and its errors."""
     errors: list[str] = []
-    _, frame = open_viewer(tmp_path_factory.mktemp("live-rows"), shared_reader_browser, errors, artifact, "light",
-                           init_script=stand_in())
+    _, frame = open_fake_viewer(fake_page, tmp_path, errors, artifact, init_script=stand_in())
     frame.evaluate(SHOW, "live")
     expect(frame.locator(LINE)).to_have_text("Showing current data")
     return frame, errors
@@ -125,26 +126,26 @@ def test_print_shows_the_current_rows_and_the_line_without_the_button_or_the_key
 
 
 def test_the_read_since_is_an_hour_before_the_generation_timestamp_the_same_on_two_opens(
-        read, artifact, reader_browser, tmp_path) -> None:
+        read, artifact, tmp_path) -> None:
     frame, _ = read
-    errors: list[str] = []
-    _, again = open_viewer(tmp_path, reader_browser, errors, artifact, "light", init_script=stand_in())
-    expect(again.locator("html")).to_have_attribute("data-artifact-status", "ready")
-    again.wait_for_function("fakeClaude.calls.some(call => call.kind === 'watch')")
-    seen = [opened.evaluate("fakeClaude.calls.filter(call => call.kind === 'watch').map(call => call.input.since)")
-            for opened in (frame, again)]
+    since = "fakeClaude.calls.filter(call => call.kind === 'watch').map(call => call.input.since)"
+    seen = [frame.evaluate(since)]
     timestamp = frame.evaluate("JSON.parse(obsArtifact.serializeModel()).document.generation.timestamp")
+    errors: list[str] = []
+    _, again = open_fake_viewer(frame, tmp_path, errors, artifact, init_script=stand_in())
+    again.wait_for_function("fakeClaude.calls.some(call => call.kind === 'watch')")
+    seen.append(again.evaluate(since))
     built = datetime.fromisoformat(timestamp).replace(microsecond=0)
     expected = (built - timedelta(hours=1)).astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     assert seen[0] == seen[1] == [expected] * len(seen[0]) and seen[0]
     assert errors == []
 
 
-def test_a_read_is_never_saved(artifact, reader_browser, tmp_path) -> None:
+def test_a_read_is_never_saved(artifact, fake_page, tmp_path) -> None:
     """In prompt, nothing is read until the button: the reviewed copy, the generation timestamp and
     readerState before and after the read are the same, and no changed-HTML notice appears."""
     errors: list[str] = []
-    _, frame = open_viewer(tmp_path, reader_browser, errors, artifact, "light", init_script=stand_in(consent="prompt"))
+    _, frame = open_fake_viewer(fake_page, tmp_path, errors, artifact, init_script=stand_in(consent="prompt"))
     frame.evaluate(SHOW, "live")
     expect(frame.locator(f"{LINE} button")).to_have_text("Show current data")
     before = frame.evaluate(SAVED)
@@ -157,11 +158,11 @@ def test_a_read_is_never_saved(artifact, reader_browser, tmp_path) -> None:
     assert errors == []
 
 
-def test_an_arrival_while_a_print_is_prepared_waits_until_it_ends(artifact, reader_browser, tmp_path) -> None:
+def test_an_arrival_while_a_print_is_prepared_waits_until_it_ends(artifact, fake_page, tmp_path) -> None:
     """A read that answers while a print or an export is prepared changes no row until it ends
     (generic-tables.md, Current data: Projection, Arrival); Export to PDF sets the class beforeprint does."""
     errors: list[str] = []
-    _, frame = open_viewer(tmp_path, reader_browser, errors, artifact, "light", init_script=stand_in(consent="prompt"))
+    _, frame = open_fake_viewer(fake_page, tmp_path, errors, artifact, init_script=stand_in(consent="prompt"))
     frame.evaluate(SHOW, "live")
     assert dict(frame.evaluate(READ_ROWS))["note:widgets-3"] == "widgets-3 Running"
     frame.evaluate("dispatchEvent(new Event('beforeprint'))")
@@ -181,9 +182,9 @@ def test_an_arrival_while_a_print_is_prepared_waits_until_it_ends(artifact, read
 
 
 def test_the_comments_bar_shows_the_saved_rows_and_a_comment_there_survives_reopening(
-        artifact, reader_browser, tmp_path) -> None:
+        artifact, fake_page, tmp_path) -> None:
     errors: list[str] = []
-    _, frame = open_viewer(tmp_path, reader_browser, errors, artifact, "light", init_script=stand_in())
+    _, frame = open_fake_viewer(fake_page, tmp_path, errors, artifact, init_script=stand_in())
     frame.evaluate(SHOW, "register")
     expect(frame.locator(LINE)).to_have_text("Showing current data")
     assert dict(frame.evaluate(READ_ROWS))["note:widgets-3"] == "widgets-3 Done"
@@ -213,23 +214,23 @@ def test_the_comments_bar_shows_the_saved_rows_and_a_comment_there_survives_reop
     expect(frame.locator(LINE)).to_have_text("Showing current data")
     copy = _without_stand_in(frame.evaluate("obsComments.reviewedHtml()"))
     (tmp_path / "copy").mkdir()
-    _, reopened = open_viewer(tmp_path / "copy", reader_browser, errors, copy, "light")
+    _, reopened = open_fake_viewer(fake_page, tmp_path / "copy", errors, copy)
     assert reopened.evaluate("obsComments.data.annotations.map(item => item.target)") == [target]
     assert errors == []
 
 
-def test_a_column_only_a_declared_target_has_reopens_without_the_route(artifact, reader_browser, tmp_path) -> None:
+def test_a_column_only_a_declared_target_has_reopens_without_the_route(artifact, fake_page, tmp_path) -> None:
     """The register's view does not show where; the reader adds it and saves the copy, which reopens
     outside the viewer with the column and no presentation error."""
     errors: list[str] = []
-    _, frame = open_viewer(tmp_path, reader_browser, errors, artifact, "light", init_script=stand_in())
+    _, frame = open_fake_viewer(fake_page, tmp_path, errors, artifact, init_script=stand_in())
     frame.evaluate(SHOW, "register")
     expect(frame.locator(LINE)).to_have_text("Showing current data")
     frame.locator(f'{SHELL} .data-table-options button[title="Show where"]').evaluate("button => button.click()")
     expect(frame.locator(f"{SHELL} thead")).to_contain_text("where")
     copy = _without_stand_in(frame.evaluate("obsComments.reviewedHtml()"))
     (tmp_path / "copy").mkdir()
-    _, reopened = open_viewer(tmp_path / "copy", reader_browser, errors, copy, "light")
+    _, reopened = open_fake_viewer(fake_page, tmp_path / "copy", errors, copy)
     reopened.evaluate(SHOW, "register")
     expect(reopened.locator(f"{SHELL} thead")).to_contain_text("where")
     expect(reopened.locator(f"{SHELL} [data-table-presentation-error]")).to_be_hidden()
@@ -237,9 +238,9 @@ def test_a_column_only_a_declared_target_has_reopens_without_the_route(artifact,
     assert errors == []
 
 
-def test_the_refresh_key_reads_once_more_and_says_so(artifact, reader_browser, tmp_path) -> None:
+def test_the_refresh_key_reads_once_more_and_says_so(artifact, fake_page, tmp_path) -> None:
     errors: list[str] = []
-    _, frame = open_viewer(tmp_path, reader_browser, errors, artifact, "light", init_script=stand_in())
+    _, frame = open_fake_viewer(fake_page, tmp_path, errors, artifact, init_script=stand_in())
     frame.evaluate(SHOW, "live")
     expect(frame.locator(LINE)).to_have_text("Showing current data")
     calls = frame.evaluate("fakeClaude.calls.filter(call => call.kind === 'call').length")
@@ -251,9 +252,9 @@ def test_the_refresh_key_reads_once_more_and_says_so(artifact, reader_browser, t
     assert errors == []
 
 
-def test_a_page_opened_without_the_viewer_reads_nothing_and_shows_no_line(artifact, reader_browser, tmp_path) -> None:
+def test_a_page_opened_without_the_viewer_reads_nothing_and_shows_no_line(artifact, fake_page, tmp_path) -> None:
     errors: list[str] = []
-    _, frame = open_viewer(tmp_path, reader_browser, errors, artifact, "light")
+    _, frame = open_fake_viewer(fake_page, tmp_path, errors, artifact)
     frame.evaluate(SHOW, "live")
     assert frame.evaluate(READ_ROWS)
     expect(frame.locator(f"{SHELL} [data-table-live-refresh]")).to_be_hidden()

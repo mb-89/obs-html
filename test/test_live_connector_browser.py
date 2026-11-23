@@ -1,4 +1,4 @@
-"""Browser tier: a live table's line for each answer of Claude's artifact viewer (generic-tables.md,
+"""Fake-browser tier: a live table's line for each answer of Claude's artifact viewer (generic-tables.md,
 Current data: Reading, Status line).
 
 Reader: whoever changes how the tables feature's live-source part reaches the viewer, asks for
@@ -10,19 +10,20 @@ allowed, prompt then declined (``not_in_manifest``, then ``denied``), denied, ``
 ``use("mcp")``, a retryable error followed by success, and a retryable error after a successful
 read. Each shows its line; only ``blocked_by_policy`` posts a notice. No line holds the generation
 timestamp, the time of a read or any time of day, and none names how the page is made
-(test_reader_text.py, ``technical_words``).
+(test_reader_text.py, ``technical_words``). The viewer is the recorded viewer frame
+(test/browser/viewer.py, ``open_fake_viewer``).
 """
 import re
 
 import pytest
-from playwright.sync_api import expect
 
 from artifacts import artifact_html
-from browser.viewer import open_viewer
+from browser.fake_page import expect
+from browser.viewer import open_fake_viewer
 from live_viewer import CHANGES, LINE, SHELL, SHOW, stand_in, tracker
 from test_reader_text import technical_words
 
-pytestmark = pytest.mark.browser
+pytestmark = pytest.mark.dom
 TRANSIENT = {"code": "server_unavailable", "retryable": True, "message": "The source did not answer."}
 CURRENT = "Showing current data"
 CASES = {
@@ -64,10 +65,10 @@ def _config(config: dict) -> dict:
 
 @pytest.mark.parametrize("case", CASES, ids=list(CASES))
 def test_each_answer_of_the_viewer_shows_its_line_and_only_a_policy_block_posts_a_notice(
-        case, artifact, reader_browser, tmp_path) -> None:
+        case, artifact, fake_page, tmp_path) -> None:
     config, button, expected = CASES[case]
     errors: list[str] = []
-    _, frame = open_viewer(tmp_path, reader_browser, errors, artifact, "light", init_script=stand_in(**_config(config)))
+    _, frame = open_fake_viewer(fake_page, tmp_path, errors, artifact, init_script=stand_in(**_config(config)))
     frame.evaluate(SHOW, "live")
     line = frame.locator(LINE)
     texts = []

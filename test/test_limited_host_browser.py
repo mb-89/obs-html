@@ -1,20 +1,23 @@
-"""The limited-host banner in a browser (architecture.md, Limited-host banner): a page that declares
-it needs scripts and storage shows one plain line in a simulated sandbox without them, and nothing in
-a normal page."""
+"""The limited-host banner on the fake browser (architecture.md, Limited-host banner): a page that
+declares it needs scripts and storage shows one plain line in a simulated sandbox without them, and
+nothing in a normal page. The sandbox without storage is the recorded viewer frame, whose storage
+throws as Chromium's did; the one without scripts is a fake page that runs none
+(browser/browser-door.md, Classification)."""
 import json
 from pathlib import Path
 
 import pytest
 
+from browser.fake_page import expect
+from browser.viewer import open_fake_viewer
 from conftest import built_once
 from documents import chapter, document, heading, paragraph
 from obs_html import cli
-from preview import load_preview, preview_wrapper
 
 NEEDS = ["scripts", "storage"]
 TABLE = json.loads((Path(cli.__file__).parent / "limited-host.json").read_text(encoding="utf-8"))
 
-pytestmark = pytest.mark.browser
+pytestmark = pytest.mark.dom
 
 
 @pytest.fixture(scope="module")
@@ -31,10 +34,9 @@ def artifact(tmp_path_factory) -> Path:
     return built_once(tmp_path_factory, "limited-host-artifact", build) / "artifact.html"
 
 
-def test_a_normal_page_shows_no_banner(artifact: Path, reader_browser) -> None:
-    from playwright.sync_api import expect
-
-    page = reader_browser.new_page(viewport={"width": 1200, "height": 800})
+def test_a_normal_page_shows_no_banner(artifact: Path, fake_page) -> None:
+    page = fake_page
+    page.set_viewport_size({"width": 1200, "height": 800})
     errors: list[str] = []
     page.on("pageerror", lambda error: errors.append(str(error)))
     page.goto(artifact.as_uri())
@@ -45,11 +47,9 @@ def test_a_normal_page_shows_no_banner(artifact: Path, reader_browser) -> None:
 
 
 def test_a_sandbox_without_storage_says_what_does_not_work_and_where_to_open_the_page(
-        artifact: Path, tmp_path: Path, reader_browser) -> None:
+        artifact: Path, tmp_path: Path, fake_page) -> None:
     """A scripts-only sandbox (an opaque origin, as a preview's frame) refuses browser storage."""
-    from playwright.sync_api import expect
-
-    _page, frame = load_preview(tmp_path, reader_browser, [], artifact.read_text(encoding="utf-8"), "null-origin")
+    _page, frame = open_fake_viewer(fake_page, tmp_path, [], artifact.read_text(encoding="utf-8"))
     banner = frame.locator("#limited-host")
     expect(banner).to_be_visible()
     storage = TABLE["needs"]["storage"]
@@ -57,14 +57,11 @@ def test_a_sandbox_without_storage_says_what_does_not_work_and_where_to_open_the
     expect(banner).to_have_attribute("data-limited-host-missing", "storage")
 
 
-def test_a_sandbox_without_scripts_keeps_the_banners_own_line(artifact: Path, tmp_path: Path, reader_browser) -> None:
-    from playwright.sync_api import expect
-
-    wrapper = tmp_path / "no-scripts.html"
-    wrapper.write_text(preview_wrapper(artifact.read_text(encoding="utf-8"), ""), encoding="utf-8")
-    page = reader_browser.new_page(viewport={"width": 1200, "height": 800})
-    page.goto(wrapper.as_uri())
-    frame = page.locator("#artifact").element_handle().content_frame()
-    banner = frame.locator("#limited-host")
+def test_a_sandbox_without_scripts_keeps_the_banners_own_line(artifact: Path, fake_page) -> None:
+    page = fake_page
+    page.set_viewport_size({"width": 1100, "height": 700})
+    page.set_java_script_enabled(False)
+    page.goto(artifact.as_uri())
+    banner = page.locator("#limited-host")
     expect(banner).to_be_visible()
     expect(banner).to_have_text(TABLE["noScripts"])

@@ -4,7 +4,9 @@
 Reader: whoever changes how the Comments bar finds its review items or maps the core's comments.
 
 The first test is the mapping the block-id work measured once (every review item of every fixture
-Document is a core node id of its chapter, one to one), kept so it is checked on every run.
+Document is a core node id of its chapter, one to one), kept so it is checked on every run. The
+tests run on the fake browser; a selection is made with its Selection API, not by dragging the
+mouse (browser/browser-door.md, Classification).
 """
 import copy
 import json
@@ -19,7 +21,7 @@ from conftest import FIXTURE, ROOT, built_once
 from core_calls import unresolved_targets, with_ids
 from documents import chapter, document as build_document, heading, node, paragraph
 
-pytestmark = pytest.mark.browser
+pytestmark = pytest.mark.dom
 DOCUMENTS = sorted((ROOT / "test" / "fixtures" / "documents").glob("*.json"))
 # Each fixture Document's review items: per open chapter, the items the adapter had before they were
 # block ids, less the data tables' hidden status paragraphs, which are no content.
@@ -32,8 +34,9 @@ PARAGRAPH = {"chapter": "intro", "node": "paragraph-957766ff"}
 ROW = {"chapter": "intro", "node": "bases-cc30b281:alpha"}
 
 
-def _open(reader_browser, path):
-    page = reader_browser.new_page(viewport={"width": 1200, "height": 900})
+def _open(page, path):
+    """Open ``path`` in the fake page, which a later open of the same test reopens."""
+    page.set_viewport_size({"width": 1200, "height": 900})
     errors = []
     page.on("pageerror", lambda error: errors.append(str(error)))
     page.on("console", lambda message: message.type == "error" and errors.append(message.text))
@@ -54,11 +57,11 @@ def test_the_review_item_counts_name_every_fixture() -> None:
 
 
 @pytest.mark.parametrize("path", DOCUMENTS, ids=lambda path: path.stem)
-def test_every_review_item_of_a_fixture_is_a_block_of_its_chapter(path, tmp_path, reader_browser) -> None:
+def test_every_review_item_of_a_fixture_is_a_block_of_its_chapter(path, tmp_path, fake_page) -> None:
     document = json.loads(path.read_text(encoding="utf-8"))
     artifact = tmp_path / path.name.replace(".json", ".html")
     artifact.write_text(artifact_html(document), encoding="utf-8")
-    page, errors = _open(reader_browser, artifact)
+    page, errors = _open(fake_page, artifact)
     items = page.evaluate("obsComments.reviewItems()")
     # Each item's decision target, through the one mapping: the home page's items are the abstract's.
     targets = page.evaluate("""(items) => obsCommentModel.toCore({files: [], names: [], annotations: [], states: [],
@@ -101,17 +104,17 @@ STATES = """async () => {
 }"""
 
 
-def test_the_bar_shows_the_resolved_model_and_a_reviewed_copy_shows_the_same_states(tmp_path, reader_browser) -> None:
+def test_the_bar_shows_the_resolved_model_and_a_reviewed_copy_shows_the_same_states(tmp_path, fake_page) -> None:
     document = _reviewed(json.loads(FIXTURE.read_text(encoding="utf-8")))
     artifact = tmp_path / "artifact.html"
     artifact.write_text(artifact_html(document), encoding="utf-8")
-    page, errors = _open(reader_browser, artifact)
+    page, errors = _open(fake_page, artifact)
     shown = page.evaluate(STATES)
     assert (shown["paragraph"], shown["row"], shown["threads"]) == ("rejected", "accepted", ["c1", "c2"])
     assert shown["island"] == {**document["comments"], "names": ["Reviewer"]}
     copy_path = tmp_path / "reviewed.html"
     copy_path.write_text(page.evaluate("obsComments.reviewedHtml()"), encoding="utf-8")
-    reopened, reopened_errors = _open(reader_browser, copy_path)
+    reopened, reopened_errors = _open(fake_page, copy_path)
     assert reopened.evaluate(STATES) == shown
     assert errors == reopened_errors == []
 
@@ -140,11 +143,11 @@ SELECT_ACROSS = """async () => {
 }"""
 
 
-def test_a_selection_across_blocks_targets_the_block_it_starts_in(tmp_path, reader_browser) -> None:
+def test_a_selection_across_blocks_targets_the_block_it_starts_in(tmp_path, fake_page) -> None:
     """Nothing targets a chapter and a quote: the heading the selection starts in is its target, and
     the positions, counted from the heading's start, find the selected text again; the quote is the
     selection's own text, without the review gutter it crosses."""
-    page, errors = _open(reader_browser, _artifact(tmp_path, json.loads(FIXTURE.read_text(encoding="utf-8"))))
+    page, errors = _open(fake_page, _artifact(tmp_path, json.loads(FIXTURE.read_text(encoding="utf-8"))))
     shown = page.evaluate(SELECT_ACROSS)
     assert shown["target"]["node"] == shown["heading"] == "section-36539243"
     assert (shown["target"]["start"], shown["target"]["quote"]) == (0, shown["own"])
@@ -173,11 +176,11 @@ RESOLVE_AS_BOB = """async () => {
 
 
 def test_a_readers_resolve_of_anothers_comment_is_their_own_state_entry_and_only_own_bodies_edit(
-        tmp_path, reader_browser) -> None:
+        tmp_path, fake_page) -> None:
     """Only the reader's own comment edits and deletes; the island the reader saves carries the reader's
     name as its names."""
     document = _reviewed(json.loads(FIXTURE.read_text(encoding="utf-8")))
-    page, errors = _open(reader_browser, _artifact(tmp_path, document))
+    page, errors = _open(fake_page, _artifact(tmp_path, document))
     shown = page.evaluate(RESOLVE_AS_BOB)
     assert shown["editable"] == {"c1": True, "c2": False}
     assert shown["deletable"] == {"c1": False, "c2": True}
@@ -227,10 +230,10 @@ PAINTED = """async ({chapter, bar}) => {
     ("intro", "paragraph-957766ff", "the de"),
     ("appendix", None, "heading he"),
 ], ids=["marked paragraph", "unmarked paragraph"])
-def test_a_reopened_reviewed_copy_paints_a_comment_on_its_quote(chapter, node, quote, tmp_path, reader_browser) -> None:
+def test_a_reopened_reviewed_copy_paints_a_comment_on_its_quote(chapter, node, quote, tmp_path, fake_page) -> None:
     """A comment's positions count the block's own text, not the review gutter's controls, so the copy
     reopens with its highlight on the quoted characters, with the Comments bar closed and open."""
-    page, errors = _open(reader_browser, _artifact(tmp_path, json.loads(FIXTURE.read_text(encoding="utf-8"))))
+    page, errors = _open(fake_page, _artifact(tmp_path, json.loads(FIXTURE.read_text(encoding="utf-8"))))
     if node is None:
         node = page.evaluate("""async (chapter) => { await obsArtifact.activateChapter(chapter);
             await obsArtifact.whenChapterReady();
@@ -240,7 +243,7 @@ def test_a_reopened_reviewed_copy_paints_a_comment_on_its_quote(chapter, node, q
     assert page.evaluate(PAINTED, {"chapter": chapter, "bar": True}) == [quote]
     copy_path = tmp_path / "reviewed.html"
     copy_path.write_text(page.evaluate("obsComments.reviewedHtml()"), encoding="utf-8")
-    reopened, reopened_errors = _open(reader_browser, copy_path)
+    reopened, reopened_errors = _open(fake_page, copy_path)
     assert reopened.evaluate(PAINTED, {"chapter": chapter, "bar": False}) == [quote]
     assert reopened.evaluate(PAINTED, {"chapter": chapter, "bar": True}) == [quote]
     assert errors == reopened_errors == []
@@ -254,7 +257,7 @@ def _old_island() -> dict:
     return json.loads(text.split("data-comment-island>", 1)[1].rsplit("</script>", 1)[0])
 
 
-def test_a_copy_saved_by_3_9_0_reopens_with_each_highlight_on_its_quote(tmp_path, reader_browser) -> None:
+def test_a_copy_saved_by_3_9_0_reopens_with_each_highlight_on_its_quote(tmp_path, fake_page) -> None:
     """Release 3.9.0's positions counted the open bar's review gutter: its copy, rebuilt with its
     comments or loaded into a built artifact, paints each comment on its quote in its block."""
     old = _old_island()
@@ -262,14 +265,18 @@ def test_a_copy_saved_by_3_9_0_reopens_with_each_highlight_on_its_quote(tmp_path
     assert quotes == {"intro": "the de", "appendix": "heading he"}
     assert all(comment["target"]["prefix"].startswith("✓×💬") for comment in old["comments"])
     document = json.loads(FIXTURE.read_text(encoding="utf-8"))
-    rebuilt, errors = _open(reader_browser, _artifact(tmp_path, {**document, "comments": old}))
-    loaded, loaded_errors = _open(reader_browser, _artifact(tmp_path, document))
-    loaded.set_input_files("[data-comment-files]", str(SAVED_BY_3_9_0))
-    loaded.wait_for_function("obsComments.data.annotations.length === 2")
-    for page in (rebuilt, loaded):
+
+    def painted(page) -> None:
         for chapter, quote in quotes.items():
             assert page.evaluate(PAINTED, {"chapter": chapter, "bar": False}) == [quote], chapter
             assert page.evaluate(PAINTED, {"chapter": chapter, "bar": True}) == [quote], chapter
+
+    rebuilt, errors = _open(fake_page, _artifact(tmp_path, {**document, "comments": old}))
+    painted(rebuilt)
+    loaded, loaded_errors = _open(fake_page, _artifact(tmp_path, document))
+    loaded.set_input_files("[data-comment-files]", str(SAVED_BY_3_9_0))
+    loaded.wait_for_function("obsComments.data.annotations.length === 2")
+    painted(loaded)
     assert errors == loaded_errors == []
 
 
@@ -297,15 +304,17 @@ def _glossary() -> dict:
                       for name, (summary, *_body) in terms.items())))
 
 
-QUOTE_RECTS = """([selector, quote]) => {
+SELECT_QUOTE = """async ([selector, quote]) => {
     const section = document.querySelector(selector);
     const walker = document.createTreeWalker(section, NodeFilter.SHOW_TEXT);
     while (walker.nextNode() && !walker.currentNode.data.includes(quote));
-    const text = walker.currentNode, at = text.data.indexOf(quote);
-    const rect = (offset) => { const range = document.createRange();
-        range.setStart(text, offset); range.setEnd(text, offset + 1); return range.getBoundingClientRect(); };
-    const first = rect(at), last = rect(at + quote.length - 1);
-    return {x0: first.left + 1, y0: first.top + first.height / 2, x1: last.right - 1, y1: last.top + last.height / 2};
+    const text = walker.currentNode, range = document.createRange();
+    range.setStart(text, text.data.indexOf(quote));
+    range.setEnd(text, text.data.indexOf(quote) + quote.length);
+    const selected = new Promise((resolve) => document.addEventListener("selectionchange", resolve, {once: true}));
+    getSelection().removeAllRanges();
+    getSelection().addRange(range);
+    await selected;
 }"""
 SELECT_IN = """async ([node, quote]) => {
     const block = document.querySelector(`[data-chapter-body] [data-node-id="${node}"]`);
@@ -335,7 +344,7 @@ def _badge(page) -> str:
     return page.locator(f"{GLOSSARY_ROW} .review-action--comment").get_attribute("data-count")
 
 
-def test_a_selection_in_a_note_detail_comments_on_the_notes_block(tmp_path, reader_browser) -> None:
+def test_a_selection_in_a_note_detail_comments_on_the_notes_block(tmp_path, fake_page) -> None:
     """A selection in a row's note detail targets the block of the note it starts in, under the
     note's chapter, as on the note's own page; the row's badge counts it, open or collapsed, and its
     Target opens the row's details on the quote, also in a reviewed copy (input-model.md, Comments
@@ -343,16 +352,12 @@ def test_a_selection_in_a_note_detail_comments_on_the_notes_block(tmp_path, read
     document = _glossary()
     [alpha] = [item for item in document["chapters"] if item["id"] == "alpha"]
     paragraph_id = next(item["id"] for item in alpha["content"] if item["type"] == "paragraph")
-    page, errors = _open(reader_browser, _artifact(tmp_path, document))
+    page, errors = _open(fake_page, _artifact(tmp_path, document))
     page.evaluate("""async () => { await obsArtifact.activateChapter("glossary");
         await obsArtifact.whenChapterReady(); obsArtifact.openBar("comments", "right"); }""")
     page.evaluate(EXPAND)
     page.locator(ALPHA_DETAIL).wait_for()
-    drag = page.evaluate(QUOTE_RECTS, [f"{ALPHA_DETAIL} section[data-reference-note='alpha']", QUOTE])
-    page.mouse.move(drag["x0"], drag["y0"])
-    page.mouse.down()
-    page.mouse.move(drag["x1"], drag["y1"], steps=5)
-    page.mouse.up()
+    page.evaluate(SELECT_QUOTE, [f"{ALPHA_DETAIL} section[data-reference-note='alpha']", QUOTE])
     assert page.evaluate("getSelection().toString()") == QUOTE
     page.evaluate(SETTLED)
     add = page.locator("[data-comment-add]")
@@ -377,7 +382,7 @@ def test_a_selection_in_a_note_detail_comments_on_the_notes_block(tmp_path, read
     own = page.evaluate(SELECT_IN, [paragraph_id, QUOTE])
     assert {key: own[key] for key in ("chapter", "node", "quote", "start", "end")} == {
         key: target[key] for key in ("chapter", "node", "quote", "start", "end")}
-    reopened, reopened_errors = _open(reader_browser, copy_path)
+    reopened, reopened_errors = _open(fake_page, copy_path)
     reopened.evaluate(EXPAND)
     reopened.locator(ALPHA_DETAIL).wait_for()
     assert reopened.evaluate(HIGHLIGHTS) == [QUOTE]
@@ -440,8 +445,8 @@ def _bar(page) -> None:
 
 
 def test_each_block_with_fields_has_a_card_in_order_with_its_path_and_its_click_jumps_and_highlights(
-        fields_artifact, reader_browser) -> None:
-    page, errors = _open(reader_browser, fields_artifact)
+        fields_artifact, fake_page) -> None:
+    page, errors = _open(fake_page, fields_artifact)
     _bar(page)
     cards = page.evaluate(CARD_STATE)
     # Each note's front matter is its first card, with Source file; then a card per block that sets a field.
@@ -455,20 +460,11 @@ def test_each_block_with_fields_has_a_card_in_order_with_its_path_and_its_click_
     assert cards[3]["fields"] == [["owner", "lin overrides ana", True]]
     assert cards[4]["fields"] == [["reviewer", "unset", False], ["owner", "unset overrides ana", True]]
     assert cards[5]["fields"] == [["owner", "ana", False], ["Source file", "only.md", False]]
-    # Home is open: only its card marks what is on screen.
-    assert [card["onScreen"] for card in cards] == [True, False, False, False, False, False]
 
     page.locator(f"{CARDS}[data-metadata-kind='block'] .metadata-target").nth(1).click()
     page.wait_for_function("document.querySelector('[data-active-chapter]').dataset.chapter === 'chapter'")
     page.evaluate(SETTLED)
     assert page.evaluate(METADATA_HIGHLIGHT) == "Part prose."
-    assert page.evaluate("""() => { const block = document.querySelector('[data-chapter-body] p:has(+ ul)');
-        const view = document.querySelector('[data-chapter-scroll]').getBoundingClientRect();
-        const box = block.getBoundingClientRect(); return box.top >= view.top && box.bottom <= view.bottom; }""")
-    # Scrolling marks the cards of what is on screen: the section start and the list are near the paragraph.
-    assert [card["onScreen"] for card in page.evaluate(CARD_STATE)] == [False, True, True, True, True, False]
-    page.evaluate(f"""async () => {{ document.querySelector('[data-chapter-scroll]').scrollTop = 0; await {SETTLED}; }}""")
-    assert [card["onScreen"] for card in page.evaluate(CARD_STATE)] == [False, True, False, False, False, False]
     # A section's card highlights its section, heading and blocks.
     page.locator(f"{CARDS}[data-metadata-kind='block'] .metadata-target").first.click()
     page.evaluate(SETTLED)
@@ -476,8 +472,37 @@ def test_each_block_with_fields_has_a_card_in_order_with_its_path_and_its_click_
     assert errors == []
 
 
-def test_the_kind_filter_and_field_queries_choose_the_metadata_cards(fields_artifact, reader_browser) -> None:
-    page, errors = _open(reader_browser, fields_artifact)
+@pytest.mark.browser
+def test_a_cards_click_scrolls_its_block_into_view_and_scrolling_marks_the_cards_on_screen(
+        fields_artifact, reader_browser) -> None:
+    """What is on screen is layout: the block a card's click scrolls to lies inside the chapter's
+    scroll box, and the cards of what the scroll box shows are marked (browser/browser-door.md,
+    Classification: it stays on the real browser)."""
+    page = reader_browser.new_page(viewport={"width": 1200, "height": 900})
+    errors = []
+    page.on("pageerror", lambda error: errors.append(str(error)))
+    page.on("console", lambda message: message.type == "error" and errors.append(message.text))
+    page.goto(fields_artifact.as_uri())
+    page.wait_for_function("document.documentElement.dataset.artifactStatus === 'ready'")
+    page.evaluate("obsArtifact.whenChapterReady()")
+    _bar(page)
+    # Home is open: only its card marks what is on screen.
+    assert [card["onScreen"] for card in page.evaluate(CARD_STATE)] == [True, False, False, False, False, False]
+    page.locator(f"{CARDS}[data-metadata-kind='block'] .metadata-target").nth(1).click()
+    page.wait_for_function("document.querySelector('[data-active-chapter]').dataset.chapter === 'chapter'")
+    page.evaluate(SETTLED)
+    assert page.evaluate("""() => { const block = document.querySelector('[data-chapter-body] p:has(+ ul)');
+        const view = document.querySelector('[data-chapter-scroll]').getBoundingClientRect();
+        const box = block.getBoundingClientRect(); return box.top >= view.top && box.bottom <= view.bottom; }""")
+    # Scrolling marks the cards of what is on screen: the section start and the list are near the paragraph.
+    assert [card["onScreen"] for card in page.evaluate(CARD_STATE)] == [False, True, True, True, True, False]
+    page.evaluate(f"""async () => {{ document.querySelector('[data-chapter-scroll]').scrollTop = 0; await {SETTLED}; }}""")
+    assert [card["onScreen"] for card in page.evaluate(CARD_STATE)] == [False, True, False, False, False, False]
+    assert errors == []
+
+
+def test_the_kind_filter_and_field_queries_choose_the_metadata_cards(fields_artifact, fake_page) -> None:
+    page, errors = _open(fake_page, fields_artifact)
     _bar(page)
     page.evaluate("""() => obsComments.data.annotations.push({id: "c1", author: "Ada", created: "2026-11-22T10:00:00Z",
         mediaType: "text/plain", text: "On the intro.", state: "open", replies: [],
@@ -509,8 +534,8 @@ def test_the_kind_filter_and_field_queries_choose_the_metadata_cards(fields_arti
 
 
 def test_a_metadata_only_note_shows_empty_with_the_bar_closed_and_the_page_has_no_chevron(
-        fields_artifact, reader_browser) -> None:
-    page, errors = _open(reader_browser, fields_artifact)
+        fields_artifact, fake_page) -> None:
+    page, errors = _open(fake_page, fields_artifact)
     page.evaluate("""async () => { await obsArtifact.activateChapter("only"); await obsArtifact.whenChapterReady(); }""")
     # The page shows its frame, the note's title and page number, and none of its fields.
     assert page.evaluate("""() => ({

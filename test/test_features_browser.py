@@ -1,24 +1,22 @@
-"""Native-browser tier: decisive canaries in Claude's artifact viewer (test/browser/viewer.py).
+"""Fake-browser tier: decisive canaries in Claude's artifact viewer (test/browser/viewer.py).
 
 The viewer frame hides its sandbox flags from the artifact, so the canaries that read them cannot
 decide: they raise nothing at load, and a feature whose failure shows on use raises its warning
-then (artifact-ui.md, notice center).
+then (artifact-ui.md, notice center). The fake browser opens the artifact as the recorded viewer
+frame (``open_fake_viewer``); the order of scripts in a srcdoc frame stays a hot test of the one
+Chromium (browser/browser-door.md, Classification).
 """
 import pytest
 
 from artifacts import artifact_html
 from canaries import undecided_where_flags_hidden
-from browser.viewer import open_viewer
+from browser.fake_page import expect
+from browser.viewer import open_fake_viewer, open_viewer
 from test_features import plain, with_context_note
-
-
-pytestmark = pytest.mark.browser
 
 
 def _capability_notices(frame) -> dict[str, str]:
     """Each capability warning entry's key and title, once the notice center has mounted them."""
-    from playwright.sync_api import expect
-
     # History is refused in the viewer, so its entry shows the canaries' warnings are mounted.
     expect(frame.locator('[data-notice="capability-history"]')).to_have_count(1)
     return frame.locator('[data-notice^="capability-"]').evaluate_all(
@@ -26,22 +24,24 @@ def _capability_notices(frame) -> dict[str, str]:
         " item.querySelector('[data-notice-title]').textContent]))")
 
 
-def test_without_a_floating_window_no_popup_code_and_no_separate_windows_notice(tmp_path, reader_browser) -> None:
+@pytest.mark.dom
+def test_without_a_floating_window_no_popup_code_and_no_separate_windows_notice(tmp_path, fake_page) -> None:
     errors: list[str] = []
     html = artifact_html(plain())
     for marker in ("window.open", "documentPictureInPicture", "Separate windows", "canary-popups"):
         assert marker not in html, f"popup code shipped without a guided card or context note: {marker}"
-    _page, frame = open_viewer(tmp_path, reader_browser, errors, html, "light")
+    _page, frame = open_fake_viewer(fake_page, tmp_path, errors, html)
     notices = _capability_notices(frame)
     assert "popups" not in notices and not any("Separate windows" in title for title in notices.values())
     assert "dialogs" not in notices and not any("Dialogs" in title for title in notices.values())
     assert errors == []
 
 
-def test_a_host_that_hides_its_sandbox_flags_raises_nothing_at_load_for_them(tmp_path, reader_browser) -> None:
+@pytest.mark.dom
+def test_a_host_that_hides_its_sandbox_flags_raises_nothing_at_load_for_them(tmp_path, fake_page) -> None:
     errors: list[str] = []
     html = artifact_html(with_context_note())
-    _page, frame = open_viewer(tmp_path, reader_browser, errors, html, "light")
+    _page, frame = open_fake_viewer(fake_page, tmp_path, errors, html)
     notices = _capability_notices(frame)
     # The canaries that read the frame's sandbox flags, which the viewer hides, and answers, which
     # obs-html serve did not serve (test/canaries.py).
@@ -56,11 +56,10 @@ def test_a_host_that_hides_its_sandbox_flags_raises_nothing_at_load_for_them(tmp
     assert errors == []
 
 
-def test_a_blocked_separate_window_shows_its_reason_inline_and_warns_once(tmp_path, reader_browser) -> None:
-    from playwright.sync_api import expect
-
+@pytest.mark.dom
+def test_a_blocked_separate_window_shows_its_reason_inline_and_warns_once(tmp_path, fake_page) -> None:
     errors: list[str] = []
-    _page, frame = open_viewer(tmp_path, reader_browser, errors, artifact_html(with_context_note()), "light")
+    _page, frame = open_fake_viewer(fake_page, tmp_path, errors, artifact_html(with_context_note()))
     _capability_notices(frame)
     frame.locator("html").evaluate("() => { obsPages.setPaged(false); obsArtifact.activateChapter('one'); }")
     link = frame.locator("[data-chapter-body] a[href='#aside']")
@@ -89,14 +88,18 @@ def test_a_blocked_separate_window_shows_its_reason_inline_and_warns_once(tmp_pa
 # A frame whose clipboard canary cannot decide (no permissions-policy API) and whose clipboard
 # refuses on use, as a host without that API would.
 UNDECIDED_CLIPBOARD = """
-    delete Document.prototype.featurePolicy;
-    delete Document.prototype.permissionsPolicy;
+    for (const owner of [Document.prototype, document]) {
+        delete owner.featurePolicy;
+        delete owner.permissionsPolicy;
+    }
     Object.defineProperty(navigator, "clipboard", {configurable: true, value: {
         writeText: () => Promise.reject(new DOMException("Write permission denied.", "NotAllowedError")),
     }});
 """
 
 
+@pytest.mark.hot
+@pytest.mark.browser
 def test_a_host_stand_in_is_in_place_before_the_artifacts_first_script(tmp_path, full_chromium_browser) -> None:
     errors: list[str] = []
     _page, frame = open_viewer(tmp_path, full_chromium_browser, errors, artifact_html(plain()), "light",
@@ -105,12 +108,11 @@ def test_a_host_stand_in_is_in_place_before_the_artifacts_first_script(tmp_path,
     assert errors == []
 
 
-def test_a_refused_copy_shows_the_reason_inline_and_warns_once(tmp_path, reader_browser) -> None:
-    from playwright.sync_api import expect
-
+@pytest.mark.dom
+def test_a_refused_copy_shows_the_reason_inline_and_warns_once(tmp_path, fake_page) -> None:
     errors: list[str] = []
-    _page, frame = open_viewer(tmp_path, reader_browser, errors, artifact_html(plain()), "light",
-                               init_script=UNDECIDED_CLIPBOARD)
+    _page, frame = open_fake_viewer(fake_page, tmp_path, errors, artifact_html(plain()),
+                                    init_script=UNDECIDED_CLIPBOARD)
     _capability_notices(frame)
     assert frame.locator("html").evaluate("() => globalThis.obsCapabilities.undecided('clipboard')")
     expect(frame.locator('[data-notice="capability-clipboard"]')).to_have_count(0)
@@ -132,9 +134,10 @@ def test_a_refused_copy_shows_the_reason_inline_and_warns_once(tmp_path, reader_
     assert [error for error in errors if "could not be copied" not in error] == []
 
 
-def test_download_changed_html_help_names_the_remedy_where_downloads_are_undecided(tmp_path, reader_browser) -> None:
+@pytest.mark.dom
+def test_download_changed_html_help_names_the_remedy_where_downloads_are_undecided(tmp_path, fake_page) -> None:
     errors: list[str] = []
-    _page, frame = open_viewer(tmp_path, reader_browser, errors, artifact_html(plain()), "light")
+    _page, frame = open_fake_viewer(fake_page, tmp_path, errors, artifact_html(plain()))
     _capability_notices(frame)
     # A new comment changes the HTML; the changed-HTML entry then holds Download changed HTML.
     frame.locator("html").evaluate("""() => {

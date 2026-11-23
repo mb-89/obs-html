@@ -74,9 +74,9 @@ def test_the_light_edition_shows_label_and_vault_path_and_does_not_embed_the_byt
         decode_artifact_data(html))
 
 
-@pytest.mark.browser
-def test_clicking_the_evidence_download_saves_the_asset_bytes(editions, reader_browser, tmp_path) -> None:
-    page = reader_browser.new_page()
+@pytest.mark.dom
+def test_clicking_the_evidence_download_saves_the_asset_bytes(editions, fake_page, tmp_path) -> None:
+    page = fake_page
     page.set_default_timeout(5000)
     errors: list[str] = []
     page.on("pageerror", lambda error: errors.append(str(error)))
@@ -92,16 +92,15 @@ def test_clicking_the_evidence_download_saves_the_asset_bytes(editions, reader_b
     assert errors == []
 
 
-@pytest.mark.browser
+@pytest.mark.dom
 def test_the_evidence_download_help_names_the_downloads_remedy_where_downloads_are_undecided(
-        editions, reader_browser, tmp_path) -> None:
+        editions, fake_page, tmp_path) -> None:
     """Claude's viewer hides its sandbox flags, so the downloads canary cannot decide; the
     attachment download, like every download of the downloads feature, then names the remedy."""
-    from browser.viewer import open_viewer
+    from browser.viewer import open_fake_viewer
 
     errors: list[str] = []
-    _page, frame = open_viewer(tmp_path, reader_browser, errors,
-                               editions["evidence"].read_text(encoding="utf-8"), "light")
+    _page, frame = open_fake_viewer(fake_page, tmp_path, errors, editions["evidence"].read_text(encoding="utf-8"))
     frame.locator("html").evaluate("obsPages.setPaged(false); obsArtifact.activateChapter('chapter')")
     control = frame.locator("[data-active-chapter] [data-attachment-download]")
     control.focus()
