@@ -27,7 +27,7 @@ class HarnessError extends Error {
     }
 }
 
-// Each animation frame the runtime asks for while the harness runs the page's timers, at most.
+// How many rounds of animation frames runTimers runs at most: a frame may ask for the next one.
 const FRAMES = 100;
 // How long the page may take, on its own clock, to open and to reach its ready mark.
 const TIMEOUT = 30000;
