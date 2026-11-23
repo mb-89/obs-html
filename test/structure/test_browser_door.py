@@ -23,6 +23,7 @@ takes the fake browser, but the named exceptions of a logic file, which carry th
 any more, or only in its hot tests, has a moved row, and a moved row's file takes none outside them.
 """
 import ast
+import functools
 import re
 from pathlib import Path
 
@@ -164,6 +165,7 @@ def _takes(functions: list[ast.FunctionDef], fixtures: set[str], but_hot: bool =
                and not (but_hot and hot(function)) for function in functions)
 
 
+@functools.cache
 def _functions(path: Path) -> tuple[ast.Module, list[ast.FunctionDef]]:
     module = ast.parse(path.read_text(encoding="utf-8"))
     return module, [node for node in ast.walk(module) if isinstance(node, ast.FunctionDef)]

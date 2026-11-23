@@ -2,6 +2,7 @@ import contextlib
 import functools
 import json
 import os
+import re
 import shutil
 import subprocess
 import tempfile
@@ -185,10 +186,12 @@ def feature_artifact(tmp_path_factory) -> str:
 @pytest.fixture(scope="session")
 def door_artifact(tmp_path_factory):
     """The artifact of a browser door's state (test/browser/expectations.yaml), as a function of the
-    state's name: built once per run with the library fakes and the build instant fixed
+    state's name: built once per run for each artifact the states name, with the library fakes and the build instant fixed
     (browser/door.py, build_artifact), and shared by every worker; tests only read it."""
     def artifact(name: str) -> Path:
-        return built_once(tmp_path_factory, f"door-{name}", lambda folder: door.build_artifact(name, folder)) / "artifact.html"
+        # By the state's artifact, not its name: states of one page at other contexts share one build.
+        source = re.sub(r"[^a-z0-9]+", "-", door.states()[name]["artifact"].lower()).strip("-")
+        return built_once(tmp_path_factory, f"door-{source}", lambda folder: door.build_artifact(name, folder)) / "artifact.html"
 
     return artifact
 
