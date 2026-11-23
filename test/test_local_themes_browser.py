@@ -17,7 +17,6 @@ from test_features import with_context_note
 from test_local_themes import COLOURS, LOCAL_THEMES, VARIABLE
 from obs_html.style_choice import local_style_choice
 
-pytestmark = pytest.mark.browser
 
 DEFAULT = {"canvas": {"light": "#ffffff", "dark": "#1f1f1f"}, "surface": {"light": "#ffffff", "dark": "#202020"},
            "text": {"light": "#000000", "dark": "#dddddd"}}
@@ -52,6 +51,7 @@ def themed(tmp_path, start: str) -> str:
 
 
 @pytest.mark.hot("local-theme-light", "local-theme-dark")
+@pytest.mark.browser
 @pytest.mark.parametrize("start, colours", [("contrast", THEME), ("default", DEFAULT)])
 def test_a_page_opens_in_its_start_theme_in_each_appearance(tmp_path, reader_browser, start, colours) -> None:
     errors: list[str] = []
@@ -66,6 +66,7 @@ def test_a_page_opens_in_its_start_theme_in_each_appearance(tmp_path, reader_bro
 
 
 @pytest.mark.hot("local-theme-print")
+@pytest.mark.browser
 def test_a_themed_page_prints_light(tmp_path, reader_browser) -> None:
     errors: list[str] = []
     page, frame = open_viewer(tmp_path, reader_browser, errors, themed(tmp_path, "contrast"), "dark")
@@ -78,6 +79,7 @@ def test_a_themed_page_prints_light(tmp_path, reader_browser) -> None:
 
 
 @pytest.mark.hot("local-theme-light")
+@pytest.mark.browser
 def test_a_guided_card_window_opens_in_the_page_theme(tmp_path, reader_browser) -> None:
     artifact = tmp_path / "context.html"
     artifact.write_text(artifact_html(with_context_note(), style_choice=starting_in(tmp_path, "contrast")),
@@ -107,6 +109,7 @@ TYPESET = """() => {
 
 
 @pytest.mark.hot("local-theme-light", "local-theme-dark")
+@pytest.mark.browser
 @pytest.mark.parametrize("start", ["contrast", "default"])
 def test_theme_rules_apply_in_each_appearance(tmp_path, reader_browser, start) -> None:
     errors: list[str] = []

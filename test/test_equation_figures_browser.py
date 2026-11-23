@@ -26,7 +26,6 @@ EQUATIONS = ROOT / "test" / "fixtures" / "documents" / "equations.json"
 VECTORS = CORE_ROOT / "test" / "fixtures" / "expression-vectors.json"
 TORQUE, SATURATED, QUINTIC = "curves--block-torque", "curves--block-saturated", "curves--block-quintic"
 
-pytestmark = pytest.mark.browser
 
 
 @pytest.fixture(scope="module")
@@ -103,6 +102,7 @@ def _torque(speed_rpm: float, throttle: float) -> float:
 
 
 @pytest.mark.hot("equations-desktop")
+@pytest.mark.browser
 def test_the_torque_family_renders_from_the_document_with_the_network_blocked(shared_reader) -> None:
     reader = shared_reader
 
@@ -131,6 +131,7 @@ def _inside(trace: dict, low: float, high: float) -> int:
 
 
 @pytest.mark.hot("equations-desktop")
+@pytest.mark.browser
 def test_zooming_in_samples_the_visible_range_again(artifact, reader_browser) -> None:
     reader = Reader(reader_browser, artifact)
     before = _inside(reader.traces(TORQUE)[0], 2000, 2500)
@@ -172,6 +173,7 @@ def _saturated(times: list[float], zeta=0.3, w=2.0, u=1.5, step=1e-3) -> list[fl
 
 
 @pytest.mark.hot("equations-desktop")
+@pytest.mark.browser
 def test_the_numeric_systems_plot_through_the_integrator_and_newtons_method(shared_reader) -> None:
     reader = shared_reader
 
@@ -188,6 +190,7 @@ def test_the_numeric_systems_plot_through_the_integrator_and_newtons_method(shar
 
 
 @pytest.mark.hot("equations-desktop")
+@pytest.mark.browser
 def test_the_shared_test_vectors_pass_in_the_browser(shared_reader) -> None:
     vectors = json.loads(VECTORS.read_text(encoding="utf-8"))
     reader = shared_reader
@@ -205,6 +208,7 @@ def test_the_shared_test_vectors_pass_in_the_browser(shared_reader) -> None:
 
 
 @pytest.mark.hot("equations-desktop")
+@pytest.mark.browser
 def test_the_menu_adds_a_trace_over_the_figures_variables(artifact, reader_browser) -> None:
     reader = Reader(reader_browser, artifact)
     menu = reader.menu(QUINTIC)
@@ -227,6 +231,7 @@ def test_the_menu_adds_a_trace_over_the_figures_variables(artifact, reader_brows
 
 
 @pytest.mark.hot("equations-desktop")
+@pytest.mark.browser
 def test_the_menu_puts_the_second_y_axis_on_the_left_or_a_trace_on_it(artifact, reader_browser) -> None:
     reader = Reader(reader_browser, artifact)
     menu = reader.menu(TORQUE)
@@ -246,6 +251,7 @@ def test_the_menu_puts_the_second_y_axis_on_the_left_or_a_trace_on_it(artifact, 
 
 
 @pytest.mark.hot("equations-desktop")
+@pytest.mark.browser
 def test_the_menu_swaps_x_and_y(artifact, reader_browser) -> None:
     reader = Reader(reader_browser, artifact)
     [before] = reader.traces(QUINTIC)
@@ -261,6 +267,7 @@ def test_the_menu_swaps_x_and_y(artifact, reader_browser) -> None:
 
 
 @pytest.mark.hot("equations-desktop")
+@pytest.mark.browser
 def test_the_menu_draws_a_family_over_a_third_variable_with_progress(artifact, reader_browser) -> None:
     reader = Reader(reader_browser, artifact)
     menu = reader.menu(SATURATED)
@@ -291,6 +298,7 @@ def test_the_menu_draws_a_family_over_a_third_variable_with_progress(artifact, r
 
 
 @pytest.mark.hot("equations-desktop")
+@pytest.mark.browser
 def test_print_shows_the_readers_view_with_a_note_where_it_changed(artifact, reader_browser) -> None:
     reader = Reader(reader_browser, artifact)
     draws = reader.draws(QUINTIC)
@@ -364,6 +372,7 @@ def _drawn(reader: Reader, anchor: str) -> set[str]:
 
 
 @pytest.mark.hot("equations-desktop")
+@pytest.mark.browser
 def test_parallel_coordinates_select_curves_by_computed_axes_and_cap_the_grid(artifact, reader_browser) -> None:
     reader = Reader(reader_browser, artifact, "sweeps", (STEP,))
     page = reader.page

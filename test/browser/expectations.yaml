@@ -21,8 +21,11 @@
 #
 # A state is a fixture artifact, its context and the steps that lead there. Its artifact is a
 # Document file, or `<module>.py::<function>` for a Document a test module writes or the artifact's
-# HTML it builds. Step 0 is always the opened page. test/browser/door.py records each state with
-# `uv run pytest -m hot --record` into test/browser/recordings/<state>.yaml.
+# HTML it builds. Step 0 is always the opened page. A state's `reads` (`<selector>|<property>`) are
+# cascade reads beside the runtime's own, of the element each selector finds after each step: the
+# computed values its hot tests check, such as painted colours. A hot test names the states it visits
+# in its hot mark. test/browser/door.py records each state with `uv run pytest -m hot --record` into
+# test/browser/recordings/<state>.yaml.
 
 states:
   theme-choice-plain:
