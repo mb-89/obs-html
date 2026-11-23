@@ -92,6 +92,17 @@ def recording(request) -> bool:
     return True
 
 
+# The xdist group of the hot tests under --record: one worker, and so one Chromium, runs them all.
+HOT_GROUP = "hot"
+# Whether this test process records (--record): its hot tests lease every page from the one full
+# Chromium (RECORD_POOLS).
+RECORDING: list[bool] = [False]
+
+
+def pytest_configure(config):
+    RECORDING[0] = bool(config.getoption("--record"))
+
+
 def pytest_sessionstart(session):
     """A run installs this repository's Node test package where it is missing or stale, as the
     core's suite installs its own (test/suite.py, install_node_packages); the JUnit report, where the
@@ -282,6 +293,17 @@ def pytest_collection_modifyitems(config, items):
             if "recording" in getattr(item, "fixturenames", ()):
                 item.add_marker(pytest.mark.skip(
                     reason=f"records the browser door's states only with --record: run `{door.REMEDY}`"))
+    else:
+        for item in items:
+            if item.get_closest_marker("hot") is None:
+                continue
+            if item.get_closest_marker("hot").kwargs.get("own_browser"):
+                item.add_marker(pytest.mark.skip(
+                    reason="its browser is its own, the subject of its test; the one Chromium of --record holds the "
+                           "hot tests that record (test/browser/browser-door.md, When hot tests run)"))
+            # The hot tests share one xdist group, so one worker holds the one Chromium (HOT_GROUP);
+            # prepended, so it is the closest group mark.
+            item.add_marker(pytest.mark.xdist_group(HOT_GROUP), append=False)
     own = [item for item in items if item.get_closest_marker("xdist_group")]
     rest = [item for item in items if not item.get_closest_marker("xdist_group")]
     for item in rest:
@@ -396,12 +418,17 @@ class PagePool:
     browser (``release``).
     """
 
-    def __init__(self, engine: str, launch, context: dict | None = None):
+    def __init__(self, engine: str, launch, context: dict | None = None, host: "PagePool | None" = None,
+                 prepare=None):
         from playwright.sync_api import Page
 
         self.engine = engine
         self._launch = launch
         self._context = context or {}
+        # A pool whose pages are contexts of another pool's browser (SHARED_POOLS): it launches
+        # none and closes none of its own; ``prepare(page)`` sets what its contexts add.
+        self._host = host
+        self._prepare = prepare
         self._browser = None
         self._crashed = False
         self._ended = False
@@ -450,6 +477,11 @@ class PagePool:
         for page in self._idle:
             self._origins.pop(page, None)
         self._idle.clear()
+        if self._host is not None:
+            self._host.warm()
+            self._browser, self._process = self._host._browser, self._host._process
+            self._browser.on("disconnected", lambda _, browser=self._browser: self._lost(browser))
+            return
         browser = self._launch()
         browser.on("disconnected", lambda _: self._lost(browser))
         session = browser.new_browser_cdp_session()
@@ -483,6 +515,8 @@ class PagePool:
 
     def _open(self):
         page = self._browser.new_context(**self._context).new_page()
+        if self._prepare is not None:
+            self._prepare(page)
         self._origins[page] = set()
         self._on(page, "framenavigated", lambda frame: self._origins[page].add(origin(frame.url)))
         return page
@@ -590,7 +624,7 @@ class PagePool:
     def close(self) -> None:
         browser, self._browser = self._browser, None
         self._idle.clear()
-        if browser is not None and browser.is_connected():
+        if browser is not None and browser.is_connected() and self._host is None:
             browser.close()
 
 
@@ -676,18 +710,47 @@ POOL_KINDS = {
                                ("--enable-features=OverlayScrollbar",), None),
     # A further headless shell whose pages are phones (PHONE_CONTEXT).
     "phone_pool": (f"{HEADLESS_SHELL_ENGINE} (phone)", _shell, (), PHONE_CONTEXT),
-    # Full Chromium whose pages are phones: the browser door records a phone's state there
-    # (test/test_door_recordings_browser.py), only with --record.
-    "full_phone_pool": (f"{FULL_CHROMIUM_ENGINE} (phone)", _full_chromium, (), PHONE_CONTEXT),
 }
 
 
+def hide_scrollbars(page) -> None:
+    """Scrollbars that take no room, as the overlay scrollbars of touch devices and macOS: Chromium's
+    emulation of hidden scrollbars, set on a page of the one Chromium instead of a launch flag."""
+    session = page.context.new_cdp_session(page)
+    session.send("Emulation.setScrollbarsHidden", {"hidden": True})
+
+
+# The pools whose pages are contexts of another pool's browser: pool -> (its engine, the pool whose
+# browser it shares, its pages' context, what each of its pages sets). The phone is a context of
+# the one full Chromium, and so are scrollbars that take no room under --record.
+SHARED_POOLS = {
+    # Full Chromium whose pages are phones: the browser door records a phone's state there
+    # (test/test_door_recordings_browser.py), and the hot tests' phones lease it under --record.
+    "full_phone_pool": (f"{FULL_CHROMIUM_ENGINE} (phone)", "full_page_pool", PHONE_CONTEXT, None),
+    # Full Chromium whose scrollbars take no room, for the hot tests of the overlay-scrollbar pool
+    # under --record.
+    "full_overlay_scrollbar_pool": (f"{FULL_CHROMIUM_ENGINE} (hidden scrollbars)", "full_page_pool", None,
+                                    hide_scrollbars),
+}
+# Under --record, the pool that serves each pool fixture: the hot tests share one full Chromium
+# (test/browser/browser-door.md, When hot tests run), its phones and hidden scrollbars contexts of it.
+RECORD_POOLS = {"page_pool": "full_page_pool", "phone_pool": "full_phone_pool",
+                "overlay_scrollbar_pool": "full_overlay_scrollbar_pool"}
+
+
 def process_pool(name: str) -> PagePool:
-    """The test process's pool of the fixture ``name`` (POOL_KINDS), made on first use; a missing
+    """The test process's pool of the fixture ``name`` (POOL_KINDS, SHARED_POOLS), made on first use;
+    under --record, the pool of the one full Chromium that serves it (RECORD_POOLS). A missing
     engine raises BrowserEngineError."""
+    if RECORDING[0]:
+        name = RECORD_POOLS.get(name, name)
     if name not in PROCESS_POOLS:
-        engine, executable, args, context = POOL_KINDS[name]
-        pool = PagePool(engine, launcher(process_playwright(), engine, executable(), args), context)
+        if name in SHARED_POOLS:
+            engine, host, context, prepare = SHARED_POOLS[name]
+            pool = PagePool(engine, None, context, host=process_pool(host), prepare=prepare)
+        else:
+            engine, executable, args, context = POOL_KINDS[name]
+            pool = PagePool(engine, launcher(process_playwright(), engine, executable(), args), context)
         PROCESS_POOLS[name] = pool
         POOLS.append(pool)
     return PROCESS_POOLS[name]
@@ -699,7 +762,7 @@ def warm(item) -> None:
     first lease fails the test, naming the engine. A test that skips starts none."""
     if item.get_closest_marker("skip"):
         return
-    for name in POOL_KINDS.keys() & set(getattr(item, "fixturenames", ())):
+    for name in (POOL_KINDS.keys() | SHARED_POOLS.keys()) & set(getattr(item, "fixturenames", ())):
         with contextlib.suppress(BrowserEngineError):
             process_pool(name).warm()
 
@@ -849,7 +912,7 @@ def phone_browser(phone_pool):
 
 @pytest.fixture(scope="session")
 def full_phone_pool(worker_playwright, page_patches):
-    """The test process's page pool over full Chromium whose pages are phones (POOL_KINDS)."""
+    """The test process's page pool whose pages are phones in contexts of the one full Chromium (SHARED_POOLS)."""
     return process_pool("full_phone_pool")
 
 
