@@ -271,7 +271,7 @@ def test_choosing_a_theme_measures_the_table_columns_again(door_artifact, fake_p
     assert errors == []
 
 
-@pytest.mark.hot
+@pytest.mark.hot("theme-choice-text")
 @pytest.mark.browser
 @pytest.mark.parametrize("width", [390, 1180])
 def test_the_theme_select_is_as_wide_as_its_options_as_the_appearance_select_is(tmp_path, reader_browser, width) -> None:
@@ -368,7 +368,7 @@ def test_a_guided_card_window_follows_the_theme(door_artifact, fake_page) -> Non
     assert errors == []
 
 
-@pytest.mark.hot
+@pytest.mark.hot("theme-choice-text")
 @pytest.mark.browser
 def test_export_to_pdf_prints_the_chosen_theme_in_light(tmp_path, reader_browser) -> None:
     errors: list[str] = []

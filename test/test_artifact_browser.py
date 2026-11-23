@@ -9,6 +9,17 @@ from conftest import FIXTURE, PIXEL
 pytestmark = pytest.mark.browser
 
 
+def scrolling_fixture() -> dict:
+    """The fixture Document in the scrolling layout, the artifact of the browser door's state
+    fixture-scrolling-desktop (test/browser/expectations.yaml): the fake browser cannot lay out its
+    paged view on the door's defaults, whose measuring sheet no recording holds."""
+    import json
+
+    document = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    document["manifest"]["metadata"].setdefault("obsHtml", {})["layout"] = "scrolling"
+    return document
+
+
 @pytest.fixture
 def artifact_page(fixture_artifact, reader_browser):
     artifact = fixture_artifact
@@ -57,6 +68,7 @@ def test_base_tables_evaluate_document_records_and_marks_show_their_icon(read_on
     assert read_only_page.locator(".semantic-mark-icon--risk .resource-icon").inner_text() == "!"
 
 
+@pytest.mark.hot("fixture-scrolling-desktop")
 def test_the_print_book_holds_every_front_page_and_chapter(artifact_page) -> None:
     artifact_page.evaluate("window.print = () => {}; globalThis.obsPages.exportPDF()")
     text = artifact_page.locator(".print-book").inner_text()
@@ -64,6 +76,7 @@ def test_the_print_book_holds_every_front_page_and_chapter(artifact_page) -> Non
         assert expected in text
 
 
+@pytest.mark.hot("fixture-scrolling-desktop")
 def test_everything_on_the_title_page_is_centered(tmp_path, reader_browser) -> None:
     import json
     document = json.loads(FIXTURE.read_text(encoding="utf-8"))
@@ -112,6 +125,7 @@ def test_everything_on_the_title_page_is_centered(tmp_path, reader_browser) -> N
     assert abs(sum(line) / len(line)) < 40
 
 
+@pytest.mark.hot("fixture-scrolling-desktop")
 @pytest.mark.parametrize("width, side", [(700, "right"), (700, "left"), (1100, "right"), (1100, "top")])
 def test_a_resized_bar_follows_the_pointer(artifact_page, width, side) -> None:
     """A narrow screen insets an overlaid bar beside the chapter arrows; dragging its edge still
@@ -132,6 +146,7 @@ def test_a_resized_bar_follows_the_pointer(artifact_page, width, side) -> None:
     assert abs(inner - pointer) <= 1, f"test/test_artifact_browser.py: the {side} bar's edge is at {inner}, the pointer at {pointer}"
 
 
+@pytest.mark.hot("fixture-scrolling-desktop")
 @pytest.mark.parametrize("paged", [False, True])
 def test_review_gutters_stay_clear_of_the_previous_arrow(artifact_page, paged) -> None:
     """Review mode's gutters (Accept, Reject, Reset) start beyond Previous's pointer area, so

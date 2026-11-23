@@ -137,22 +137,94 @@ CSSValueFormatter.getColor = function (value) {
     return CSSValueFormatter.getColor((usedScheme() === "dark" ? parts[1] : parts[0]).trim());
 };
 
+// CSS math in a length (happy-dom 21 keeps a calc() as written and drops min(), max() and clamp()):
+// kept as written, as a calc() is, so the computed value below resolves it.
+const getCalc = CSSValueFormatter.getCalc;
+CSSValueFormatter.getCalc = function (value) {
+    return /^(?:min|max|clamp)\(.+\)$/is.test(String(value).trim()) ? String(value).trim() : getCalc.call(this, value);
+};
+
+// The page whose viewport a vw or vh length is a share of (use).
+let viewportOf = () => [1280, 720];
+// The root font size a rem is, as every page's stylesheets leave it.
+const ROOT_FONT_SIZE = 16;
+
+// The pixels of a calc(), min(), max() or clamp() of lengths in px, rem, vw and vh and plain numbers,
+// as Chromium computes it; null where it holds anything else (an em or a percentage, whose base the
+// fake does not know).
+function cssMath(text) {
+    const tokens = String(text).match(/-?(?:\d+\.?\d*|\.\d+)(?:px|rem|vw|vh)?|[a-z]+\(|[-+*/(),]/gi);
+    if (!tokens || tokens.join("").replace(/\s/g, "") !== String(text).replace(/\s/g, "")) return null;
+    let at = 0;
+    const [width, height] = viewportOf();
+    const unit = {px: 1, rem: ROOT_FONT_SIZE, vw: width / 100, vh: height / 100};
+    const value = () => {
+        const token = tokens[at++];
+        if (token === undefined) throw new Error("end");
+        const call = /^(calc|min|max|clamp)\($/i.exec(token);
+        if (call || token === "(") {
+            const args = [sum()];
+            while (tokens[at] === ",") {
+                at += 1;
+                args.push(sum());
+            }
+            if (tokens[at++] !== ")") throw new Error(")");
+            const name = call ? call[1].toLowerCase() : "calc";
+            if (name === "min") return Math.min(...args);
+            if (name === "max") return Math.max(...args);
+            if (name === "clamp") {
+                if (args.length !== 3) throw new Error("clamp");
+                return Math.max(args[0], Math.min(args[1], args[2]));
+            }
+            if (args.length !== 1) throw new Error("calc");
+            return args[0];
+        }
+        const number = /^(-?(?:\d+\.?\d*|\.\d+))(px|rem|vw|vh)?$/i.exec(token);
+        if (!number) throw new Error(token);
+        return parseFloat(number[1]) * (number[2] ? unit[number[2].toLowerCase()] : 1);
+    };
+    const product = () => {
+        let result = value();
+        while (tokens[at] === "*" || tokens[at] === "/") {
+            const operator = tokens[at++];
+            const right = value();
+            result = operator === "*" ? result * right : result / right;
+        }
+        return result;
+    };
+    const sum = () => {
+        let result = product();
+        while (tokens[at] === "+" || tokens[at] === "-") {
+            const operator = tokens[at++];
+            const right = product();
+            result = operator === "+" ? result + right : result - right;
+        }
+        return result;
+    };
+    try {
+        const result = value();
+        return at === tokens.length && Number.isFinite(result) ? result : null;
+    } catch {
+        return null;
+    }
+}
+
 // A computed value as Chromium computes it, where happy-dom 21 keeps it as written: a whole
 // light-dark() pair (resolved only in the properties it parses as colours, so `stroke` and `fill`
-// kept it) is the colour of the page's used scheme, and a calc() of pixel lengths added and
-// subtracted is its length. A custom property keeps what it was given, in both engines.
+// kept it) is the colour of the page's used scheme, and CSS math of lengths (cssMath) is its length.
+// A custom property keeps what it was given, in both engines.
 function resolvedValue(value) {
     if (typeof value !== "string") return value;
     if (/^\s*light-dark\(/i.test(value)) return CSSValueFormatter.getColor(value) ?? value;
-    const sum = /^calc\(\s*(-?[\d.]+px(?:\s+[-+]\s+-?[\d.]+px)*)\s*\)$/.exec(value.trim());
-    if (!sum) return value;
-    const terms = sum[1].split(/\s+/);
-    let total = parseFloat(terms[0]);
-    for (let index = 1; index < terms.length; index += 2) {
-        total += (terms[index] === "-" ? -1 : 1) * parseFloat(terms[index + 1]);
-    }
-    return `${Math.round(total * 1000) / 1000}px`;
+    if (!/^\s*(?:calc|min|max|clamp)\(/i.test(value)) return value;
+    const pixels = cssMath(value.trim());
+    return pixels === null ? value : `${Math.round(pixels * 1000) / 1000}px`;
 }
+
+// color-scheme is inherited (CSS Color Adjustment), where happy-dom 21 does not inherit it.
+const INHERITED = require(path.join(HAPPY_DOM, "lib", "css", "declaration", "computed-style", "config",
+    "CSSComputedStyleInheritedProperties.js")).default;
+INHERITED["color-scheme"] = true;
 
 // innerText (happy-dom 21 breaks the line only before a block or flex child): a line break before
 // and after every block-level child, a list item, a grid or a table among them, as Chromium does.
@@ -218,7 +290,20 @@ const CSSPropertyManager = require(path.join(HAPPY_DOM, "lib", "css", "declarati
 const LOGICAL_SIDES = {block: ["top", "bottom"], inline: ["left", "right"]};
 const LOGICAL = /^(margin|padding)-(block|inline)(?:-(start|end))?$/;
 const setProperty = CSSPropertyManager.prototype.set;
+// A padding or margin shorthand whose sides hold CSS math (happy-dom 21 splits it at every space, so
+// `max(1.5rem, 84px)` broke it and the declaration was dropped): each side is set on its own.
+const BOX_SHORTHAND = /^(margin|padding)$/;
+const SIDES = ["top", "right", "bottom", "left"];
 CSSPropertyManager.prototype.set = function (name, value, important) {
+    const shorthand = BOX_SHORTHAND.exec(String(name));
+    if (shorthand && value !== null && /\(/.test(String(value)) && !/var\(/i.test(String(value))) {
+        const values = topLevel(String(value).trim(), " ").filter(Boolean);
+        if (values.length >= 1 && values.length <= 4) {
+            const [top, right = top, bottom = top, left = right] = values;
+            return [top, right, bottom, left].flatMap((each, index) =>
+                setProperty.call(this, `${shorthand[1]}-${SIDES[index]}`, each, important) || []);
+        }
+    }
     const logical = LOGICAL.exec(String(name));
     if (!logical || value === null) return setProperty.call(this, name, value, important);
     const [, box, axis, edge] = logical;
@@ -341,13 +426,26 @@ function possible(element, needs) {
             : element.localName.toLowerCase() === need.tag);
 }
 
+// A rule's selector list weighs as the most specific of its selectors the element matches, as in
+// Chromium; happy-dom 21 weighs it by the first that matches, so a later rule of `:root,
+// :root[data-theme]` lost to an earlier `:root[data-theme="system"]`.
 QuerySelector.matches = function (element, selector, options) {
     if (options?.ignoreErrors && typeof selector === "string") {
         const needs = required(selector);
         if (needs && !possible(element, needs)) return null;
+        const list = selectorLists.get(selector) ?? selectorLists.set(selector, topLevel(selector, ",")).get(selector);
+        if (list.length > 1) {
+            let best = null;
+            for (const each of list) {
+                const match = fullMatch.call(this, element, each, options);
+                if (match && (!best || match.priorityWeight > best.priorityWeight)) best = match;
+            }
+            return best;
+        }
     }
     return fullMatch.call(this, element, selector, options);
 };
+const selectorLists = new Map();
 
 // A structured clone in the page's own realm, so a clone's objects are the page's objects. It is
 // evaluated in the page; it closes over nothing of this file.
@@ -1753,6 +1851,7 @@ process.on("unhandledRejection", (reason) => {
 function use(page) {
     current = page;
     usedScheme = schemeOf(page);
+    viewportOf = () => page.viewport;
 }
 
 function pageOf(request) {

@@ -46,6 +46,14 @@ def test_every_kind_has_the_one_frame_with_its_caption_last_and_numbered() -> No
         assert 'data-chapter-link="gallery"' in caption or "gallery" in caption
 
 
+def scrolling_figures() -> dict:
+    """The figures Document in the scrolling layout, in which the frame's checks read it, the artifact
+    of the browser door's state figures-scrolling-desktop (test/browser/expectations.yaml)."""
+    document = json.loads(FIGURES.read_text(encoding="utf-8"))
+    document["manifest"]["metadata"].setdefault("obsHtml", {})["layout"] = "scrolling"
+    return document
+
+
 @pytest.fixture(scope="module")
 def figures_artifact(tmp_path_factory) -> Path:
     def build(folder: Path) -> None:
@@ -85,6 +93,7 @@ FRAME = """() => [...document.querySelectorAll('.obs-figure')].map(figure => {
 })"""
 
 
+@pytest.mark.hot("figures-scrolling-desktop")
 @pytest.mark.browser
 def test_every_kind_shows_the_same_frame_caption_position_and_expand_button(
     figures_artifact, reader_browser,
@@ -103,6 +112,7 @@ def test_every_kind_shows_the_same_frame_caption_position_and_expand_button(
     assert errors == []
 
 
+@pytest.mark.hot("figures-scrolling-desktop")
 @pytest.mark.browser
 def test_a_border_token_set_once_frames_every_kind(figures_artifact, reader_browser) -> None:
     page, errors = _open(reader_browser, figures_artifact)
@@ -172,6 +182,7 @@ LEGEND_INSIDE = f"""() => {{
 }}"""
 
 
+@pytest.mark.hot("figures-scrolling-desktop")
 @pytest.mark.browser
 def test_a_legend_laid_out_past_the_plot_is_moved_back_inside_again_after_a_resize(
     figures_artifact, reader_browser,
@@ -199,6 +210,7 @@ FRAMES_LATER = """async () => {
 }"""
 
 
+@pytest.mark.hot("figures-scrolling-desktop")
 @pytest.mark.browser
 def test_a_legend_whose_box_never_moves_leaves_the_page_answering(figures_artifact, reader_browser) -> None:
     page, errors = _open(reader_browser, figures_artifact)

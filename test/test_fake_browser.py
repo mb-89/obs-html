@@ -278,3 +278,25 @@ def test_the_computed_font_is_written_as_chromium_writes_it(tmp_path, fake_page)
     })""") == [["700 13.6px / 20.4px Arial, sans-serif"] * 2 + ["700"],
                ["13.6px / 20.4px Arial, sans-serif"] * 2 + ["400"],
                ["italic 600 20px / 30px Georgia"] * 2 + ["600"]]
+
+
+def test_css_math_a_selector_lists_weight_and_an_inherited_colour_scheme_compute_as_in_chromium(tmp_path,
+                                                                                                fake_page) -> None:
+    """Four gaps of happy-dom 21 the hot tests' recordings found (browser-door.md, As built by
+    hot-tests-record): it kept a calc() with a factor as written, dropped min(), max() and clamp() and a
+    padding shorthand that holds one, weighed a selector list by the first selector that matches rather
+    than the most specific, and did not inherit color-scheme."""
+    fake_page.set_viewport_size({"width": 1200, "height": 800})
+    page = _open(tmp_path, fake_page, '<div id="box"><select id="choice"></select></div>',
+                 "<style>:root { --gap: clamp(3.75rem, 7vw, 6rem); color-scheme: light dark; }"
+                 ' :root[data-theme="system"] { color-scheme: light dark; }'
+                 " :root, :root[data-theme] { color-scheme: light; }"
+                 " #box { padding: 1rem max(1.5rem, calc(var(--gap) + 1rem)) 6rem max(1.5rem, var(--gap));"
+                 " margin-right: calc(0.5 * 16px); margin-left: min(10vw, 2rem); }</style>")
+    page.evaluate("() => { document.documentElement.dataset.theme = 'system'; }")
+    assert page.evaluate("""() => {
+        const style = getComputedStyle(document.getElementById("box"));
+        return [style.paddingTop, style.paddingRight, style.paddingBottom, style.paddingLeft, style.marginRight,
+                style.marginLeft, getComputedStyle(document.documentElement).colorScheme,
+                getComputedStyle(document.getElementById("choice")).colorScheme];
+    }""") == ["16px", "100px", "96px", "84px", "8px", "32px", "light", "light"]

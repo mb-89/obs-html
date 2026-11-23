@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 # Hot: it tests the door's own pool, a real browser's reuse, crash and hang (browser/browser-door.md).
-pytestmark = [pytest.mark.browser, pytest.mark.hot]
+pytestmark = [pytest.mark.browser, pytest.mark.hot(own_browser=True)]
 
 # Stores a value in each storage the artifact or a test can reach, and asks before it unloads
 # once the reader clicked, as the artifact's comments bar does with unsaved comments.

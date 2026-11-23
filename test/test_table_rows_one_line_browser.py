@@ -139,6 +139,12 @@ PACKAGED = load_config()
 OFF = dataclasses.replace(PACKAGED, artifact={**PACKAGED.artifact, "tableRowsOneLine": False})
 
 
+def rows_page() -> str:
+    """The build with one line per row, the artifact of the browser door's state table-rows-phone
+    (test/browser/expectations.yaml)."""
+    return artifact_html(DOCUMENT)
+
+
 @pytest.fixture(scope="module")
 def artifacts(tmp_path_factory) -> dict[str, str]:
     folder = tmp_path_factory.mktemp("table-rows-one-line")
@@ -240,6 +246,7 @@ def _pipe_row(page, identifier: str):
     return page.locator(f"[data-active-chapter] tr[data-node-id='{identifier}']")
 
 
+@pytest.mark.hot("table-rows-phone")
 @pytest.mark.parametrize("paged", [True, False], ids=["pages", "continuous"])
 def test_collapsed_rows_and_captions_of_both_kinds_are_one_line_at_390_px(reader, paged: bool) -> None:
     page = reader(paged=paged)
@@ -272,6 +279,7 @@ def test_collapsed_rows_and_captions_of_both_kinds_are_one_line_at_390_px(reader
     assert _pipe_row(page, "row-long").locator("td").first.locator(":scope > [data-pipe-row-toggle]").count() == 1
 
 
+@pytest.mark.hot("table-rows-phone")
 def test_the_pipe_header_row_is_as_without_the_option(reader) -> None:
     headers = []
     for build in ("on", "off"):
@@ -286,6 +294,7 @@ def _cells_in_full(row) -> bool:
         .every(box => box.scrollHeight <= box.clientHeight + 1 && box.scrollWidth <= box.clientWidth + 1)""")
 
 
+@pytest.mark.hot("table-rows-phone")
 def test_opening_a_row_shows_its_cells_in_full_and_closing_cuts_them_again(reader) -> None:
     page = reader()
     _show(page, "grouped")
@@ -327,6 +336,7 @@ def _one_line_after(page, label: str) -> None:
     assert _cut_rows_have_disclosures(page) == [], label
 
 
+@pytest.mark.hot("table-rows-phone")
 def test_rows_stay_one_line_after_a_sort_a_grouping_a_page_a_parent_and_new_rows(reader) -> None:
     page = reader()
     _show(page, "fields")
@@ -363,6 +373,7 @@ def _search(page, query: str) -> list[dict]:
     return page.evaluate("obsSearch.hits.map(hit => ({slug: hit.slug, kind: hit.kind}))")
 
 
+@pytest.mark.hot("table-rows-phone")
 def test_search_and_comments_open_the_row_that_holds_a_hit_in_a_cut_cell(reader) -> None:
     page = reader()
     hits = _search(page, BASE_WORD)
@@ -386,6 +397,7 @@ def test_search_and_comments_open_the_row_that_holds_a_hit_in_a_cut_cell(reader)
             assert page.locator(f"{SHELL} tr[data-detail-owner='note:t1']").count() == 0
 
 
+@pytest.mark.hot("table-rows-phone")
 def test_the_print_book_shows_every_cell_and_caption_in_full(reader) -> None:
     page = reader()
     page.evaluate("dispatchEvent(new Event('beforeprint'))")
@@ -409,6 +421,7 @@ def test_the_print_book_shows_every_cell_and_caption_in_full(reader) -> None:
     assert book["caption"] and min(book["caption"]) > 30
 
 
+@pytest.mark.hot("table-rows-phone")
 def test_with_the_option_off_rows_and_captions_wrap_as_before(reader) -> None:
     page = reader("off")
     _show(page, "grouped")

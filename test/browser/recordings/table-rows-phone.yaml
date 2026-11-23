@@ -1,0 +1,990 @@
+# The browser door's recording of the state table-rows-phone (test/browser/expectations.yaml),
+# written by `uv run pytest -m hot --record` (test/browser/door.py); never edited by hand.
+state: table-rows-phone
+artifact: test/test_table_rows_one_line_browser.py::rows_page
+context:
+  viewport: [390, 844]
+  scale: 1
+  touch: false
+  scheme: light
+  motion: no-preference
+  media: screen
+  frame: top
+steps:
+- open: page
+- open: chapter
+  id: grouped
+- open: chapter
+  id: references
+artifactDigest: sha256:80f8cb9acfda0cdec0c7130e45862e79857f8f49e4c06625559b0bf8ae012610
+chromium: 153.0.8010.12 (Playwright 1.64.0)
+answers:
+- step: 0
+  asked:
+    box:
+    - '#home > div:1'
+    - html:1 > body:1 > div:1 > div:1
+    - html:1 > body:1 > div:1 > div:2
+    - html:1 > body:1 > div:1 > div:3
+    - html:1 > body:1 > div:1 > div:4
+    - html:1 > body:1 > div:1 > main:1 > div:1
+    - html:1 > body:1 > div:3 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:1
+    - html:1 > body:1 > div:3 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:2
+    - html:1 > body:1 > div:3 > section:1 > div:1 > table:2 > thead:1 > tr:1 > th:1
+    - html:1 > body:1 > div:3 > section:1 > div:1 > table:2 > thead:1 > tr:1 > th:2
+    - html:1 > body:1 > div:3 > section:1 > div:1 > table:2 > thead:1 > tr:1 > th:3
+    - html:1 > body:1 > div:3 > section:1 > div:1 > table:2 > thead:1 > tr:1 > th:4
+    - html:1 > body:1 > div:3 > section:1 > div:1 > table:2 > thead:1 > tr:1 > th:5
+    - section:1 > div:1
+    cascade:
+    - '#home > div:1 > div:1 > section:1 > div:1 > header:1 > div:1|display'
+    - '#home > div:1 > div:1 > section:1 > div:1 > header:1 > div:2 > h1:1|display'
+    - '#home > div:1 > div:1 > section:1 > div:1 > header:1 > div:2|display'
+    - '#home > div:1 > div:1 > section:1 > div:1 > header:1|display'
+    - '#home > div:1 > div:1 > section:1 > div:1|display'
+    - '#home > div:1 > div:1 > section:2 > div:1 > h1:1|display'
+    - '#home > div:1 > div:1 > section:2 > div:1|display'
+    - '#home > div:1 > div:1 > section:3 > div:1 > h1:1|display'
+    - '#home > div:1 > div:1 > section:3 > div:1|display'
+    - html:1 > body:1 > div:3 > section:1 > div:1 > table:1 > tbody:1 > tr:1 > td:1|borderInlineEndWidth
+    - html:1 > body:1 > div:3 > section:1 > div:1 > table:1 > tbody:1 > tr:1 > td:1|borderInlineStartWidth
+    - html:1 > body:1 > div:3 > section:1 > div:1 > table:1 > tbody:1 > tr:1 > td:1|font
+    - html:1 > body:1 > div:3 > section:1 > div:1 > table:1 > tbody:1 > tr:1 > td:1|paddingInlineEnd
+    - html:1 > body:1 > div:3 > section:1 > div:1 > table:1 > tbody:1 > tr:1 > td:1|paddingInlineStart
+    - html:1 > body:1 > div:3 > section:1 > div:1 > table:1 > tbody:1 > tr:1 > td:2|borderInlineEndWidth
+    - html:1 > body:1 > div:3 > section:1 > div:1 > table:1 > tbody:1 > tr:1 > td:2|borderInlineStartWidth
+    - html:1 > body:1 > div:3 > section:1 > div:1 > table:1 > tbody:1 > tr:1 > td:2|font
+    - html:1 > body:1 > div:3 > section:1 > div:1 > table:1 > tbody:1 > tr:1 > td:2|paddingInlineEnd
+    - html:1 > body:1 > div:3 > section:1 > div:1 > table:1 > tbody:1 > tr:1 > td:2|paddingInlineStart
+    - html:1 > body:1 > div:3 > section:1 > div:1 > table:1 > tbody:1 > tr:2 > td:1|borderInlineEndWidth
+    - html:1 > body:1 > div:3 > section:1 > div:1 > table:1 > tbody:1 > tr:2 > td:1|borderInlineStartWidth
+    - html:1 > body:1 > div:3 > section:1 > div:1 > table:1 > tbody:1 > tr:2 > td:1|font
+    - html:1 > body:1 > div:3 > section:1 > div:1 > table:1 > tbody:1 > tr:2 > td:1|paddingInlineEnd
+    - html:1 > body:1 > div:3 > section:1 > div:1 > table:1 > tbody:1 > tr:2 > td:1|paddingInlineStart
+    - html:1 > body:1 > div:3 > section:1 > div:1 > table:1 > tbody:1 > tr:2 > td:2|borderInlineEndWidth
+    - html:1 > body:1 > div:3 > section:1 > div:1 > table:1 > tbody:1 > tr:2 > td:2|borderInlineStartWidth
+    - html:1 > body:1 > div:3 > section:1 > div:1 > table:1 > tbody:1 > tr:2 > td:2|font
+    - html:1 > body:1 > div:3 > section:1 > div:1 > table:1 > tbody:1 > tr:2 > td:2|paddingInlineEnd
+    - html:1 > body:1 > div:3 > section:1 > div:1 > table:1 > tbody:1 > tr:2 > td:2|paddingInlineStart
+    - html:1 > body:1 > div:3 > section:1 > div:1 > table:1 > tbody:1 > tr:3 > td:1|borderInlineEndWidth
+    - html:1 > body:1 > div:3 > section:1 > div:1 > table:1 > tbody:1 > tr:3 > td:1|borderInlineStartWidth
+    - html:1 > body:1 > div:3 > section:1 > div:1 > table:1 > tbody:1 > tr:3 > td:1|font
+    - html:1 > body:1 > div:3 > section:1 > div:1 > table:1 > tbody:1 > tr:3 > td:1|paddingInlineEnd
+    - html:1 > body:1 > div:3 > section:1 > div:1 > table:1 > tbody:1 > tr:3 > td:1|paddingInlineStart
+    - html:1 > body:1 > div:3 > section:1 > div:1 > table:1 > tbody:1 > tr:3 > td:2|borderInlineEndWidth
+    - html:1 > body:1 > div:3 > section:1 > div:1 > table:1 > tbody:1 > tr:3 > td:2|borderInlineStartWidth
+    - html:1 > body:1 > div:3 > section:1 > div:1 > table:1 > tbody:1 > tr:3 > td:2|font
+    - html:1 > body:1 > div:3 > section:1 > div:1 > table:1 > tbody:1 > tr:3 > td:2|paddingInlineEnd
+    - html:1 > body:1 > div:3 > section:1 > div:1 > table:1 > tbody:1 > tr:3 > td:2|paddingInlineStart
+    - html:1 > body:1 > div:3 > section:1 > div:1 > table:1 > tbody:1 > tr:4 > td:1|borderInlineEndWidth
+    - html:1 > body:1 > div:3 > section:1 > div:1 > table:1 > tbody:1 > tr:4 > td:1|borderInlineStartWidth
+    - html:1 > body:1 > div:3 > section:1 > div:1 > table:1 > tbody:1 > tr:4 > td:1|font
+    - html:1 > body:1 > div:3 > section:1 > div:1 > table:1 > tbody:1 > tr:4 > td:1|paddingInlineEnd
+    - html:1 > body:1 > div:3 > section:1 > div:1 > table:1 > tbody:1 > tr:4 > td:1|paddingInlineStart
+    - html:1 > body:1 > div:3 > section:1 > div:1 > table:1 > tbody:1 > tr:4 > td:2|borderInlineEndWidth
+    - html:1 > body:1 > div:3 > section:1 > div:1 > table:1 > tbody:1 > tr:4 > td:2|borderInlineStartWidth
+    - html:1 > body:1 > div:3 > section:1 > div:1 > table:1 > tbody:1 > tr:4 > td:2|font
+    - html:1 > body:1 > div:3 > section:1 > div:1 > table:1 > tbody:1 > tr:4 > td:2|paddingInlineEnd
+    - html:1 > body:1 > div:3 > section:1 > div:1 > table:1 > tbody:1 > tr:4 > td:2|paddingInlineStart
+    - html:1 > body:1 > div:3 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:1|borderInlineEndWidth
+    - html:1 > body:1 > div:3 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:1|borderInlineStartWidth
+    - html:1 > body:1 > div:3 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:1|font
+    - html:1 > body:1 > div:3 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:1|paddingInlineEnd
+    - html:1 > body:1 > div:3 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:1|paddingInlineStart
+    - html:1 > body:1 > div:3 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:2|borderInlineEndWidth
+    - html:1 > body:1 > div:3 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:2|borderInlineStartWidth
+    - html:1 > body:1 > div:3 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:2|font
+    - html:1 > body:1 > div:3 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:2|paddingInlineEnd
+    - html:1 > body:1 > div:3 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:2|paddingInlineStart
+    - html:1 > body:1|font
+    - html:1|fontSize
+    media:
+    - '(max-width: 30rem)'
+    - '(max-width: 44rem)'
+    - '(prefers-reduced-motion: reduce)'
+    - print
+    - screen
+    resize:
+    - '#home > div:1'
+    - html:1 > body:1 > div:1 > div:1
+    - html:1 > body:1 > div:1 > div:2
+    - html:1 > body:1 > div:1 > div:3
+    - html:1 > body:1 > div:1 > div:4
+    - section:1 > div:1
+    - section:1 > div:1 > table:1
+    sizes:
+    - '#home > div:1 > div:1 > section:1 > div:1'
+    - '#home > div:1 > div:1 > section:2 > div:1'
+    - '#home > div:1 > div:1 > section:3 > div:1'
+    - html:1 > body:1 > div:3 > section:1 > div:1
+    - html:1 > body:1 > div:3 > section:1 > div:1 > table:1
+    - section:1 > div:1
+    text-width:
+    - 14.6091px / 21.9137px Georgia, "Times New Roman", serif|Child
+    - 14.6091px / 21.9137px Georgia, "Times New Roman", serif|Each rule of this register reads as one sentence that runs on
+      past any phone's width. Each rule of this register reads as one sentence that runs on past any phone's width. Each rule
+      of this register reads as one sentence that runs on past any phone's width. Each rule of this register reads as one
+      sentence that runs on past any phone's width. xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx zanzibar at end..
+    - 14.6091px / 21.9137px Georgia, "Times New Roman", serif|Each rule of this register reads as one sentence that runs on
+      past any phone's width. Each rule of this register reads as one sentence that runs on past any phone's width. Each rule
+      of this register reads as one sentence that runs on past any phone's width. Each rule of this register reads as one
+      sentence that runs on past any phone's width. xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx quokka at end..
+    - 14.6091px / 21.9137px Georgia, "Times New Roman", serif|Fits.
+    - 14.6091px / 21.9137px Georgia, "Times New Roman", serif|Parent
+    - 14.6091px / 21.9137px Georgia, "Times New Roman", serif|ada
+    - 14.6091px / 21.9137px Georgia, "Times New Roman", serif|bo
+    - 14.6091px / 21.9137px Georgia, "Times New Roman", serif|c1
+    - 14.6091px / 21.9137px Georgia, "Times New Roman", serif|r2
+    - 14.6091px / 21.9137px Georgia, "Times New Roman", serif|t1
+    - 14.6091px / 21.9137px Georgia, "Times New Roman", serif|—
+    - 16px Georgia, "Times New Roman", serif|Child
+    - 16px Georgia, "Times New Roman", serif|Each rule of this register reads as one sentence that runs on past any phone's
+      width. Each rule of this register reads as one sentence that runs on past any phone's width. Each rule of this register
+      reads as one sentence that runs on past any phone's width. Each rule of this register reads as one sentence that runs
+      on past any phone's width. xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx zanzibar at end..
+    - 16px Georgia, "Times New Roman", serif|Each rule of this register reads as one sentence that runs on past any phone's
+      width. Each rule of this register reads as one sentence that runs on past any phone's width. Each rule of this register
+      reads as one sentence that runs on past any phone's width. Each rule of this register reads as one sentence that runs
+      on past any phone's width. xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx quokka at end..
+    - 16px Georgia, "Times New Roman", serif|Fits.
+    - 16px Georgia, "Times New Roman", serif|Lead
+    - 16px Georgia, "Times New Roman", serif|Parent
+    - 16px Georgia, "Times New Roman", serif|ada
+    - 16px Georgia, "Times New Roman", serif|bo
+    - 16px Georgia, "Times New Roman", serif|c1
+    - 16px Georgia, "Times New Roman", serif|file.name
+    - 16px Georgia, "Times New Roman", serif|r2
+    - 16px Georgia, "Times New Roman", serif|summary
+    - 16px Georgia, "Times New Roman", serif|t1
+    - 16px Georgia, "Times New Roman", serif|title
+    - 16px Georgia, "Times New Roman", serif|—
+    - 700 14.6091px / 21.9137px Georgia, "Times New Roman", serif|Lead
+    - 700 14.6091px / 21.9137px Georgia, "Times New Roman", serif|file.name
+    - 700 14.6091px / 21.9137px Georgia, "Times New Roman", serif|summary
+    - 700 14.6091px / 21.9137px Georgia, "Times New Roman", serif|title
+  box:
+    '#home > div:1':
+      border: [0, 80, 375, 1776.11]
+      rects: [[0, 80, 375, 1776.11]]
+    html:1 > body:1 > div:1 > div:1:
+      border: [0, 0, 0, 0]
+      rects: []
+    html:1 > body:1 > div:1 > div:2:
+      border: [0, 0, 0, 0]
+      rects: []
+    html:1 > body:1 > div:1 > div:3:
+      border: [0, 0, 0, 0]
+      rects: []
+    html:1 > body:1 > div:1 > div:4:
+      border: [0, 0, 0, 0]
+      rects: []
+    html:1 > body:1 > div:1 > main:1 > div:1:
+      border: [0, 64, 390, 780]
+      rects: [[0, 64, 390, 780]]
+  sizes:
+    window:
+      innerWidth: 390
+      innerHeight: 844
+    '#home > div:1 > div:1 > section:1 > div:1':
+      clientWidth: 241
+      clientHeight: 73
+      scrollWidth: 241
+      scrollHeight: 73
+      offsetWidth: 241
+      offsetHeight: 73
+      offsetLeft: 67
+      offsetTop: 76
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    '#home > div:1 > div:1 > section:2 > div:1':
+      clientWidth: 241
+      clientHeight: 53
+      scrollWidth: 241
+      scrollHeight: 53
+      offsetWidth: 241
+      offsetHeight: 53
+      offsetLeft: 67
+      offsetTop: 76
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    '#home > div:1 > div:1 > section:3 > div:1':
+      clientWidth: 241
+      clientHeight: 266
+      scrollWidth: 241
+      scrollHeight: 266
+      offsetWidth: 241
+      offsetHeight: 266
+      offsetLeft: 67
+      offsetTop: 76
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+  resize:
+    '#home > div:1':
+      content: [375, 1776.11]
+      border: [375, 1776.11]
+    html:1 > body:1 > div:1 > div:1:
+      content: [0, 0]
+      border: [0, 0]
+    html:1 > body:1 > div:1 > div:2:
+      content: [0, 0]
+      border: [0, 0]
+    html:1 > body:1 > div:1 > div:3:
+      content: [0, 0]
+      border: [0, 0]
+    html:1 > body:1 > div:1 > div:4:
+      content: [0, 0]
+      border: [0, 0]
+  scroll-into-view: {}
+  text-width:
+    14.6091px / 21.9137px Georgia, "Times New Roman", serif|Child: 32.44
+    ? 14.6091px / 21.9137px Georgia, "Times New Roman", serif|Each rule of this register reads as one sentence that runs on
+      past any phone's width. Each rule of this register reads as one sentence that runs on past any phone's width. Each rule
+      of this register reads as one sentence that runs on past any phone's width. Each rule of this register reads as one
+      sentence that runs on past any phone's width. xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx zanzibar at end..
+    : 2330.71
+    ? 14.6091px / 21.9137px Georgia, "Times New Roman", serif|Each rule of this register reads as one sentence that runs on
+      past any phone's width. Each rule of this register reads as one sentence that runs on past any phone's width. Each rule
+      of this register reads as one sentence that runs on past any phone's width. Each rule of this register reads as one
+      sentence that runs on past any phone's width. xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx quokka at end..
+    : 2338.85
+    14.6091px / 21.9137px Georgia, "Times New Roman", serif|Fits.: 25.55
+    14.6091px / 21.9137px Georgia, "Times New Roman", serif|Parent: 37.28
+    14.6091px / 21.9137px Georgia, "Times New Roman", serif|ada: 20.25
+    14.6091px / 21.9137px Georgia, "Times New Roman", serif|bo: 14.59
+    14.6091px / 21.9137px Georgia, "Times New Roman", serif|c1: 13.77
+    14.6091px / 21.9137px Georgia, "Times New Roman", serif|r2: 12.16
+    14.6091px / 21.9137px Georgia, "Times New Roman", serif|t1: 11.35
+    14.6091px / 21.9137px Georgia, "Times New Roman", serif|—: 14.59
+    16px Georgia, "Times New Roman", serif|Child: 35.56
+    ? 16px Georgia, "Times New Roman", serif|Each rule of this register reads as one sentence that runs on past any phone's
+      width. Each rule of this register reads as one sentence that runs on past any phone's width. Each rule of this register
+      reads as one sentence that runs on past any phone's width. Each rule of this register reads as one sentence that runs
+      on past any phone's width. xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx zanzibar at end..
+    : 2555.3
+    ? 16px Georgia, "Times New Roman", serif|Each rule of this register reads as one sentence that runs on past any phone's
+      width. Each rule of this register reads as one sentence that runs on past any phone's width. Each rule of this register
+      reads as one sentence that runs on past any phone's width. Each rule of this register reads as one sentence that runs
+      on past any phone's width. xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx quokka at end..
+    : 2564.22
+    16px Georgia, "Times New Roman", serif|Fits.: 28.02
+    16px Georgia, "Times New Roman", serif|Lead: 31.98
+    16px Georgia, "Times New Roman", serif|Parent: 40.88
+    16px Georgia, "Times New Roman", serif|ada: 22.2
+    16px Georgia, "Times New Roman", serif|bo: 16
+    16px Georgia, "Times New Roman", serif|c1: 15.1
+    16px Georgia, "Times New Roman", serif|file.name: 59.97
+    16px Georgia, "Times New Roman", serif|r2: 13.33
+    16px Georgia, "Times New Roman", serif|summary: 59.55
+    16px Georgia, "Times New Roman", serif|t1: 12.45
+    16px Georgia, "Times New Roman", serif|title: 24.88
+    16px Georgia, "Times New Roman", serif|—: 16
+    700 14.6091px / 21.9137px Georgia, "Times New Roman", serif|Lead: 31.62
+    700 14.6091px / 21.9137px Georgia, "Times New Roman", serif|file.name: 57.14
+    700 14.6091px / 21.9137px Georgia, "Times New Roman", serif|summary: 59.18
+    700 14.6091px / 21.9137px Georgia, "Times New Roman", serif|title: 24.31
+  image-size: {}
+  fonts:
+    status: loaded
+  cascade:
+    '#home > div:1 > div:1 > section:1 > div:1 > header:1 > div:1|display': block
+    '#home > div:1 > div:1 > section:1 > div:1 > header:1 > div:2 > h1:1|display': block
+    '#home > div:1 > div:1 > section:1 > div:1 > header:1 > div:2|display': block
+    '#home > div:1 > div:1 > section:1 > div:1 > header:1|display': block
+    '#home > div:1 > div:1 > section:1 > div:1|display': flow-root
+    '#home > div:1 > div:1 > section:2 > div:1 > h1:1|display': block
+    '#home > div:1 > div:1 > section:2 > div:1|display': flow-root
+    '#home > div:1 > div:1 > section:3 > div:1 > h1:1|display': block
+    '#home > div:1 > div:1 > section:3 > div:1|display': flow-root
+    html:1 > body:1|font: 16px Georgia, "Times New Roman", serif
+    html:1|fontSize: 16px
+  media:
+    '(max-width: 30rem)': true
+    '(max-width: 44rem)': true
+    '(prefers-reduced-motion: reduce)': false
+    print: false
+    screen: true
+  events:
+  - button:click
+  - input:click
+  - input:input
+  - input:change
+  - checked:true
+  - label:click
+  - input:click
+  - input:input
+  - input:change
+  - checked:false
+  - summary:click
+  - open:true
+  focus:
+    button: button:0
+    input: input:1
+    disabled: input:1
+    tabindex: span:3
+    plain: span:3
+    dialog: button:7
+    closed: span:3
+  popover:
+    shown: true
+    another:
+    - false
+    - true
+    - true
+    hidden: false
+    toggled:
+    - true
+    - true
+  frames:
+  - first
+  - second
+  - nested
+  storage:
+    local: kept
+    session: kept
+- step: 1
+  asked:
+    box:
+    - '#grouped > div:1 > div:1 > section:1 > div:1 > section:1 > div:1'
+    - '#grouped > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1'
+    - '#grouped > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:2'
+    - '#grouped > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:3'
+    - '#grouped > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:4'
+    - '#grouped > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:2'
+    - '#grouped > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:2 > div:1'
+    - '#grouped > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:2 > span:2'
+    - '#table-group--grouped-base-1--phase--a-phase-whose-caption-runs-far-wider-than-the-table-it-groups-on-any-phone-screen-at-all'
+    - '#table-group--grouped-base-1--phase--a-phase-whose-caption-runs-far-wider-than-the-table-it-groups-on-any-phone-screen-at-all
+      > th:1'
+    - '#table-group--grouped-base-1--phase--a-phase-whose-caption-runs-far-wider-than-the-table-it-groups-on-any-phone-screen-at-all
+      > th:1 > span:1 > span:1'
+    - '#table-group--grouped-base-1--phase--a-phase-whose-caption-runs-far-wider-than-the-table-it-groups-on-any-phone-screen-at-all
+      > th:1 > span:1 > span:2'
+    - html:1 > body:1 > div:1 > main:1 > div:1
+    cascade:
+    - '#grouped > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:1|borderLeftWidth'
+    - '#grouped > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:2|borderRightWidth'
+    - '#grouped > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:2|font'
+    - '#grouped > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:2|paddingInlineEnd'
+    - '#grouped > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1|--table-cell-padding'
+    - '#grouped > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1|--table-toggle-gap'
+    - '#grouped > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1|--table-toggle-size'
+    - '#grouped > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1|--table-tree-indent'
+    - '#grouped > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1|borderCollapse'
+    - '#grouped > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1|font'
+    - '#grouped > div:1 > div:1 > section:1 > div:1|display'
+    - '#grouped--grouped|display'
+    - '#table-group--grouped-base-1--phase--a-phase-whose-caption-runs-far-wider-than-the-table-it-groups-on-any-phone-screen-at-all
+      > th:1|borderRightWidth'
+    - '#table-group--grouped-base-1--phase--a-phase-whose-caption-runs-far-wider-than-the-table-it-groups-on-any-phone-screen-at-all
+      > th:1|paddingRight'
+    - html:1 > body:1|font
+    - html:1|fontSize
+    media:
+    - '(max-width: 30rem)'
+    - '(max-width: 44rem)'
+    - '(prefers-reduced-motion: reduce)'
+    - print
+    - screen
+    resize:
+    - section:1 > div:1
+    - section:1 > div:1 > table:1
+    sizes:
+    - '#grouped > div:1 > div:1 > section:1 > div:1'
+    - '#grouped > div:1 > div:1 > section:1 > div:1 > section:1 > div:1'
+    - '#grouped > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:2 > td:1 > div:1 > div:1'
+    - '#grouped > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:2 > td:2 > div:1'
+    - '#grouped > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:3 > td:1 > div:1 > div:1'
+    - '#grouped > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:3 > td:2 > div:1'
+    - '#grouped > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:4 > td:1 > div:1 > div:1'
+    - '#grouped > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:4 > td:2 > div:1'
+    - '#table-group--grouped-base-1--phase--a-phase-whose-caption-runs-far-wider-than-the-table-it-groups-on-any-phone-screen-at-all
+      > th:1 > span:1 > span:1'
+    - section:1 > div:1
+    text-width:
+    - 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|Each rule of this register reads as one sentence that runs on past
+      any phone's width. Each rule of this register reads as one sentence that runs on past any phone's width. Each rule of
+      this register reads as one sentence that runs on past any phone's width. Each rule of this register reads as one sentence
+      that runs on past any phone's width. xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx zanzibar at end..
+    - 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|Each rule of this register reads as one sentence that runs on past
+      any phone's width. Each rule of this register reads as one sentence that runs on past any phone's width. Each rule of
+      this register reads as one sentence that runs on past any phone's width. Each rule of this register reads as one sentence
+      that runs on past any phone's width. xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx quokka at end..
+    - 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|Fits.
+    - 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|c1
+    - 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|r2
+    - 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|t1
+    - 16px Georgia, "Times New Roman", serif|Each rule of this register reads as one sentence that runs on past any phone's
+      width. Each rule of this register reads as one sentence that runs on past any phone's width. Each rule of this register
+      reads as one sentence that runs on past any phone's width. Each rule of this register reads as one sentence that runs
+      on past any phone's width. xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx zanzibar at end..
+    - 16px Georgia, "Times New Roman", serif|Each rule of this register reads as one sentence that runs on past any phone's
+      width. Each rule of this register reads as one sentence that runs on past any phone's width. Each rule of this register
+      reads as one sentence that runs on past any phone's width. Each rule of this register reads as one sentence that runs
+      on past any phone's width. xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx quokka at end..
+    - 16px Georgia, "Times New Roman", serif|Fits.
+    - 16px Georgia, "Times New Roman", serif|c1
+    - 16px Georgia, "Times New Roman", serif|file.name
+    - 16px Georgia, "Times New Roman", serif|r2
+    - 16px Georgia, "Times New Roman", serif|summary
+    - 16px Georgia, "Times New Roman", serif|t1
+    - 700 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|file.name
+    - 700 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|summary
+  box:
+    '#grouped > div:1 > div:1 > section:1 > div:1 > section:1 > div:1':
+      border: [67.19, 208.89, 240.63, 170.36]
+      rects: [[67.19, 208.89, 240.63, 170.36]]
+    '#grouped > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1':
+      border: [67.19, 208.89, 240.63, 170.36]
+      rects: [[67.19, 208.89, 240.63, 170.36]]
+    '#grouped > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:2':
+      border: [67.69, 274.97, 239.63, 34.59]
+      rects: [[67.69, 274.97, 239.63, 34.59]]
+    '#grouped > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:3':
+      border: [67.69, 309.56, 239.63, 34.59]
+      rects: [[67.69, 309.56, 239.63, 34.59]]
+    '#grouped > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:4':
+      border: [67.69, 344.16, 239.63, 34.59]
+      rects: [[67.69, 344.16, 239.63, 34.59]]
+    '#grouped > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:2':
+      border: [144.69, 209.39, 162.63, 30.98]
+      rects: [[144.69, 209.39, 162.63, 30.98]]
+    '#grouped > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:2 > div:1':
+      border: [272.42, 213.68, 22.39, 22.39]
+      rects: [[272.42, 213.68, 22.39, 22.39]]
+    '#grouped > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:2 > span:2':
+      border: [297.22, 209.89, 9.59, 29.98]
+      rects: [[297.22, 209.89, 9.59, 29.98]]
+    ? '#table-group--grouped-base-1--phase--a-phase-whose-caption-runs-far-wider-than-the-table-it-groups-on-any-phone-screen-at-all'
+    : border: [67.69, 240.38, 239.63, 34.59]
+      rects: [[67.69, 240.38, 239.63, 34.59]]
+    ? '#table-group--grouped-base-1--phase--a-phase-whose-caption-runs-far-wider-than-the-table-it-groups-on-any-phone-screen-at-all
+      > th:1'
+    : border: [67.69, 240.38, 239.63, 34.59]
+      rects: [[67.69, 240.38, 239.63, 34.59]]
+    ? '#table-group--grouped-base-1--phase--a-phase-whose-caption-runs-far-wider-than-the-table-it-groups-on-any-phone-screen-at-all
+      > th:1 > span:1 > span:1'
+    : border: [107.38, 249.28, 170, 20.39]
+      rects: [[107.38, 249.28, 170, 20.39]]
+    ? '#table-group--grouped-base-1--phase--a-phase-whose-caption-runs-far-wider-than-the-table-it-groups-on-any-phone-screen-at-all
+      > th:1 > span:1 > span:2'
+    : border: [277.38, 249.56, 20.39, 15]
+      rects: [[277.38, 249.56, 20.39, 15]]
+    html:1 > body:1 > div:1 > main:1 > div:1:
+      border: [0, 64, 390, 780]
+      rects: [[0, 64, 390, 780]]
+  sizes:
+    window:
+      innerWidth: 390
+      innerHeight: 844
+    '#grouped > div:1 > div:1 > section:1 > div:1':
+      clientWidth: 241
+      clientHeight: 250
+      scrollWidth: 241
+      scrollHeight: 250
+      offsetWidth: 241
+      offsetHeight: 250
+      offsetLeft: 67
+      offsetTop: 76
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    '#grouped > div:1 > div:1 > section:1 > div:1 > section:1 > div:1':
+      clientWidth: 241
+      clientHeight: 170
+      scrollWidth: 241
+      scrollHeight: 170
+      offsetWidth: 241
+      offsetHeight: 170
+      offsetLeft: 67
+      offsetTop: 129
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    '#grouped > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:2 > td:1 > div:1 > div:1':
+      clientWidth: 14
+      clientHeight: 20
+      scrollWidth: 14
+      scrollHeight: 20
+      offsetWidth: 14
+      offsetHeight: 20
+      offsetLeft: 38
+      offsetTop: 7
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    '#grouped > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:2 > td:2 > div:1':
+      clientWidth: 146
+      clientHeight: 20
+      scrollWidth: 146
+      scrollHeight: 387
+      offsetWidth: 146
+      offsetHeight: 20
+      offsetLeft: 8
+      offsetTop: 5
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    '#grouped > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:3 > td:1 > div:1 > div:1':
+      clientWidth: 11
+      clientHeight: 20
+      scrollWidth: 11
+      scrollHeight: 20
+      offsetWidth: 11
+      offsetHeight: 20
+      offsetLeft: 38
+      offsetTop: 7
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    '#grouped > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:3 > td:2 > div:1':
+      clientWidth: 146
+      clientHeight: 20
+      scrollWidth: 146
+      scrollHeight: 387
+      offsetWidth: 146
+      offsetHeight: 20
+      offsetLeft: 8
+      offsetTop: 5
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    '#grouped > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:4 > td:1 > div:1 > div:1':
+      clientWidth: 12
+      clientHeight: 20
+      scrollWidth: 12
+      scrollHeight: 20
+      offsetWidth: 12
+      offsetHeight: 20
+      offsetLeft: 38
+      offsetTop: 7
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    '#grouped > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:4 > td:2 > div:1':
+      clientWidth: 146
+      clientHeight: 20
+      scrollWidth: 146
+      scrollHeight: 20
+      offsetWidth: 146
+      offsetHeight: 20
+      offsetLeft: 8
+      offsetTop: 5
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    ? '#table-group--grouped-base-1--phase--a-phase-whose-caption-runs-far-wider-than-the-table-it-groups-on-any-phone-screen-at-all
+      > th:1 > span:1 > span:1'
+    : clientWidth: 170
+      clientHeight: 20
+      scrollWidth: 619
+      scrollHeight: 20
+      offsetWidth: 170
+      offsetHeight: 20
+      offsetLeft: 39
+      offsetTop: 8
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+  resize: {}
+  scroll-into-view: {}
+  text-width:
+    ? 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|Each rule of this register reads as one sentence that runs on past
+      any phone's width. Each rule of this register reads as one sentence that runs on past any phone's width. Each rule of
+      this register reads as one sentence that runs on past any phone's width. Each rule of this register reads as one sentence
+      that runs on past any phone's width. xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx zanzibar at end..
+    : 2413.23
+    ? 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|Each rule of this register reads as one sentence that runs on past
+      any phone's width. Each rule of this register reads as one sentence that runs on past any phone's width. Each rule of
+      this register reads as one sentence that runs on past any phone's width. Each rule of this register reads as one sentence
+      that runs on past any phone's width. xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx quokka at end..
+    : 2419.27
+    13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|Fits.: 25.67
+    13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|c1: 14.36
+    13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|r2: 12.09
+    13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|t1: 11.34
+    ? 16px Georgia, "Times New Roman", serif|Each rule of this register reads as one sentence that runs on past any phone's
+      width. Each rule of this register reads as one sentence that runs on past any phone's width. Each rule of this register
+      reads as one sentence that runs on past any phone's width. Each rule of this register reads as one sentence that runs
+      on past any phone's width. xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx zanzibar at end..
+    : 2555.3
+    ? 16px Georgia, "Times New Roman", serif|Each rule of this register reads as one sentence that runs on past any phone's
+      width. Each rule of this register reads as one sentence that runs on past any phone's width. Each rule of this register
+      reads as one sentence that runs on past any phone's width. Each rule of this register reads as one sentence that runs
+      on past any phone's width. xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx quokka at end..
+    : 2564.22
+    16px Georgia, "Times New Roman", serif|Fits.: 28.02
+    16px Georgia, "Times New Roman", serif|c1: 15.1
+    16px Georgia, "Times New Roman", serif|file.name: 59.97
+    16px Georgia, "Times New Roman", serif|r2: 13.33
+    16px Georgia, "Times New Roman", serif|summary: 59.55
+    16px Georgia, "Times New Roman", serif|t1: 12.45
+    700 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|file.name: 58.93
+    700 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|summary: 60.45
+  image-size: {}
+  fonts:
+    status: loaded
+  cascade:
+    '#grouped > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:1|borderLeftWidth': 1px
+    '#grouped > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:2|borderRightWidth': 1px
+    '#grouped > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:2|font': 700 13.6px
+      / 20.4px Arial, "Helvetica Neue", sans-serif
+    '#grouped > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:2|paddingInlineEnd': 40px
+    '#grouped > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1|--table-cell-padding': '0.5'
+    '#grouped > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1|--table-toggle-gap': '0.35'
+    '#grouped > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1|--table-toggle-size': '1.5'
+    '#grouped > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1|--table-tree-indent': '1.2'
+    '#grouped > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1|borderCollapse': collapse
+    '#grouped > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1|font': 13.6px / 20.4px Arial, "Helvetica Neue",
+      sans-serif
+    '#grouped > div:1 > div:1 > section:1 > div:1|display': flow-root
+    '#grouped--grouped|display': block
+    ? '#table-group--grouped-base-1--phase--a-phase-whose-caption-runs-far-wider-than-the-table-it-groups-on-any-phone-screen-at-all
+      > th:1|borderRightWidth'
+    : 1px
+    ? '#table-group--grouped-base-1--phase--a-phase-whose-caption-runs-far-wider-than-the-table-it-groups-on-any-phone-screen-at-all
+      > th:1|paddingRight'
+    : 8px
+    html:1 > body:1|font: 16px Georgia, "Times New Roman", serif
+    html:1|fontSize: 16px
+  media:
+    '(max-width: 30rem)': true
+    '(max-width: 44rem)': true
+    '(prefers-reduced-motion: reduce)': false
+    print: false
+    screen: true
+  events:
+  - button:click
+  - input:click
+  - input:input
+  - input:change
+  - checked:true
+  - label:click
+  - input:click
+  - input:input
+  - input:change
+  - checked:false
+  - summary:click
+  - open:true
+  focus:
+    button: button:0
+    input: input:1
+    disabled: input:1
+    tabindex: span:3
+    plain: span:3
+    dialog: button:7
+    closed: span:3
+  popover:
+    shown: true
+    another:
+    - false
+    - true
+    - true
+    hidden: false
+    toggled:
+    - true
+    - true
+  frames:
+  - first
+  - second
+  - nested
+  storage:
+    local: kept
+    session: kept
+- step: 2
+  asked:
+    box:
+    - '#references > div:1 > div:1 > section:1 > div:1 > section:1 > div:1'
+    - '#references > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1'
+    - '#references > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:1'
+    - '#references > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:2'
+    - '#references > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:3'
+    - '#references > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:2'
+    - '#references > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:2 > div:1'
+    - '#references > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:2 > span:2'
+    - html:1 > body:1 > div:1 > main:1 > div:1
+    cascade:
+    - '#references > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:1|borderLeftWidth'
+    - '#references > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:2|borderRightWidth'
+    - '#references > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:2|font'
+    - '#references > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:2|paddingInlineEnd'
+    - '#references > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1|--table-cell-padding'
+    - '#references > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1|--table-toggle-gap'
+    - '#references > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1|--table-toggle-size'
+    - '#references > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1|--table-tree-indent'
+    - '#references > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1|borderCollapse'
+    - '#references > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1|font'
+    - '#references > div:1 > div:1 > section:1 > div:1|display'
+    - '#references--references|display'
+    - html:1 > body:1|font
+    - html:1|fontSize
+    media:
+    - '(max-width: 30rem)'
+    - '(max-width: 44rem)'
+    - '(prefers-reduced-motion: reduce)'
+    - print
+    - screen
+    resize:
+    - section:1 > div:1
+    - section:1 > div:1 > table:1
+    sizes:
+    - '#references > div:1 > div:1 > section:1 > div:1'
+    - '#references > div:1 > div:1 > section:1 > div:1 > section:1 > div:1'
+    - '#references > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:1 > td:1 > div:1 > div:1'
+    - '#references > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:1 > td:2 > div:1'
+    - '#references > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:2 > td:1 > div:1 > div:1'
+    - '#references > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:2 > td:2 > div:1'
+    - '#references > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:3 > td:1 > div:1 > div:1'
+    - '#references > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:3 > td:2 > div:1'
+    - section:1 > div:1
+    text-width:
+    - 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|ada
+    - 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|bo
+    - 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|c1
+    - 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|r2
+    - 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|t1
+    - 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|—
+    - 16px Georgia, "Times New Roman", serif|Lead
+    - 16px Georgia, "Times New Roman", serif|ada
+    - 16px Georgia, "Times New Roman", serif|bo
+    - 16px Georgia, "Times New Roman", serif|c1
+    - 16px Georgia, "Times New Roman", serif|file.name
+    - 16px Georgia, "Times New Roman", serif|r2
+    - 16px Georgia, "Times New Roman", serif|t1
+    - 16px Georgia, "Times New Roman", serif|—
+    - 700 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|Lead
+    - 700 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|file.name
+  box:
+    '#references > div:1 > div:1 > section:1 > div:1 > section:1 > div:1':
+      border: [67.19, 208.89, 240.63, 132.16]
+      rects: [[67.19, 208.89, 240.63, 132.16]]
+    '#references > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1':
+      border: [67.19, 208.89, 240.63, 132.16]
+      rects: [[67.19, 208.89, 240.63, 132.16]]
+    '#references > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:1':
+      border: [67.69, 240.38, 239.63, 30.98]
+      rects: [[67.69, 240.38, 239.63, 30.98]]
+    '#references > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:2':
+      border: [67.69, 271.36, 239.63, 34.59]
+      rects: [[67.69, 271.36, 239.63, 34.59]]
+    '#references > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:3':
+      border: [67.69, 305.95, 239.63, 34.59]
+      rects: [[67.69, 305.95, 239.63, 34.59]]
+    '#references > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:2':
+      border: [144.69, 209.39, 162.63, 30.98]
+      rects: [[144.69, 209.39, 162.63, 30.98]]
+    '#references > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:2 > div:1':
+      border: [272.42, 213.68, 22.39, 22.39]
+      rects: [[272.42, 213.68, 22.39, 22.39]]
+    '#references > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:2 > span:2':
+      border: [297.22, 209.89, 9.59, 29.98]
+      rects: [[297.22, 209.89, 9.59, 29.98]]
+    html:1 > body:1 > div:1 > main:1 > div:1:
+      border: [0, 64, 390, 780]
+      rects: [[0, 64, 390, 780]]
+  sizes:
+    window:
+      innerWidth: 390
+      innerHeight: 844
+    '#references > div:1 > div:1 > section:1 > div:1':
+      clientWidth: 241
+      clientHeight: 211
+      scrollWidth: 241
+      scrollHeight: 211
+      offsetWidth: 241
+      offsetHeight: 211
+      offsetLeft: 67
+      offsetTop: 76
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    '#references > div:1 > div:1 > section:1 > div:1 > section:1 > div:1':
+      clientWidth: 241
+      clientHeight: 132
+      scrollWidth: 241
+      scrollHeight: 132
+      offsetWidth: 241
+      offsetHeight: 132
+      offsetLeft: 67
+      offsetTop: 129
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    '#references > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:1 > td:1 > div:1 > div:1':
+      clientWidth: 14
+      clientHeight: 20
+      scrollWidth: 14
+      scrollHeight: 20
+      offsetWidth: 14
+      offsetHeight: 20
+      offsetLeft: 8
+      offsetTop: 5
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    '#references > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:1 > td:2 > div:1':
+      clientWidth: 146
+      clientHeight: 20
+      scrollWidth: 146
+      scrollHeight: 20
+      offsetWidth: 146
+      offsetHeight: 20
+      offsetLeft: 8
+      offsetTop: 5
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    '#references > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:2 > td:1 > div:1 > div:1':
+      clientWidth: 11
+      clientHeight: 20
+      scrollWidth: 11
+      scrollHeight: 20
+      offsetWidth: 11
+      offsetHeight: 20
+      offsetLeft: 38
+      offsetTop: 7
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    '#references > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:2 > td:2 > div:1':
+      clientWidth: 146
+      clientHeight: 20
+      scrollWidth: 146
+      scrollHeight: 20
+      offsetWidth: 146
+      offsetHeight: 20
+      offsetLeft: 8
+      offsetTop: 5
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    '#references > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:3 > td:1 > div:1 > div:1':
+      clientWidth: 12
+      clientHeight: 20
+      scrollWidth: 12
+      scrollHeight: 20
+      offsetWidth: 12
+      offsetHeight: 20
+      offsetLeft: 38
+      offsetTop: 7
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    '#references > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:3 > td:2 > div:1':
+      clientWidth: 146
+      clientHeight: 20
+      scrollWidth: 146
+      scrollHeight: 41
+      offsetWidth: 146
+      offsetHeight: 20
+      offsetLeft: 8
+      offsetTop: 5
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+  resize: {}
+  scroll-into-view: {}
+  text-width:
+    13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|ada: 22.68
+    13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|bo: 15.12
+    13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|c1: 14.36
+    13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|r2: 12.09
+    13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|t1: 11.34
+    13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|—: 13.59
+    16px Georgia, "Times New Roman", serif|Lead: 31.98
+    16px Georgia, "Times New Roman", serif|ada: 22.2
+    16px Georgia, "Times New Roman", serif|bo: 16
+    16px Georgia, "Times New Roman", serif|c1: 15.1
+    16px Georgia, "Times New Roman", serif|file.name: 59.97
+    16px Georgia, "Times New Roman", serif|r2: 13.33
+    16px Georgia, "Times New Roman", serif|t1: 12.45
+    16px Georgia, "Times New Roman", serif|—: 16
+    700 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|Lead: 31.73
+    700 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|file.name: 58.93
+  image-size: {}
+  fonts:
+    status: loaded
+  cascade:
+    '#references > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:1|borderLeftWidth': 1px
+    '#references > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:2|borderRightWidth': 1px
+    '#references > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:2|font': 700 13.6px
+      / 20.4px Arial, "Helvetica Neue", sans-serif
+    '#references > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:2|paddingInlineEnd': 40px
+    '#references > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1|--table-cell-padding': '0.5'
+    '#references > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1|--table-toggle-gap': '0.35'
+    '#references > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1|--table-toggle-size': '1.5'
+    '#references > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1|--table-tree-indent': '1.2'
+    '#references > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1|borderCollapse': collapse
+    '#references > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1|font': 13.6px / 20.4px Arial, "Helvetica
+      Neue", sans-serif
+    '#references > div:1 > div:1 > section:1 > div:1|display': flow-root
+    '#references--references|display': block
+    html:1 > body:1|font: 16px Georgia, "Times New Roman", serif
+    html:1|fontSize: 16px
+  media:
+    '(max-width: 30rem)': true
+    '(max-width: 44rem)': true
+    '(prefers-reduced-motion: reduce)': false
+    print: false
+    screen: true
+  events:
+  - button:click
+  - input:click
+  - input:input
+  - input:change
+  - checked:true
+  - label:click
+  - input:click
+  - input:input
+  - input:change
+  - checked:false
+  - summary:click
+  - open:true
+  focus:
+    button: button:0
+    input: input:1
+    disabled: input:1
+    tabindex: span:3
+    plain: span:3
+    dialog: button:7
+    closed: span:3
+  popover:
+    shown: true
+    another:
+    - false
+    - true
+    - true
+    hidden: false
+    toggled:
+    - true
+    - true
+  frames:
+  - first
+  - second
+  - nested
+  storage:
+    local: kept
+    session: kept
+  print: beforeprint

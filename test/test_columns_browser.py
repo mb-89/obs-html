@@ -61,6 +61,7 @@ def _stacked(columns: list[dict]) -> bool:
     return abs(first["left"] - second["left"]) < 1 and first["bottom"] <= second["top"]
 
 
+@pytest.mark.hot("columns-desktop", "columns-narrow")
 def test_a_weighted_block_stands_at_its_ratio_and_stacks_in_a_narrow_reader(tmp_path, reader_browser) -> None:
     """At 1280 px the columns are side by side at 1:2; narrowing the reader alone, the chapter scroll,
     stacks them at the same viewport; at 390 px they are stacked, first above second, and nothing scrolls
@@ -83,6 +84,7 @@ def test_a_weighted_block_stands_at_its_ratio_and_stacks_in_a_narrow_reader(tmp_
     assert errors == []
 
 
+@pytest.mark.hot("columns-desktop")
 @pytest.mark.parametrize("layout", ["paged", "scrolling", "screens"])
 def test_the_block_stands_side_by_side_in_each_layout(tmp_path, reader_browser, layout: str) -> None:
     page, errors, _ = _open(tmp_path, reader_browser, _with_layout(layout), 1280)
@@ -190,6 +192,7 @@ def _box(document, text: str) -> tuple[int, tuple[float, float, float, float]]:
     raise AssertionError(f"{text!r} is on no page of the printed PDF")
 
 
+@pytest.mark.hot("columns-desktop")
 def test_a_printed_block_stays_side_by_side(printed) -> None:
     """On paper the card's title, left, and the right column's marked paragraph stand side by side: the
     paragraph starts right of the card and above the card's end."""
@@ -202,6 +205,7 @@ def test_a_printed_block_stays_side_by_side(printed) -> None:
     assert right[1] > below[1]  # The paragraph stands higher on the page than the card's last line.
 
 
+@pytest.mark.hot("columns-desktop")
 def test_in_review_mode_the_columns_stand_one_below_the_other(tmp_path, reader_browser) -> None:
     """The one review gutter left of the prose column holds every item's controls, so the columns stack
     there, as card groups do, and their review buttons never share a line."""

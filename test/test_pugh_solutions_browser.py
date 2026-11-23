@@ -250,7 +250,7 @@ OVER = """anchor => {
 }"""
 
 
-@pytest.mark.hot
+@pytest.mark.hot("pugh-solutions-phone", "pugh-solutions-desktop")
 @pytest.mark.browser
 @pytest.mark.parametrize("width", [390, 1200])
 def test_a_counts_hover_card_lies_over_the_matrix_unclipped_and_a_tap_elsewhere_hides_it(phone_browser, deck, width):
@@ -416,7 +416,7 @@ CENTRES = """anchor => {
 }"""
 
 
-@pytest.mark.hot
+@pytest.mark.hot("pugh-solutions-phone", "pugh-solutions-desktop")
 @pytest.mark.browser
 @pytest.mark.parametrize("width", [390, 1200])
 def test_each_options_row_holds_its_radio_arrow_letter_and_name_on_one_centre_line(request, deck, width):

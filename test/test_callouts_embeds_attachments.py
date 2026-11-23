@@ -181,15 +181,24 @@ def test_a_core_built_callout_body_renders_its_list_wikilink_nested_callout_and_
     )
 
 
+TONES = ["note", "success", "warning", "danger", "quote"]
+
+
+def tones_page() -> str:
+    """A chapter of one callout of each tone, with the core's titles; the artifact of the browser
+    door's state callout-tones-desktop (test/browser/expectations.yaml)."""
+    return artifact_html(build("Doc", chapter("one", "One", *(_callout(kind, kind.capitalize(), f"{kind} body.")
+                                                             for kind in TONES))))
+
+
+@pytest.mark.hot("callout-tones-desktop")
 @pytest.mark.browser
 def test_callout_tones_are_distinct_titled_cards_in_the_reader(tmp_path, reader_browser) -> None:
     """Moved from the interim's browser tests: each tone has its own border and fill, and the
     title takes the border colour, in the paged reader and the print book alike."""
-    kinds = ["note", "success", "warning", "danger", "quote"]
-    document = build("Doc", chapter("one", "One", *(_callout(kind, kind.capitalize(), f"{kind} body.")
-                                                   for kind in kinds)))  # The core's titles.
+    kinds = TONES
     artifact = tmp_path / "artifact.html"
-    artifact.write_text(artifact_html(document), encoding="utf-8")
+    artifact.write_text(tones_page(), encoding="utf-8")
     page = reader_browser.new_page(viewport={"width": 1200, "height": 1000})
     errors = []
     page.on("pageerror", lambda error: errors.append(str(error)))
@@ -508,6 +517,7 @@ def _bottom_line_page(tmp_path, browser, width: int):
     return page, errors
 
 
+@pytest.mark.hot("bottom-lines-desktop", "bottom-lines-narrow")
 @pytest.mark.browser
 def test_a_bottom_line_leads_its_page_in_every_layout(tmp_path, reader_browser) -> None:
     """Scrolling at 1200 and 390 px and paged, the box stands right under the chapter's title, and on

@@ -80,6 +80,7 @@ LAYOUT = """anchor => {
 }"""
 
 
+@pytest.mark.hot("pugh-solutions-phone")
 @pytest.mark.parametrize("width", WIDTHS)
 @pytest.mark.parametrize("anchor", [THREE, FIVE])
 def test_on_a_phone_the_matrix_is_rows_of_letters_and_nothing_scrolls_sideways(phone_browser, deck, width, anchor):
@@ -123,6 +124,7 @@ TAB = """anchor => {
 }"""
 
 
+@pytest.mark.hot("pugh-solutions-phone")
 @pytest.mark.parametrize("width", WIDTHS)
 def test_on_a_phone_the_sensitivity_grid_is_a_block_per_option_and_both_tabs_fit(phone_browser, deck, width):
     page, errors = _open(phone_browser, deck, width, "five")
@@ -175,6 +177,7 @@ def test_on_a_phone_a_mark_a_weight_and_a_pick_take_one_tap_each(phone_browser, 
     assert errors == []
 
 
+@pytest.mark.hot("pugh-solutions-phone", "pugh-solutions-desktop")
 @pytest.mark.parametrize("width", WIDTHS)
 def test_a_chapters_sections_after_the_figure_are_its_tabs(phone_browser, deck, width):
     page, errors = _open(phone_browser, deck, width, "three")
@@ -215,6 +218,7 @@ def test_a_link_to_a_section_in_a_tab_opens_the_tab_at_it_and_the_contents_lists
     assert errors == []
 
 
+@pytest.mark.hot("pugh-solutions-phone")
 @pytest.mark.parametrize("width", WIDTHS)
 def test_on_a_phone_tapping_a_letter_shows_the_options_name_and_sentence(phone_browser, deck, width):
     page, errors = _open(phone_browser, deck, width, "three")
@@ -240,6 +244,7 @@ def test_on_a_phone_tapping_a_letter_shows_the_options_name_and_sentence(phone_b
     assert errors == []
 
 
+@pytest.mark.hot("pugh-solutions-desktop")
 def test_where_there_is_room_an_option_reads_as_its_letter_and_short_name(phone_browser, deck):
     page, errors = _open(phone_browser, deck, 1200, "three")
     figure, matrix = page.locator(f"#{THREE}"), page.locator(details(THREE))
@@ -280,6 +285,7 @@ MATRIX = """anchor => {
 }"""
 
 
+@pytest.mark.hot("pugh-solutions-desktop")
 def test_at_1100_px_criteria_read_in_full_options_are_narrow_and_every_row_is_one_line(reader_browser, deck):
     page, errors = _open(reader_browser, deck, 1100, "three")
 
@@ -343,6 +349,7 @@ UNDER_ARROWS = """() => {
 }"""
 
 
+@pytest.mark.hot("pugh-solutions-phone")
 def test_in_screens_on_a_phone_no_walk_arrow_lies_over_the_screen(phone_browser, deck):
     page, errors = _open(phone_browser, deck, 390, "three")
     scroll = "document.querySelector('[data-active-chapter] .chapter-body').closest('[data-chapter-scroll]')"
@@ -359,6 +366,7 @@ def test_in_screens_on_a_phone_no_walk_arrow_lies_over_the_screen(phone_browser,
     assert errors == []
 
 
+@pytest.mark.hot("pugh-solutions-desktop")
 def test_with_a_mouse_the_walk_arrows_stay_in_screens(reader_browser, deck):
     page, errors = _open(reader_browser, deck, 1200, "three")
     zones = page.evaluate("""() => [...document.querySelectorAll('.chapter-nav-zone')]

@@ -38,6 +38,12 @@ def appearance_artifact(appearance: str | None = None) -> str:
     ))
 
 
+def appearance_page() -> str:
+    """The artifact of the browser door's appearance states (test/browser/expectations.yaml): the test
+    page in System, whose recorded colours the fake's cascade is held to."""
+    return appearance_artifact()
+
+
 def rgba(value: str) -> tuple[float, float, float, float]:
     match = re.fullmatch(r"rgba?\(([\d.]+), ([\d.]+), ([\d.]+)(?:, ([\d.]+))?\)", value)
     assert match, f"unparsed computed colour {value!r}"
@@ -92,6 +98,7 @@ def assert_near_black_page(colours: dict) -> None:
         assert luminance(colours[element]["color"]) > 0.5, f"{element} text {colours[element]}"
 
 
+@pytest.mark.hot("appearance-dark")
 @pytest.mark.browser
 def test_opening_follows_a_dark_system_scheme(tmp_path, reader_browser) -> None:
     """A page that declares no obsHtml.appearance opens in System: near-black in a dark scheme."""
@@ -105,6 +112,7 @@ def test_opening_follows_a_dark_system_scheme(tmp_path, reader_browser) -> None:
     assert errors == []
 
 
+@pytest.mark.hot("appearance-light")
 @pytest.mark.browser
 def test_opening_follows_a_light_system_scheme(tmp_path, reader_browser) -> None:
     """The same page in a light scheme is white with black text."""
@@ -118,6 +126,7 @@ def test_opening_follows_a_light_system_scheme(tmp_path, reader_browser) -> None
     assert errors == []
 
 
+@pytest.mark.hot("appearance-dark")
 @pytest.mark.browser
 def test_a_declared_light_appearance_opens_light_in_a_dark_host(tmp_path, reader_browser) -> None:
     errors: list[str] = []
@@ -130,6 +139,7 @@ def test_a_declared_light_appearance_opens_light_in_a_dark_host(tmp_path, reader
     assert errors == []
 
 
+@pytest.mark.hot("appearance-light")
 @pytest.mark.browser
 def test_a_declared_dark_appearance_opens_dark_in_a_light_host(tmp_path, reader_browser) -> None:
     errors: list[str] = []
@@ -144,6 +154,7 @@ def test_a_declared_dark_appearance_opens_dark_in_a_light_host(tmp_path, reader_
     assert errors == []
 
 
+@pytest.mark.hot("appearance-print")
 @pytest.mark.browser
 @pytest.mark.parametrize("host_scheme", HOST_SCHEMES)
 def test_printing_is_light_in_every_appearance_and_scheme(tmp_path, reader_browser, host_scheme) -> None:
@@ -163,6 +174,7 @@ def test_printing_is_light_in_every_appearance_and_scheme(tmp_path, reader_brows
     assert errors == []
 
 
+@pytest.mark.hot("appearance-light", "appearance-dark")
 @pytest.mark.browser
 @pytest.mark.parametrize("host_scheme", HOST_SCHEMES)
 def test_each_appearance_paints_its_own_opaque_readable_colours(tmp_path, reader_browser, host_scheme) -> None:
@@ -186,6 +198,7 @@ def test_each_appearance_paints_its_own_opaque_readable_colours(tmp_path, reader
     assert errors == []
 
 
+@pytest.mark.hot("appearance-light", "appearance-dark")
 @pytest.mark.browser
 def test_switching_appearance_recolours_at_once_with_native_controls(tmp_path, reader_browser) -> None:
     errors: list[str] = []
@@ -202,6 +215,7 @@ def test_switching_appearance_recolours_at_once_with_native_controls(tmp_path, r
     assert errors == []
 
 
+@pytest.mark.hot("appearance-light", "appearance-dark")
 @pytest.mark.browser
 def test_dark_is_a_near_black_page_with_white_headings_and_light_grey_text(tmp_path, reader_browser) -> None:
     """Dark is the look the owner chose; Light keeps the white page with black text."""

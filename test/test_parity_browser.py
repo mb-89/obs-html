@@ -349,6 +349,7 @@ def check_steps(steps: list[tuple[str, object]]) -> list[str]:
     return problems
 
 
+@pytest.mark.hot("features-desktop")
 @pytest.mark.browser
 @pytest.mark.parametrize("frame_kind", [
     pytest.param(frame_kind, marks=pytest.mark.xdist_group(f"parity-{frame_kind}")) for frame_kind in SANDBOXES])
@@ -441,6 +442,7 @@ def covered_controls(tmp_path: Path, browser, artifact: str, frame_kind: str, na
     return faults
 
 
+@pytest.mark.hot("features-desktop", "features-cards-desktop", "features-cards-phone")
 @pytest.mark.browser
 @pytest.mark.parametrize(("frame_kind", "width"), [
     pytest.param(frame_kind, width, id=f"{frame_kind}-{width}",
@@ -485,6 +487,7 @@ def test_the_sweep_checks_the_contents_bar_collapsed_and_expanded() -> None:
     assert {layout[0] for layout in [*layouts[1:], *first]} == set(bars)
 
 
+@pytest.mark.hot("features-desktop")
 @pytest.mark.browser
 def test_the_sweep_sets_the_contents_state_it_checks(tmp_path: Path, overlay_scrollbar_browser) -> None:
     """The contents' state is the one the layout names, whatever an earlier check left: opening
@@ -511,6 +514,7 @@ def test_the_sweep_sets_the_contents_state_it_checks(tmp_path: Path, overlay_scr
     assert errors == []
 
 
+@pytest.mark.hot("features-desktop")
 @pytest.mark.browser
 def test_the_sweep_names_a_covered_control_and_what_covers_it(tmp_path: Path, overlay_scrollbar_browser) -> None:
     """The sweep is not vacuous: a control under another element is a fault naming both."""
@@ -535,6 +539,7 @@ def test_the_sweep_names_a_covered_control_and_what_covers_it(tmp_path: Path, ov
     assert errors == []
 
 
+@pytest.mark.hot("features-desktop")
 @pytest.mark.browser
 def test_the_sweep_reaches_a_self_link_whose_lines_lie_on_either_side_of_the_reader(
         tmp_path: Path, overlay_scrollbar_browser) -> None:
@@ -572,6 +577,7 @@ def test_the_sweep_reaches_a_self_link_whose_lines_lie_on_either_side_of_the_rea
     assert errors == []
 
 
+@pytest.mark.hot("features-desktop")
 @pytest.mark.browser
 def test_the_sweep_reaches_a_control_an_earlier_scroll_brought_into_view(tmp_path: Path, overlay_scrollbar_browser) -> None:
     """After a scroll the sweep looks again only at controls the scroll can have brought into view;

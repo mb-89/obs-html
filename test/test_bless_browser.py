@@ -170,7 +170,7 @@ SWIPE = """([selector, across]) => {
 """A touch swipe of ``across`` pixels from the middle of the first ``selector``: its pointer and its touch events."""
 
 
-@pytest.mark.hot
+@pytest.mark.hot("bless-deck-phone", "bless-deck-desktop")
 @pytest.mark.browser
 def test_the_pill_and_keys_show_only_on_asking_chapters_and_the_page_fits_a_phone(deck, reader_browser) -> None:
     from playwright.sync_api import expect
@@ -192,7 +192,7 @@ def test_the_pill_and_keys_show_only_on_asking_chapters_and_the_page_fits_a_phon
     assert errors == []
 
 
-@pytest.mark.hot
+@pytest.mark.hot("bless-deck-phone")
 @pytest.mark.browser
 @pytest.mark.parametrize("width", [360, 390])
 def test_the_band_holds_every_key_in_one_row_at_phone_width_with_the_notices_shown(deck, reader_browser,
@@ -215,7 +215,7 @@ def test_the_band_holds_every_key_in_one_row_at_phone_width_with_the_notices_sho
     assert errors == []
 
 
-@pytest.mark.hot
+@pytest.mark.hot("bless-deck-desktop")
 @pytest.mark.browser
 def test_the_pill_keeps_its_text_while_the_band_has_room(deck, reader_browser) -> None:
     """The breadcrumb shrinks first: on a wide band the pill shows its label."""
@@ -376,7 +376,7 @@ PAGE_FRAME = """() => [...document.querySelectorAll(
     .filter(node => node.checkVisibility()).length"""
 
 
-@pytest.mark.hot
+@pytest.mark.hot("bless-deck-phone")
 @pytest.mark.browser
 @pytest.mark.parametrize("width", [360, 390])
 def test_the_deck_opens_in_screens_on_a_phone_that_fit_and_walk_by_swipe_and_keys(deck, phone_browser,
@@ -420,7 +420,7 @@ def test_the_deck_opens_in_screens_on_a_phone_that_fit_and_walk_by_swipe_and_key
     assert errors == []
 
 
-@pytest.mark.hot
+@pytest.mark.hot("bless-deck-phone")
 @pytest.mark.browser
 def test_printing_from_screens_prints_each_screen_from_a_new_page_without_a_page_frame(deck, reader_browser) -> None:
     """artifact-ui.md, Screens: the print projection holds Home without its cover, then each chapter
@@ -452,7 +452,7 @@ def _nested_deck() -> str:
     return artifact_html(source)
 
 
-@pytest.mark.hot
+@pytest.mark.hot("bless-deck-phone")
 @pytest.mark.browser
 def test_the_band_of_a_nested_bless_chapter_fits_at_360_px(phone_browser, tmp_path: Path) -> None:
     """Both breadcrumb choosers, the pill and every key in one row, none under another."""
@@ -486,7 +486,7 @@ PILL = """() => { const pill = document.querySelector('[data-bless-pill]'), box 
 SHORT = "Picked C · Answers file alone"
 
 
-@pytest.mark.hot
+@pytest.mark.hot("bless-deck-phone")
 @pytest.mark.browser
 @pytest.mark.parametrize(("width", "shown"), [(360, ""), (390, ""), (520, "Picked C"), (660, SHORT), (1100, SHORT)])
 def test_the_pill_names_the_pick_by_its_short_name_where_the_band_has_room(deck, phone_browser, width: int,

@@ -36,6 +36,7 @@ def sweeper():
     kept.close()
 
 
+@pytest.mark.hot(own_browser=True)
 @pytest.mark.browser
 @pytest.mark.parametrize("document, viewport", [
     # Each artifact's sweep at each viewport is a test of its own, in a group of its own
@@ -66,6 +67,7 @@ console.error(`${innerWidth} px at device scale ${devicePixelRatio}`);
 </script></body></html>"""
 
 
+@pytest.mark.hot(own_browser=True)
 @pytest.mark.browser
 def test_a_page_that_locks_fails_its_sweep_naming_the_chapter_and_the_next_sweep_runs_in_a_fresh_child(tmp_path,
                                                                                                          request):
@@ -87,6 +89,7 @@ def test_a_page_that_locks_fails_its_sweep_naming_the_chapter_and_the_next_sweep
     assert (after.failure, after.errors) == (None, [("desktop", "reduce", "1280 px at device scale 1")])
 
 
+@pytest.mark.hot(own_browser=True)
 @pytest.mark.browser
 def test_each_viewport_is_swept_at_its_width_and_the_phone_at_device_scale_1(tmp_path, sweeper):
     artifact = tmp_path / "reporting.html"
