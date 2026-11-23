@@ -1228,7 +1228,8 @@ async function verifyComments() {
         staticRenderCalls += 1;
         return originalRenderStatic.apply(this, args);
     };
-    // Only the comments bar's own clones count: the fake browser clones nodes as it parses markup.
+    // The comments bar's clones count: it clones a review target to read its text. The paged layout's
+    // previews clone their leading lines by design (pages.js), and happy-dom clones as it parses.
     let targetCloneCalls = 0;
     const originalCloneNode = window.Node.prototype.cloneNode;
     window.Node.prototype.cloneNode = function (...args) {
