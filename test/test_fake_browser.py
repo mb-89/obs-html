@@ -262,3 +262,19 @@ def test_inner_text_breaks_around_list_items_and_computed_lengths_and_colours_ar
         return [style("line").stroke === getComputedStyle(probe).color, style("padded").paddingRight,
                 getComputedStyle(document.documentElement).getPropertyValue("--edge").trim()];
     }""") == [True, "28px", "light-dark(#bdbdbd, #5c5c5c)"]
+
+
+def test_the_computed_font_is_written_as_chromium_writes_it(tmp_path, fake_page) -> None:
+    """happy-dom 21 joined the font's longhands as written: a rem size and a unitless line height stayed
+    so, and a header cell was not bold. The runtime measures text in the computed font (table.js), so
+    the recorded text widths are found only by Chromium's writing of it."""
+    page = _open(tmp_path, fake_page, '<table><tr><th>H</th><td>D</td></tr></table><p class="s">S</p>',
+                 "<style>html { font-size: 16px; } table { font: 0.85rem/1.5 Arial, sans-serif; }"
+                 " .s { font-style: italic; font-weight: 600; font-size: 1.25rem; line-height: 30px;"
+                 " font-family: Georgia; }</style>")
+    assert page.evaluate("""() => ["th", "td", "p.s"].map((selector) => {
+        const style = getComputedStyle(document.querySelector(selector));
+        return [style.font, style.getPropertyValue("font"), style.fontWeight];
+    })""") == [["700 13.6px / 20.4px Arial, sans-serif"] * 2 + ["700"],
+               ["13.6px / 20.4px Arial, sans-serif"] * 2 + ["400"],
+               ["italic 600 20px / 30px Georgia"] * 2 + ["600"]]

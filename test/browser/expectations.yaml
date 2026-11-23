@@ -25,6 +25,84 @@
 # `uv run pytest -m hot --record` into test/browser/recordings/<state>.yaml.
 
 states:
+  theme-choice-plain:
+    artifact: test/test_theme_choice_browser.py::plain_page
+    context: {viewport: [1280, 720], scale: 1, touch: false, scheme: light, motion: no-preference, media: screen, frame: top}
+    steps:
+      - {open: page}
+  theme-choice-text:
+    artifact: test/test_theme_choice_browser.py::text_page_default
+    context: {viewport: [1280, 720], scale: 1, touch: false, scheme: light, motion: no-preference, media: screen, frame: top}
+    steps:
+      - {open: page}
+  theme-choice-text-contrast:
+    artifact: test/test_theme_choice_browser.py::text_page_contrast
+    context: {viewport: [1280, 720], scale: 1, touch: false, scheme: light, motion: no-preference, media: screen, frame: top}
+    steps:
+      - {open: page}
+  theme-choice-long:
+    artifact: test/test_theme_choice_browser.py::long_page_default
+    context: {viewport: [1280, 720], scale: 1, touch: false, scheme: light, motion: no-preference, media: screen, frame: top}
+    steps:
+      - {open: page}
+      - {open: chapter, id: one}
+  theme-choice-table:
+    artifact: test/test_theme_choice_browser.py::table_default
+    context: {viewport: [1280, 720], scale: 1, touch: false, scheme: light, motion: no-preference, media: screen, frame: top}
+    steps:
+      - {open: page}
+      - {open: chapter, id: one}
+  theme-choice-table-contrast:
+    artifact: test/test_theme_choice_browser.py::table_contrast
+    context: {viewport: [1280, 720], scale: 1, touch: false, scheme: light, motion: no-preference, media: screen, frame: top}
+    steps:
+      - {open: page}
+      - {open: chapter, id: one}
+  theme-choice-bold-table:
+    artifact: test/test_theme_choice_browser.py::bold_table_default
+    context: {viewport: [1280, 720], scale: 1, touch: false, scheme: light, motion: no-preference, media: screen, frame: top}
+    steps:
+      - {open: page}
+      - {open: chapter, id: one}
+  theme-choice-bold-table-contrast:
+    artifact: test/test_theme_choice_browser.py::bold_table_contrast
+    context: {viewport: [1280, 720], scale: 1, touch: false, scheme: light, motion: no-preference, media: screen, frame: top}
+    steps:
+      - {open: page}
+      - {open: chapter, id: one}
+  theme-choice-guided-card:
+    artifact: test/test_theme_choice_browser.py::guided_card_page
+    context: {viewport: [1280, 720], scale: 1, touch: false, scheme: light, motion: no-preference, media: screen, frame: top}
+    steps:
+      - {open: page}
+      - {open: chapter, id: one}
+  reading-shell-title-page:
+    artifact: test/test_reading_shell_browser.py::title_page_document
+    context: {viewport: [1280, 720], scale: 1, touch: false, scheme: light, motion: no-preference, media: screen, frame: top}
+    steps:
+      - {open: page}
+  reading-shell-walk:
+    artifact: test/test_reading_shell_browser.py::walk_document
+    context: {viewport: [1280, 720], scale: 1, touch: false, scheme: light, motion: no-preference, media: screen, frame: top}
+    steps:
+      - {open: page}
+  reading-shell-commented-manifest:
+    artifact: test/test_reading_shell_browser.py::commented_manifest_artifact
+    context: {viewport: [1280, 720], scale: 1, touch: false, scheme: light, motion: no-preference, media: screen, frame: top}
+    steps:
+      - {open: page}
+  reading-shell-without-section:
+    artifact: test/test_reading_shell_browser.py::without_section_document
+    context: {viewport: [1280, 720], scale: 1, touch: false, scheme: light, motion: no-preference, media: screen, frame: top}
+    steps:
+      - {open: page}
+      - {open: chapter, id: m1}
+  reading-shell-shown-section:
+    artifact: test/test_reading_shell_browser.py::shown_section_document
+    context: {viewport: [1280, 720], scale: 1, touch: false, scheme: light, motion: no-preference, media: screen, frame: top}
+    steps:
+      - {open: page}
+      - {open: chapter, id: m1}
   pugh-figures-desktop:
     artifact: test/test_pugh_figures_browser.py::pugh_artifact
     context: {viewport: [1280, 720], scale: 1, touch: false, scheme: light, motion: no-preference, media: screen, frame: top}
