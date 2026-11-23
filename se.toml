@@ -30,3 +30,8 @@ over_limit = "warn"
 [modules.se]
 url = "../SE.git"
 version = "^5.0"
+
+# The default style (README "Default style", spec/configuration.md): obs-html builds none in, and
+# installing obs-html installs this component with it.
+[components.obs-html-style-generic]
+version = "^1.0"

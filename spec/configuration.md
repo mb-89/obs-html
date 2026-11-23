@@ -91,7 +91,7 @@ obs-html styles a build with one style module, chosen in this order:
 	declared style.
 2. The style the Document declares: its `style`, whose `folder` is the installed component's
 	folder the core found for the manifest's `obs.style`.
-3. The packaged `generic` module.
+3. The default style component, `obs-html-style-generic` ([[#Default style]]).
 
 Whichever is chosen takes the same place: its `style.css` follows the packaged base stylesheet,
 and the CSS snippets the manifest lists in `obsHtml.cssSnippets` follow it
@@ -101,6 +101,22 @@ A declared `folder` that holds no `style.css`, as when a Document is built on on
 rendered on another, is an input error of the Document's manifest naming `style.folder` and the
 component, with the remedy to install it with `obs-components install NAME` and build again, or to
 pass `--style FOLDER`. No other style replaces a declared one that fails.
+
+## Default style
+
+obs-html builds no style in. Its default style is the style component `obs-html-style-generic`, a
+repository of its own released as any style component is (obs's `spec/design_input/components.md`),
+which obs-html requires: `se.toml` declares it under `[components.obs-html-style-generic]` with the
+versions obs-html works with, so installing obs-html installs it too. It goes through the same
+mechanism as any declared style, and a new style copies it.
+
+obs-html finds it as obs's core finds a declared `obs.style` component: in obs's machine folder,
+`OBS_LOCAL_FOLDER` where set and not empty, else `obs` in the user's configuration folder, where
+`components.json` lists it as a style and `components/obs-html-style-generic` holds its
+`style.css`. Where it is not installed, a build with neither `--style` nor a declared style fails
+with one input error, source `obs-html`, field `--style`, naming the machine folder and the remedy
+`obs-components install obs-html-style-generic`. Nothing replaces it silently, and obs-html fetches
+nothing.
 
 ## Local themes
 
@@ -148,8 +164,8 @@ Every render of `obs-html` on a Document reads the folder: a DESTINATION, a `.pd
 `--build-own-spec` reads none: the adapter's specification is the same page on every machine, and
 obs's specification attaches it.
 
-The settings have two layers of style. The committed layer is the packaged `generic` module or
-the declared style ([[#Declared style]]); the local layer is this folder. Nothing in a vault, its
+The settings have two layers of style. The committed layer is the default style component
+([[#Default style]]) or the declared style ([[#Declared style]]); the local layer is this folder. Nothing in a vault, its
 settings, its manifest, the Document, the source archive or its build record names a local theme
 or says whether one exists: obs-html finds them by the fixed folder alone. A rebuild from the
 archive on another machine has Default only. A page that a command fence builds with obs-html on

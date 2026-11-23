@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 import pytest
@@ -6,6 +7,7 @@ from obs_html.cli import main
 from obs_html.config import load_config
 from obs_html.errors import InputError
 from obs_html.render import render
+from obs_html.styles import DEFAULT_STYLE
 
 
 CONFIG = load_config()
@@ -20,13 +22,35 @@ def _style(root: Path, css: str, assets: str | None = None) -> Path:
     return style
 
 
-def test_default_style_is_packaged_generic_and_has_no_external_module(document) -> None:
+def test_the_default_style_is_the_installed_generic_component(document) -> None:
+    from conftest import MACHINE, ROOT
+
+    installed = (MACHINE / "components" / DEFAULT_STYLE / "style.css").read_text(encoding="utf-8")
     artifact = render(document, CONFIG)
 
-    assert 'font-content: Georgia, "Times New Roman", serif' in artifact
-    assert ".paper-sheet" in artifact  # The base stylesheet always precedes the module overlay.
+    assert installed.strip() and installed in artifact
+    assert artifact.index(".paper-sheet") < artifact.index(installed)  # The base stylesheet precedes it.
     assert "file:///" not in artifact
     assert '<link rel="stylesheet"' not in artifact
+    assert not (ROOT / "src" / "obs_html" / "styles").exists()
+
+
+def test_without_the_default_component_installed_a_build_fails_naming_its_install_command(
+        document, tmp_path: Path, monkeypatch, capsys) -> None:
+    monkeypatch.setenv("OBS_LOCAL_FOLDER", str(tmp_path / "machine"))
+
+    with pytest.raises(InputError) as failure:
+        render(document, CONFIG)
+    assert (failure.value.source, failure.value.field) == ("obs-html", "--style")
+    assert f"obs-components install {DEFAULT_STYLE}" in failure.value.remedy
+
+    source = tmp_path / "document.json"
+    source.write_text(json.dumps(document), encoding="utf-8")
+    with pytest.raises(SystemExit):
+        main([str(source), str(tmp_path / "artifact.html")])
+    error = capsys.readouterr().err.strip().splitlines()[-1]
+    assert error.startswith("obs-html: --style: ") and f"obs-components install {DEFAULT_STYLE}" in error
+    assert not (tmp_path / "artifact.html").exists()
 
 
 def test_explicit_style_module_overrides_the_default(document, tmp_path: Path) -> None:
