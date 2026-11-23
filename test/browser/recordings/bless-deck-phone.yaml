@@ -1,0 +1,240 @@
+# The browser door's recording of the state bless-deck-phone (test/browser/expectations.yaml),
+# written by `uv run pytest -m hot --record` (test/browser/door.py); never edited by hand.
+state: bless-deck-phone
+artifact: test/test_bless_browser.py::deck_html
+context:
+  viewport: [390, 844]
+  scale: 3
+  touch: true
+  scheme: light
+  motion: no-preference
+  media: screen
+  frame: top
+steps:
+- open: page
+- open: chapter
+  id: record
+artifactDigest: sha256:7d12cf8f0cb968555045ec66d7b411dfba79357053f66cfaf2155f25ea2d6e42
+chromium: 153.0.8010.12 (Playwright 1.64.0)
+answers:
+- step: 0
+  asked:
+    box:
+    - '#record > div:1'
+    - '#record > div:1 > div:2'
+    - '#record--figure-1'
+    - html:1 > body:1 > div:1 > div:1
+    - html:1 > body:1 > div:1 > div:2
+    - html:1 > body:1 > div:1 > div:3
+    - html:1 > body:1 > div:1 > div:4
+    - html:1 > body:1 > div:1 > main:1 > div:1
+    cascade:
+    - '#record > div:1 > div:2|paddingLeft'
+    - '#record > div:1 > div:2|paddingRight'
+    - html:1|fontSize
+    media:
+    - '(max-width: 30rem)'
+    - '(max-width: 42rem)'
+    - '(max-width: 44rem)'
+    - '(pointer: coarse)'
+    - '(prefers-reduced-motion: reduce)'
+    - print
+    - screen
+    resize:
+    - '#record > div:1'
+    - '#record > div:1 > div:2'
+    - '#record--figure-1'
+    - html:1 > body:1 > div:1 > div:1
+    - html:1 > body:1 > div:1 > div:2
+    - html:1 > body:1 > div:1 > div:3
+    - html:1 > body:1 > div:1 > div:4
+    sizes:
+    - '#record--figure-1'
+  box:
+    '#record > div:1':
+      border: [0, 64, 390, 1317.38]
+      rects: [[0, 64, 390, 1317.38]]
+    '#record > div:1 > div:2':
+      border: [12, 290.2, 366, 129.38]
+      rects: [[12, 290.2, 366, 129.38]]
+    '#record--figure-1':
+      border: [16, 290.2, 358, 129.38]
+      rects: [[16, 290.2, 358, 129.38]]
+    html:1 > body:1 > div:1 > div:1:
+      border: [0, 0, 0, 0]
+      rects: []
+    html:1 > body:1 > div:1 > div:2:
+      border: [0, 0, 0, 0]
+      rects: []
+    html:1 > body:1 > div:1 > div:3:
+      border: [0, 0, 0, 0]
+      rects: []
+    html:1 > body:1 > div:1 > div:4:
+      border: [0, 0, 0, 0]
+      rects: []
+    html:1 > body:1 > div:1 > main:1 > div:1:
+      border: [0, 64, 390, 780]
+      rects: [[0, 64, 390, 780]]
+  sizes:
+    window:
+      innerWidth: 390
+      innerHeight: 844
+    '#record--figure-1':
+      clientWidth: 358
+      clientHeight: 127
+      scrollWidth: 358
+      scrollHeight: 127
+      offsetWidth: 358
+      offsetHeight: 129
+      offsetLeft: 16
+      offsetTop: 226
+      clientLeft: 0
+      clientTop: 1
+      scrollTop: 0
+      scrollLeft: 0
+  resize:
+    '#record > div:1':
+      content: [366, 1269.38]
+      border: [390, 1317.38]
+    '#record > div:1 > div:2':
+      content: [366, 129.38]
+      border: [366, 129.38]
+    '#record--figure-1':
+      content: [358, 103.38]
+      border: [358, 129.38]
+    html:1 > body:1 > div:1 > div:1:
+      content: [0, 0]
+      border: [0, 0]
+    html:1 > body:1 > div:1 > div:2:
+      content: [0, 0]
+      border: [0, 0]
+    html:1 > body:1 > div:1 > div:3:
+      content: [0, 0]
+      border: [0, 0]
+    html:1 > body:1 > div:1 > div:4:
+      content: [0, 0]
+      border: [0, 0]
+  scroll-into-view: {}
+  text-width: {}
+  image-size: {}
+  fonts:
+    status: loaded
+  cascade:
+    '#record > div:1 > div:2|paddingLeft': 0px
+    '#record > div:1 > div:2|paddingRight': 0px
+    html:1|fontSize: 16px
+  media:
+    '(max-width: 30rem)': true
+    '(max-width: 42rem)': true
+    '(max-width: 44rem)': true
+    '(pointer: coarse)': true
+    '(prefers-reduced-motion: reduce)': false
+    print: false
+    screen: true
+  events:
+  - button:click
+  - input:click
+  - input:input
+  - input:change
+  - checked:true
+  - label:click
+  - input:click
+  - input:input
+  - input:change
+  - checked:false
+  - summary:click
+  - open:true
+  focus:
+    button: button:0
+    input: input:1
+    disabled: input:1
+    tabindex: span:3
+    plain: span:3
+    dialog: button:7
+    closed: span:3
+  popover:
+    shown: true
+    another:
+    - false
+    - true
+    - true
+    hidden: false
+    toggled:
+    - true
+    - true
+  frames:
+  - first
+  - second
+  - nested
+  storage:
+    local: kept
+    session: kept
+- step: 1
+  asked:
+    media:
+    - '(max-width: 30rem)'
+    - '(max-width: 42rem)'
+    - '(max-width: 44rem)'
+    - '(pointer: coarse)'
+    - '(prefers-reduced-motion: reduce)'
+    - print
+    - screen
+  box: {}
+  sizes:
+    window:
+      innerWidth: 390
+      innerHeight: 844
+  resize: {}
+  scroll-into-view: {}
+  text-width: {}
+  image-size: {}
+  fonts:
+    status: loaded
+  cascade: {}
+  media:
+    '(max-width: 30rem)': true
+    '(max-width: 42rem)': true
+    '(max-width: 44rem)': true
+    '(pointer: coarse)': true
+    '(prefers-reduced-motion: reduce)': false
+    print: false
+    screen: true
+  events:
+  - button:click
+  - input:click
+  - input:input
+  - input:change
+  - checked:true
+  - label:click
+  - input:click
+  - input:input
+  - input:change
+  - checked:false
+  - summary:click
+  - open:true
+  focus:
+    button: button:0
+    input: input:1
+    disabled: input:1
+    tabindex: span:3
+    plain: span:3
+    dialog: button:7
+    closed: span:3
+  popover:
+    shown: true
+    another:
+    - false
+    - true
+    - true
+    hidden: false
+    toggled:
+    - true
+    - true
+  frames:
+  - first
+  - second
+  - nested
+  storage:
+    local: kept
+    session: kept
+  print: beforeprint
