@@ -114,8 +114,8 @@ def test_the_stand_ins_answer_as_the_design_lists(tmp_path, fake_page) -> None:
         return [select.options[0].value, select.options[0].textContent, clone.constructor === Object,
                 Array.isArray(clone.list) && clone.list[1].two, clone.when instanceof Date, round === 'obs '.repeat(50),
                 digest, printed, document.querySelector('#canvas').getContext('2d').measureText('four').width,
-                bytes instanceof Uint8Array];
-    }""") == ["one", "First", True, 2, True, True, 32, ["before", "after"], 28, True]
+                bytes instanceof Uint8Array, new DOMException('refused', 'NotAllowedError') instanceof Error];
+    }""") == ["one", "First", True, 2, True, True, 32, ["before", "after"], 28, True, True]
     menu = page.locator("#menu")
     assert not menu.is_visible()
     page.evaluate("document.querySelector('#menu').showPopover()")

@@ -11,8 +11,7 @@ import sys
 
 import pytest
 
-from artifacts import artifact_html
-from browser.viewer import open_viewer
+from browser import door
 from conftest import PIXEL, built_once
 from documents import chapter, document as build, node, paragraph
 from obs_html.artifact_data import decode_artifact_data
@@ -81,7 +80,7 @@ def test_an_image_naming_an_unknown_asset_names_the_document_the_node_and_the_re
     assert "obs-document" in failure.value.remedy
 
 
-def _remote_document() -> dict:
+def remote_document() -> dict:
     """A remote image the build fetched and one it could not fetch, in the subtitle and in text."""
     fetched = {"id": "badge", "href": "https://badges.test/fetched.svg", "mediaType": "image/svg+xml",
                "data": base64.b64encode(BADGE).decode("ascii")}
@@ -97,7 +96,7 @@ def _remote_document() -> dict:
 
 
 def test_an_image_without_data_shows_its_alt_text_and_never_its_url() -> None:
-    notes = _notes(_remote_document())
+    notes = _notes(remote_document())
     for html in (notes["one"]["html"], notes["home"]["html"]):
         assert '<span class="image-unavailable" role="img" aria-label="Gone">Gone</span>' in html
         assert "gone.svg" not in html
@@ -105,12 +104,17 @@ def test_an_image_without_data_shows_its_alt_text_and_never_its_url() -> None:
         assert 'alt="Fetched"' in html
 
 
-@pytest.mark.browser
+@pytest.mark.dom
 def test_with_the_network_blocked_a_fetched_remote_image_renders_and_a_failed_one_shows_its_label(
-        tmp_path, reader_browser) -> None:
+        door_artifact, fake_page) -> None:
+    """The remote images' state in the viewer frame, where nothing loads from the network: the image's
+    decoded size is the recorded Chromium's (browser/browser-door.md, Recording and replay)."""
+    name = "remote-images-viewer-frame"
     errors: list[str] = []
-    _page, frame = open_viewer(tmp_path, reader_browser, errors, artifact_html(_remote_document()), "light")
-    subtitle = frame.locator(".document-subtitle").first
+    fake_page.on("pageerror", lambda error: errors.append(str(error)))
+    fake_page.on("console", lambda message: errors.append(message.text) if message.type == "error" else None)
+    door.open_state(fake_page, name, door_artifact(name), door.load_recording(name))
+    subtitle = fake_page.locator(".document-subtitle").first
     image = subtitle.locator('img[alt="Fetched"]')
     image.wait_for()
     assert image.evaluate("node => node.complete && node.naturalWidth") == 40

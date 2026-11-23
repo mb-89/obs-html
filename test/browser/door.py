@@ -60,6 +60,9 @@ MEDIA_RULES = """() => {
     }
     return [...found];
 }"""
+# Every image of the page: the image-size expectation is asked of each, since a test reads an
+# image's decoded size where the runtime does not (browser-door.md, The browser door's expectations).
+IMAGES = "(door) => [...document.querySelectorAll('img')].map((image) => door.key(image))"
 
 
 @functools.cache
@@ -246,6 +249,26 @@ def open_state(fake_page, name: str, artifact: Path, recording: dict | None, thr
             after_step(index)
 
 
+def frame_answers(name: str) -> dict:
+    """The recording of the viewer-frame state ``name`` with only what belongs to the frame, not to
+    its artifact: its context and, at each step, the frame's refusals, ``document.fonts`` and the
+    window's inner size. A page that opens another artifact in the viewer frame replays these, and
+    the door's defaults for its own elements, whose keys the recording's artifact does not share."""
+    recording = load_recording(name)
+    if recording is None or recording["context"]["frame"] != "viewer":
+        raise ValueError(f"{OWNER}: {name} is no recorded viewer-frame state; record it with `{REMEDY}`")
+    frame = []
+    for answer in recording["answers"]:
+        kept = {"step": answer["step"], "asked": {}}
+        for kind in ("viewer-frame", "fonts"):
+            if kind in answer:
+                kept[kind] = answer[kind]
+        if "window" in (answer.get("sizes") or {}):
+            kept["sizes"] = {"window": answer["sizes"]["window"]}
+        frame.append(kept)
+    return {**recording, "answers": frame}
+
+
 def listed(fake_page, name: str, artifact: Path, previous: dict | None) -> dict[int, dict[str, list[str]]]:
     """What the page asks at each step of the state in the fake browser, by expectation and key: on
     the door's defaults, and with the previous recording where there is one, since its answers can
@@ -254,6 +277,9 @@ def listed(fake_page, name: str, artifact: Path, previous: dict | None) -> dict[
 
     def collect(index: int) -> None:
         union.setdefault(index, {}).setdefault("media", set()).update(fake_page.evaluate(MEDIA_RULES))
+        images = fake_page.evaluate(page_function(IMAGES), {})
+        if images:
+            union[index].setdefault("image-size", set()).update(images)
 
     for recording in ([None, previous] if previous else [None]):
         fake_page.asked()

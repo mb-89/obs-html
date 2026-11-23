@@ -90,14 +90,19 @@ const windowPages = new WeakMap();
 const HTMLAnchorElement = require(path.join(HAPPY_DOM, "lib", "nodes", "html-anchor-element", "HTMLAnchorElement.js")).default;
 const dispatchAnchor = HTMLAnchorElement.prototype.dispatchEvent;
 const dispatchElement = Object.getPrototypeOf(HTMLAnchorElement.prototype).dispatchEvent;
+// A click on a link that opens a new page (target _blank) opens it as Chromium's popup, which the
+// facade's expect_popup hands over as a page of its own; the link's page stays where it is.
 HTMLAnchorElement.prototype.dispatchEvent = function (event) {
     const window = this[PropertySymbol.window];
     const page = windowPages.get(window);
-    if (!page || event.type !== "click" || !this.hasAttribute("download")) return dispatchAnchor.call(this, event);
+    const download = this.hasAttribute("download");
+    const popup = !download && this.hasAttribute("href") && String(this.getAttribute("target")).toLowerCase() === "_blank";
+    if (!page || event.type !== "click" || !(download || popup)) return dispatchAnchor.call(this, event);
     const result = dispatchElement.call(this, event);
     const phase = event.eventPhase;
     if (!event.defaultPrevented && event instanceof window.MouseEvent && (phase === 0 || phase === 3)) {
-        page.download(this.getAttribute("href") || "", this.getAttribute("download"));
+        if (download) page.download(this.getAttribute("href") || "", this.getAttribute("download"));
+        else page.popups.push(this.href);
     }
     return result;
 };
@@ -148,6 +153,27 @@ for (const [tag, rule] of Object.entries(elementDefaults)) {
     if (tag === "default") continue;
     elementDefaults[tag] = {...(typeof rule === "string" ? {default: rule} : rule), hidden: "display: none;",
         [CLOSED_POPOVER]: "display: none;"};
+}
+
+// Chromium's table display values and preformatted text, which happy-dom 21 drops or lacks: its
+// display parser accepts `table` and `table-row` but no other table value, so a cell's own
+// `table-cell`, its user-agent rule as an author's, computed empty; and its `pre` keeps no white
+// space. The parser takes them, and the user-agent rules give the table parts and `pre` Chromium's.
+const CSSPropertySetParser = require(path.join(HAPPY_DOM, "lib", "css", "declaration", "property-manager", "parsers",
+    "CSSPropertySetParser.js")).default;
+const TABLE_DISPLAY = ["inline-table", "table-row-group", "table-header-group", "table-footer-group", "table-column",
+    "table-column-group", "table-cell", "table-caption"];
+const getDisplay = CSSPropertySetParser.getDisplay;
+CSSPropertySetParser.getDisplay = function (value, important) {
+    const lower = String(value).trim().toLowerCase();
+    if (TABLE_DISPLAY.includes(lower)) return {display: {value: lower, important}};
+    return getDisplay.call(this, value, important);
+};
+for (const [tag, rule] of Object.entries({THEAD: "display: table-header-group;", TFOOT: "display: table-footer-group;",
+    COLGROUP: "display: table-column-group;", COL: "display: table-column;",
+    PRE: "display: block; white-space: pre;", TEXTAREA: "white-space: pre-wrap;"})) {
+    const current = elementDefaults[tag];
+    elementDefaults[tag] = typeof current === "object" && current ? {...current, default: `${current.default || ""} ${rule}`} : rule;
 }
 
 // The cascade's speed: happy-dom matches every style rule against every element it computes. A rule
@@ -366,6 +392,8 @@ class FakePage {
     constructor(id, options) {
         this.id = id;
         this.viewport = options.viewport || [1280, 720];
+        // Whether the page runs its own scripts; the facade's set_java_script_enabled changes it.
+        this.scripts = true;
         this.media = {mediaType: "screen", prefersColorScheme: "light", prefersReducedMotion: "no-preference",
             forcedColors: "none", ...(options.media || {})};
         this.events = [];
@@ -378,6 +406,8 @@ class FakePage {
         this.pending = 0;
         // The files the page downloaded, in order: {filename, url, bytes (a Buffer) or error}.
         this.downloads = [];
+        // The URLs of the new pages the page's links opened, in order.
+        this.popups = [];
         // The state's recording the page replays (null: the door's defaults), the step it has
         // reached, and what it asked at each step, by expectation and key.
         this.recording = null;
@@ -471,7 +501,8 @@ class FakePage {
     settings() {
         const page = this;
         return {
-            enableJavaScriptEvaluation: true,
+            // A page without scripts, as a frame sandboxed without allow-scripts, runs none of its own.
+            enableJavaScriptEvaluation: this.scripts,
             suppressInsecureJavaScriptEnvironmentWarning: true,
             suppressCodeGenerationFromStringsWarning: true,
             device: {...this.media},
@@ -552,6 +583,8 @@ class FakePage {
             throw new FakeError("network", `${NAME}: goto ${url} leaves the machine; only a local server a test starts ` +
                 `answers a fake page (${NOTE}, The fake browser).`);
         }
+        // The URL the page was opened at, which a reopen of a replayed viewer frame opens again.
+        this.address = url;
         this.clock = new Clock(this);
         this.hovered = null;
         this.browser = new happyDom.Browser({settings: this.settings(), console: this.console()});
@@ -566,7 +599,9 @@ class FakePage {
             } catch (error) {
                 throw new FakeError("error", `${NAME}: goto ${url}: the file could not be read: ${error.message}.`);
             }
-            page.url = url;
+            // A replayed viewer frame has the address Chromium's had (about:srcdoc), not its file's.
+            const frame = this.recording?.context?.frame === "viewer" ? this.recorded("viewer-frame") : undefined;
+            page.url = frame?.["location.href"]?.returns || url;
             this.restoreStorage(this.window, url);
             page.content = html;
         } else if (url !== "about:blank") {
@@ -651,6 +686,107 @@ function rendered(window, element) {
     }
     return true;
 }
+
+// innerText as the HTML standard's rendered text collection steps give it, as Chromium does: happy-dom
+// 21 joins table cells with nothing, keeps a line break of the source and none of a `<br>`, and
+// collapses no white space. A table cell ends in a tab and a table row in a line break, a block ends
+// in a line break and a paragraph in two, white space collapses as the element's `white-space` says,
+// and an element that is not rendered, or a closed details' content, gives nothing. Its element
+// classes are shared by every window, so the getter is patched once.
+const HTMLElementClass = require(path.join(HAPPY_DOM, "lib", "nodes", "html-element", "HTMLElement.js")).default;
+const innerTextOf = Object.getOwnPropertyDescriptor(HTMLElementClass.prototype, "innerText");
+const NOT_RENDERED = new Set(["script", "style", "template", "head", "title", "meta", "link", "noscript", "svg"]);
+const BLOCK_LEVEL = new Set(["block", "flow-root", "flex", "grid", "table", "list-item", "table-caption", "-webkit-box"]);
+// Preserved white space while the collapsible white space around the line breaks is removed.
+const KEPT = {" ": "\uE000", "\t": "\uE001", "\n": "\uE002"};
+// Where a line ends without a line break of its own: a hidden block's edge.
+const LINE_END = "\uE003";
+function renderedText(window, root) {
+    const items = [];
+    const style = (element) => ownStyle(window, element);
+    const transform = (text, how) => how === "uppercase" ? text.toUpperCase() : how === "lowercase" ? text.toLowerCase()
+        : how === "capitalize" ? text.replace(/(^|\s)(\S)/g, (_, space, letter) => space + letter.toUpperCase()) : text;
+    const collect = (node) => {
+        const details = node.parentElement;
+        if (details?.localName === "details" && !details.hasAttribute("open") &&
+            [...details.children].find((child) => child.localName === "summary") !== node) return;
+        if (node.nodeType === 3) {
+            const parent = node.parentElement;
+            const computed = parent ? style(parent) : null;
+            if (computed && computed.visibility && computed.visibility !== "visible") return;
+            const space = computed?.whiteSpace || "normal";
+            let text = node.data;
+            if (["pre", "pre-wrap", "break-spaces"].includes(space)) text = text.replace(/[ \t\n]/g, (character) => KEPT[character]);
+            else if (space === "pre-line") text = text.replace(/[ \t]*\n[ \t]*/g, KEPT["\n"]).replace(/[ \t\r]+/g, " ");
+            else text = text.replace(/[ \t\n\r\f]+/g, " ");
+            items.push(transform(text, computed?.textTransform));
+            return;
+        }
+        if (node.nodeType !== 1 || NOT_RENDERED.has(node.localName)) return;
+        const computed = style(node);
+        if (computed.display === "none") return;
+        // A hidden element gives no line break of its own, but its box still ends the line before it.
+        if (computed.visibility && computed.visibility !== "visible") {
+            const edge = BLOCK_LEVEL.has(computed.display) ? [0] : [];
+            items.push(...edge);
+            for (const child of node.childNodes) collect(child);
+            items.push(...edge);
+            return;
+        }
+        if (node.localName === "br") {
+            items.push(KEPT["\n"]);
+            return;
+        }
+        const paragraph = node.localName === "p";
+        const block = BLOCK_LEVEL.has(computed.display);
+        if (paragraph) items.push(2);
+        else if (block) items.push(1);
+        for (const child of node.childNodes) collect(child);
+        const next = (element) => {
+            for (let sibling = element.nextElementSibling; sibling; sibling = sibling.nextElementSibling) {
+                if (style(sibling).display !== "none") return sibling;
+            }
+            return null;
+        };
+        if (computed.display === "table-cell" && next(node) && style(next(node)).display === "table-cell") items.push("\t");
+        if (computed.display === "table-row") {
+            const table = node.closest("table");
+            const rows = table ? [...table.querySelectorAll("tr")].filter((row) => row.closest("table") === table &&
+                style(row).display === "table-row") : [];
+            if (rows.at(-1) !== node) items.push(KEPT["\n"]);
+        }
+        if (paragraph) items.push(2);
+        else if (block) items.push(1);
+    };
+    for (const child of root.childNodes) collect(child);
+    while (typeof items[0] === "number") items.shift();
+    while (typeof items.at(-1) === "number") items.pop();
+    let text = "";
+    for (let index = 0; index < items.length; index += 1) {
+        if (typeof items[index] !== "number") {
+            text += items[index];
+            continue;
+        }
+        let count = 0;
+        for (; typeof items[index] === "number"; index += 1) count = Math.max(count, items[index]);
+        index -= 1;
+        text += count ? KEPT["\n"].repeat(count) : LINE_END;
+    }
+    // Collapsible spaces: one between words, none at the start or end of a line or around a tab.
+    text = text.replace(/ {2,}/g, " ").replace(/ *([\t\uE002\uE003]) */g, (_, mark) => mark).replace(/^ +| +$/g, "");
+    return text.replace(/\uE003/g, "").replace(/\uE000/g, " ").replace(/\uE001/g, "\t").replace(/\uE002/g, "\n");
+}
+Object.defineProperty(HTMLElementClass.prototype, "innerText", {
+    configurable: true,
+    enumerable: innerTextOf.enumerable,
+    get() {
+        const window = this[PropertySymbol.window];
+        if (!this.isConnected || !windowPages.has(window)) return innerTextOf.get.call(this);
+        if (!rendered(window, this)) return this.textContent;
+        return renderedText(window, this);
+    },
+    set: innerTextOf.set,
+});
 
 // A compression stream class whose streams keep the page busy (FakePage.busy) until they end.
 function tracked(Stream, page) {
@@ -737,6 +873,25 @@ function install(window, page) {
         encode(text = "") { return new Uint8Array(encode(String(text))); }
         encodeInto(text, target) { return encodeInto(String(text), target); }
     }`)((text) => encoder.encode(text), (text, target) => encoder.encodeInto(text, target));
+    // happy-dom's DOMException derives from Node's Error, not the page's: the runtime's `error
+    // instanceof Error` refused a DOMException the page made, where Chromium's is an Error. The
+    // page's Error counts the page's DOMException as its own.
+    const PageError = window.Error;
+    const ownInstance = Function.prototype[Symbol.hasInstance];
+    Object.defineProperty(PageError, Symbol.hasInstance, {configurable: true,
+        value: (value) => ownInstance.call(PageError, value) || value instanceof window.DOMException});
+    // The CSS Custom Highlight API, which happy-dom 21 lacks: a Highlight is a set of ranges, and
+    // CSS.highlights the page's map of them by name, as Chromium's HighlightRegistry is maplike.
+    // Nothing is painted; a test reads the registry.
+    window.Highlight = window.eval(`(class Highlight extends Set {
+        constructor(...ranges) { super(ranges); this.priority = 0; this.type = "highlight"; }
+    })`);
+    // happy-dom's CSS is a getter that makes a new object on every read, so the page's CSS is one.
+    window.eval(`(() => {
+        const css = globalThis.CSS || {};
+        if (!css.highlights) Object.defineProperty(css, "highlights", {configurable: true, value: new Map()});
+        Object.defineProperty(globalThis, "CSS", {configurable: true, writable: true, value: css});
+    })()`);
     window.Option = window.eval(`(function Option(text, value, defaultSelected, selected) {
         const option = document.createElement("option");
         if (text !== undefined) option.textContent = String(text);
@@ -851,16 +1006,37 @@ function installRecorded(window, page) {
     if (page.recording?.context?.frame === "viewer") refuse(window, page.recorded("viewer-frame") || {});
 }
 
+// What the viewer frame's probe records for `window.top` and `window.parent` where they are another
+// window than the frame's own: Chromium's cross-origin host page.
+const ANOTHER_WINDOW = "another window";
+
 // The viewer frame's refusals as Chromium gave them (the expectation viewer-frame): each call path,
 // `window.open()` for a method and `window.localStorage` for a property, throws, returns or rejects
-// as recorded, and fires the events recorded with it.
+// as recorded, and fires the events recorded with it. A window recorded as another window is a
+// stand-in for the host page, which the frame may not look into. A method whose API happy-dom lacks
+// gets that API where Chromium answered it something (`document.featurePolicy`), as the document's
+// own property, since happy-dom's document does not inherit from the page's `Document.prototype`;
+// one Chromium answered nothing (null) stays absent.
 function refuse(window, refusals) {
+    const host = Object.assign(Object.create(null), {closed: false, length: 0, postMessage() {}});
+    for (const name of ["top", "parent", "self", "window", "frames"]) {
+        Object.defineProperty(host, name, {get: () => host});
+    }
+    Object.freeze(host);
     for (const [path, outcome] of Object.entries(refusals)) {
+        // The frame's address is the page's own, which open gives it.
+        if (path.startsWith("location.")) continue;
         const method = path.endsWith("()");
         const names = path.replace(/\(\)$/, "").split(".");
         const parts = names[0] === "window" ? names.slice(1) : names;
         let owner = window;
-        for (const name of parts.slice(0, -1)) owner = owner?.[name];
+        for (const name of parts.slice(0, -1)) {
+            if (owner?.[name] === undefined && method && outcome.returns !== null && owner === window.document) {
+                const api = {};
+                Object.defineProperty(window.document, name, {configurable: true, get: () => api});
+            }
+            owner = owner?.[name];
+        }
         if (!owner) continue;
         const refusal = (name) => new window.DOMException(
             `${path} is refused in the viewer frame, as the recorded Chromium refused it (${NOTE}).`, name);
@@ -869,6 +1045,7 @@ function refuse(window, refusals) {
             if (outcome.throws) throw refusal(outcome.throws);
             if (outcome.rejects) return Promise.reject(refusal(outcome.rejects));
             if (Object.prototype.hasOwnProperty.call(outcome, "resolves")) return Promise.resolve(outcome.resolves);
+            if (outcome.returns === ANOTHER_WINDOW) return host;
             return outcome.returns ?? (method ? undefined : null);
         };
         const last = parts[parts.length - 1];
@@ -1661,6 +1838,19 @@ const OPERATIONS = {
     async downloads(page) {
         return page.downloads.length;
     },
+    // The URL of the page's popup after the first `after` it opened.
+    async wait_for_popup(page, request) {
+        const url = await page.until(() => page.popups[request.after], request.timeout);
+        if (!url) {
+            throw new FakeError("timeout", `${NAME}: expect_popup: the page opened no new page within ${request.timeout} ` +
+                "ms of its clock, and had nothing left to run.");
+        }
+        await page.between();
+        return url;
+    },
+    async popups(page) {
+        return page.popups.length;
+    },
     async new_page(request) {
         const id = pages.size ? Math.max(...pages.keys()) + 1 : 1;
         pages.set(id, new FakePage(id, request));
@@ -1677,10 +1867,15 @@ const OPERATIONS = {
     async set_viewport_size(page, request) {
         page.viewport = request.viewport;
         if (page.window) {
-            const url = page.window.location.href;
-            await page.open(url, request.timeout);
+            // Where the page is now, but a replayed viewer frame's file, since its address is about:srcdoc.
+            const shown = page.window.location.href;
+            await page.open(shown.startsWith("about:") ? page.address : shown, request.timeout);
             await page.between();
         }
+    },
+    // The page runs its own scripts or none, from its next open on.
+    async set_scripts(page, request) {
+        page.scripts = Boolean(request.enabled);
     },
     async emulate_media(page, request) {
         Object.assign(page.media, request.media);
@@ -1772,7 +1967,8 @@ const OPERATIONS = {
         // Playwright's actionability checks: a pointer action and fill wait for a visible, enabled
         // element, hover for a visible one, the rest for an attached one.
         const condition = action === "hover" ? shown
-            : ["press", "focus", "blur", "dispatch_event", "scroll_into_view_if_needed"].includes(action) ? null : actionable;
+            : ["press", "focus", "blur", "dispatch_event", "scroll_into_view_if_needed", "set_input_files"].includes(action)
+                ? null : actionable;
         const element = await one(page, request, condition, action);
         switch (action) {
             case "click":
@@ -1799,6 +1995,42 @@ const OPERATIONS = {
                 break;
             }
             case "scroll_into_view_if_needed": element.scrollIntoView(); break;
+            case "select_option": {
+                // Playwright's select_option: each option whose value, else whose label, is given.
+                if (element.localName !== "select") {
+                    throw new FakeError("error", `${NAME}: select_option: the element is no <select>.`);
+                }
+                const wanted = request.values.map(String);
+                const options = [...element.options];
+                const chosen = wanted.map((value) => options.find((option) => option.value === value) ||
+                    options.find((option) => option.label === value || option.textContent.trim() === value));
+                if (chosen.some((option) => !option)) {
+                    throw new FakeError("error", `${NAME}: select_option: no option of the <select> is ${JSON.stringify(wanted)}.`);
+                }
+                input.focus(element);
+                for (const option of options) option.selected = chosen.includes(option);
+                const window = page.window;
+                element.dispatchEvent(new window.Event("input", {bubbles: true, composed: true}));
+                element.dispatchEvent(new window.Event("change", {bubbles: true}));
+                break;
+            }
+            case "set_input_files": {
+                // Playwright's set_input_files: the files, each {name, mimeType, data (base64)}, become the
+                // input's files, and it fires input and change.
+                if (element.localName !== "input" || element.type !== "file") {
+                    throw new FakeError("error", `${NAME}: set_input_files: the element is no <input type=file>.`);
+                }
+                const window = page.window;
+                const files = request.files.map((file) => new window.File([Buffer.from(file.data, "base64")], file.name,
+                    {type: file.mimeType}));
+                const list = Object.assign(Object.create(window.FileList?.prototype || Object.prototype),
+                    {length: files.length, item: (index) => files[index] ?? null, [Symbol.iterator]: () => files[Symbol.iterator]()});
+                files.forEach((file, index) => { list[index] = file; });
+                Object.defineProperty(element, "files", {configurable: true, get: () => list});
+                element.dispatchEvent(new window.Event("input", {bubbles: true, composed: true}));
+                element.dispatchEvent(new window.Event("change", {bubbles: true}));
+                break;
+            }
             default: throw new FakeError("unsupported", `${NAME}: ${action} is not an action the fake browser has (${NOTE}).`);
         }
         await page.between();
