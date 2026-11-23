@@ -273,17 +273,23 @@ def test_opening_a_preview_fails_at_once_when_the_artifact_cannot_start(
                      origin if frame_kind == "same-origin" else None)
 
 
-@pytest.mark.hot("preview-viewer-frame")
+VIEWER_FRAME_STATES = sorted(name for name, state in door.states().items() if state["context"]["frame"] == "viewer")
+
+
+@pytest.mark.hot("preview-viewer-frame", "preview-viewer-phone", "remote-images-viewer-frame")
 @pytest.mark.browser
-def test_the_viewer_frame_and_its_refusals_are_recorded(tmp_path: Path, recording, door_artifact, fake_page,
-                                                        full_chromium_browser) -> None:
-    """The browser door's viewer-frame state: the preview in the scripts-only sandboxed srcdoc frame,
-    recorded in the one Chromium with what it refuses (browser/browser-door.md, Recording and replay)."""
-    name = "preview-viewer-frame"
+@pytest.mark.parametrize("name", VIEWER_FRAME_STATES)
+def test_the_viewer_frame_and_its_refusals_are_recorded(name: str, tmp_path: Path, recording, door_artifact,
+                                                        fake_page, full_chromium_browser) -> None:
+    """The browser door's viewer-frame states: an artifact in the scripts-only sandboxed srcdoc frame
+    at the state's size, recorded in the one Chromium with what it refuses (browser/browser-door.md,
+    Recording and replay)."""
     artifact = door_artifact(name)
+    width, height = door.states()[name]["context"]["viewport"]
     errors: list[str] = []
     recorded = door.record_state(name, artifact, fake_page, lambda: open_preview(
-        tmp_path, full_chromium_browser, errors, artifact.read_text(encoding="utf-8"), "null-origin"))
+        tmp_path, full_chromium_browser, errors, artifact.read_text(encoding="utf-8"), "null-origin",
+        width=width, height=height))
     refusals = recorded["answers"][0]["viewer-frame"]
     assert refusals["window.localStorage"] == {"throws": "SecurityError"}
     assert refusals["window.open()"] == {"returns": None}

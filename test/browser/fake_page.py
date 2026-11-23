@@ -5,9 +5,10 @@ Reader: whoever writes or moves a logic test onto the fake browser, or changes w
 test/conftest.py's ``fake_page`` fixture hands a test a :class:`FakePage`, served by the test
 worker's one Node process, test/browser/fake-browser.cjs. The facade has what the design lists:
 ``goto``, ``evaluate``, ``wait_for_function``, ``keyboard.press``, ``mouse``,
-``set_viewport_size`` (it reopens the page) and ``emulate_media``; and ``locator`` with CSS
+``set_viewport_size`` (it reopens the page), ``emulate_media`` and ``set_java_script_enabled``; and ``locator`` with CSS
 selectors, its ``first``, ``nth`` and ``filter`` (``has_text``, ``has``), its actions and reads, and
-``expect`` for its retried assertions; ``expect_download`` for a file the page downloads; and the browser door's ``replay``, ``reach`` and ``asked``,
+``expect`` for its retried assertions; ``expect_download`` for a file the page downloads and
+``expect_popup`` for a new page a link opens; and the browser door's ``replay``, ``reach`` and ``asked``,
 through which test/browser/door.py opens a state with its recording and lists what the page asked. Waits and retries run on the page's own clock in the host,
 never on wall time. A method the facade lacks fails with :class:`FakeBrowserUnsupported`, naming
 the method and the design note; Playwright's text and role selectors do not exist here, so a test
@@ -138,6 +139,33 @@ class ExpectedDownload:
     def value(self) -> Download:
         if self._value is None:
             raise FakeBrowserError(f"{OWNER}: expect_download's value is there once its with block has ended")
+        return self._value
+
+
+class ExpectedPopup:
+    """What ``with page.expect_popup() as info`` binds: ``info.value`` is the new page a link of the
+    page opened within the block, a fake page of its own at the link's URL, once the block has ended."""
+
+    def __init__(self, page: FakePage, timeout: float) -> None:
+        self._page = page
+        self._timeout = timeout
+        self._after = 0
+        self._value: FakePage | None = None
+
+    def __enter__(self) -> ExpectedPopup:
+        self._after = self._page._call("popups")
+        return self
+
+    def __exit__(self, kind, error, trace) -> None:
+        if kind is None:
+            url = self._page._call("wait_for_popup", after=self._after, timeout=self._timeout)
+            self._value = self._page._browser.new_page(self._page.viewport_size)
+            self._value.goto(url, timeout=self._timeout)
+
+    @property
+    def value(self) -> FakePage:
+        if self._value is None:
+            raise FakeBrowserError(f"{OWNER}: expect_popup's value is there once its with block has ended")
         return self._value
 
 
@@ -281,6 +309,15 @@ def _text(value):
     raise FakeBrowserError(f"{OWNER}: a text filter is a string or a compiled regular expression, not {value!r}")
 
 
+def _input_files(files) -> list[dict]:
+    """Files for set_input_files, as the host reads them: a path, or a list of paths."""
+    import mimetypes
+
+    paths = [files] if isinstance(files, (str, os.PathLike)) else list(files)
+    return [{"name": Path(path).name, "mimeType": mimetypes.guess_type(str(path))[0] or "application/octet-stream",
+             "data": base64.b64encode(Path(path).read_bytes()).decode("ascii")} for path in paths]
+
+
 class FakeLocator:
     """A CSS locator over the fake page, resolved anew by every call, as Playwright's locators are."""
 
@@ -371,6 +408,15 @@ class FakeLocator:
 
     def scroll_into_view_if_needed(self, timeout: float | None = None) -> None:
         self._act("scroll_into_view_if_needed", timeout)
+
+    def select_option(self, value=None, label=None, timeout: float | None = None, **_) -> None:
+        """Select the options whose value, else whose label, is given, and fire input and change."""
+        chosen = value if value is not None else label
+        self._act("select_option", timeout, values=list(chosen) if isinstance(chosen, (list, tuple)) else [chosen])
+
+    def set_input_files(self, files, timeout: float | None = None, **_) -> None:
+        """Hand a file input the files at these paths, and fire input and change."""
+        self._act("set_input_files", timeout, files=_input_files(files))
 
     def _read(self, what: str, timeout: float | None = None, **fields):
         return self._page._call("read", chain=self._chain, what=what, timeout=self._page._timeout(timeout), **fields)
@@ -498,6 +544,17 @@ class FakePage:
         ``download`` attribute names; the block's end waits for it on the page's clock."""
         return ExpectedDownload(self, self._timeout(timeout))
 
+    def expect_popup(self, timeout: float | None = None) -> ExpectedPopup:
+        """The new page a link with target ``_blank`` opens within the ``with`` block, as Playwright's
+        popup; the block's end waits for it on the page's clock and opens it in a fake page of its own."""
+        return ExpectedPopup(self, self._timeout(timeout))
+
+    def wait_for_load_state(self, state: str = "load", timeout: float | None = None) -> None:
+        """A fake page is loaded once ``goto`` returns, so there is nothing left to wait for."""
+
+    def set_input_files(self, selector: str, files, timeout: float | None = None, **_) -> None:
+        self.locator(selector).set_input_files(files, timeout)
+
     def wait_for_selector(self, selector: str, state: str = "visible", timeout: float | None = None) -> FakeLocator:
         locator = self.locator(selector)
         self._call("wait_for", chain=locator._chain, state=state, strict=False, timeout=self._timeout(timeout))
@@ -523,6 +580,12 @@ class FakePage:
                     "forcedColors": forced_colors}
         self._call("emulate_media", media={key: ("screen" if key == "mediaType" and value == "null" else value)
                                            for key, value in settings.items() if value is not None})
+
+    def set_java_script_enabled(self, enabled: bool) -> None:
+        """Whether the page runs its own scripts, from the next ``goto`` on: without them it is a frame
+        sandboxed without ``allow-scripts``, as Playwright's context option ``java_script_enabled``
+        gives. The facade's own evaluate still runs."""
+        self._call("set_scripts", enabled=enabled)
 
     def set_default_timeout(self, timeout: float) -> None:
         self._default_timeout = timeout

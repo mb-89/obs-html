@@ -65,3 +65,37 @@ def open_viewer(tmp_path: Path, reader_browser, errors: list[str], artifact: str
     frame = page.locator("#artifact").element_handle().content_frame()
     expect(frame.locator("html")).to_have_attribute("data-artifact-status", "ready")
     return page, frame
+
+
+# The recorded viewer frame at each width the fake browser opens it (test/browser/expectations.yaml):
+# its refusals are the frame's, whatever artifact it holds.
+VIEWER_FRAMES = {1100: "preview-viewer-frame", 390: "preview-viewer-phone"}
+
+
+def open_fake_viewer(fake_page, tmp_path: Path, errors: list[str], artifact: str, width: int = 1100,
+                     init_script: str = ""):
+    """Open an artifact in the fake browser as the viewer's frame `width` pixels wide; return (page, frame),
+    both the fake page, which is the frame (browser-door.md, Recording and replay).
+
+    The page replays the recorded viewer frame at that width (VIEWER_FRAMES): what the scripts-only
+    sandboxed srcdoc frame refuses, storage, separate windows, modal dialogs, the clipboard and
+    printing, as the one Chromium refused it, at the frame's size. The fake loads nothing from the
+    network, as the viewer's Content Security Policy does. `init_script` is as for open_viewer."""
+    from browser import door
+    from browser.fake_page import expect
+
+    if width not in VIEWER_FRAMES:
+        raise ValueError(f"test/browser/viewer.py: no viewer frame {width} px wide is recorded; record one in "
+                         f"test/browser/expectations.yaml with `{door.REMEDY}` and name it in VIEWER_FRAMES")
+    name = VIEWER_FRAMES[width]
+    recording = door.frame_answers(name)
+    path = tmp_path / f"viewer-{width}.html"
+    path.write_text(with_stand_in(artifact, init_script) if init_script else artifact, encoding="utf-8")
+    fake_page.on("pageerror", lambda error: errors.append(str(error)))
+    fake_page.on("console", lambda message: errors.append(message.text) if message.type == "error" else None)
+    fake_page.replay(recording)
+    door.fake_context(fake_page, door.states()[name])
+    fake_page.reach(0)
+    fake_page.goto(path.as_uri())
+    expect(fake_page.locator("html")).to_have_attribute("data-artifact-status", "ready")
+    return fake_page, fake_page

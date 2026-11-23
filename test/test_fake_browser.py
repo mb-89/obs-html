@@ -114,8 +114,8 @@ def test_the_stand_ins_answer_as_the_design_lists(tmp_path, fake_page) -> None:
         return [select.options[0].value, select.options[0].textContent, clone.constructor === Object,
                 Array.isArray(clone.list) && clone.list[1].two, clone.when instanceof Date, round === 'obs '.repeat(50),
                 digest, printed, document.querySelector('#canvas').getContext('2d').measureText('four').width,
-                bytes instanceof Uint8Array];
-    }""") == ["one", "First", True, 2, True, True, 32, ["before", "after"], 28, True]
+                bytes instanceof Uint8Array, new DOMException('refused', 'NotAllowedError') instanceof Error];
+    }""") == ["one", "First", True, 2, True, True, 32, ["before", "after"], 28, True, True]
     menu = page.locator("#menu")
     assert not menu.is_visible()
     page.evaluate("document.querySelector('#menu').showPopover()")
@@ -252,8 +252,9 @@ def test_inner_text_breaks_around_list_items_and_computed_lengths_and_colours_ar
                  '<svg><polyline id="line" points="0,0 1,1"/></svg><div id="padded"></div>',
                  "<style>:root { --edge: light-dark(#bdbdbd, #5c5c5c); }"
                  " #line { stroke: light-dark(#b8520f, #f2a061); } #padded { padding-right: calc(28px + 0px); }</style>")
+    # A paragraph ends in two line breaks, as Chromium's innerText gives it.
     assert page.evaluate("document.getElementById('card').innerText").split("\n") == [
-        "Title · 2 wins", "One.", "Two.", "After"]
+        "Title · 2 wins", "", "One.", "Two.", "After"]
     assert page.evaluate("""() => {
         const probe = document.createElement("span");
         probe.style.color = "#b8520f";

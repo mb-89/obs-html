@@ -1,9 +1,10 @@
-"""The source file row of a note's front matter card in a browser (artifact-ui.md, Comments bar;
-cli.md, Source file links).
+"""The source file row of a note's front matter card on the fake browser (artifact-ui.md, Comments
+bar; cli.md, Source file links).
 
 The shared feature fixture, built with ``--vault-link ../vault`` (conftest.py, feature_artifact),
 is written to a folder with its notes in ``../vault`` and opened as a file; the same Document built
-without the link shows plain paths, and in the viewer fixture (test/browser/viewer.py) the row shows.
+without the link shows plain paths, and in the recorded viewer frame (test/browser/viewer.py,
+``open_fake_viewer``) the row shows.
 """
 import json
 from pathlib import Path
@@ -11,10 +12,10 @@ from pathlib import Path
 import pytest
 
 from artifacts import artifact_html
-from browser.viewer import open_viewer
+from browser.viewer import open_fake_viewer
 from conftest import FEATURE_FIXTURE
 
-pytestmark = pytest.mark.browser
+pytestmark = pytest.mark.dom
 
 PLAIN = "overview"  # A note without frontmatter.
 FIELDS = "prose"  # A note with frontmatter.
@@ -52,8 +53,8 @@ def _site(tmp_path: Path, artifact: str) -> Path:
     return page
 
 
-def _open(reader_browser, path: Path):
-    page = reader_browser.new_page(viewport={"width": 1200, "height": 900})
+def _open(page, path: Path):
+    page.set_viewport_size({"width": 1200, "height": 900})
     errors: list[str] = []
     page.on("pageerror", lambda error: errors.append(str(error)))
     page.on("console", lambda message: message.type == "error" and errors.append(message.text))
@@ -63,9 +64,9 @@ def _open(reader_browser, path: Path):
     return page, errors
 
 
-def test_every_note_has_a_front_matter_card_with_its_source_file_link_last(tmp_path, reader_browser,
+def test_every_note_has_a_front_matter_card_with_its_source_file_link_last(tmp_path, fake_page,
                                                                            feature_artifact: str) -> None:
-    page, errors = _open(reader_browser, _site(tmp_path, feature_artifact))
+    page, errors = _open(fake_page, _site(tmp_path, feature_artifact))
 
     plain = page.evaluate(CARD, PLAIN)
     assert plain["card"] and plain["rows"] == [["Source file", f"{PLAIN}.md"]]
@@ -76,13 +77,13 @@ def test_every_note_has_a_front_matter_card_with_its_source_file_link_last(tmp_p
     assert errors == []
 
 
-def test_the_link_opens_the_note_in_a_new_page_and_the_page_stays(tmp_path, reader_browser,
+def test_the_link_opens_the_note_in_a_new_page_and_the_page_stays(tmp_path, fake_page,
                                                                   feature_artifact: str) -> None:
     path = _site(tmp_path, feature_artifact)
-    page, errors = _open(reader_browser, path)
+    page, errors = _open(fake_page, path)
     page.evaluate(CARD, PLAIN)
 
-    with page.context.expect_page() as opened:
+    with page.expect_popup() as opened:
         page.locator(SOURCE_LINK).click()
     note = opened.value
     try:
@@ -97,13 +98,13 @@ def test_the_link_opens_the_note_in_a_new_page_and_the_page_stays(tmp_path, read
     assert errors == []
 
 
-def test_a_saved_copy_shows_exactly_the_active_notes_row(tmp_path, reader_browser, feature_artifact: str) -> None:
-    page, errors = _open(reader_browser, _site(tmp_path, feature_artifact))
+def test_a_saved_copy_shows_exactly_the_active_notes_row(tmp_path, fake_page, feature_artifact: str) -> None:
+    page, errors = _open(fake_page, _site(tmp_path, feature_artifact))
     page.evaluate(CARD, PLAIN)
     copy = tmp_path / "site" / "reviewed.html"
     copy.write_text(page.evaluate("obsComments.reviewedHtml()"), encoding="utf-8")
 
-    reopened, reopened_errors = _open(reader_browser, copy)
+    reopened, reopened_errors = _open(fake_page, copy)
     for slug in (PLAIN, FIELDS):
         shown = reopened.evaluate(CARD, slug)
         assert shown["sourceRows"] == 1 and shown["rows"][-1] == ["Source file", f"{slug}.md"]
@@ -111,19 +112,19 @@ def test_a_saved_copy_shows_exactly_the_active_notes_row(tmp_path, reader_browse
     assert errors == reopened_errors == []
 
 
-def test_without_the_link_the_row_shows_the_plain_path(tmp_path, reader_browser) -> None:
+def test_without_the_link_the_row_shows_the_plain_path(tmp_path, fake_page) -> None:
     source = json.loads(FEATURE_FIXTURE.read_text(encoding="utf-8"))
-    page, errors = _open(reader_browser, _site(tmp_path, artifact_html(source)))
+    page, errors = _open(fake_page, _site(tmp_path, artifact_html(source)))
 
     plain = page.evaluate(CARD, PLAIN)
     assert plain["card"] and plain["rows"] == [["Source file", f"{PLAIN}.md"]] and plain["link"] is None
     assert errors == []
 
 
-def test_in_the_viewer_the_row_shows_and_the_page_has_no_error(tmp_path, reader_browser,
+def test_in_the_viewer_the_row_shows_and_the_page_has_no_error(tmp_path, fake_page,
                                                                feature_artifact: str) -> None:
     errors: list[str] = []
-    _page, frame = open_viewer(tmp_path, reader_browser, errors, feature_artifact, "light")
+    _page, frame = open_fake_viewer(fake_page, tmp_path, errors, feature_artifact)
 
     shown = frame.locator("html").evaluate(f"(_root) => ({CARD})({json.dumps(PLAIN)})")
     assert shown["card"] and shown["rows"] == [["Source file", f"{PLAIN}.md"]]

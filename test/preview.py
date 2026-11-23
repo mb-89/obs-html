@@ -78,18 +78,19 @@ READY = """async () => {
 
 
 def open_preview(tmp_path: Path, reader_browser, errors: list[str], artifact: str, frame_kind: str,
-                 origin: str | None = None):
-    """Open an artifact in one of the preview-like frames; same-origin frames need an http origin."""
-    page, frame = load_preview(tmp_path, reader_browser, errors, artifact, frame_kind, origin)
+                 origin: str | None = None, width: int = 1100, height: int = 700):
+    """Open an artifact in one of the preview-like frames, `width` by `height` pixels; same-origin
+    frames need an http origin."""
+    page, frame = load_preview(tmp_path, reader_browser, errors, artifact, frame_kind, origin, width, height)
     frame.evaluate(READY)
     return page, frame
 
 
 def load_preview(tmp_path: Path, reader_browser, errors: list[str], artifact: str, frame_kind: str,
-                 origin: str | None = None):
+                 origin: str | None = None, width: int = 1100, height: int = 700):
     """As open_preview, but return while the artifact still starts; frame.evaluate(READY) awaits it."""
     wrapper = tmp_path / f"preview-{frame_kind}.html"
-    wrapper.write_text(preview_wrapper(artifact, SANDBOXES[frame_kind]), encoding="utf-8")
+    wrapper.write_text(preview_wrapper(artifact, SANDBOXES[frame_kind], width, height), encoding="utf-8")
     page = reader_browser.new_page(viewport={"width": 1200, "height": 800})
     page.on("pageerror", lambda error: errors.append(str(error)))
     page.on("console", lambda message: errors.append(message.text) if message.type == "error" else None)

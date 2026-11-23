@@ -132,11 +132,9 @@ def test_a_document_without_unknown_nodes_carries_no_limits() -> None:
     assert '<script id="document-limits" type="application/json">[]</script>' in html
 
 
-@pytest.mark.browser
-def test_the_notice_center_shows_one_limited_function_warning_per_unknown_type(tmp_path: Path,
-                                                                                reader_browser) -> None:
-    from playwright.sync_api import expect
-    from test_sandboxed_preview_browser import open_page
+@pytest.mark.dom
+def test_the_notice_center_shows_one_limited_function_warning_per_unknown_type(tmp_path: Path, fake_page) -> None:
+    from browser.fake_page import expect
 
     def invented(value: str) -> dict:
         return {"type": "sparkle", "attrs": {}, "children": [text(value)]}
@@ -146,7 +144,11 @@ def test_the_notice_center_shows_one_limited_function_warning_per_unknown_type(t
     path = tmp_path / "artifact.html"
     path.write_text(artifact_html(document), encoding="utf-8")
     errors: list[str] = []
-    page = open_page(reader_browser, path, errors)
+    page = fake_page
+    page.set_viewport_size({"width": 1200, "height": 800})
+    page.on("pageerror", lambda error: errors.append(str(error)))
+    page.on("console", lambda message: errors.append(message.text) if message.type == "error" else None)
+    page.goto(path.as_uri())
     expect(page.locator("html")).to_have_attribute("data-artifact-status", "ready")
     entries = page.locator('[data-notice-list="warning"] [data-notice]')
     expect(entries).to_have_count(1)

@@ -375,6 +375,16 @@ states:
     context: {viewport: [1100, 700], scale: 1, touch: false, scheme: light, motion: no-preference, media: screen, frame: viewer}
     steps:
       - {open: page}
+  preview-viewer-phone:
+    artifact: test/preview.py::preview_document
+    context: {viewport: [390, 700], scale: 1, touch: false, scheme: light, motion: no-preference, media: screen, frame: viewer}
+    steps:
+      - {open: page}
+  remote-images-viewer-frame:
+    artifact: test/test_images_from_assets.py::remote_document
+    context: {viewport: [1100, 700], scale: 1, touch: false, scheme: light, motion: no-preference, media: screen, frame: viewer}
+    steps:
+      - {open: page}
 
 expectations:
   - name: box
@@ -508,7 +518,9 @@ expectations:
   - name: viewer-frame
     statement: >-
       In a scripts-only sandboxed srcdoc frame, storage, cookies and history throw, window.open returns
-      null, modal dialogs and print return at once and fire nothing, and the clipboard refuses.
+      null, modal dialogs and print return at once and fire nothing, and the clipboard refuses; the
+      frame's address is about:srcdoc, its top and parent are another window, it sees no frame
+      element, and its permissions policy denies clipboard-write.
     kind: supplied
     given: {frame: viewer}
     answer: {"<call path>": {throws: "<error name>"}, "window.open()": {returns: null}, "navigator.clipboard.writeText()": {rejects: "<error name>"}}
@@ -550,6 +562,15 @@ expectations:
               "window.prompt()": await attempt(() => window.prompt("obs-html")),
               "window.print()": await attempt(() => window.print()),
               "navigator.clipboard.writeText()": await attempt(() => navigator.clipboard.writeText("obs-html")),
+              // The frame's address, which decides the routes the runtime takes (a srcdoc frame's).
+              "location.href": await attempt(() => location.href),
+              // Where the frame sits: under another window, whose frame element it may not see.
+              "window.top": await attempt(() => window.top === window ? "this window" : "another window"),
+              "window.parent": await attempt(() => window.parent === window ? "this window" : "another window"),
+              "window.frameElement": await attempt(() => window.frameElement),
+              // The permissions policy the clipboard canary asks, where the frame has the API.
+              "document.permissionsPolicy.allowsFeature()": await attempt(() => document.permissionsPolicy?.allowsFeature("clipboard-write")),
+              "document.featurePolicy.allowsFeature()": await attempt(() => document.featurePolicy?.allowsFeature("clipboard-write")),
               // A new address, as the runtime's chapter addresses and the history canary replace it.
               "history.replaceState()": await attempt(() => {
                   const address = location.href;
