@@ -25,6 +25,37 @@
 # `uv run pytest -m hot --record` into test/browser/recordings/<state>.yaml.
 
 states:
+  pugh-figures-desktop:
+    artifact: test/test_pugh_figures_browser.py::pugh_artifact
+    context: {viewport: [1280, 720], scale: 1, touch: false, scheme: light, motion: no-preference, media: screen, frame: top}
+    steps:
+      - {open: page}
+      - {open: chapter, id: decisions}
+  pugh-verdict-desktop:
+    artifact: test/test_pugh_figures_browser.py::verdict_artifact
+    context: {viewport: [1280, 720], scale: 1, touch: false, scheme: light, motion: no-preference, media: screen, frame: top}
+    steps:
+      - {open: page}
+      - {open: chapter, id: decisions}
+  pugh-verdict-answered-desktop:
+    artifact: test/test_pugh_figures_browser.py::answered_verdict_artifact
+    context: {viewport: [1280, 720], scale: 1, touch: false, scheme: light, motion: no-preference, media: screen, frame: top}
+    steps:
+      - {open: page}
+      - {open: chapter, id: decisions}
+  pugh-solutions-desktop:
+    artifact: test/test_pugh_solutions_browser.py::phone_deck
+    context: {viewport: [1280, 720], scale: 1, touch: false, scheme: light, motion: no-preference, media: screen, frame: top}
+    steps:
+      - {open: page}
+      - {open: chapter, id: three}
+      - {open: chapter, id: five}
+  pugh-solutions-phone:
+    artifact: test/test_pugh_solutions_browser.py::phone_deck
+    context: {viewport: [390, 844], scale: 3, touch: true, scheme: light, motion: no-preference, media: screen, frame: top}
+    steps:
+      - {open: page}
+      - {open: chapter, id: three}
   bless-deck-desktop:
     artifact: test/test_bless_browser.py::deck_html
     context: {viewport: [1280, 720], scale: 1, touch: false, scheme: light, motion: no-preference, media: screen, frame: top}

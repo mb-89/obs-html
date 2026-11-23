@@ -137,6 +137,58 @@ CSSValueFormatter.getColor = function (value) {
     return CSSValueFormatter.getColor((usedScheme() === "dark" ? parts[1] : parts[0]).trim());
 };
 
+// A computed value as Chromium computes it, where happy-dom 21 keeps it as written: a whole
+// light-dark() pair (resolved only in the properties it parses as colours, so `stroke` and `fill`
+// kept it) is the colour of the page's used scheme, and a calc() of pixel lengths added and
+// subtracted is its length. A custom property keeps what it was given, in both engines.
+function resolvedValue(value) {
+    if (typeof value !== "string") return value;
+    if (/^\s*light-dark\(/i.test(value)) return CSSValueFormatter.getColor(value) ?? value;
+    const sum = /^calc\(\s*(-?[\d.]+px(?:\s+[-+]\s+-?[\d.]+px)*)\s*\)$/.exec(value.trim());
+    if (!sum) return value;
+    const terms = sum[1].split(/\s+/);
+    let total = parseFloat(terms[0]);
+    for (let index = 1; index < terms.length; index += 2) {
+        total += (terms[index] === "-" ? -1 : 1) * parseFloat(terms[index + 1]);
+    }
+    return `${Math.round(total * 1000) / 1000}px`;
+}
+
+// innerText (happy-dom 21 breaks the line only before a block or flex child): a line break before
+// and after every block-level child, a list item, a grid or a table among them, as Chromium does.
+const HTMLElement = require(path.join(HAPPY_DOM, "lib", "nodes", "html-element", "HTMLElement.js")).default;
+const innerTextOf = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "innerText");
+const BLOCK_LEVEL = new Set(["block", "flex", "grid", "list-item", "table", "flow-root", "table-row"]);
+Object.defineProperty(HTMLElement.prototype, "innerText", {...innerTextOf, get() {
+    if (!this[PropertySymbol.isConnected]) return this.textContent;
+    const window = this[PropertySymbol.window];
+    let result = "";
+    let broken = false;
+    for (const child of this.childNodes) {
+        if (child.nodeType === 3) {
+            const text = child.textContent.replace(/[\n\r]/, "");
+            if (text && broken && result) result += "\n";
+            if (text) broken = false;
+            result += text;
+            continue;
+        }
+        if (child.nodeType !== 1 || ["SCRIPT", "STYLE", "svg"].includes(child.tagName)) continue;
+        const style = (window[OWN_STYLE] || window.getComputedStyle).call(window, child);
+        if (style.display === "none") continue;
+        const text = child.innerText ?? child.textContent ?? "";
+        const block = BLOCK_LEVEL.has(style.display);
+        if ((block || broken) && result && text && !result.endsWith("\n")) result += "\n";
+        broken = block && Boolean(text);
+        switch (style.textTransform) {
+            case "uppercase": result += text.toUpperCase(); break;
+            case "lowercase": result += text.toLowerCase(); break;
+            case "capitalize": result += text.replace(/(^|\s)\S/g, (letter) => letter.toUpperCase()); break;
+            default: result += text;
+        }
+    }
+    return result;
+}});
+
 function schemeOf(page) {
     let resolving = false;
     return () => {
@@ -191,6 +243,40 @@ for (const [tag, rule] of Object.entries(elementDefaults)) {
     if (tag === "default") continue;
     elementDefaults[tag] = {...(typeof rule === "string" ? {default: rule} : rule), hidden: "display: none;",
         [CLOSED_POPOVER]: "display: none;"};
+}
+// A header cell is bold, as Chromium's user-agent sheet makes it.
+elementDefaults.TH.default = `${elementDefaults.TH.default} font-weight: bold;`;
+
+// The computed `font` as Chromium writes it (happy-dom 21 joins the longhands as written, so a rem
+// size and a unitless line height stayed so, and a weight was dropped): style, small caps and weight
+// where they are not normal, the size and the line height in pixels, then the family. The runtime
+// measures text in that font (table.js), so the recorded widths are found by it.
+const FONT_WEIGHTS = {normal: "400", bold: "700"};
+function pixels(value, base) {
+    const match = /^(-?[\d.]+)(px|rem|em|%)?$/.exec(String(value).trim());
+    if (!match) return null;
+    const number = parseFloat(match[1]);
+    return match[2] === "px" || !match[2] && number === 0 ? number : match[2] === "%" ? number * base() / 100
+        : match[2] ? number * base(match[2]) : null;
+}
+function lengthText(number) {
+    return `${Math.round(number * 10000) / 10000}px`;
+}
+function computedFont(window, element, style) {
+    const sizeOf = (node) => {
+        if (!node || node.nodeType !== 1) return 16;
+        const own = ownStyle(window, node).fontSize;
+        return pixels(own, (unit) => unit === "rem" ? sizeOf(window.document.documentElement === node ? null
+            : window.document.documentElement) : sizeOf(node.parentElement)) ?? 16;
+    };
+    const size = sizeOf(element);
+    const height = String(style.lineHeight || "normal").trim();
+    const line = height === "normal" ? "" : /^[\d.]+$/.test(height) ? lengthText(parseFloat(height) * size)
+        : lengthText(pixels(height, (unit) => unit === "rem" ? sizeOf(window.document.documentElement) : size) ?? size);
+    const weight = FONT_WEIGHTS[style.fontWeight] || style.fontWeight || "400";
+    return [style.fontStyle && style.fontStyle !== "normal" ? style.fontStyle : "",
+        style.fontVariant === "small-caps" ? "small-caps" : "", weight === "400" ? "" : weight,
+        line ? `${lengthText(size)} / ${line}` : lengthText(size), style.fontFamily].filter(Boolean).join(" ");
 }
 
 // The cascade's speed: happy-dom matches every style rule against every element it computes. A rule
@@ -860,13 +946,18 @@ function installRecorded(window, page) {
                     page.ask("cascade", `${key}|${property}`);
                     const camel = String(property).replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
                     if (PHYSICAL[camel]) return initial(PHYSICAL[camel], target[PHYSICAL[camel]]);
-                    return initial(camel, target.getPropertyValue(property));
+                    if (camel === "font") return computedFont(window, element, target);
+                    if (camel === "fontWeight") return FONT_WEIGHTS[target.fontWeight] || target.fontWeight;
+                    const value = target.getPropertyValue(property);
+                    return initial(camel, String(property).startsWith("--") ? value : resolvedValue(value));
                 };
             }
-            const value = typeof name === "string" && PHYSICAL[name] ? target[PHYSICAL[name]] : target[name];
+            const value = resolvedValue(typeof name === "string" && PHYSICAL[name] ? target[PHYSICAL[name]] : target[name]);
             if (typeof value === "function") return value.bind(target);
             if (typeof name === "string" && /^[a-z]/i.test(name) && name !== "length") {
                 page.ask("cascade", `${key}|${name}`);
+                if (name === "font") return computedFont(window, element, target);
+                if (name === "fontWeight") return FONT_WEIGHTS[value] || value;
                 return initial(PHYSICAL[name] || name, value);
             }
             return value;

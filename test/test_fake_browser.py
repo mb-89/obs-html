@@ -240,3 +240,25 @@ def test_a_media_change_on_an_open_page_gives_its_computed_styles_anew(tmp_path,
     expect(line).to_be_hidden()
     page.emulate_media(media="screen")
     expect(line).to_be_visible()
+
+
+def test_inner_text_breaks_around_list_items_and_computed_lengths_and_colours_are_resolved(tmp_path,
+                                                                                            fake_page) -> None:
+    """Three gaps of happy-dom 21 the pugh files met: its innerText broke the line only before a block
+    or flex child, it kept a light-dark() pair as written in `stroke`, and a calc() of pixel lengths
+    as written; Chromium breaks around every block-level box and computes both."""
+    page = _open(tmp_path, fake_page,
+                 '<div id="card"><p><b>Title</b> · 2 wins</p><ul><li>One.</li><li>Two.</li></ul>After</div>'
+                 '<svg><polyline id="line" points="0,0 1,1"/></svg><div id="padded"></div>',
+                 "<style>:root { --edge: light-dark(#bdbdbd, #5c5c5c); }"
+                 " #line { stroke: light-dark(#b8520f, #f2a061); } #padded { padding-right: calc(28px + 0px); }</style>")
+    assert page.evaluate("document.getElementById('card').innerText").split("\n") == [
+        "Title · 2 wins", "One.", "Two.", "After"]
+    assert page.evaluate("""() => {
+        const probe = document.createElement("span");
+        probe.style.color = "#b8520f";
+        document.body.append(probe);
+        const style = (id) => getComputedStyle(document.getElementById(id));
+        return [style("line").stroke === getComputedStyle(probe).color, style("padded").paddingRight,
+                getComputedStyle(document.documentElement).getPropertyValue("--edge").trim()];
+    }""") == [True, "28px", "light-dark(#bdbdbd, #5c5c5c)"]
