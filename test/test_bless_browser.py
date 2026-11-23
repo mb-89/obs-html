@@ -38,6 +38,8 @@ DETAILS = f'[data-pugh-details="{FIGURE}"]'
 """Where the figure's tabs are: its chapter's Details (artifact-ui.md, Decision figures)."""
 PHONE = {"width": 390, "height": 800}
 PENDING = "Bless pending"
+WIDTHS = [{"width": 390, "height": 800}, {"width": 1100, "height": 800}]
+"""The sizes test_answers_browser.py opens the deck at, a phone's width and a desktop's."""
 DESKTOP_STATE, PHONE_STATE, PLAIN_STATE = "bless-deck-desktop", "bless-deck-phone", "bless-plain-phone"
 """The browser door's states the logic tests open: the deck on a desktop and on a phone, on its
 first bless chapter, and a plain artifact on a phone."""
