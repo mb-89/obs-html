@@ -11,6 +11,7 @@ from importlib.resources import files
 from pathlib import Path
 
 import pytest
+from browser.fake_page import expect
 from browser.viewer import with_stand_in
 from conftest import CORE_ROOT, built_once
 
@@ -44,13 +45,11 @@ def numbered_artifact(tmp_path_factory) -> Path:
     return built_once(tmp_path_factory, "numbered-artifact", build) / "artifact.html"
 
 
-@pytest.mark.browser
+@pytest.mark.dom
 def test_the_document_number_shows_in_the_running_footer_and_the_copied_comments(
-        numbered_artifact: Path, reader_browser, tmp_path: Path) -> None:
-    from playwright.sync_api import expect
-
+        numbered_artifact: Path, fake_page, tmp_path: Path) -> None:
     errors: list[str] = []
-    page = reader_browser.new_page()
+    page = fake_page
     page.on("pageerror", lambda error: errors.append(str(error)))
     page.on("console", lambda message: errors.append(message.text) if message.type == "error" else None)
     artifact = tmp_path / "artifact.html"
