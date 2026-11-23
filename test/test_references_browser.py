@@ -1,4 +1,4 @@
-"""Native-browser tier: reference and glossary notes in the reader's link hover card.
+"""Fake-browser tier: reference and glossary notes in the reader's link hover card.
 
 A reduced move of the interim's test_reference_items_browser.py
 (test_hover_card_shows_per_kind_content_and_the_only_external_link) onto a Document: the
@@ -7,12 +7,13 @@ guided-card, quantity and mark parts stay with the capabilities that own them.
 import pytest
 
 from artifacts import artifact_html
+from browser.fake_page import expect
 from browser.viewer import with_stand_in
 
 from documents import chapter, document as build, heading, node, paragraph, text
 
 
-pytestmark = pytest.mark.browser
+pytestmark = pytest.mark.dom
 URL = "https://webstore.iec.ch/publication/1234"
 REFERENCE = {"title": "IEC 1234", "url": URL, "description": "Safety of medical electrical equipment."}
 TERM = {"kind": "glossary", "term": "RSS", "definition": "Root **sum** of squares."}
@@ -22,9 +23,7 @@ def _link(chapter_id: str, label: str) -> dict:
     return node("wikilinks", target=chapter_id, chapter=chapter_id, heading="", label=label)
 
 
-def test_hover_card_shows_the_reference_link_and_the_glossary_definition(tmp_path, reader_browser) -> None:
-    from playwright.sync_api import expect
-
+def test_hover_card_shows_the_reference_link_and_the_glossary_definition(tmp_path, fake_page) -> None:
     reference = {**REFERENCE, "kind": "reference"}
     source = build(
         "References",
@@ -40,7 +39,8 @@ def test_hover_card_shows_the_reference_link_and_the_glossary_definition(tmp_pat
         item["toc"] = False
     artifact = tmp_path / "references.html"
     artifact.write_text(with_stand_in(artifact_html(source), "window.open = () => null;"), encoding="utf-8")
-    page = reader_browser.new_page(viewport={"width": 1200, "height": 800})
+    page = fake_page
+    page.set_viewport_size({"width": 1200, "height": 800})
     errors = []
     page.on("pageerror", lambda error: errors.append(str(error)))
     page.goto(artifact.as_uri() + "#chapter")

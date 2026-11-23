@@ -1,4 +1,4 @@
-"""Native-browser tier: a Base's live source in the page (generic-tables.md, Current data).
+"""Fake-browser tier: a Base's live source in the page (generic-tables.md, Current data).
 
 Reader: whoever changes what the tables feature's live-source part does when the page starts.
 
@@ -25,7 +25,7 @@ from conftest import ROOT
 from documents import chapter, document as build, heading, node, paragraph
 
 
-pytestmark = pytest.mark.browser
+pytestmark = pytest.mark.dom
 EXAMPLE = yaml.safe_load(re.search(r"```yaml\n(.*?)```", (ROOT / "spec" / "capabilities" / "live-data.md")
                                    .read_text(encoding="utf-8"), re.S)[1])["obsHtml"]["liveSource"]
 # The capability note's example with its connector route only: a file: page reads a web route
@@ -86,14 +86,15 @@ def artifacts(tmp_path_factory) -> dict[str, str]:
 
 
 @pytest.fixture
-def opened(artifacts, reader_browser):
+def opened(artifacts, fake_page):
     """Opens an artifact at its home and returns the page, its console errors and its requests:
     every one but the artifact's own file and the page's own blob: and data: URLs, which ask the
     network for nothing."""
     pages = []
 
     def open_(url: str):
-        page = reader_browser.new_page(viewport={"width": 1280, "height": 900})
+        page = fake_page
+        page.set_viewport_size({"width": 1280, "height": 900})
         page.set_default_timeout(5000)
         errors: list[str] = []
         requests: list[str] = []

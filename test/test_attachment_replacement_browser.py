@@ -1,9 +1,10 @@
-"""Native-browser tier: the obsHtml.attachments trusted extension over the real artifact runtime."""
+"""Fake-browser tier: the obsHtml.attachments trusted extension over the real artifact runtime."""
 from pathlib import Path
 
 import pytest
 
 from artifacts import artifact_html
+from browser.fake_page import expect
 from documents import chapter, document, heading, paragraph
 
 
@@ -73,10 +74,7 @@ def _artifact(tmp_path: Path, trusted: bool) -> Path:
     return path
 
 
-def _open(reader_browser, artifact: Path):
-    from playwright.sync_api import expect
-
-    page = reader_browser.new_page()
+def _open(page, artifact: Path):
     errors: list[str] = []
     page.on("pageerror", lambda error: errors.append(str(error)))
     page.goto(artifact.as_uri())
@@ -85,10 +83,10 @@ def _open(reader_browser, artifact: Path):
     return page
 
 
-@pytest.mark.browser
+@pytest.mark.dom
 def test_trusted_extension_replaces_an_attachment_and_its_records_in_one_transaction(
-        tmp_path: Path, reader_browser) -> None:
-    page = _open(reader_browser, _artifact(tmp_path, trusted=True))
+        tmp_path: Path, fake_page) -> None:
+    page = _open(fake_page, _artifact(tmp_path, trusted=True))
     seeded = page.evaluate(SEED)
     key, revision = seeded["key"], seeded["revision"]
     before = page.evaluate(STATE)
@@ -126,9 +124,9 @@ def test_trusted_extension_replaces_an_attachment_and_its_records_in_one_transac
     assert page.evaluate(STATE) == after
 
 
-@pytest.mark.browser
-def test_trusted_extension_refuses_html_without_a_trusted_runtime_bundle(tmp_path: Path, reader_browser) -> None:
-    page = _open(reader_browser, _artifact(tmp_path, trusted=False))
+@pytest.mark.dom
+def test_trusted_extension_refuses_html_without_a_trusted_runtime_bundle(tmp_path: Path, fake_page) -> None:
+    page = _open(fake_page, _artifact(tmp_path, trusted=False))
     refused = page.evaluate(REPLACE, {"expectedRevision": 0, "key": "0" * 64, "text": "%PDF new"})
     assert "no registered trusted runtime bundle" in refused["error"]
     assert "--trusted-runtime-bundle ID=PATH" in refused["error"]

@@ -1,9 +1,13 @@
-"""Native-browser tier: a table's column headers sort and carry no hover help.
+"""Fake-browser tier: a table's column headers sort and carry no hover help.
 
 The owner is generic-tables.md (the sorting rules): a click on a header sorts, Shift-click adds or
 reverses a further level, headers expose their sort state accessibly and carry no hover help, so a
 tap on a phone sorts and opens no card. The card is the artifact's one hover card (artifact-ui.md,
 Overlays); it shows a trigger's text after its configured delay.
+
+The desktop test runs on the fake browser. The phone test stays on a real browser's emulated phone:
+the fake emulates no touch device, whose coarse pointer and touch tap it asks for
+(test/browser/browser-door.md, Classification).
 """
 import json
 
@@ -12,7 +16,6 @@ import pytest
 from artifacts import artifact_html
 from documents import chapter, document as build, heading, node
 
-pytestmark = pytest.mark.browser
 CARD = "#hover-card"
 HEADERS = "[data-active-chapter] thead th[data-column-key]"
 ROWS = (("r1", "beta", 2), ("r2", "alpha", 2), ("r3", "gamma", 1))
@@ -36,8 +39,8 @@ def artifact(tmp_path_factory) -> str:
     return path.as_uri()
 
 
-def _open(browser, artifact: str, viewport: dict):
-    page = browser.new_page(viewport=viewport)
+def _open(page, artifact: str, viewport: dict):
+    page.set_viewport_size(viewport)
     page.set_default_timeout(5000)
     errors: list[str] = []
     page.on("pageerror", lambda error: errors.append(str(error)))
@@ -58,8 +61,9 @@ def _sorts(page) -> dict[str, str]:
         "cells => cells.map(cell => [cell.dataset.columnKey, cell.getAttribute('aria-sort')])"))
 
 
-def test_on_a_desktop_a_header_hover_shows_no_card_and_click_shift_click_and_enter_sort(reader_browser, artifact):
-    page, errors = _open(reader_browser, artifact, {"width": 1280, "height": 900})
+@pytest.mark.dom
+def test_on_a_desktop_a_header_hover_shows_no_card_and_click_shift_click_and_enter_sort(fake_page, artifact):
+    page, errors = _open(fake_page, artifact, {"width": 1280, "height": 900})
     helped = page.locator("[data-active-chapter] thead [data-hover-help]").count()
     label, rank = page.locator(f"{HEADERS}[data-column-key='label']"), page.locator(f"{HEADERS}[data-column-key='rank']")
 
@@ -87,8 +91,10 @@ def test_on_a_desktop_a_header_hover_shows_no_card_and_click_shift_click_and_ent
     assert errors == []
 
 
+@pytest.mark.browser
 def test_on_a_phone_a_tap_on_a_header_sorts_and_opens_no_card(phone_browser, artifact):
-    page, errors = _open(phone_browser, artifact, {"width": 390, "height": 844})
+    viewport = {"width": 390, "height": 844}
+    page, errors = _open(phone_browser.new_page(viewport=viewport), artifact, viewport)
     header = page.locator(f"{HEADERS}[data-column-key='label']")
 
     header.tap()
