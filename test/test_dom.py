@@ -1,5 +1,4 @@
-"""DOM tier: the embedded artifact runtime, run in Node over linkedom (test/browser)."""
-import os
+"""DOM tier: the embedded artifact runtime, run in Node on the fake browser (test/browser/browser-door.md)."""
 import shutil
 import subprocess
 from importlib.resources import files
@@ -26,15 +25,13 @@ def write_artifact(path: Path, source: dict) -> Path:
 
 def run_artifact_dom_contract(artifact: Path, mode: str, *runtimes: Path, arguments: tuple[str, ...] = ()) -> str:
     """Run one mode of artifact-ui.cjs; the runtimes are loaded into the page in the given order."""
-    module = os.environ.get("OBS_HTML_TEST_DOM_MODULE") or str(
-        ROOT / "test" / "browser" / "node_modules" / "linkedom")
     node = shutil.which("node")
-    if not node or not Path(module).is_dir():
-        pytest.fail("The DOM tier needs Node and linkedom: npm --prefix test/browser ci")
+    if not node or not (ROOT / "test" / "browser" / "node_modules" / "happy-dom").is_dir():
+        pytest.fail("The DOM tier needs Node and the fake browser: npm --prefix test/browser ci")
     paths = [str(path) for path in runtimes]
     paths.extend([""] * (3 - len(paths)))
     result = subprocess.run(
-        [node, str(RUNNER), str(artifact), module, *paths, *([mode] if mode else []), *arguments],
+        [node, str(RUNNER), str(artifact), *paths, *([mode] if mode else []), *arguments],
         text=True, encoding="utf-8", capture_output=True, cwd=ROOT, timeout=60,
     )
     assert result.returncode == 0, result.stdout + result.stderr

@@ -37,11 +37,11 @@ const {doorKey} = require("./door-key.js");
 const NAME = "test/browser/fake-browser.cjs";
 const NOTE = "test/browser/browser-door.md";
 const HAPPY_DOM = path.join(__dirname, "node_modules", "happy-dom");
-// The door's default box (browser-door.md, Recording and replay), the DOM tier's constant size.
+// The door's default box (browser-door.md, Recording and replay).
 const BOX = {width: 384, height: 24};
 // One frame of the page's clock, and the time that passes between two requests: one frame.
 const FRAME_MS = 16;
-// The canvas stand-in's text width: every character 7 pixels wide, as the DOM tier measures.
+// The canvas stand-in's text width: every character 7 pixels wide.
 const CHARACTER_WIDTH = 7;
 // How many tasks the page may run at one instant of its clock before a wait gives up on it: a
 // timer loop of zero delays never lets the clock move.
@@ -64,9 +64,9 @@ try {
     happyDom = require(HAPPY_DOM);
     PropertySymbol = require(path.join(HAPPY_DOM, "lib", "PropertySymbol.js"));
 } catch (error) {
-    process.stdout.write(JSON.stringify({id: 0, ok: false, error: {kind: "setup", message:
-        `${NAME}: happy-dom could not be loaded from ${HAPPY_DOM}: ${error.message}. Remedy: npm --prefix test/browser ci.`,
-    }}) + "\n");
+    const message = `${NAME}: happy-dom could not be loaded from ${HAPPY_DOM}: ${error.message}. Remedy: npm --prefix test/browser ci.`;
+    if (require.main !== module) throw new FakeError("setup", message);
+    process.stdout.write(JSON.stringify({id: 0, ok: false, error: {kind: "setup", message}}) + "\n");
     process.exit(1);
 }
 
@@ -299,7 +299,8 @@ class Clock {
     add(handler, delay, args, interval, at) {
         const id = ++this.serial;
         const wait = Math.max(0, Number(delay) || 0);
-        this.tasks.push({id, at: at ?? this.now + wait, handler, args, interval: interval ? Math.max(1, wait) : 0});
+        this.tasks.push({id, at: at ?? this.now + wait, delay: wait, handler, args, interval: interval ? Math.max(1, wait) : 0,
+            frame: args === null});
         return id;
     }
 
@@ -544,7 +545,8 @@ class FakePage {
         for (const [key, value] of Object.entries(saved.session)) window.sessionStorage.setItem(key, value);
     }
 
-    async open(url, timeout) {
+    // Opens `url`; a file page shows `html` where it is given, in place of the file's own text.
+    async open(url, timeout, html) {
         this.close();
         const target = remote(url);
         if (target) {
@@ -560,9 +562,8 @@ class FakePage {
         this.window = page.mainFrame.window;
         install(this.window, this);
         if (url.startsWith("file:")) {
-            let html;
             try {
-                html = fs.readFileSync(fileURLToPath(url), "utf8");
+                html ??= fs.readFileSync(fileURLToPath(url), "utf8");
             } catch (error) {
                 throw new FakeError("error", `${NAME}: goto ${url}: the file could not be read: ${error.message}.`);
             }
@@ -756,7 +757,7 @@ function install(window, page) {
         window.dispatchEvent(new window.Event("afterprint"));
     };
 
-    // The canvas text measure: a 2D context whose measureText is the DOM tier's constant width.
+    // The canvas text measure: a 2D context whose measureText is the recorded width, else the default.
     window.HTMLCanvasElement.prototype.getContext = function (type) {
         if (type !== "2d") return null;
         const canvas = this;
@@ -1600,6 +1601,12 @@ process.on("unhandledRejection", (reason) => {
         message: reason?.message !== undefined ? String(reason.message) : String(reason), stack: reason?.stack ? String(reason.stack) : ""});
 });
 
+// The page the next request is for: page errors and light-dark() answer for it.
+function use(page) {
+    current = page;
+    usedScheme = schemeOf(page);
+}
+
 function pageOf(request) {
     const page = pages.get(request.page);
     if (!page) throw new FakeError("error", `${NAME}: no page ${request.page}; it was closed or never opened.`);
@@ -1881,36 +1888,46 @@ async function answer(request) {
     }
     if (request.op === "new_page") return operation(request);
     const page = pageOf(request);
-    current = page;
-    usedScheme = schemeOf(page);
+    use(page);
     return operation(page, request);
 }
 
-const lines = readline.createInterface({input: process.stdin});
-let queue = Promise.resolve();
-lines.on("line", (line) => {
-    queue = queue.then(async () => {
-        let request;
-        try {
-            request = JSON.parse(line);
-        } catch (error) {
-            process.stdout.write(JSON.stringify({id: 0, ok: false, error: {kind: "error", message: `${NAME}: a request was no JSON: ${error.message}`}}) + "\n");
-            return;
-        }
-        let reply;
-        try {
-            reply = {id: request.id, ok: true, value: await answer(request)};
-        } catch (error) {
-            reply = {id: request.id, ok: false, error: {kind: error instanceof FakeError ? error.kind : "pageerror",
-                name: error?.name || "Error", message: error?.message !== undefined ? String(error.message) : String(error),
-                stack: error?.stack ? String(error.stack) : ""}};
-        }
-        const page = pages.get(request.page);
-        reply.events = page ? page.events.splice(0) : [];
-        process.stdout.write(JSON.stringify(reply) + "\n");
+// Runs a script's source in the page as a classic script of its own, named `filename` in the stacks of
+// what it calls; what it throws is thrown to the caller.
+function runScript(window, source, filename) {
+    window[PropertySymbol.evaluateScript](`(function () {\n${source}\n})`, {filename}).call(window);
+}
+
+// As a module, the DOM tier's harness (artifact-harness.cjs) opens a page in its own process.
+module.exports = {FakePage, FakeError, use, runScript, NAME, NOTE};
+
+if (require.main === module) {
+    const lines = readline.createInterface({input: process.stdin});
+    let queue = Promise.resolve();
+    lines.on("line", (line) => {
+        queue = queue.then(async () => {
+            let request;
+            try {
+                request = JSON.parse(line);
+            } catch (error) {
+                process.stdout.write(JSON.stringify({id: 0, ok: false, error: {kind: "error", message: `${NAME}: a request was no JSON: ${error.message}`}}) + "\n");
+                return;
+            }
+            let reply;
+            try {
+                reply = {id: request.id, ok: true, value: await answer(request)};
+            } catch (error) {
+                reply = {id: request.id, ok: false, error: {kind: error instanceof FakeError ? error.kind : "pageerror",
+                    name: error?.name || "Error", message: error?.message !== undefined ? String(error.message) : String(error),
+                    stack: error?.stack ? String(error.stack) : ""}};
+            }
+            const page = pages.get(request.page);
+            reply.events = page ? page.events.splice(0) : [];
+            process.stdout.write(JSON.stringify(reply) + "\n");
+        });
     });
-});
-lines.on("close", () => {
-    for (const page of pages.values()) page.close();
-    process.exit(0);
-});
+    lines.on("close", () => {
+        for (const page of pages.values()) page.close();
+        process.exit(0);
+    });
+}

@@ -1,8 +1,7 @@
 {
   "private": true,
-  "description": "Test-only DOM adapter for the embedded artifact runtime, and the fake browser (browser-door.md).",
+  "description": "The fake browser (browser-door.md): happy-dom, on which the DOM tier and the moved logic tests run.",
   "devDependencies": {
-    "linkedom": "0.18.12",
     "happy-dom": "21.0.4"
   }
 }
