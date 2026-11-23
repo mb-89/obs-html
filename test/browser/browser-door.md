@@ -105,7 +105,8 @@ That makes 35 logic files with 299 collected tests and 17 hot files with 188. Of
 exceptions, 37 collected tests of logic files stay on the real browser and 19 of hot files move to
 the fake. Once every package has landed, 206 of the 487 run in the one real Chromium, and a landing
 runs them only when a recording is stale (below). `more-logic-to-fake-browser` added the 37th, the
-table headers' phone tap.
+table headers' phone tap. `layout-logic-to-fake-browser` took `test_pdf_inspect.py` out of the table, as it reads the
+recorded PDF and drives no browser.
 `browser-door-recorder` added two files: `test_browser_door.py`, logic, with 5 tests, and
 `test_door_recordings_browser.py`, hot, with one test per top-level state.
 
@@ -263,6 +264,44 @@ harness. What changed for them:
   the floating window opens there; the contract that reads it in the page refuses the window
   first.
 
+**As built** (`layout-logic-to-fake-browser`): the nine files of package 5 that still drive a
+browser run their logic tests on the fake browser, 66 collected tests, from recordings of the 27
+states they open; their named exceptions, 35 collected tests, carry the `hot` mark and keep their
+real fixtures. `test_pdf_inspect.py` left the table: it reads the fixture's printed PDF,
+`recordings/fixture-print.pdf`, which `test_pdf.py`'s hot test records with `--record` at the
+door's build instant, so two recordings are equal, and it drives no browser. What it took:
+
+- **A state of a test's own page.** A state's artifact is a function of the test module that
+  returns the Document or the artifact's HTML, built in a fresh folder. A logic test opens its state
+  with `door.open_recorded` (its artifact from `door_artifact`, its context, its committed
+  recording, its steps up to the one it needs); a served copy or a variant of the same page (other
+  settings, a saved copy) opens at its own address and replays the same recording, since keys, not
+  the page, select an answer.
+- **Hot exceptions in a moved row.** A logic file's row says moved once every test of it but those
+  with the `hot` mark takes the fake browser ([test_browser_door.py](../structure/test_browser_door.py)).
+- **No layout in a logic test.** A box, size, fit or page break a moved test measured is asserted
+  by a hot test of its file that opens the same page, or dropped; a re-measure after a theme choice
+  is asserted as the texts the runtime measures again in the theme's fonts. The viewer frame's
+  tests whose subject is not the sandbox open the artifact as a top-level page, and the moved tests
+  run at their state's viewport.
+
+What the moved files asked of the fake, each held by `test_fake_browser.py`:
+
+- **Logical margins and paddings.** happy-dom 21 computed no length for `margin-block` and its
+  longhands, which `pages.js` reads; in the horizontal, left-to-right writing mode of every page, a
+  logical side is set and read as its physical one.
+- **An SVG `<style>`.** happy-dom 21 read the markup after an inline SVG's `<style>` as its text and
+  lost it; the end tag closes it in any case.
+- **Computed values as Chromium writes them.** A whole `light-dark()` pair in any property is the
+  used scheme's colour, a `calc()` of pixel lengths is its length, and `font` is written with
+  pixel sizes and line height and a numeric weight, the font `table.js` measures in; `th` is bold.
+  A custom property keeps what it was given, as in Chromium.
+- **`innerText`** breaks the line around every block-level child, a list item among them.
+- **A media change on an open page** gives its computed styles anew, so a print rule takes effect.
+- **A phone's state** is a touch device at its scale: `(pointer: coarse)` and `(hover: none)` match
+  and `devicePixelRatio` is 3. Playwright's `on("dialog")` hears an alert, a confirm or a prompt,
+  which the fake dismisses as Playwright does.
+
 ## The browser door's expectations
 
 An expectation is one thing obs-html relies on the browser for. They live in
@@ -316,8 +355,11 @@ states are those the hot tests visit, plus one per fixture and context that the 
 desktop 1280 by 720, the viewer frame 1100 by 700, and a phone 390 by 844.
 [expectations.yaml](expectations.yaml) holds them; `browser-door-recorder` recorded two,
 `features-desktop`, the feature fixture opening `figures` and then `prose`, and
-`preview-viewer-frame`, the preview of `test_sandboxed_preview_browser.py` in the viewer frame.
-The phone needs a phone context of the one Chromium, which `hot-tests-record` adds.
+`preview-viewer-frame`, the preview of `test_sandboxed_preview_browser.py` in the viewer frame;
+`layout-logic-to-fake-browser` added those of the files it moved (below). A state's artifact is a
+Document file or a function of a test module that returns the Document or the artifact's HTML. A
+phone's state has the scale and touch of `test/conftest.py`'s `PHONE_CONTEXT`, 3 and true, and is
+recorded on full Chromium's phone pages (`full_phone_browser`), only with `--record`.
 
 **An element's key** is the same in both engines: the id of its nearest ancestor that has one,
 then its tag and position among its siblings of that tag below it. `test/browser/door-key.js`

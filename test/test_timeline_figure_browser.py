@@ -4,10 +4,12 @@ figures). The pure model's every rule is test/timeline.test.js; these check what
 
 Reader: whoever changes how a timeline figure is drawn, opened, filtered or anchored.
 
-The artifact is built through the core once per run from the vault ``_vault`` writes: a chapter
-whose figure has 2 lanes, records on 30 days across a year end, an anchored Today band, 3 planned
-days, 2 end bands and one release marker, then a block after the figure; and a chapter whose
-figure's query selects nothing.
+The artifact is built through the core from the vault ``_vault`` writes: a chapter whose figure has
+2 lanes, records on 30 days across a year end, an anchored Today band, 3 planned days, 2 end bands
+and one release marker, then a block after the figure; and a chapter whose figure's query selects
+nothing. The logic tests open it on the fake browser as the browser door's state timeline-desktop,
+from its recording (test/browser/browser-door.md); the hot tests, the anchor's place and a phone's
+width, open it in the real browser.
 """
 import json
 import subprocess
