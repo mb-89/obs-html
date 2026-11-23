@@ -181,3 +181,100 @@ def test_the_cascade_still_applies_every_rule_that_can_match(tmp_path, fake_page
     assert colours[:6] == [f"rgb({index}, 0, 0)" for index in range(1, 6)] + ["rgb(6, 0, 0)"]
     assert colours[7] == "rgb(6, 0, 0)"
     assert "rgb(6, 0, 0)" != colours[6] and colours[8] != "rgb(1, 0, 0)"
+
+
+def test_logical_margins_compute_as_their_physical_sides_and_an_svg_style_ends_at_its_end_tag(tmp_path,
+                                                                                               fake_page) -> None:
+    """Two gaps of happy-dom 21 (browser-door.md, As built by layout-logic-to-fake-browser): it computed
+    no length for `margin-block` and its longhands, which the page's runtime reads (pages.js), and it
+    read the markup after an SVG `<style>` as that style's text."""
+    page = _open(tmp_path, fake_page, '<p>a</p><b>b</b><i>c</i><div id="drawn"></div>',
+                 "<style>:root { --space: 1.25rem; } p { margin-block: var(--space); }"
+                 " b { display: block; margin-block-start: 0; margin-block-end: 2rem; }"
+                 " i { display: block; margin-block: 1rem 3px; padding-inline: 4px 5px; }</style>")
+    assert page.evaluate("""() => ["p", "b", "i"].map((tag) => {
+        const style = getComputedStyle(document.querySelector(tag));
+        return [style.marginBlockStart, style.marginBlockEnd, style.getPropertyValue("margin-block-end"),
+                style.marginTop, style.marginBottom];
+    })""") == [["20px", "20px", "20px", "20px", "20px"], ["0px", "32px", "32px", "0px", "32px"],
+               ["16px", "3px", "3px", "16px", "3px"]]
+    assert page.evaluate("""() => {
+        const style = getComputedStyle(document.querySelector("i"));
+        return [style.paddingInlineStart, style.paddingInlineEnd];
+    }""") == ["4px", "5px"]
+    page.evaluate("""() => { document.querySelector("#drawn").innerHTML =
+        '<svg><style>rect { fill: red; }</style><text>x</text><rect class="one"/></svg><p class="after">after</p>'; }""")
+    assert page.locator("#drawn svg text").text_content() == "x"
+    assert page.locator("#drawn svg rect.one").count() == 1
+    assert page.locator("#drawn > p.after").text_content() == "after"
+
+
+def test_a_modal_dialog_is_reported_and_dismissed(tmp_path, fake_page) -> None:
+    page = _open(tmp_path, fake_page, "<p>Text</p>")
+    dialogs = []
+    page.on("dialog", lambda dialog: dialogs.append((dialog.type, dialog.message)))
+    assert page.evaluate("() => [alert('One'), confirm('Two'), prompt('Three')]") == [None, False, None]
+    assert dialogs == [("alert", "One"), ("confirm", "Two"), ("prompt", "Three")]
+
+
+def test_a_replayed_phone_state_is_a_touch_device_at_its_scale(tmp_path, fake_page) -> None:
+    """A phone's state is recorded on Chromium's emulated phone, which has touch: the fake that replays
+    it answers the pointer and hover media as a touch device and has the state's device scale."""
+    phone = {"context": {"viewport": [390, 844], "scale": 3, "touch": True, "frame": "top"}, "answers": []}
+    asked = """() => [matchMedia('(pointer: coarse)').matches, matchMedia('(hover: none)').matches,
+        navigator.maxTouchPoints > 0, devicePixelRatio]"""
+    fake_page.replay(phone)
+    assert _open(tmp_path, fake_page, "<p>Phone</p>").evaluate(asked) == [True, True, True, 3]
+    fake_page.replay(None)
+    assert _open(tmp_path, fake_page, "<p>Desktop</p>").evaluate(asked) == [False, False, False, 1]
+
+
+def test_a_media_change_on_an_open_page_gives_its_computed_styles_anew(tmp_path, fake_page) -> None:
+    """happy-dom 21 kept each computed style it gave, so emulating print on an open page left a
+    print rule without effect (browser-door.md, As built by layout-logic-to-fake-browser)."""
+    page = _open(tmp_path, fake_page, '<p class="line">Line</p>', "<style>@media print { .line { display: none; } }</style>")
+    line = page.locator(".line")
+    assert line.evaluate("(element) => getComputedStyle(element).display") == "block"
+    page.emulate_media(media="print")
+    assert line.evaluate("(element) => getComputedStyle(element).display") == "none"
+    expect(line).to_be_hidden()
+    page.emulate_media(media="screen")
+    expect(line).to_be_visible()
+
+
+def test_inner_text_breaks_around_list_items_and_computed_lengths_and_colours_are_resolved(tmp_path,
+                                                                                            fake_page) -> None:
+    """Three gaps of happy-dom 21 the pugh files met: its innerText broke the line only before a block
+    or flex child, it kept a light-dark() pair as written in `stroke`, and a calc() of pixel lengths
+    as written; Chromium breaks around every block-level box and computes both."""
+    page = _open(tmp_path, fake_page,
+                 '<div id="card"><p><b>Title</b> · 2 wins</p><ul><li>One.</li><li>Two.</li></ul>After</div>'
+                 '<svg><polyline id="line" points="0,0 1,1"/></svg><div id="padded"></div>',
+                 "<style>:root { --edge: light-dark(#bdbdbd, #5c5c5c); }"
+                 " #line { stroke: light-dark(#b8520f, #f2a061); } #padded { padding-right: calc(28px + 0px); }</style>")
+    assert page.evaluate("document.getElementById('card').innerText").split("\n") == [
+        "Title · 2 wins", "One.", "Two.", "After"]
+    assert page.evaluate("""() => {
+        const probe = document.createElement("span");
+        probe.style.color = "#b8520f";
+        document.body.append(probe);
+        const style = (id) => getComputedStyle(document.getElementById(id));
+        return [style("line").stroke === getComputedStyle(probe).color, style("padded").paddingRight,
+                getComputedStyle(document.documentElement).getPropertyValue("--edge").trim()];
+    }""") == [True, "28px", "light-dark(#bdbdbd, #5c5c5c)"]
+
+
+def test_the_computed_font_is_written_as_chromium_writes_it(tmp_path, fake_page) -> None:
+    """happy-dom 21 joined the font's longhands as written: a rem size and a unitless line height stayed
+    so, and a header cell was not bold. The runtime measures text in the computed font (table.js), so
+    the recorded text widths are found only by Chromium's writing of it."""
+    page = _open(tmp_path, fake_page, '<table><tr><th>H</th><td>D</td></tr></table><p class="s">S</p>',
+                 "<style>html { font-size: 16px; } table { font: 0.85rem/1.5 Arial, sans-serif; }"
+                 " .s { font-style: italic; font-weight: 600; font-size: 1.25rem; line-height: 30px;"
+                 " font-family: Georgia; }</style>")
+    assert page.evaluate("""() => ["th", "td", "p.s"].map((selector) => {
+        const style = getComputedStyle(document.querySelector(selector));
+        return [style.font, style.getPropertyValue("font"), style.fontWeight];
+    })""") == [["700 13.6px / 20.4px Arial, sans-serif"] * 2 + ["700"],
+               ["13.6px / 20.4px Arial, sans-serif"] * 2 + ["400"],
+               ["italic 600 20px / 30px Georgia"] * 2 + ["600"]]

@@ -3,8 +3,11 @@
 The design owners are spec/artifact-ui.md (Reading shell: the one-row top band;
 Paged view: no text twice in one view; chapter navigation: a link to a whole note opens it at its
 heading) and obs's spec/design_input/input-model.md (chapters: the table of contents and
-previous/next walk the same non-hidden manifest lines). Each test opens the
-artifact in the viewer fixture (test/browser/viewer.py).
+previous/next walk the same non-hidden manifest lines). The band's and the self-link's checks are
+hot: they open the artifact in the viewer fixture (test/browser/viewer.py) in the real Chromium,
+since what they check is layout. The others run on the fake browser (test/browser/browser-door.md),
+each from the recording of its state (test/browser/expectations.yaml) at desktop size; the fake has
+no frames, so the artifact is the top-level page, as it is in the viewer's frame.
 """
 import json
 import subprocess
@@ -13,13 +16,13 @@ from pathlib import Path
 
 import pytest
 from artifacts import artifact_html
+from browser import door
+from browser.fake_page import expect
 from browser.viewer import open_viewer
-from conftest import CORE_ROOT, ROOT, built_once
+from conftest import CORE_ROOT, ROOT
 from documents import chapter, document, heading, paragraph
 
 from obs_html.cli import main as obs_html
-
-pytestmark = pytest.mark.browser
 
 LONG = "A chapter title long enough to need more room than a narrow top band has"
 WIDTHS = {"desktop": 1100, "narrow": 390}
@@ -51,12 +54,20 @@ TOP_BAND = """() => {
 }"""
 
 
-def assert_contents_and_walk(tmp_path: Path, reader_browser, artifact: str, chapters: list[str]) -> None:
-    """The contents list exactly ``chapters``, and previous/next walk them both ways from Home."""
-    from playwright.sync_api import expect
+def open_state(fake_page, door_artifact, state: str, errors: list[str]):
+    """The state's artifact as the top-level page of the fake browser, opened from its recording;
+    ``errors`` collects page errors and console errors, as the viewer fixture's do."""
+    fake_page.on("pageerror", lambda error: errors.append(str(error)))
+    fake_page.on("console", lambda message: errors.append(message.text) if message.type == "error" else None)
+    door.open_recorded(fake_page, state, door_artifact(state))
+    expect(fake_page.locator("html")).to_have_attribute("data-artifact-status", "ready")
+    return fake_page
 
+
+def assert_contents_and_walk(fake_page, door_artifact, state: str, chapters: list[str]) -> None:
+    """The contents list exactly ``chapters``, and previous/next walk them both ways from Home."""
     errors: list[str] = []
-    _page, frame = open_viewer(tmp_path, reader_browser, errors, artifact, "light")
+    frame = open_state(fake_page, door_artifact, state, errors)
     contents = frame.evaluate("""() => [...document.querySelectorAll("[data-toc-tree] [data-toc-link]")]
         .map((link) => link.getAttribute("href").slice(1))""")
     walk = []
@@ -89,6 +100,8 @@ def band_artifact() -> str:
     ))
 
 
+@pytest.mark.hot
+@pytest.mark.browser
 @pytest.mark.parametrize("width", WIDTHS)
 def test_every_top_control_is_one_square_size_in_one_row(tmp_path: Path, reader_browser, width: str) -> None:
     from playwright.sync_api import expect
@@ -134,16 +147,19 @@ REPEATED_HEADINGS = """() => [...document.querySelectorAll(".paper-sheet")].flat
 })"""
 
 
-def test_the_title_page_shows_the_document_type_once(tmp_path: Path, reader_browser) -> None:
-    from playwright.sync_api import expect
-
-    artifact = artifact_html(document(
+def title_page_document() -> dict:
+    """The state reading-shell-title-page's Document: a document type, a product and a confidentiality."""
+    return document(
         "Product", chapter("one", "One", heading(1, "One"), paragraph("Text.")),
         metadata={"document type": "Design specification", "product": {"name": "Widget"},
                   "confidentiality": "Internal"},
-    ))
+    )
+
+
+@pytest.mark.dom
+def test_the_title_page_shows_the_document_type_once(door_artifact, fake_page) -> None:
     errors: list[str] = []
-    _page, frame = open_viewer(tmp_path, reader_browser, errors, artifact, "light")
+    frame = open_state(fake_page, door_artifact, "reading-shell-title-page", errors)
     expect(frame.locator("[data-active-chapter]")).to_have_attribute("data-chapter", "home")
     for paged, view in ((True, ".paper-sheet:has(.document-heading)"), (False, "[data-chapter-body]")):
         frame.evaluate("(paged) => globalThis.obsPages.setPaged(paged)", paged)
@@ -160,11 +176,10 @@ def test_the_title_page_shows_the_document_type_once(tmp_path: Path, reader_brow
     assert errors == []
 
 
-def test_the_contents_and_previous_next_walk_the_same_chapters(tmp_path: Path, reader_browser) -> None:
-    """The Document as the core emits a manifest with a hidden line: the hidden line is no chapter,
-    and a note the manifest does not list is a `toc: false` chapter, reachable only by its link."""
+def walk_document() -> dict:
+    """The state reading-shell-walk's Document, as the core emits a manifest with a hidden line."""
     unlisted = {**chapter("secret", "Secret", paragraph("Reached by link only.")), "toc": False}
-    artifact = artifact_html(document(
+    return document(
         "Walk",
         chapter("one", "One", paragraph("One."), children=(
             chapter("one-a", "One A", paragraph("One A.")),
@@ -172,41 +187,43 @@ def test_the_contents_and_previous_next_walk_the_same_chapters(tmp_path: Path, r
             chapter("one-b", "One B", paragraph("One B.")),
         )),
         chapter("two", "Two", paragraph("Two.")),
-    ))
-    assert_contents_and_walk(tmp_path, reader_browser, artifact, ["one", "one-a", "one-b", "two"])
+    )
 
 
-@pytest.fixture(scope="module")
-def commented_manifest_artifact(tmp_path_factory) -> str:
-    """A vault whose manifest comments lines out, built by obs-document and rendered by obs-html, once per run."""
-    def build(folder: Path) -> None:
-        vault = folder / "vault"
-        vault.mkdir()
-        (vault / "manifest.md").write_text(
-            "---\ntitle: Walk\n---\n- [[one]]\n  - [[one-a]]\n  %% - [[secret]] %%\n  - [[one-b]]\n"
-            "%%\n- [[gone]]\n%%\n- [[two]]\n", encoding="utf-8",
-        )
-        for name in ("one", "one-a", "one-b", "two"):
-            (vault / f"{name}.md").write_text(f"{name} body.\n", encoding="utf-8")
-        built, capabilities = folder / "document.json", folder / "capabilities.json"
-        subprocess.run([sys.executable, "-m", "obs.capabilities", "--notes",
-                        str(CORE_ROOT / "spec" / "capabilities"), "--output", str(capabilities)], check=True)
-        subprocess.run([sys.executable, "-m", "obs.document", "--source", str(vault / "manifest.md"),
-                        "--document", str(built), "--capability-reference", str(capabilities)], check=True)
-        assert obs_html([str(built), str(folder / "artifact.html")]) == 0
-
-    return (built_once(tmp_path_factory, "commented-manifest-artifact", build) / "artifact.html").read_text(
-        encoding="utf-8")
+@pytest.mark.dom
+def test_the_contents_and_previous_next_walk_the_same_chapters(door_artifact, fake_page) -> None:
+    """The Document as the core emits a manifest with a hidden line: the hidden line is no chapter,
+    and a note the manifest does not list is a `toc: false` chapter, reachable only by its link."""
+    assert_contents_and_walk(fake_page, door_artifact, "reading-shell-walk", ["one", "one-a", "one-b", "two"])
 
 
-def test_a_manifest_with_commented_lines_walks_its_visible_chapters_end_to_end(
-    tmp_path: Path, reader_browser, commented_manifest_artifact: str,
-) -> None:
+def commented_manifest_artifact() -> str:
+    """The state reading-shell-commented-manifest's artifact: a vault whose manifest comments lines
+    out, built by obs-document and rendered by obs-html in the current folder."""
+    folder = Path.cwd()
+    vault = folder / "vault"
+    vault.mkdir()
+    (vault / "manifest.md").write_text(
+        "---\ntitle: Walk\n---\n- [[one]]\n  - [[one-a]]\n  %% - [[secret]] %%\n  - [[one-b]]\n"
+        "%%\n- [[gone]]\n%%\n- [[two]]\n", encoding="utf-8",
+    )
+    for name in ("one", "one-a", "one-b", "two"):
+        (vault / f"{name}.md").write_text(f"{name} body.\n", encoding="utf-8")
+    built, capabilities = folder / "document.json", folder / "capabilities.json"
+    subprocess.run([sys.executable, "-m", "obs.capabilities", "--notes",
+                    str(CORE_ROOT / "spec" / "capabilities"), "--output", str(capabilities)], check=True)
+    subprocess.run([sys.executable, "-m", "obs.document", "--source", str(vault / "manifest.md"),
+                    "--document", str(built), "--capability-reference", str(capabilities)], check=True)
+    assert obs_html([str(built), str(folder / "commented.html")]) == 0
+    return (folder / "commented.html").read_text(encoding="utf-8")
+
+
+@pytest.mark.dom
+def test_a_manifest_with_commented_lines_walks_its_visible_chapters_end_to_end(door_artifact, fake_page) -> None:
     """The same walk through obs-document and obs-html: the core hides the `%%` manifest lines,
     so the contents and previous/next walk one, one-a, one-b and two."""
-    assert_contents_and_walk(
-        tmp_path, reader_browser, commented_manifest_artifact, ["one", "one-a", "one-b", "two"],
-    )
+    assert_contents_and_walk(fake_page, door_artifact, "reading-shell-commented-manifest",
+                             ["one", "one-a", "one-b", "two"])
 
 
 # Where the reader shows the chapter heading's text: the scroller's offsets and the text's box
@@ -223,6 +240,8 @@ HEADING_IN_VIEW = """() => {
 }"""
 
 
+@pytest.mark.hot
+@pytest.mark.browser
 def test_a_whole_note_self_link_scrolls_back_to_its_heading(tmp_path: Path, reader_browser) -> None:
     """The self-link fixture with the Comments bar docked right: review mode makes the body wider
     than the reader, so the reader scrolls down and sideways to the note's link to itself. Clicking it shows the heading; activating it again at the top moves nothing."""
@@ -268,23 +287,36 @@ CHAPTER_HEADINGS = """async (slug) => {
 }"""
 
 
-def test_a_shown_section_adds_no_heading_to_its_embedding_chapter(tmp_path: Path, reader_browser) -> None:
-    """m1 with and without an embed of vision's section Pitch, whose heading has a subheading:
-    the copy shows, and m1's contents and collapsible headings are the same."""
-    def built(*shown: dict) -> str:
-        pitch = [{**heading(2, "Pitch"), "id": "section-pitch"}, paragraph("For owners."),
-                 {**heading(3, "Detail"), "id": "section-detail"}, paragraph("Detail of the pitch.")]
-        return artifact_html(document(
-            "Shown", chapter("m1", "Milestone 1", heading(1, "Milestone 1"), heading(2, "Own"), paragraph("Own."),
-                             *shown, heading(2, "Next"), paragraph("Next.")),
-            chapter("vision", "Vision", heading(1, "Vision"), *pitch)))
-
+def shown_document(shown: bool) -> dict:
+    """m1, with an embed of vision's section Pitch where ``shown``, whose heading has a subheading."""
+    pitch = [{**heading(2, "Pitch"), "id": "section-pitch"}, paragraph("For owners."),
+             {**heading(3, "Detail"), "id": "section-detail"}, paragraph("Detail of the pitch.")]
     embed = {"type": "embeds", "attrs": {"target": "vision", "chapter": "vision", "heading": "Pitch",
                                          "block": "section-pitch"}, "children": []}
+    return document(
+        "Shown", chapter("m1", "Milestone 1", heading(1, "Milestone 1"), heading(2, "Own"), paragraph("Own."),
+                         *([embed] if shown else []), heading(2, "Next"), paragraph("Next.")),
+        chapter("vision", "Vision", heading(1, "Vision"), *pitch))
+
+
+def without_section_document() -> dict:
+    """The state reading-shell-without-section's Document."""
+    return shown_document(False)
+
+
+def shown_section_document() -> dict:
+    """The state reading-shell-shown-section's Document."""
+    return shown_document(True)
+
+
+@pytest.mark.dom
+def test_a_shown_section_adds_no_heading_to_its_embedding_chapter(door_artifact, fake_page) -> None:
+    """m1 with and without an embed of vision's section Pitch, whose heading has a subheading:
+    the copy shows, and m1's contents and collapsible headings are the same."""
     seen = []
-    for artifact in (built(), built(embed)):
+    for state in ("reading-shell-without-section", "reading-shell-shown-section"):
         errors: list[str] = []
-        _page, frame = open_viewer(tmp_path, reader_browser, errors, artifact, "light")
+        frame = open_state(fake_page, door_artifact, state, errors)
         seen.append(frame.evaluate(CHAPTER_HEADINGS, "m1"))
         assert errors == []
     without, shown = seen

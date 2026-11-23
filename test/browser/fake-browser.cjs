@@ -70,6 +70,25 @@ try {
     process.exit(1);
 }
 
+// An SVG <style> or <script> (happy-dom 21 compares its end tag with the element's tag name in upper
+// case, but an SVG element keeps its name as written, so the rest of the markup was read as its text
+// and lost): its end tag closes it whatever its case, as an HTML one's does.
+const HTMLParser = require(path.join(HAPPY_DOM, "lib", "html-parser", "HTMLParser.js")).default;
+const parseRawText = HTMLParser.prototype.parseRawTextElementContent;
+HTMLParser.prototype.parseRawTextElementContent = function (tagName, text) {
+    const element = this.currentNode;
+    const own = element?.[PropertySymbol.tagName];
+    if (typeof own !== "string" || own === own.toUpperCase() || own.toUpperCase() !== String(tagName).toUpperCase()) {
+        return parseRawText.call(this, tagName, text);
+    }
+    element[PropertySymbol.tagName] = own.toUpperCase();
+    try {
+        return parseRawText.call(this, tagName, text);
+    } finally {
+        element[PropertySymbol.tagName] = own;
+    }
+};
+
 // The Popover API stand-in (happy-dom 21 has none): which popovers are open, and `:popover-open`
 // in every selector match, the stylesheets' and the page's alike.
 const openPopovers = new WeakSet();
@@ -118,6 +137,58 @@ CSSValueFormatter.getColor = function (value) {
     return CSSValueFormatter.getColor((usedScheme() === "dark" ? parts[1] : parts[0]).trim());
 };
 
+// A computed value as Chromium computes it, where happy-dom 21 keeps it as written: a whole
+// light-dark() pair (resolved only in the properties it parses as colours, so `stroke` and `fill`
+// kept it) is the colour of the page's used scheme, and a calc() of pixel lengths added and
+// subtracted is its length. A custom property keeps what it was given, in both engines.
+function resolvedValue(value) {
+    if (typeof value !== "string") return value;
+    if (/^\s*light-dark\(/i.test(value)) return CSSValueFormatter.getColor(value) ?? value;
+    const sum = /^calc\(\s*(-?[\d.]+px(?:\s+[-+]\s+-?[\d.]+px)*)\s*\)$/.exec(value.trim());
+    if (!sum) return value;
+    const terms = sum[1].split(/\s+/);
+    let total = parseFloat(terms[0]);
+    for (let index = 1; index < terms.length; index += 2) {
+        total += (terms[index] === "-" ? -1 : 1) * parseFloat(terms[index + 1]);
+    }
+    return `${Math.round(total * 1000) / 1000}px`;
+}
+
+// innerText (happy-dom 21 breaks the line only before a block or flex child): a line break before
+// and after every block-level child, a list item, a grid or a table among them, as Chromium does.
+const HTMLElement = require(path.join(HAPPY_DOM, "lib", "nodes", "html-element", "HTMLElement.js")).default;
+const innerTextOf = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "innerText");
+const BLOCK_LEVEL = new Set(["block", "flex", "grid", "list-item", "table", "flow-root", "table-row"]);
+Object.defineProperty(HTMLElement.prototype, "innerText", {...innerTextOf, get() {
+    if (!this[PropertySymbol.isConnected]) return this.textContent;
+    const window = this[PropertySymbol.window];
+    let result = "";
+    let broken = false;
+    for (const child of this.childNodes) {
+        if (child.nodeType === 3) {
+            const text = child.textContent.replace(/[\n\r]/, "");
+            if (text && broken && result) result += "\n";
+            if (text) broken = false;
+            result += text;
+            continue;
+        }
+        if (child.nodeType !== 1 || ["SCRIPT", "STYLE", "svg"].includes(child.tagName)) continue;
+        const style = (window[OWN_STYLE] || window.getComputedStyle).call(window, child);
+        if (style.display === "none") continue;
+        const text = child.innerText ?? child.textContent ?? "";
+        const block = BLOCK_LEVEL.has(style.display);
+        if ((block || broken) && result && text && !result.endsWith("\n")) result += "\n";
+        broken = block && Boolean(text);
+        switch (style.textTransform) {
+            case "uppercase": result += text.toUpperCase(); break;
+            case "lowercase": result += text.toLowerCase(); break;
+            case "capitalize": result += text.replace(/(^|\s)\S/g, (letter) => letter.toUpperCase()); break;
+            default: result += text;
+        }
+    }
+    return result;
+}});
+
 function schemeOf(page) {
     let resolving = false;
     return () => {
@@ -138,6 +209,30 @@ function schemeOf(page) {
     };
 }
 
+// Logical margins and paddings (happy-dom 21 keeps `margin-block` and its longhands as written and
+// computes no length for them): in the horizontal, left-to-right writing mode of every page, block
+// start and end are top and bottom, and inline start and end left and right. A declaration of one is
+// set as its physical sides, and the computed logical property reads its physical side.
+const CSSPropertyManager = require(path.join(HAPPY_DOM, "lib", "css", "declaration", "property-manager",
+    "CSSPropertyManager.js")).default;
+const LOGICAL_SIDES = {block: ["top", "bottom"], inline: ["left", "right"]};
+const LOGICAL = /^(margin|padding)-(block|inline)(?:-(start|end))?$/;
+const setProperty = CSSPropertyManager.prototype.set;
+CSSPropertyManager.prototype.set = function (name, value, important) {
+    const logical = LOGICAL.exec(String(name));
+    if (!logical || value === null) return setProperty.call(this, name, value, important);
+    const [, box, axis, edge] = logical;
+    const [start, end] = LOGICAL_SIDES[axis];
+    const values = topLevel(String(value).trim(), " ").filter(Boolean);
+    const sides = edge ? [[edge === "start" ? start : end, String(value).trim()]]
+        : [[start, values[0]], [end, values[1] ?? values[0]]];
+    return sides.flatMap(([side, each]) => setProperty.call(this, `${box}-${side}`, each, important) || []);
+};
+// The physical computed property a logical one reads, by its camel-case name.
+const PHYSICAL = Object.fromEntries(["margin", "padding"].flatMap((box) => Object.entries({
+    BlockStart: "Top", BlockEnd: "Bottom", InlineStart: "Left", InlineEnd: "Right"})
+    .map(([logical, side]) => [`${box}${logical}`, `${box}${side}`])));
+
 // Chromium's user-agent rules happy-dom 21 lacks: `[hidden]` and a closed `[popover]` are display
 // none, at the user-agent level, so an author's display still wins. happy-dom's element defaults
 // apply an entry's keys where the element's property of that name is truthy.
@@ -148,6 +243,40 @@ for (const [tag, rule] of Object.entries(elementDefaults)) {
     if (tag === "default") continue;
     elementDefaults[tag] = {...(typeof rule === "string" ? {default: rule} : rule), hidden: "display: none;",
         [CLOSED_POPOVER]: "display: none;"};
+}
+// A header cell is bold, as Chromium's user-agent sheet makes it.
+elementDefaults.TH.default = `${elementDefaults.TH.default} font-weight: bold;`;
+
+// The computed `font` as Chromium writes it (happy-dom 21 joins the longhands as written, so a rem
+// size and a unitless line height stayed so, and a weight was dropped): style, small caps and weight
+// where they are not normal, the size and the line height in pixels, then the family. The runtime
+// measures text in that font (table.js), so the recorded widths are found by it.
+const FONT_WEIGHTS = {normal: "400", bold: "700"};
+function pixels(value, base) {
+    const match = /^(-?[\d.]+)(px|rem|em|%)?$/.exec(String(value).trim());
+    if (!match) return null;
+    const number = parseFloat(match[1]);
+    return match[2] === "px" || !match[2] && number === 0 ? number : match[2] === "%" ? number * base() / 100
+        : match[2] ? number * base(match[2]) : null;
+}
+function lengthText(number) {
+    return `${Math.round(number * 10000) / 10000}px`;
+}
+function computedFont(window, element, style) {
+    const sizeOf = (node) => {
+        if (!node || node.nodeType !== 1) return 16;
+        const own = ownStyle(window, node).fontSize;
+        return pixels(own, (unit) => unit === "rem" ? sizeOf(window.document.documentElement === node ? null
+            : window.document.documentElement) : sizeOf(node.parentElement)) ?? 16;
+    };
+    const size = sizeOf(element);
+    const height = String(style.lineHeight || "normal").trim();
+    const line = height === "normal" ? "" : /^[\d.]+$/.test(height) ? lengthText(parseFloat(height) * size)
+        : lengthText(pixels(height, (unit) => unit === "rem" ? sizeOf(window.document.documentElement) : size) ?? size);
+    const weight = FONT_WEIGHTS[style.fontWeight] || style.fontWeight || "400";
+    return [style.fontStyle && style.fontStyle !== "normal" ? style.fontStyle : "",
+        style.fontVariant === "small-caps" ? "small-caps" : "", weight === "400" ? "" : weight,
+        line ? `${lengthText(size)} / ${line}` : lengthText(size), style.fontFamily].filter(Boolean).join(" ");
 }
 
 // The cascade's speed: happy-dom matches every style rule against every element it computes. A rule
@@ -471,12 +600,16 @@ class FakePage {
 
     settings() {
         const page = this;
+        // A replayed phone's state is a touch device at its scale, as Chromium's emulated phone is:
+        // happy-dom answers `(pointer: coarse)` and `(hover: none)` from the touch points.
+        const context = this.recording?.context || {};
         return {
             enableJavaScriptEvaluation: true,
             suppressInsecureJavaScriptEnvironmentWarning: true,
             suppressCodeGenerationFromStringsWarning: true,
             device: {...this.media},
-            viewport: {width: this.viewport[0], height: this.viewport[1], devicePixelRatio: 1},
+            navigator: {maxTouchPoints: context.touch ? 1 : 0},
+            viewport: {width: this.viewport[0], height: this.viewport[1], devicePixelRatio: context.scale || 1},
             navigation: {disableMainFrameNavigation: true, disableChildPageNavigation: true},
             fetch: {interceptor: {
                 beforeAsyncRequest: ({request, window}) => {
@@ -757,6 +890,15 @@ function install(window, page) {
         window.dispatchEvent(new window.Event("afterprint"));
     };
 
+    // A modal dialog is reported to the test as a `dialog` event and dismissed at once, as Playwright
+    // dismisses one: alert returns nothing, confirm false and prompt null.
+    for (const [type, dismissed] of [["alert", undefined], ["confirm", false], ["prompt", null]]) {
+        window[type] = (message = "") => {
+            page.event({type: "dialog", kind: type, message: String(message)});
+            return dismissed;
+        };
+    }
+
     // The canvas text measure: a 2D context whose measureText is the recorded width, else the default.
     window.HTMLCanvasElement.prototype.getContext = function (type) {
         if (type !== "2d") return null;
@@ -803,14 +945,20 @@ function installRecorded(window, page) {
                 return (property) => {
                     page.ask("cascade", `${key}|${property}`);
                     const camel = String(property).replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
-                    return initial(camel, target.getPropertyValue(property));
+                    if (PHYSICAL[camel]) return initial(PHYSICAL[camel], target[PHYSICAL[camel]]);
+                    if (camel === "font") return computedFont(window, element, target);
+                    if (camel === "fontWeight") return FONT_WEIGHTS[target.fontWeight] || target.fontWeight;
+                    const value = target.getPropertyValue(property);
+                    return initial(camel, String(property).startsWith("--") ? value : resolvedValue(value));
                 };
             }
-            const value = target[name];
+            const value = resolvedValue(typeof name === "string" && PHYSICAL[name] ? target[PHYSICAL[name]] : target[name]);
             if (typeof value === "function") return value.bind(target);
             if (typeof name === "string" && /^[a-z]/i.test(name) && name !== "length") {
                 page.ask("cascade", `${key}|${name}`);
-                return initial(name, value);
+                if (name === "font") return computedFont(window, element, target);
+                if (name === "fontWeight") return FONT_WEIGHTS[value] || value;
+                return initial(PHYSICAL[name] || name, value);
             }
             return value;
         }});
@@ -1692,6 +1840,9 @@ const OPERATIONS = {
     async emulate_media(page, request) {
         Object.assign(page.media, request.media);
         if (page.browser) Object.assign(page.browser.settings.device, request.media);
+        // happy-dom 21 keeps each computed style it gave, so a media rule the new media turns on or
+        // off changed nothing on an open page: its computed styles are given anew, as Chromium's are.
+        if (page.window) page.window.document[PropertySymbol.clearComputedStyleCache]();
         if (page.window) await page.between();
     },
     async evaluate(page, request) {

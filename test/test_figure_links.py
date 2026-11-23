@@ -9,6 +9,8 @@ import re
 import pytest
 
 from artifacts import artifact_html
+from browser import door
+from browser.fake_page import expect
 from obs_html.artifact_data import decode_artifact_data, html_text
 from obs_html.config import load_config
 from obs_html.render import render
@@ -17,6 +19,18 @@ from documents import chapter, document as build, heading, paragraph
 
 
 CONFIG = load_config()
+STATE = "figure-links-desktop"
+"""The browser door's state the browser test opens: the linked figure's chapter at desktop size."""
+RED = """() => {
+    const probe = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    probe.style.fill = "red";
+    document.body.append(probe);
+    const fill = getComputedStyle(probe).fill;
+    probe.remove();
+    return fill;
+}"""
+"""Red as this engine's computed fill writes it: a test compares two computed colours, never a colour
+with a literal (test/browser/browser-door.md, light-dark())."""
 AUTHORED = "rect{fill:red}svg{--figure-frame-border-block:9px solid red}"
 """The drawing's own style: its rects, and a frame token set inside it."""
 SVG = ('<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" '
@@ -148,26 +162,25 @@ def test_a_figure_without_links_stays_an_image() -> None:
     assert '<img class="figure-default figure-visual"' in html and "<svg" not in html
 
 
-@pytest.mark.browser
-def test_a_link_inside_a_figure_shows_its_hover_card_and_navigates_in_the_frame_and_the_expanded_view(
-        tmp_path, reader_browser) -> None:
-    from playwright.sync_api import expect
+def linked_document() -> dict:
+    """The Document of the browser door's state figure-links-desktop (test/browser/expectations.yaml)."""
+    return LINKED
 
-    artifact = tmp_path / "figure-links.html"
-    artifact.write_text(artifact_html(LINKED), encoding="utf-8")
-    page = reader_browser.new_page(viewport={"width": 1200, "height": 900})
+
+@pytest.mark.dom
+def test_a_link_inside_a_figure_shows_its_hover_card_and_navigates_in_the_frame_and_the_expanded_view(
+        door_artifact, fake_page) -> None:
+    page = fake_page
     errors: list[str] = []
     page.on("pageerror", lambda error: errors.append(str(error)))
     page.on("dialog", lambda dialog: errors.append(f"dialog {dialog.message}"))
-    page.goto(artifact.as_uri() + "#chapter")
-    page.wait_for_function("document.documentElement.dataset.artifactStatus === 'ready'")
+    door.open_recorded(page, STATE, door_artifact(STATE))
     page.evaluate("obsPages.setPaged(false); obsArtifact.activateChapter('chapter')")
     figure = page.locator("[data-chapter-body] .obs-figure")
-    # Playwright's own pointing misses a link inside SVG text, so the mouse goes to its box.
-    box = figure.locator("a[href='#target']").bounding_box()
-    page.mouse.move(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
+    link = figure.locator("a[href='#target']")
+    link.hover()
     expect(page.locator("#hover-card .hover-card-title")).to_have_text("Target")
-    page.mouse.click(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
+    link.click()
     expect(page.locator("[data-chapter-body] h1")).to_have_text("Target")
 
     page.evaluate("obsArtifact.activateChapter('chapter')")
@@ -176,7 +189,7 @@ def test_a_link_inside_a_figure_shows_its_hover_card_and_navigates_in_the_frame_
     expect(expanded.locator("svg.figure-visual")).to_be_visible()
     # The figure's style reaches its own rects only, never one elsewhere on the page, and the
     # frame tokens it sets inside the drawing leave the frame's border as the page sets it.
-    assert page.evaluate("""() => {
+    result = page.evaluate("""() => {
         const outside = document.createElementNS("http://www.w3.org/2000/svg", "svg");
         outside.innerHTML = '<rect width="4" height="4"/>';
         document.querySelector("[data-chapter-body]").append(outside);
@@ -186,7 +199,9 @@ def test_a_link_inside_a_figure_shows_its_hover_card_and_navigates_in_the_frame_
                         getComputedStyle(frame).borderTopWidth !== "9px"];
         outside.remove();
         return result;
-    }""") == ["rgb(0, 0, 0)", "rgb(255, 0, 0)", True]
+    }""")
+    red = page.evaluate(RED)
+    assert result[0] != red and result[1:] == [red, True], result
     expanded.locator("a[href='#drawn'] rect").click()
     expect(page.locator("dialog.figure-overlay")).to_have_count(0)
     expect(page.locator("[data-chapter-body] h1")).to_have_text("Drawn")

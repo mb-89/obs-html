@@ -20,11 +20,160 @@
 # every step.
 #
 # A state is a fixture artifact, its context and the steps that lead there. Its artifact is a
-# Document file, or `<module>.py::<function>` for a Document a test module writes. Step 0 is always
-# the opened page. test/browser/door.py records each state with `uv run pytest -m hot --record`
-# into test/browser/recordings/<state>.yaml.
+# Document file, or `<module>.py::<function>` for a Document a test module writes or the artifact's
+# HTML it builds. Step 0 is always the opened page. test/browser/door.py records each state with
+# `uv run pytest -m hot --record` into test/browser/recordings/<state>.yaml.
 
 states:
+  theme-choice-plain:
+    artifact: test/test_theme_choice_browser.py::plain_page
+    context: {viewport: [1280, 720], scale: 1, touch: false, scheme: light, motion: no-preference, media: screen, frame: top}
+    steps:
+      - {open: page}
+  theme-choice-text:
+    artifact: test/test_theme_choice_browser.py::text_page_default
+    context: {viewport: [1280, 720], scale: 1, touch: false, scheme: light, motion: no-preference, media: screen, frame: top}
+    steps:
+      - {open: page}
+  theme-choice-text-contrast:
+    artifact: test/test_theme_choice_browser.py::text_page_contrast
+    context: {viewport: [1280, 720], scale: 1, touch: false, scheme: light, motion: no-preference, media: screen, frame: top}
+    steps:
+      - {open: page}
+  theme-choice-long:
+    artifact: test/test_theme_choice_browser.py::long_page_default
+    context: {viewport: [1280, 720], scale: 1, touch: false, scheme: light, motion: no-preference, media: screen, frame: top}
+    steps:
+      - {open: page}
+      - {open: chapter, id: one}
+  theme-choice-table:
+    artifact: test/test_theme_choice_browser.py::table_default
+    context: {viewport: [1280, 720], scale: 1, touch: false, scheme: light, motion: no-preference, media: screen, frame: top}
+    steps:
+      - {open: page}
+      - {open: chapter, id: one}
+  theme-choice-table-contrast:
+    artifact: test/test_theme_choice_browser.py::table_contrast
+    context: {viewport: [1280, 720], scale: 1, touch: false, scheme: light, motion: no-preference, media: screen, frame: top}
+    steps:
+      - {open: page}
+      - {open: chapter, id: one}
+  theme-choice-bold-table:
+    artifact: test/test_theme_choice_browser.py::bold_table_default
+    context: {viewport: [1280, 720], scale: 1, touch: false, scheme: light, motion: no-preference, media: screen, frame: top}
+    steps:
+      - {open: page}
+      - {open: chapter, id: one}
+  theme-choice-bold-table-contrast:
+    artifact: test/test_theme_choice_browser.py::bold_table_contrast
+    context: {viewport: [1280, 720], scale: 1, touch: false, scheme: light, motion: no-preference, media: screen, frame: top}
+    steps:
+      - {open: page}
+      - {open: chapter, id: one}
+  theme-choice-guided-card:
+    artifact: test/test_theme_choice_browser.py::guided_card_page
+    context: {viewport: [1280, 720], scale: 1, touch: false, scheme: light, motion: no-preference, media: screen, frame: top}
+    steps:
+      - {open: page}
+      - {open: chapter, id: one}
+  reading-shell-title-page:
+    artifact: test/test_reading_shell_browser.py::title_page_document
+    context: {viewport: [1280, 720], scale: 1, touch: false, scheme: light, motion: no-preference, media: screen, frame: top}
+    steps:
+      - {open: page}
+  reading-shell-walk:
+    artifact: test/test_reading_shell_browser.py::walk_document
+    context: {viewport: [1280, 720], scale: 1, touch: false, scheme: light, motion: no-preference, media: screen, frame: top}
+    steps:
+      - {open: page}
+  reading-shell-commented-manifest:
+    artifact: test/test_reading_shell_browser.py::commented_manifest_artifact
+    context: {viewport: [1280, 720], scale: 1, touch: false, scheme: light, motion: no-preference, media: screen, frame: top}
+    steps:
+      - {open: page}
+  reading-shell-without-section:
+    artifact: test/test_reading_shell_browser.py::without_section_document
+    context: {viewport: [1280, 720], scale: 1, touch: false, scheme: light, motion: no-preference, media: screen, frame: top}
+    steps:
+      - {open: page}
+      - {open: chapter, id: m1}
+  reading-shell-shown-section:
+    artifact: test/test_reading_shell_browser.py::shown_section_document
+    context: {viewport: [1280, 720], scale: 1, touch: false, scheme: light, motion: no-preference, media: screen, frame: top}
+    steps:
+      - {open: page}
+      - {open: chapter, id: m1}
+  pugh-figures-desktop:
+    artifact: test/test_pugh_figures_browser.py::pugh_artifact
+    context: {viewport: [1280, 720], scale: 1, touch: false, scheme: light, motion: no-preference, media: screen, frame: top}
+    steps:
+      - {open: page}
+      - {open: chapter, id: decisions}
+  pugh-verdict-desktop:
+    artifact: test/test_pugh_figures_browser.py::verdict_artifact
+    context: {viewport: [1280, 720], scale: 1, touch: false, scheme: light, motion: no-preference, media: screen, frame: top}
+    steps:
+      - {open: page}
+      - {open: chapter, id: decisions}
+  pugh-verdict-answered-desktop:
+    artifact: test/test_pugh_figures_browser.py::answered_verdict_artifact
+    context: {viewport: [1280, 720], scale: 1, touch: false, scheme: light, motion: no-preference, media: screen, frame: top}
+    steps:
+      - {open: page}
+      - {open: chapter, id: decisions}
+  pugh-solutions-desktop:
+    artifact: test/test_pugh_solutions_browser.py::phone_deck
+    context: {viewport: [1280, 720], scale: 1, touch: false, scheme: light, motion: no-preference, media: screen, frame: top}
+    steps:
+      - {open: page}
+      - {open: chapter, id: three}
+      - {open: chapter, id: five}
+  pugh-solutions-phone:
+    artifact: test/test_pugh_solutions_browser.py::phone_deck
+    context: {viewport: [390, 844], scale: 3, touch: true, scheme: light, motion: no-preference, media: screen, frame: top}
+    steps:
+      - {open: page}
+      - {open: chapter, id: three}
+  bless-deck-desktop:
+    artifact: test/test_bless_browser.py::deck_html
+    context: {viewport: [1280, 720], scale: 1, touch: false, scheme: light, motion: no-preference, media: screen, frame: top}
+    steps:
+      - {open: page}
+      - {open: chapter, id: record}
+  bless-deck-phone:
+    artifact: test/test_bless_browser.py::deck_html
+    context: {viewport: [390, 844], scale: 3, touch: true, scheme: light, motion: no-preference, media: screen, frame: top}
+    steps:
+      - {open: page}
+      - {open: chapter, id: record}
+  bless-plain-phone:
+    artifact: test/test_bless_browser.py::plain_document
+    context: {viewport: [390, 844], scale: 3, touch: true, scheme: light, motion: no-preference, media: screen, frame: top}
+    steps:
+      - {open: page}
+  notice-center-desktop:
+    artifact: test/preview.py::preview_document
+    context: {viewport: [1280, 720], scale: 1, touch: false, scheme: light, motion: no-preference, media: screen, frame: top}
+    steps:
+      - {open: page}
+  artifact-change-desktop:
+    artifact: test/test_notice_center_browser.py::artifact_change_document
+    context: {viewport: [1280, 720], scale: 1, touch: false, scheme: light, motion: no-preference, media: screen, frame: top}
+    steps:
+      - {open: page}
+  sent-deck-phone:
+    artifact: test/test_notice_center_browser.py::sent_deck_artifact
+    context: {viewport: [390, 844], scale: 3, touch: true, scheme: light, motion: no-preference, media: screen, frame: top}
+    steps:
+      - {open: page}
+      - {open: chapter, id: one}
+  timeline-desktop:
+    artifact: test/test_timeline_figure_browser.py::timeline_document
+    context: {viewport: [1280, 720], scale: 1, touch: false, scheme: light, motion: no-preference, media: screen, frame: top}
+    steps:
+      - {open: page}
+      - {open: chapter, id: plan}
+      - {open: chapter, id: empty}
   features-desktop:
     artifact: test/fixtures/documents/features.json
     context: {viewport: [1280, 720], scale: 1, touch: false, scheme: light, motion: no-preference, media: screen, frame: top}
@@ -32,6 +181,12 @@ states:
       - {open: page}
       - {open: chapter, id: figures}
       - {open: chapter, id: prose}
+  figure-links-desktop:
+    artifact: test/test_figure_links.py::linked_document
+    context: {viewport: [1280, 720], scale: 1, touch: false, scheme: light, motion: no-preference, media: screen, frame: top}
+    steps:
+      - {open: page}
+      - {open: chapter, id: chapter}
   preview-viewer-frame:
     artifact: test/preview.py::preview_document
     context: {viewport: [1100, 700], scale: 1, touch: false, scheme: light, motion: no-preference, media: screen, frame: viewer}
