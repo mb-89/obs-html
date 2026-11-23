@@ -186,8 +186,8 @@ answers:
       border: [67.69, 1486.08, 239.63, 34.59]
       rects: [[67.69, 1486.08, 239.63, 34.59]]
     '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:2':
-      border: [155.69, 1385.91, 151.63, 30.98]
-      rects: [[155.69, 1385.91, 151.63, 30.98]]
+      border: [153.69, 1385.91, 153.63, 30.98]
+      rects: [[153.69, 1385.91, 153.63, 30.98]]
     '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:2 > div:1':
       border: [272.42, 1390.2, 22.39, 22.39]
       rects: [[272.42, 1390.2, 22.39, 22.39]]
@@ -267,11 +267,11 @@ answers:
       scrollTop: 0
       scrollLeft: 0
     '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1 > table:1 > tbody:1 > tr:1 > td:2 > div:1':
-      clientWidth: 135
+      clientWidth: 137
       clientHeight: 20
-      scrollWidth: 135
+      scrollWidth: 137
       scrollHeight: 20
-      offsetWidth: 135
+      offsetWidth: 137
       offsetHeight: 20
       offsetLeft: 8
       offsetTop: 5
@@ -294,11 +294,11 @@ answers:
       scrollTop: 0
       scrollLeft: 0
     '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1 > table:1 > tbody:1 > tr:2 > td:2 > div:1':
-      clientWidth: 135
+      clientWidth: 137
       clientHeight: 20
-      scrollWidth: 135
+      scrollWidth: 137
       scrollHeight: 20
-      offsetWidth: 135
+      offsetWidth: 137
       offsetHeight: 20
       offsetLeft: 8
       offsetTop: 5
@@ -321,11 +321,11 @@ answers:
       scrollTop: 0
       scrollLeft: 0
     '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1 > table:1 > tbody:1 > tr:3 > td:2 > div:1':
-      clientWidth: 135
+      clientWidth: 137
       clientHeight: 20
-      scrollWidth: 135
+      scrollWidth: 137
       scrollHeight: 20
-      offsetWidth: 135
+      offsetWidth: 137
       offsetHeight: 20
       offsetLeft: 8
       offsetTop: 5

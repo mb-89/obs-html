@@ -1,7 +1,7 @@
 # The browser door's recording of the state callout-tones-desktop (test/browser/expectations.yaml),
 # written by `uv run pytest -m hot --record` (test/browser/door.py); never edited by hand.
 state: callout-tones-desktop
-artifact: test/test_callouts_embeds_attachments.py::tones_page
+artifact: test/test_callouts_embeds_attachments.py::tones_document
 context:
   viewport: [1200, 1000]
   scale: 1
@@ -14,7 +14,7 @@ steps:
 - open: page
 - open: chapter
   id: one
-artifactDigest: sha256:0146db046f718c78ac8f7210f41a8a6c13bc961b3d2d1fb43bd32e48a054c17a
+artifactDigest: sha256:81de4074880667e6e648288d8a18a05a504aef3edae492eef7d29822002722a7
 chromium: 153.0.8010.12 (Playwright 1.64.0)
 answers:
 - step: 0

@@ -42,7 +42,8 @@ def starting_in(tmp_path, start: str):
 def contrast_page() -> str:
     """The artifact of the browser door's local-theme states (test/browser/expectations.yaml): the
     test page starting in the fixture's theme, from a copy of its folder in the current folder."""
-    return themed(Path.cwd(), "contrast")
+    return artifact_html(document("Themes", chapter("one", "One", heading(1, "One"), paragraph("Text."))),
+                         style_choice=starting_in(Path.cwd(), "contrast"))
 
 
 def themed(tmp_path, start: str) -> str:

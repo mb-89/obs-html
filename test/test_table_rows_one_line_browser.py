@@ -138,10 +138,10 @@ PACKAGED = load_config()
 OFF = dataclasses.replace(PACKAGED, artifact={**PACKAGED.artifact, "tableRowsOneLine": False})
 
 
-def rows_page() -> str:
-    """The build with one line per row, the artifact of the browser door's state table-rows-phone
-    (test/browser/expectations.yaml)."""
-    return artifact_html(DOCUMENT)
+def rows_document() -> dict:
+    """The Document of the build with one line per row, the artifact of the browser door's state
+    table-rows-phone (test/browser/expectations.yaml)."""
+    return DOCUMENT
 
 
 @pytest.fixture(scope="module")

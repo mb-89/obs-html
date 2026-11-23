@@ -29,19 +29,20 @@ COLOURS = """() => {
 }"""
 
 
-def appearance_artifact(appearance: str | None = None) -> str:
-    """The test page; `appearance`, where given, is its manifest's obsHtml.appearance."""
-    return artifact_html(document(
+def appearance_document(appearance: str | None = None) -> dict:
+    """The test page's Document; `appearance`, where given, is its manifest's obsHtml.appearance.
+    Without one, it is the artifact of the browser door's appearance states
+    (test/browser/expectations.yaml), whose recorded colours the fake's cascade is held to."""
+    return document(
         "Appearance",
         chapter("one", "One", heading(1, "One"), paragraph("First chapter text.")),
         metadata={"obsHtml": {"appearance": appearance}} if appearance else None,
-    ))
+    )
 
 
-def appearance_page() -> str:
-    """The artifact of the browser door's appearance states (test/browser/expectations.yaml): the test
-    page in System, whose recorded colours the fake's cascade is held to."""
-    return appearance_artifact()
+def appearance_artifact(appearance: str | None = None) -> str:
+    """The test page; `appearance`, where given, is its manifest's obsHtml.appearance."""
+    return artifact_html(appearance_document(appearance))
 
 
 def rgba(value: str) -> tuple[float, float, float, float]:

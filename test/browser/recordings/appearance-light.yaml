@@ -1,7 +1,7 @@
 # The browser door's recording of the state appearance-light (test/browser/expectations.yaml),
 # written by `uv run pytest -m hot --record` (test/browser/door.py); never edited by hand.
 state: appearance-light
-artifact: test/test_appearance_browser.py::appearance_page
+artifact: test/test_appearance_browser.py::appearance_document
 context:
   viewport: [1280, 720]
   scale: 1
@@ -14,7 +14,7 @@ steps:
 - open: page
 - open: chapter
   id: one
-artifactDigest: sha256:bf7ffa0dd10f3901b11e167a38e00dfa9d03edb5dd0a0753aaf45812d8d0ce96
+artifactDigest: sha256:6d6107b0d91d805a810b6e470af20e6c64ca9bee1de2f927c54f1dc811690586
 chromium: 153.0.8010.12 (Playwright 1.64.0)
 answers:
 - step: 0

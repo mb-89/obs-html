@@ -1,7 +1,7 @@
 # The browser door's recording of the state bars-dock-desktop (test/browser/expectations.yaml),
 # written by `uv run pytest -m hot --record` (test/browser/door.py); never edited by hand.
 state: bars-dock-desktop
-artifact: test/test_bars.py::dock_page
+artifact: test/test_bars.py::dock_document
 context:
   viewport: [1800, 1200]
   scale: 1
@@ -12,7 +12,7 @@ context:
   frame: top
 steps:
 - open: page
-artifactDigest: sha256:cb8ac582bc30ede13686c61c886d12a1620f09072d48bfed840dfcf198177f0e
+artifactDigest: sha256:9c5f5b0a9ac4372ee4be9162b17078e89cde71b7827f560df11d6684daf2aa95
 chromium: 153.0.8010.12 (Playwright 1.64.0)
 answers:
 - step: 0

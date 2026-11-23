@@ -184,11 +184,10 @@ def test_a_core_built_callout_body_renders_its_list_wikilink_nested_callout_and_
 TONES = ["note", "success", "warning", "danger", "quote"]
 
 
-def tones_page() -> str:
+def tones_document() -> dict:
     """A chapter of one callout of each tone, with the core's titles; the artifact of the browser
     door's state callout-tones-desktop (test/browser/expectations.yaml)."""
-    return artifact_html(build("Doc", chapter("one", "One", *(_callout(kind, kind.capitalize(), f"{kind} body.")
-                                                             for kind in TONES))))
+    return build("Doc", chapter("one", "One", *(_callout(kind, kind.capitalize(), f"{kind} body.") for kind in TONES)))
 
 
 @pytest.mark.hot("callout-tones-desktop")
@@ -198,7 +197,7 @@ def test_callout_tones_are_distinct_titled_cards_in_the_reader(tmp_path, reader_
     title takes the border colour, in the paged reader and the print book alike."""
     kinds = TONES
     artifact = tmp_path / "artifact.html"
-    artifact.write_text(tones_page(), encoding="utf-8")
+    artifact.write_text(artifact_html(tones_document()), encoding="utf-8")
     page = reader_browser.new_page(viewport={"width": 1200, "height": 1000})
     errors = []
     page.on("pageerror", lambda error: errors.append(str(error)))
