@@ -54,7 +54,9 @@ EPILOG = f"""Rendering:
   packaged base stylesheet, and an optional assets.json semantic asset index. It must not
   declare page geometry (@page, size, --paper-*, --sheet-*); the Document's profile owns it.
   Without it, the installed style component the manifest names (obs.style: <name>, installed
-  with obs-components install NAME) applies; without one, the packaged generic style.
+  with obs-components install NAME) applies; without one, the installed component
+  obs-html-style-generic, which obs-html requires and builds none in: where it is not installed,
+  the build fails naming obs-components install obs-html-style-generic.
 
 Themes:
   Each folder in obs-html/themes in the user's configuration folder (~/.config, ~/Library/
@@ -197,7 +199,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--check", action="store_true", help="Render without writing output.")
     parser.add_argument("--style", type=Path, metavar="FOLDER",
                         help="Style module folder containing style.css (and optionally assets.json); "
-                             "replaces the declared or packaged generic style for this build.")
+                             "replaces the declared style, or the default obs-html-style-generic, for this build.")
     parser.add_argument("--embed-attachments", action="store_true",
                         help="Embed files marked with ![label](file) or ![[file]] as downloads.")
     parser.add_argument("--trusted-runtime-bundle", metavar="ID=PATH",

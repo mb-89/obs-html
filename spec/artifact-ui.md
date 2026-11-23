@@ -115,8 +115,9 @@ failures have their form in [[input-model#Chapter content]].
 - A style module is a folder containing `style.css`, with optional fonts, assets, and configuration
   defaults. The converter embeds its CSS into each output.
 
-  The packaged `generic` module is the
-  default; a manifest may name an installed style component, and `--style` selects an
+  obs-html builds no style in: its default is the style component `obs-html-style-generic`, which
+  it requires and finds installed as any style component ([[configuration#Default style]]); a
+  manifest may name another installed style component, and `--style` selects an
   explicit module folder for one invocation ([[configuration#Declared style]]). No artifact component names a style.
 
   Page geometry (paper size, orientation, sheet dimensions, margins, and `@page`) belongs only to
@@ -137,7 +138,7 @@ failures have their form in [[input-model#Chapter content]].
   presentation, as its `style.css` is. The compact heading never uses `cover.html`, and a module
   without one keeps the packaged cover.
 - A theme is a named local layer over the style module. The build's style module, whichever
-  `--style`, `obs.style` or `generic` chose, is the theme Default. A build on a machine with local
+  `--style`, `obs.style` or the default `obs-html-style-generic` chose, is the theme Default. A build on a machine with local
   themes ([[configuration#Local themes]]) carries each of them as well, laid over Default: a
   theme's rules and colours apply where the page's root carries `data-style` with its name,
   Default's everywhere else.
@@ -1714,7 +1715,8 @@ Implementation decisions (4 Nov 2026, worker, reversible):
 
 ### Neutral artifact presentation
 
-The generic style is a plain, content-first artifact: system serif body text, black headings,
+The generic style, the default style component `obs-html-style-generic`
+([[configuration#Default style]]), is a plain, content-first artifact: system serif body text, black headings,
 neutral grays, simple A4 margins and no branded hierarchy. Interactive application chrome remains
 separate from artifact presentation.
 

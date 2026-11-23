@@ -16,6 +16,7 @@ from referencing import Registry, Resource
 
 import library_fakes
 import network_guard
+import style_component
 from browser import door
 
 network_guard.install()
@@ -40,16 +41,21 @@ LOCAL_THEMES = door.LOCAL_THEMES
 os.environ["OBS_HTML_LOCAL_FOLDER"] = str(ROOT.resolve() / "test" / "fixtures" / "no-local-folder")
 # No build a test starts reads the build machine's installed components (obs's
 # spec/design_input/components.md, Installed components): each process gets a machine folder of its
-# own whose one installed component is this checkout, as the adapter component obs-html, the name
-# adapter.json declares.
+# own whose installed components are this checkout, as the adapter component obs-html, the name
+# adapter.json declares, and the default style component se.toml requires, obs-html-style-generic,
+# from the cache test/style_component.py installs it into once.
 COMPONENT = json.loads((ROOT / "adapter.json").read_text(encoding="utf-8"))["name"]
 MACHINE = Path(tempfile.mkdtemp(prefix="obs-html-machine-"))
 (MACHINE / "components").mkdir()
 (MACHINE / "components" / COMPONENT).symlink_to(ROOT.resolve(), target_is_directory=True)
+try:
+    DEFAULT_STYLE = style_component.install_into(MACHINE, CORE_ROOT)
+except style_component.ProvisionError as error:
+    raise pytest.UsageError(str(error)) from error
 (MACHINE / "components.json").write_text(json.dumps({"components": [{
     "name": COMPONENT, "kind": "adapter",
     "version": tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"]["version"],
-    "commit": "0" * 40}]}), encoding="utf-8")
+    "commit": "0" * 40}, DEFAULT_STYLE]}), encoding="utf-8")
 os.environ["OBS_LOCAL_FOLDER"] = str(MACHINE)
 
 

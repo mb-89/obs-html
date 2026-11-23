@@ -155,7 +155,7 @@ def test_the_build_step_builds_one_document_twice_alike(tmp_path):
 def test_a_side_builds_with_its_checkout_installed_as_obs_html_as_the_tests_install_it(tmp_path):
     machine = machine_folder(CHECKOUT, tmp_path / "head")
     assert machine == tmp_path / "head" / unchanged_output.MACHINE
-    assert [path.name for path in (machine / "components").iterdir()] == ["obs-html"]
+    assert sorted(path.name for path in (machine / "components").iterdir()) == ["obs-html", "obs-html-style-generic"]
     assert (machine / "components" / "obs-html").resolve() == CHECKOUT.resolve()
     listed = json.loads((machine / "components.json").read_text(encoding="utf-8"))
     assert listed == json.loads((conftest.MACHINE / "components.json").read_text(encoding="utf-8"))
@@ -171,8 +171,8 @@ def test_a_side_from_before_the_rename_is_installed_as_the_component_its_adapter
     (old / "pyproject.toml").write_text('[project]\nversion = "0.1.0"\n', encoding="utf-8")
     (old / "adapter.json").write_text(json.dumps({"name": "html"}), encoding="utf-8")
     machine = machine_folder(old, tmp_path / "base")
-    assert [path.name for path in (machine / "components").iterdir()] == ["html"]
-    [entry] = json.loads((machine / "components.json").read_text(encoding="utf-8"))["components"]
+    assert sorted(path.name for path in (machine / "components").iterdir()) == ["html", "obs-html-style-generic"]
+    [entry, _style] = json.loads((machine / "components.json").read_text(encoding="utf-8"))["components"]
     assert entry["name"] == unchanged_output.component(old) == "html"
 
 

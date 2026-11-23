@@ -84,6 +84,21 @@ The artifact verification harness, `test/browser/artifact-harness.cjs`, opens a 
 fake browser and drives it step by step (data, chapter, table, page mode, print and presentation
 geometry, and a recorded state's boxes); its header comment is its reference.
 
+## Default style
+
+Reader: whoever installs obs-html, builds without a declared style, or writes a style.
+
+obs-html builds no style in. Its default style is the style component
+[`obs-html-style-generic`](https://github.com/mb-89/obs-html-style-generic), an ordinary component
+in a repository of its own, which `se.toml` requires (`[components.obs-html-style-generic]`), so
+`obs-components install obs-html` installs it too, as obs's component command installs a
+component's required components. A build with neither `--style` nor `obs.style` applies it from
+obs's machine folder, as it applies any declared style component, and fails naming
+`obs-components install obs-html-style-generic` where it is not installed
+([spec/configuration.md](spec/configuration.md), Default style). The tests fetch its release once
+into a cache and install it from there into their machine folder through the core's install code
+(`test/style_component.py`), so no test reaches the network.
+
 ## Input errors
 
 Reader: whoever changes what obs-html refuses, or reads one of its error messages.

@@ -23,6 +23,7 @@ from obs_html.features import FEATURES, PART_REGION, Feature, Part, feature_sour
 from obs_html.figures import FIGURE_KINDS
 from obs_html.render import render
 from obs_html.style_choice import local_style_choice
+from obs_html.styles import default_style
 
 
 CONFIG = load_config()
@@ -318,7 +319,7 @@ def test_the_structural_styles_keep_base_css_order_then_the_features_then_the_st
     shipped = [part.key for feature in FEATURES for part in feature.parts if part.enabled(CONFIG.artifact)]
     parts = [feature_source("base.css", shipped),
              *(feature_source(name, shipped) for feature in FEATURES for name in feature.base_styles),
-             SOURCE.joinpath("styles", "generic", "style.css").read_text(encoding="utf-8")]
+             default_style().joinpath("style.css").read_text(encoding="utf-8")]
     assert len(parts) > 2
     assert styles.strip() == "\n".join(parts).strip()
 
