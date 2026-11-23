@@ -96,15 +96,16 @@ tests go. The reason names each test that goes the other way.
 | `test_startup_browser.py` | hot | `browser-door-recorder` | The first chapter's paint within a second in full Chromium: real paint timing, which no fake has. |
 | `test_structural_nodes.py` | logic | `viewer-logic-to-fake-browser` | Its one browser test counts the notice center's warnings per unknown node type, in the sandboxed frame. |
 | `test_table_detail_fields_browser.py` | logic | moved by `fake-browser-door` | The fields an opened row shows and what the filter box finds: runtime logic. |
-| `test_table_headers_browser.py` | logic | `more-logic-to-fake-browser` | Headers sort on click, shift-click, Enter and a tap, and show no card: events and DOM. |
+| `test_table_headers_browser.py` | logic | `more-logic-to-fake-browser` | Headers sort on click, shift-click, Enter and a tap, and show no card: events and DOM. Except `test_on_a_phone_a_tap_on_a_header_sorts_and_opens_no_card`, which stays on the real browser's emulated phone: it taps with a coarse pointer, and the fake emulates no touch device. |
 | `test_table_rows_one_line_browser.py` | hot | `hot-tests-record` | One line per row at 390 px, cut cells and the print book's full cells are text layout. |
 | `test_theme_choice_browser.py` | logic | `layout-logic-to-fake-browser` | The offered themes, restyling, re-measured columns, session-only choice and a saved copy are runtime logic; the columns come from recorded text widths per font. Except `test_the_theme_select_is_as_wide_as_its_options_as_the_appearance_select_is` and `test_export_to_pdf_prints_the_chosen_theme_in_light`, which stay hot. |
 | `test_timeline_figure_browser.py` | logic | `layout-logic-to-fake-browser` | Rows in order, the drill-down, the filter and print's rows are runtime logic. Except `test_the_today_row_is_in_view_when_the_chapter_opens_and_a_block_link_wins` and `test_at_390_by_844_nothing_scrolls_sideways_with_every_row_open`, which stay hot. |
 
 That makes 35 logic files with 299 collected tests and 17 hot files with 188. Of the named
-exceptions, 36 collected tests of logic files stay hot and 19 of hot files move to the fake. Once
-every package has landed, 205 of the 487 run in the one real Chromium, and a landing runs them only
-when a recording is stale (below).
+exceptions, 37 collected tests of logic files stay on the real browser and 19 of hot files move to
+the fake. Once every package has landed, 206 of the 487 run in the one real Chromium, and a landing
+runs them only when a recording is stale (below). `more-logic-to-fake-browser` added the 37th, the
+table headers' phone tap.
 `browser-door-recorder` added two files: `test_browser_door.py`, logic, with 5 tests, and
 `test_door_recordings_browser.py`, hot, with one test per top-level state.
 

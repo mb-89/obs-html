@@ -4,6 +4,10 @@ The owner is generic-tables.md (the sorting rules): a click on a header sorts, S
 reverses a further level, headers expose their sort state accessibly and carry no hover help, so a
 tap on a phone sorts and opens no card. The card is the artifact's one hover card (artifact-ui.md,
 Overlays); it shows a trigger's text after its configured delay.
+
+The desktop test runs on the fake browser. The phone test stays on a real browser's emulated phone:
+the fake emulates no touch device, whose coarse pointer and touch tap it asks for
+(test/browser/browser-door.md, Classification).
 """
 import json
 
