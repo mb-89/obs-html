@@ -20,9 +20,9 @@
 # every step.
 #
 # A state is a fixture artifact, its context and the steps that lead there. Its artifact is a
-# Document file, or `<module>.py::<function>` for a Document a test module writes. Step 0 is always
-# the opened page. test/browser/door.py records each state with `uv run pytest -m hot --record`
-# into test/browser/recordings/<state>.yaml.
+# Document file, or `<module>.py::<function>` for a Document a test module writes or the artifact's
+# HTML it builds. Step 0 is always the opened page. test/browser/door.py records each state with
+# `uv run pytest -m hot --record` into test/browser/recordings/<state>.yaml.
 
 states:
   features-desktop:
@@ -32,6 +32,12 @@ states:
       - {open: page}
       - {open: chapter, id: figures}
       - {open: chapter, id: prose}
+  figure-links-desktop:
+    artifact: test/test_figure_links.py::linked_document
+    context: {viewport: [1280, 720], scale: 1, touch: false, scheme: light, motion: no-preference, media: screen, frame: top}
+    steps:
+      - {open: page}
+      - {open: chapter, id: chapter}
   preview-viewer-frame:
     artifact: test/preview.py::preview_document
     context: {viewport: [1100, 700], scale: 1, touch: false, scheme: light, motion: no-preference, media: screen, frame: viewer}
