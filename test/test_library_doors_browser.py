@@ -24,7 +24,6 @@ from pypdf.generic import DictionaryObject, NameObject
 import library_fakes
 from obs_html import libraries
 
-pytestmark = pytest.mark.browser
 
 MODES = ("real", "fake")
 
@@ -64,6 +63,8 @@ TRACES = [{"type": "scatter", "x": [0, 1, 2], "y": [0, 1, 4], "name": "a"},
           {"type": "scatter", "x": [0, 1, 2], "y": [1, 2, 3], "name": "b"}]
 
 
+@pytest.mark.hot
+@pytest.mark.browser
 @pytest.mark.parametrize("mode", MODES)
 def test_the_plotting_door_draws_a_chart_of_its_size_with_its_legend_and_traces(door_pages, mode):
     page, errors = door_pages( "plotting", mode)
@@ -85,6 +86,8 @@ def test_the_plotting_door_draws_a_chart_of_its_size_with_its_legend_and_traces(
     assert errors == []
 
 
+@pytest.mark.hot
+@pytest.mark.browser
 @pytest.mark.parametrize("mode", MODES)
 def test_the_plotting_door_relayouts_and_says_so_through_its_events(door_pages, mode):
     page, errors = door_pages( "plotting", mode)
@@ -110,6 +113,8 @@ def test_the_plotting_door_relayouts_and_says_so_through_its_events(door_pages, 
     assert errors == []
 
 
+@pytest.mark.hot
+@pytest.mark.browser
 @pytest.mark.parametrize("mode", MODES)
 def test_the_plotting_door_redraws_resizes_draws_an_image_and_purges(door_pages, mode):
     page, errors = door_pages( "plotting", mode)
@@ -153,6 +158,8 @@ def close(value: complex, expected: complex) -> bool:
     return abs(value - expected) <= 1e-9 * max(1, abs(expected))
 
 
+@pytest.mark.hot
+@pytest.mark.browser
 @pytest.mark.parametrize("mode", MODES)
 def test_the_maths_door_computes_in_complex_numbers_on_principal_branches(door_pages, mode):
     page, errors = door_pages( "maths", mode)
@@ -200,6 +207,8 @@ EXPRESSIONS = {
 UNPARSABLE = ["2 *", "(x", "sin(x,", ")"]
 
 
+@pytest.mark.hot
+@pytest.mark.browser
 @pytest.mark.parametrize("mode", MODES)
 def test_the_maths_door_parses_a_readers_expression_into_its_syntax_tree(door_pages, mode):
     page, errors = door_pages( "maths", mode)
@@ -224,6 +233,8 @@ def blank_pdf(signed: bool = False) -> bytes:
     return output.getvalue()
 
 
+@pytest.mark.hot
+@pytest.mark.browser
 @pytest.mark.parametrize("mode", MODES)
 def test_the_pdf_door_attaches_a_file_it_finds_again_and_refuses_a_signed_or_attached_pdf(
         door_pages, mode):
@@ -254,6 +265,8 @@ def test_the_pdf_door_attaches_a_file_it_finds_again_and_refuses_a_signed_or_att
     assert errors == []
 
 
+@pytest.mark.hot
+@pytest.mark.browser
 @pytest.mark.parametrize("key", sorted(libraries.LIBRARIES))
 def test_each_doors_fake_answers_every_call_of_its_door_and_no_other(door_pages, key):
     """A fake without its contract does not count: each library's door has its fake in test/fakes,

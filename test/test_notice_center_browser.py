@@ -95,7 +95,7 @@ def test_ten_notices_of_one_severity_give_one_icon_with_pill_ten(door_artifact, 
     assert errors == []
 
 
-@pytest.mark.hot
+@pytest.mark.hot("notice-center-desktop")
 @pytest.mark.browser
 def test_icon_opens_its_list_an_entry_expands_and_escape_closes(tmp_path: Path, full_chromium_browser) -> None:
     from playwright.sync_api import expect
@@ -308,7 +308,7 @@ def _send_a_verdict(page) -> None:
     page.locator("[data-bless-send]").click()
 
 
-@pytest.mark.hot
+@pytest.mark.hot("sent-deck-phone", "bless-deck-desktop")
 @pytest.mark.browser
 @pytest.mark.parametrize("viewport", SENT_VIEWPORTS, ids=["phone", "desktop"])
 def test_a_confirmed_send_shows_the_sinks_name_under_the_band_and_the_line_goes(
@@ -363,7 +363,7 @@ def test_a_new_line_replaces_the_shown_one_and_reduced_motion_drops_the_fade(doo
     assert errors == []
 
 
-@pytest.mark.hot
+@pytest.mark.hot("sent-deck-phone")
 @pytest.mark.browser
 def test_in_a_figure_overlay_the_line_shows_with_the_notice_icons(line_on: Path, reader_browser) -> None:
     """Requirement 1: where a figure overlay holds the notice icons, the line shows there with them."""

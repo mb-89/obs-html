@@ -1,0 +1,656 @@
+# The browser door's recording of the state features-cards-desktop (test/browser/expectations.yaml),
+# written by `uv run pytest -m hot --record` (test/browser/door.py); never edited by hand.
+state: features-cards-desktop
+artifact: test/fixtures/documents/features.json
+context:
+  viewport: [1100, 800]
+  scale: 1
+  touch: false
+  scheme: light
+  motion: no-preference
+  media: screen
+  frame: top
+steps:
+- open: page
+- open: chapter
+  id: references
+artifactDigest: sha256:2264f96cf2733e287fb7bcebfc151e473ac74aeff11a68ddd0ba185e068726ea
+chromium: 153.0.8010.12 (Playwright 1.64.0)
+answers:
+- step: 0
+  asked:
+    box:
+    - '#overview > div:1'
+    - html:1 > body:1 > div:1 > div:1
+    - html:1 > body:1 > div:1 > div:2
+    - html:1 > body:1 > div:1 > div:3
+    - html:1 > body:1 > div:1 > div:4
+    - html:1 > body:1 > div:1 > main:1 > div:1
+    - section:1 > div:1
+    - section:1 > div:2
+    cascade:
+    - html:1 > body:1|font
+    - html:1|fontSize
+    media:
+    - '(max-width: 30rem)'
+    - '(max-width: 42rem)'
+    - '(max-width: 44rem)'
+    - '(pointer: coarse)'
+    - '(prefers-reduced-motion: reduce)'
+    - print
+    - screen
+    resize:
+    - '#overview > div:1'
+    - html:1 > body:1 > div:1 > div:1
+    - html:1 > body:1 > div:1 > div:2
+    - html:1 > body:1 > div:1 > div:3
+    - html:1 > body:1 > div:1 > div:4
+    - section:1 > div:1
+    - section:1 > div:1 > table:1
+    - section:1 > div:2
+    - section:1 > div:2 > table:1
+    sizes:
+    - section:1 > div:1
+    - section:1 > div:2
+    text-width:
+    - 16px Georgia, "Times New Roman", serif|1
+    - 16px Georgia, "Times New Roman", serif|10
+    - 16px Georgia, "Times New Roman", serif|11
+    - 16px Georgia, "Times New Roman", serif|12
+    - 16px Georgia, "Times New Roman", serif|13
+    - 16px Georgia, "Times New Roman", serif|14
+    - 16px Georgia, "Times New Roman", serif|15
+    - 16px Georgia, "Times New Roman", serif|16
+    - 16px Georgia, "Times New Roman", serif|17
+    - 16px Georgia, "Times New Roman", serif|18
+    - 16px Georgia, "Times New Roman", serif|19
+    - 16px Georgia, "Times New Roman", serif|2
+    - 16px Georgia, "Times New Roman", serif|20
+    - 16px Georgia, "Times New Roman", serif|21
+    - 16px Georgia, "Times New Roman", serif|22
+    - 16px Georgia, "Times New Roman", serif|23
+    - 16px Georgia, "Times New Roman", serif|24
+    - 16px Georgia, "Times New Roman", serif|3
+    - 16px Georgia, "Times New Roman", serif|4
+    - 16px Georgia, "Times New Roman", serif|5
+    - 16px Georgia, "Times New Roman", serif|6
+    - 16px Georgia, "Times New Roman", serif|7
+    - 16px Georgia, "Times New Roman", serif|8
+    - 16px Georgia, "Times New Roman", serif|9
+    - 16px Georgia, "Times New Roman", serif|A source of the fixture.
+    - 16px Georgia, "Times New Roman", serif|Description
+    - 16px Georgia, "Times New Roman", serif|Item 1 of the paged table, with a description long enough to wrap in a narrow
+      column.
+    - 16px Georgia, "Times New Roman", serif|Item 10 of the paged table, with a description long enough to wrap in a narrow
+      column.
+    - 16px Georgia, "Times New Roman", serif|Item 11 of the paged table, with a description long enough to wrap in a narrow
+      column.
+    - 16px Georgia, "Times New Roman", serif|Item 12 of the paged table, with a description long enough to wrap in a narrow
+      column.
+    - 16px Georgia, "Times New Roman", serif|Item 13 of the paged table, with a description long enough to wrap in a narrow
+      column.
+    - 16px Georgia, "Times New Roman", serif|Item 14 of the paged table, with a description long enough to wrap in a narrow
+      column.
+    - 16px Georgia, "Times New Roman", serif|Item 15 of the paged table, with a description long enough to wrap in a narrow
+      column.
+    - 16px Georgia, "Times New Roman", serif|Item 16 of the paged table, with a description long enough to wrap in a narrow
+      column.
+    - 16px Georgia, "Times New Roman", serif|Item 17 of the paged table, with a description long enough to wrap in a narrow
+      column.
+    - 16px Georgia, "Times New Roman", serif|Item 18 of the paged table, with a description long enough to wrap in a narrow
+      column.
+    - 16px Georgia, "Times New Roman", serif|Item 19 of the paged table, with a description long enough to wrap in a narrow
+      column.
+    - 16px Georgia, "Times New Roman", serif|Item 2 of the paged table, with a description long enough to wrap in a narrow
+      column.
+    - 16px Georgia, "Times New Roman", serif|Item 20 of the paged table, with a description long enough to wrap in a narrow
+      column.
+    - 16px Georgia, "Times New Roman", serif|Item 21 of the paged table, with a description long enough to wrap in a narrow
+      column.
+    - 16px Georgia, "Times New Roman", serif|Item 22 of the paged table, with a description long enough to wrap in a narrow
+      column.
+    - 16px Georgia, "Times New Roman", serif|Item 23 of the paged table, with a description long enough to wrap in a narrow
+      column.
+    - 16px Georgia, "Times New Roman", serif|Item 24 of the paged table, with a description long enough to wrap in a narrow
+      column.
+    - 16px Georgia, "Times New Roman", serif|Item 3 of the paged table, with a description long enough to wrap in a narrow
+      column.
+    - 16px Georgia, "Times New Roman", serif|Item 4 of the paged table, with a description long enough to wrap in a narrow
+      column.
+    - 16px Georgia, "Times New Roman", serif|Item 5 of the paged table, with a description long enough to wrap in a narrow
+      column.
+    - 16px Georgia, "Times New Roman", serif|Item 6 of the paged table, with a description long enough to wrap in a narrow
+      column.
+    - 16px Georgia, "Times New Roman", serif|Item 7 of the paged table, with a description long enough to wrap in a narrow
+      column.
+    - 16px Georgia, "Times New Roman", serif|Item 8 of the paged table, with a description long enough to wrap in a narrow
+      column.
+    - 16px Georgia, "Times New Roman", serif|Item 9 of the paged table, with a description long enough to wrap in a narrow
+      column.
+    - 16px Georgia, "Times New Roman", serif|No.
+    - 16px Georgia, "Times New Roman", serif|Source A
+    - 16px Georgia, "Times New Roman", serif|Unlinked source
+    - 16px Georgia, "Times New Roman", serif|[1]
+    - 16px Georgia, "Times New Roman", serif|[2]
+    - 16px Georgia, "Times New Roman", serif|description
+    - 16px Georgia, "Times New Roman", serif|document
+    - 16px Georgia, "Times New Roman", serif|file.name
+    - 16px Georgia, "Times New Roman", serif|item-01
+    - 16px Georgia, "Times New Roman", serif|item-02
+    - 16px Georgia, "Times New Roman", serif|item-03
+    - 16px Georgia, "Times New Roman", serif|item-04
+    - 16px Georgia, "Times New Roman", serif|item-05
+    - 16px Georgia, "Times New Roman", serif|item-06
+    - 16px Georgia, "Times New Roman", serif|item-07
+    - 16px Georgia, "Times New Roman", serif|item-08
+    - 16px Georgia, "Times New Roman", serif|item-09
+    - 16px Georgia, "Times New Roman", serif|item-10
+    - 16px Georgia, "Times New Roman", serif|item-11
+    - 16px Georgia, "Times New Roman", serif|item-12
+    - 16px Georgia, "Times New Roman", serif|item-13
+    - 16px Georgia, "Times New Roman", serif|item-14
+    - 16px Georgia, "Times New Roman", serif|item-15
+    - 16px Georgia, "Times New Roman", serif|item-16
+    - 16px Georgia, "Times New Roman", serif|item-17
+    - 16px Georgia, "Times New Roman", serif|item-18
+    - 16px Georgia, "Times New Roman", serif|item-19
+    - 16px Georgia, "Times New Roman", serif|item-20
+    - 16px Georgia, "Times New Roman", serif|item-21
+    - 16px Georgia, "Times New Roman", serif|item-22
+    - 16px Georgia, "Times New Roman", serif|item-23
+    - 16px Georgia, "Times New Roman", serif|item-24
+    - 16px Georgia, "Times New Roman", serif|number
+    - 16px Georgia, "Times New Roman", serif|rank
+    - 16px Georgia, "Times New Roman", serif|widgets-1
+    - 16px Georgia, "Times New Roman", serif|widgets-2
+  box:
+    '#overview > div:1':
+      border: [0, 64, 1085, 314.98]
+      rects: [[0, 64, 1085, 314.98]]
+    html:1 > body:1 > div:1 > div:1:
+      border: [0, 0, 0, 0]
+      rects: []
+    html:1 > body:1 > div:1 > div:2:
+      border: [0, 0, 0, 0]
+      rects: []
+    html:1 > body:1 > div:1 > div:3:
+      border: [0, 0, 0, 0]
+      rects: []
+    html:1 > body:1 > div:1 > div:4:
+      border: [0, 0, 0, 0]
+      rects: []
+    html:1 > body:1 > div:1 > main:1 > div:1:
+      border: [0, 64, 1100, 736]
+      rects: [[0, 64, 1100, 736]]
+  sizes:
+    window:
+      innerWidth: 1100
+      innerHeight: 800
+  resize:
+    '#overview > div:1':
+      content: [1029, 266.98]
+      border: [1085, 314.98]
+    html:1 > body:1 > div:1 > div:1:
+      content: [0, 0]
+      border: [0, 0]
+    html:1 > body:1 > div:1 > div:2:
+      content: [0, 0]
+      border: [0, 0]
+    html:1 > body:1 > div:1 > div:3:
+      content: [0, 0]
+      border: [0, 0]
+    html:1 > body:1 > div:1 > div:4:
+      content: [0, 0]
+      border: [0, 0]
+  scroll-into-view: {}
+  text-width:
+    16px Georgia, "Times New Roman", serif|1: 8
+    16px Georgia, "Times New Roman", serif|10: 16
+    16px Georgia, "Times New Roman", serif|11: 15.41
+    16px Georgia, "Times New Roman", serif|12: 16
+    16px Georgia, "Times New Roman", serif|13: 16
+    16px Georgia, "Times New Roman", serif|14: 16
+    16px Georgia, "Times New Roman", serif|15: 16
+    16px Georgia, "Times New Roman", serif|16: 16
+    16px Georgia, "Times New Roman", serif|17: 16
+    16px Georgia, "Times New Roman", serif|18: 16
+    16px Georgia, "Times New Roman", serif|19: 16
+    16px Georgia, "Times New Roman", serif|2: 8
+    16px Georgia, "Times New Roman", serif|20: 16
+    16px Georgia, "Times New Roman", serif|21: 16
+    16px Georgia, "Times New Roman", serif|22: 16
+    16px Georgia, "Times New Roman", serif|23: 16
+    16px Georgia, "Times New Roman", serif|24: 16
+    16px Georgia, "Times New Roman", serif|3: 8
+    16px Georgia, "Times New Roman", serif|4: 8
+    16px Georgia, "Times New Roman", serif|5: 8
+    16px Georgia, "Times New Roman", serif|6: 8
+    16px Georgia, "Times New Roman", serif|7: 8
+    16px Georgia, "Times New Roman", serif|8: 8
+    16px Georgia, "Times New Roman", serif|9: 8
+    16px Georgia, "Times New Roman", serif|A source of the fixture.: 148.84
+    16px Georgia, "Times New Roman", serif|Description: 74.65
+    ? 16px Georgia, "Times New Roman", serif|Item 1 of the paged table, with a description long enough to wrap in a narrow
+      column.
+    : 550.96
+    ? 16px Georgia, "Times New Roman", serif|Item 10 of the paged table, with a description long enough to wrap in a narrow
+      column.
+    : 558.96
+    ? 16px Georgia, "Times New Roman", serif|Item 11 of the paged table, with a description long enough to wrap in a narrow
+      column.
+    : 558.37
+    ? 16px Georgia, "Times New Roman", serif|Item 12 of the paged table, with a description long enough to wrap in a narrow
+      column.
+    : 558.96
+    ? 16px Georgia, "Times New Roman", serif|Item 13 of the paged table, with a description long enough to wrap in a narrow
+      column.
+    : 558.96
+    ? 16px Georgia, "Times New Roman", serif|Item 14 of the paged table, with a description long enough to wrap in a narrow
+      column.
+    : 558.96
+    ? 16px Georgia, "Times New Roman", serif|Item 15 of the paged table, with a description long enough to wrap in a narrow
+      column.
+    : 558.96
+    ? 16px Georgia, "Times New Roman", serif|Item 16 of the paged table, with a description long enough to wrap in a narrow
+      column.
+    : 558.96
+    ? 16px Georgia, "Times New Roman", serif|Item 17 of the paged table, with a description long enough to wrap in a narrow
+      column.
+    : 558.96
+    ? 16px Georgia, "Times New Roman", serif|Item 18 of the paged table, with a description long enough to wrap in a narrow
+      column.
+    : 558.96
+    ? 16px Georgia, "Times New Roman", serif|Item 19 of the paged table, with a description long enough to wrap in a narrow
+      column.
+    : 558.96
+    ? 16px Georgia, "Times New Roman", serif|Item 2 of the paged table, with a description long enough to wrap in a narrow
+      column.
+    : 550.96
+    ? 16px Georgia, "Times New Roman", serif|Item 20 of the paged table, with a description long enough to wrap in a narrow
+      column.
+    : 558.96
+    ? 16px Georgia, "Times New Roman", serif|Item 21 of the paged table, with a description long enough to wrap in a narrow
+      column.
+    : 558.96
+    ? 16px Georgia, "Times New Roman", serif|Item 22 of the paged table, with a description long enough to wrap in a narrow
+      column.
+    : 558.96
+    ? 16px Georgia, "Times New Roman", serif|Item 23 of the paged table, with a description long enough to wrap in a narrow
+      column.
+    : 558.96
+    ? 16px Georgia, "Times New Roman", serif|Item 24 of the paged table, with a description long enough to wrap in a narrow
+      column.
+    : 558.96
+    ? 16px Georgia, "Times New Roman", serif|Item 3 of the paged table, with a description long enough to wrap in a narrow
+      column.
+    : 550.96
+    ? 16px Georgia, "Times New Roman", serif|Item 4 of the paged table, with a description long enough to wrap in a narrow
+      column.
+    : 550.96
+    ? 16px Georgia, "Times New Roman", serif|Item 5 of the paged table, with a description long enough to wrap in a narrow
+      column.
+    : 550.96
+    ? 16px Georgia, "Times New Roman", serif|Item 6 of the paged table, with a description long enough to wrap in a narrow
+      column.
+    : 550.96
+    ? 16px Georgia, "Times New Roman", serif|Item 7 of the paged table, with a description long enough to wrap in a narrow
+      column.
+    : 550.96
+    ? 16px Georgia, "Times New Roman", serif|Item 8 of the paged table, with a description long enough to wrap in a narrow
+      column.
+    : 550.96
+    ? 16px Georgia, "Times New Roman", serif|Item 9 of the paged table, with a description long enough to wrap in a narrow
+      column.
+    : 550.96
+    16px Georgia, "Times New Roman", serif|No.: 23.55
+    16px Georgia, "Times New Roman", serif|Source A: 59.98
+    16px Georgia, "Times New Roman", serif|Unlinked source: 105.3
+    16px Georgia, "Times New Roman", serif|[1]: 18.66
+    16px Georgia, "Times New Roman", serif|[2]: 18.66
+    16px Georgia, "Times New Roman", serif|description: 71.09
+    16px Georgia, "Times New Roman", serif|document: 63.09
+    16px Georgia, "Times New Roman", serif|file.name: 59.97
+    16px Georgia, "Times New Roman", serif|item-01: 49.77
+    16px Georgia, "Times New Roman", serif|item-02: 49.77
+    16px Georgia, "Times New Roman", serif|item-03: 49.77
+    16px Georgia, "Times New Roman", serif|item-04: 49.77
+    16px Georgia, "Times New Roman", serif|item-05: 49.77
+    16px Georgia, "Times New Roman", serif|item-06: 49.77
+    16px Georgia, "Times New Roman", serif|item-07: 49.77
+    16px Georgia, "Times New Roman", serif|item-08: 49.77
+    16px Georgia, "Times New Roman", serif|item-09: 49.77
+    16px Georgia, "Times New Roman", serif|item-10: 49.77
+    16px Georgia, "Times New Roman", serif|item-11: 49.17
+    16px Georgia, "Times New Roman", serif|item-12: 49.77
+    16px Georgia, "Times New Roman", serif|item-13: 49.77
+    16px Georgia, "Times New Roman", serif|item-14: 49.77
+    16px Georgia, "Times New Roman", serif|item-15: 49.77
+    16px Georgia, "Times New Roman", serif|item-16: 49.77
+    16px Georgia, "Times New Roman", serif|item-17: 49.77
+    16px Georgia, "Times New Roman", serif|item-18: 49.77
+    16px Georgia, "Times New Roman", serif|item-19: 49.77
+    16px Georgia, "Times New Roman", serif|item-20: 49.77
+    16px Georgia, "Times New Roman", serif|item-21: 49.77
+    16px Georgia, "Times New Roman", serif|item-22: 49.77
+    16px Georgia, "Times New Roman", serif|item-23: 49.77
+    16px Georgia, "Times New Roman", serif|item-24: 49.77
+    16px Georgia, "Times New Roman", serif|number: 48.88
+    16px Georgia, "Times New Roman", serif|rank: 28.43
+    16px Georgia, "Times New Roman", serif|widgets-1: 63.1
+    16px Georgia, "Times New Roman", serif|widgets-2: 63.1
+  image-size: {}
+  fonts:
+    status: loaded
+  cascade:
+    html:1 > body:1|font: 16px Georgia, "Times New Roman", serif
+    html:1|fontSize: 16px
+  media:
+    '(max-width: 30rem)': false
+    '(max-width: 42rem)': false
+    '(max-width: 44rem)': false
+    '(pointer: coarse)': false
+    '(prefers-reduced-motion: reduce)': false
+    print: false
+    screen: true
+  events:
+  - button:click
+  - input:click
+  - input:input
+  - input:change
+  - checked:true
+  - label:click
+  - input:click
+  - input:input
+  - input:change
+  - checked:false
+  - summary:click
+  - open:true
+  focus:
+    button: button:0
+    input: input:1
+    disabled: input:1
+    tabindex: span:3
+    plain: span:3
+    dialog: button:7
+    closed: span:3
+  popover:
+    shown: true
+    another:
+    - false
+    - true
+    - true
+    hidden: false
+    toggled:
+    - true
+    - true
+  frames:
+  - first
+  - second
+  - nested
+  storage:
+    local: kept
+    session: kept
+- step: 1
+  asked:
+    box:
+    - '#references > div:1 > section:1 > div:1'
+    - '#references > div:1 > section:1 > div:1 > table:1'
+    - '#references > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:1'
+    - '#references > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:2'
+    - '#references > div:1 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:3'
+    - '#references > div:1 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:3 > div:1'
+    - '#references > div:1 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:3 > span:2'
+    - html:1 > body:1 > div:1 > main:1 > div:1
+    cascade:
+    - '#references > div:1 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:1|borderLeftWidth'
+    - '#references > div:1 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:3|borderRightWidth'
+    - '#references > div:1 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:3|font'
+    - '#references > div:1 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:3|paddingInlineEnd'
+    - '#references > div:1 > section:1 > div:1 > table:1|--table-cell-padding'
+    - '#references > div:1 > section:1 > div:1 > table:1|--table-toggle-gap'
+    - '#references > div:1 > section:1 > div:1 > table:1|--table-toggle-size'
+    - '#references > div:1 > section:1 > div:1 > table:1|--table-tree-indent'
+    - '#references > div:1 > section:1 > div:1 > table:1|borderCollapse'
+    - '#references > div:1 > section:1 > div:1 > table:1|font'
+    - html:1 > body:1|font
+    - html:1|fontSize
+    media:
+    - '(max-width: 30rem)'
+    - '(max-width: 42rem)'
+    - '(max-width: 44rem)'
+    - '(pointer: coarse)'
+    - '(prefers-reduced-motion: reduce)'
+    - print
+    - screen
+    resize:
+    - section:1 > div:1
+    - section:1 > div:1 > table:1
+    sizes:
+    - '#references > div:1 > section:1 > div:1'
+    - '#references > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:1 > td:1 > div:1 > div:1'
+    - '#references > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:1 > td:2 > div:1'
+    - '#references > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:1 > td:3 > div:1'
+    - '#references > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:2 > td:1 > div:1 > div:1'
+    - '#references > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:2 > td:2 > div:1'
+    - '#references > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:2 > td:3 > div:1'
+    - section:1 > div:1
+    text-width:
+    - 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|A source of the fixture.
+    - 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|Source A
+    - 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|Unlinked source
+    - 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|[1]
+    - 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|[2]
+    - 16px Georgia, "Times New Roman", serif|A source of the fixture.
+    - 16px Georgia, "Times New Roman", serif|No.
+    - 16px Georgia, "Times New Roman", serif|Source A
+    - 16px Georgia, "Times New Roman", serif|Unlinked source
+    - 16px Georgia, "Times New Roman", serif|[1]
+    - 16px Georgia, "Times New Roman", serif|[2]
+    - 16px Georgia, "Times New Roman", serif|description
+    - 16px Georgia, "Times New Roman", serif|document
+    - 700 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|No.
+    - 700 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|description
+    - 700 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|document
+  box:
+    '#references > div:1 > section:1 > div:1':
+      border: [28, 165.25, 1029, 101.17]
+      rects: [[28, 165.25, 1029, 101.17]]
+    '#references > div:1 > section:1 > div:1 > table:1':
+      border: [28, 165.25, 1029, 101.17]
+      rects: [[28, 165.25, 1029, 101.17]]
+    '#references > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:1':
+      border: [28.5, 196.73, 1028, 34.59]
+      rects: [[28.5, 196.73, 1028, 34.59]]
+    '#references > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:2':
+      border: [28.5, 231.33, 1028, 34.59]
+      rects: [[28.5, 231.33, 1028, 34.59]]
+    '#references > div:1 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:3':
+      border: [207.5, 165.75, 849, 30.98]
+      rects: [[207.5, 165.75, 849, 30.98]]
+    '#references > div:1 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:3 > div:1':
+      border: [1021.61, 170.04, 22.39, 22.39]
+      rects: [[1021.61, 170.04, 22.39, 22.39]]
+    '#references > div:1 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:3 > span:2':
+      border: [1046.41, 166.25, 9.59, 29.98]
+      rects: [[1046.41, 166.25, 9.59, 29.98]]
+    html:1 > body:1 > div:1 > main:1 > div:1:
+      border: [0, 64, 1100, 736]
+      rects: [[0, 64, 1100, 736]]
+  sizes:
+    window:
+      innerWidth: 1100
+      innerHeight: 800
+    '#references > div:1 > section:1 > div:1':
+      clientWidth: 1029
+      clientHeight: 101
+      scrollWidth: 1029
+      scrollHeight: 101
+      offsetWidth: 1029
+      offsetHeight: 101
+      offsetLeft: 28
+      offsetTop: 101
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    '#references > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:1 > td:1 > div:1 > div:1':
+      clientWidth: 15
+      clientHeight: 20
+      scrollWidth: 15
+      scrollHeight: 20
+      offsetWidth: 15
+      offsetHeight: 20
+      offsetLeft: 38
+      offsetTop: 7
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    '#references > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:1 > td:2 > div:1':
+      clientWidth: 99
+      clientHeight: 20
+      scrollWidth: 99
+      scrollHeight: 20
+      offsetWidth: 99
+      offsetHeight: 20
+      offsetLeft: 8
+      offsetTop: 5
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    '#references > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:1 > td:3 > div:1':
+      clientWidth: 832
+      clientHeight: 20
+      scrollWidth: 832
+      scrollHeight: 20
+      offsetWidth: 832
+      offsetHeight: 20
+      offsetLeft: 8
+      offsetTop: 5
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    '#references > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:2 > td:1 > div:1 > div:1':
+      clientWidth: 15
+      clientHeight: 20
+      scrollWidth: 15
+      scrollHeight: 20
+      offsetWidth: 15
+      offsetHeight: 20
+      offsetLeft: 38
+      offsetTop: 7
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    '#references > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:2 > td:2 > div:1':
+      clientWidth: 99
+      clientHeight: 20
+      scrollWidth: 99
+      scrollHeight: 20
+      offsetWidth: 99
+      offsetHeight: 20
+      offsetLeft: 8
+      offsetTop: 5
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    '#references > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:2 > td:3 > div:1':
+      clientWidth: 832
+      clientHeight: 20
+      scrollWidth: 832
+      scrollHeight: 20
+      offsetWidth: 832
+      offsetHeight: 20
+      offsetLeft: 8
+      offsetTop: 5
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+  resize: {}
+  scroll-into-view: {}
+  text-width:
+    13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|A source of the fixture.: 136
+    13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|Source A: 55.91
+    13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|Unlinked source: 97.47
+    13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|[1]: 15.11
+    13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|[2]: 15.11
+    16px Georgia, "Times New Roman", serif|A source of the fixture.: 148.84
+    16px Georgia, "Times New Roman", serif|No.: 23.55
+    16px Georgia, "Times New Roman", serif|Source A: 59.98
+    16px Georgia, "Times New Roman", serif|Unlinked source: 105.3
+    16px Georgia, "Times New Roman", serif|[1]: 18.66
+    16px Georgia, "Times New Roman", serif|[2]: 18.66
+    16px Georgia, "Times New Roman", serif|description: 71.09
+    16px Georgia, "Times New Roman", serif|document: 63.09
+    700 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|No.: 21.9
+    700 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|description: 73.27
+    700 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|document: 64.95
+  image-size: {}
+  fonts:
+    status: loaded
+  cascade:
+    '#references > div:1 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:1|borderLeftWidth': 1px
+    '#references > div:1 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:3|borderRightWidth': 1px
+    '#references > div:1 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:3|font': 700 13.6px / 20.4px Arial, "Helvetica
+      Neue", sans-serif
+    '#references > div:1 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:3|paddingInlineEnd': 40px
+    '#references > div:1 > section:1 > div:1 > table:1|--table-cell-padding': '0.5'
+    '#references > div:1 > section:1 > div:1 > table:1|--table-toggle-gap': '0.35'
+    '#references > div:1 > section:1 > div:1 > table:1|--table-toggle-size': '1.5'
+    '#references > div:1 > section:1 > div:1 > table:1|--table-tree-indent': '1.2'
+    '#references > div:1 > section:1 > div:1 > table:1|borderCollapse': collapse
+    '#references > div:1 > section:1 > div:1 > table:1|font': 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif
+    html:1 > body:1|font: 16px Georgia, "Times New Roman", serif
+    html:1|fontSize: 16px
+  media:
+    '(max-width: 30rem)': false
+    '(max-width: 42rem)': false
+    '(max-width: 44rem)': false
+    '(pointer: coarse)': false
+    '(prefers-reduced-motion: reduce)': false
+    print: false
+    screen: true
+  events:
+  - button:click
+  - input:click
+  - input:input
+  - input:change
+  - checked:true
+  - label:click
+  - input:click
+  - input:input
+  - input:change
+  - checked:false
+  - summary:click
+  - open:true
+  focus:
+    button: button:0
+    input: input:1
+    disabled: input:1
+    tabindex: span:3
+    plain: span:3
+    dialog: button:7
+    closed: span:3
+  popover:
+    shown: true
+    another:
+    - false
+    - true
+    - true
+    hidden: false
+    toggled:
+    - true
+    - true
+  frames:
+  - first
+  - second
+  - nested
+  storage:
+    local: kept
+    session: kept
+  print: beforeprint

@@ -65,6 +65,13 @@ MEDIA_RULES = """() => {
 # Every image of the page: the image-size expectation is asked of each, since a test reads an
 # image's decoded size where the runtime does not (browser-door.md, The browser door's expectations).
 IMAGES = "(door) => [...document.querySelectorAll('img')].map((image) => door.key(image))"
+# A state's own reads (expectations.yaml, ``reads``) as cascade reads of the elements their selectors
+# find now: ``<key>|<property>``, the form the runtime's own reads take.
+READS = """(door) => door.asked.flatMap((read) => {
+    const separator = read.lastIndexOf("|");
+    const element = document.querySelector(read.slice(0, separator));
+    return element ? [`${door.key(element)}|${read.slice(separator + 1)}`] : [];
+})"""
 
 
 @functools.cache
@@ -310,37 +317,68 @@ def open_recorded(fake_page, name: str, artifact: Path, through: int | None = No
     return recording
 
 
-def listed(fake_page, name: str, artifact: Path, previous: dict | None) -> dict[int, dict[str, list[str]]]:
+def listed(fake_page, name: str, artifact: Path, previous: dict | None) -> tuple[dict[int, dict[str, list[str]]], bool]:
     """What the page asks at each step of the state in the fake browser, by expectation and key: on
     the door's defaults, and with the previous recording where there is one, since its answers can
-    send the runtime down other branches; with each step's stylesheet media rules."""
+    send the runtime down other branches; with each step's stylesheet media rules and the state's
+    own reads (``reads``: ``<selector>|<property>``, the computed values its hot tests check, such
+    as an appearance's painted colours), each as the cascade read of the first element the
+    selector finds at that step. Also whether the fake took every step on the last answers it had."""
     union: dict[int, dict[str, set[str]]] = {}
+    reads = states()[name].get("reads") or []
 
     def collect(index: int) -> None:
         union.setdefault(index, {}).setdefault("media", set()).update(fake_page.evaluate(MEDIA_RULES))
         images = fake_page.evaluate(page_function(IMAGES), {})
         if images:
             union[index].setdefault("image-size", set()).update(images)
+        union[index].setdefault("cascade", set()).update(fake_page.evaluate(page_function(READS), reads))
 
+    opened = False
     for recording in ([None, previous] if previous else [None]):
         fake_page.asked()
-        open_state(fake_page, name, artifact, recording, after_step=collect)
+        try:
+            open_state(fake_page, name, artifact, recording, after_step=collect)
+            opened = True
+        except Exception:  # A page the door's defaults cannot open: what it asked so far still counts.
+            opened = False
         for index, kinds in fake_page.asked().items():
             for kind, keys in kinds.items():
                 union.setdefault(index, {}).setdefault(kind, set()).update(keys)
-    return {index: {kind: sorted(keys) for kind, keys in sorted(kinds.items())} for index, kinds in sorted(union.items())}
+    return ({index: {kind: sorted(keys) for kind, keys in sorted(kinds.items())} for index, kinds in sorted(union.items())},
+            opened)
 
 
 def chromium_version(page) -> str:
     return f"{page.context.browser.version} (Playwright {metadata.version('playwright')})"
 
 
+# How often the recorder lists a state again on the recording it just took, where the fake could not
+# take every step on the answers it had (record_state).
+ROUNDS = 3
+
+
 def record_state(name: str, artifact: Path, fake_page, open_chromium) -> dict:
     """Record the state: the fake lists what the page asks, then ``open_chromium()`` opens it in the
     one Chromium and answers (page, target), the page and the page or frame the artifact runs in;
-    after each step every expectation's probe runs there. Writes and returns the recording."""
+    after each step every expectation's probe runs there. Where the fake could not take every step
+    on the answers it had (a page the door's defaults cannot lay out), it lists the state again on
+    the recording just taken, up to ROUNDS times. Writes and returns the recording."""
+    previous = load_recording(name)
+    for _ in range(ROUNDS):
+        recording, opened = _record_once(name, artifact, fake_page, open_chromium, previous)
+        if opened:
+            break
+        previous = recording
+    assert opened, (f"{OWNER}: the fake browser could not take every step of the state {name} on its "
+                           f"recording after {ROUNDS} rounds; open it with door.open_state to see where it stops")
+    write_recording(recording)
+    return recording
+
+
+def _record_once(name: str, artifact: Path, fake_page, open_chromium, previous: dict | None) -> tuple[dict, bool]:
     state = states()[name]
-    asked = listed(fake_page, name, artifact, load_recording(name))
+    asked, opened = listed(fake_page, name, artifact, previous)
     page, target = open_chromium()
     answers = []
     for index, step in enumerate(state["steps"]):
@@ -357,8 +395,7 @@ def record_state(name: str, artifact: Path, fake_page, open_chromium) -> dict:
         "chromium": chromium_version(page),
         "answers": answers,
     }
-    write_recording(recording)
-    return recording
+    return recording, opened
 
 
 # ---- Conformance

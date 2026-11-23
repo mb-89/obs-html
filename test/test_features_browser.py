@@ -98,7 +98,7 @@ UNDECIDED_CLIPBOARD = """
 """
 
 
-@pytest.mark.hot
+@pytest.mark.hot("preview-viewer-frame")
 @pytest.mark.browser
 def test_a_host_stand_in_is_in_place_before_the_artifacts_first_script(tmp_path, full_chromium_browser) -> None:
     errors: list[str] = []

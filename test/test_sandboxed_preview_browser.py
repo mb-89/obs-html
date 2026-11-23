@@ -34,7 +34,7 @@ def open_sandboxed(tmp_path: Path, reader_browser, errors: list[str]):
     return open_preview(tmp_path, reader_browser, errors, preview_artifact(), "null-origin")
 
 
-@pytest.mark.hot
+@pytest.mark.hot("preview-viewer-frame")
 @pytest.mark.browser
 def test_artifact_runs_as_srcdoc_of_a_scripts_only_sandbox(tmp_path: Path, full_chromium_browser) -> None:
     """Claude's preview shows HTML as srcdoc of a sandboxed frame that cannot change its URL."""
@@ -65,7 +65,7 @@ def shared_sandboxed(tmp_path_factory, shared_full_chromium_browser):
     return frame, errors
 
 
-@pytest.mark.hot
+@pytest.mark.hot("preview-viewer-frame")
 @pytest.mark.browser
 def test_canaries_find_what_a_scripts_only_sandbox_limits(shared_sandboxed) -> None:
     frame, errors = shared_sandboxed
@@ -81,7 +81,7 @@ def test_canaries_find_what_a_scripts_only_sandbox_limits(shared_sandboxed) -> N
     assert errors == []
 
 
-@pytest.mark.hot
+@pytest.mark.hot("preview-viewer-frame")
 @pytest.mark.browser
 def test_a_sandboxed_frame_lists_its_limits_as_warning_notices(tmp_path: Path, full_chromium_browser) -> None:
     from playwright.sync_api import expect
@@ -135,7 +135,7 @@ def test_the_same_artifact_opened_normally_shows_no_notice(tmp_path: Path, reade
     expect(page.locator('[data-notice^="capability-"]')).to_have_count(0)
     assert errors == []
 
-@pytest.mark.hot
+@pytest.mark.hot("preview-viewer-frame")
 @pytest.mark.browser
 def test_print_to_pdf_in_a_sandboxed_frame_ends_in_an_inline_message(tmp_path: Path, full_chromium_browser) -> None:
     from playwright.sync_api import expect
@@ -160,7 +160,7 @@ def test_print_to_pdf_in_a_sandboxed_frame_ends_in_an_inline_message(tmp_path: P
     assert [error for error in errors if "print" not in error.lower()] == []
 
 
-@pytest.mark.hot
+@pytest.mark.hot("preview-viewer-frame")
 @pytest.mark.browser
 def test_a_message_without_modal_dialogs_appears_beside_its_control(tmp_path: Path, reader_browser) -> None:
     from playwright.sync_api import expect
@@ -184,7 +184,7 @@ def test_a_message_without_modal_dialogs_appears_beside_its_control(tmp_path: Pa
 
 
 
-@pytest.mark.hot
+@pytest.mark.hot("preview-viewer-frame")
 @pytest.mark.browser
 @pytest.mark.parametrize("frame_kind", SANDBOXES)
 @pytest.mark.parametrize("page_mode", ["pages", "continuous"])
@@ -234,7 +234,7 @@ def test_applying_or_clearing_a_filter_does_not_claim_the_html_changed(
     assert errors == []
 
 
-@pytest.mark.hot
+@pytest.mark.hot("preview-viewer-frame")
 @pytest.mark.browser
 def test_each_canary_says_what_it_observed(shared_sandboxed) -> None:
     """The notice's details name each canary and what it saw, so its count can be read off."""
@@ -276,7 +276,7 @@ def test_opening_a_preview_fails_at_once_when_the_artifact_cannot_start(
 VIEWER_FRAME_STATES = sorted(name for name, state in door.states().items() if state["context"]["frame"] == "viewer")
 
 
-@pytest.mark.hot
+@pytest.mark.hot("preview-viewer-frame", "preview-viewer-phone", "remote-images-viewer-frame")
 @pytest.mark.browser
 @pytest.mark.parametrize("name", VIEWER_FRAME_STATES)
 def test_the_viewer_frame_and_its_refusals_are_recorded(name: str, tmp_path: Path, recording, door_artifact,

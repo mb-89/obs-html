@@ -21,7 +21,7 @@ from obs_html import cli, pdf
 PIXEL = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
 
 
-@pytest.mark.hot
+@pytest.mark.hot("fixture-print")
 @pytest.mark.browser
 def test_the_fixtures_printed_pdf_is_recorded(recording, pdf_browser, tmp_path) -> None:
     """The print expectation's supplied answer (test/browser/browser-door.md, The browser door's
@@ -34,6 +34,7 @@ def test_the_fixtures_printed_pdf_is_recorded(recording, pdf_browser, tmp_path) 
     shutil.copyfile(printed, door.PRINTED_PDF)
 
 
+@pytest.mark.hot("fixture-print")
 @pytest.mark.browser
 def test_pdf_destination_prints_the_rendered_document(pdf_browser, tmp_path, capsys) -> None:
     destination = tmp_path / "artifact.pdf"
@@ -48,6 +49,7 @@ def test_pdf_destination_prints_the_rendered_document(pdf_browser, tmp_path, cap
     assert sorted(path.name for path in tmp_path.iterdir()) == ["artifact.pdf", "images"]
 
 
+@pytest.mark.hot("fixture-print")
 @pytest.mark.browser
 def test_export_pdf_and_rendered_check_read_existing_html(pdf_browser, fixture_artifact, tmp_path, capsys) -> None:
     html = fixture_artifact
@@ -57,6 +59,7 @@ def test_export_pdf_and_rendered_check_read_existing_html(pdf_browser, fixture_a
     assert "status ready, 0 console errors," in capsys.readouterr().out
 
 
+@pytest.mark.hot("fixture-print")
 @pytest.mark.browser
 def test_rendered_check_fails_on_console_errors(pdf_browser, tmp_path, capsys) -> None:
     html = tmp_path / "broken.html"
@@ -86,6 +89,7 @@ def _live_tracker(status: str) -> dict:
     return document("Tracker", chapter("tracker", "Tracker", node("bases", source="", spec=spec)), records=records)
 
 
+@pytest.mark.hot("fixture-print")
 @pytest.mark.browser
 def test_rendered_check_fails_on_a_live_source_that_does_not_reproduce_a_row_and_passes_once_corrected(
         pdf_browser, tmp_path, capsys) -> None:
@@ -129,6 +133,7 @@ def _recording(monkeypatch) -> dict[str, list[str]]:
     return seen
 
 
+@pytest.mark.hot("fixture-print")
 @pytest.mark.browser
 def test_the_headless_page_turns_live_routes_off_and_aborts_only_a_declared_origin(
         pdf_browser, fixture_artifact, tmp_path) -> None:
@@ -150,6 +155,7 @@ def test_the_headless_page_turns_live_routes_off_and_aborts_only_a_declared_orig
                 assert failed == ["https://api.example.test/repos"]
 
 
+@pytest.mark.hot("fixture-print")
 @pytest.mark.browser
 def test_printing_a_page_with_a_web_route_reads_nothing_and_prints_only_its_saved_rows(
         pdf_browser, fixture_artifact, tmp_path, capsys, monkeypatch) -> None:
@@ -176,6 +182,7 @@ def test_printing_a_page_with_a_web_route_reads_nothing_and_prints_only_its_save
     assert seen["failed"] == []
 
 
+@pytest.mark.hot("fixture-print")
 @pytest.mark.browser
 def test_two_pdf_prints_under_one_build_time_are_equal_and_carry_its_date(
         pdf_browser, fixture_artifact, tmp_path, monkeypatch) -> None:
@@ -210,6 +217,7 @@ def _links(pdf: Path) -> tuple[list[str], list[str]]:
     return named, uris
 
 
+@pytest.mark.hot("fixture-print")
 @pytest.mark.browser
 def test_pdf_links_name_no_folder_and_two_prints_from_two_folders_are_equal(
         pdf_browser, fixture_artifact, tmp_path, monkeypatch) -> None:
@@ -231,6 +239,7 @@ def test_pdf_links_name_no_folder_and_two_prints_from_two_folders_are_equal(
         assert not any(uri.startswith("file:") or tmp_path.as_posix() in uri for uri in uris), (name, uris)
 
 
+@pytest.mark.hot("fixture-print")
 @pytest.mark.browser
 def test_a_pdf_link_to_a_file_beside_the_notes_names_its_path_from_the_page(pdf_browser, tmp_path) -> None:
     document = json.loads(FIXTURE.read_text(encoding="utf-8"))

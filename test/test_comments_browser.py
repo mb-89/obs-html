@@ -499,7 +499,6 @@ def test_each_block_with_fields_has_a_card_in_order_with_its_path_and_its_click_
     assert errors == []
 
 
-@pytest.mark.hot
 @pytest.mark.browser
 def test_a_cards_click_scrolls_its_block_into_view_and_scrolling_marks_the_cards_on_screen(
         fields_artifact, reader_browser) -> None:

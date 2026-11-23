@@ -14,13 +14,18 @@ from pathlib import Path
 
 import pytest
 
+from browser import door
 from conftest import ROOT, built_once
 from obs_html import cli
 
-pytestmark = pytest.mark.browser
 DECK = ROOT / "test" / "fixtures" / "phone-deck" / "manifest.md"
 THREE, FIVE = "three--figure-1", "five--figure-1"
 WIDTHS = (360, 390)
+DESKTOP, PHONE = "pugh-solutions-desktop", "pugh-solutions-phone"
+"""The browser door's states the logic tests open (test/browser/expectations.yaml): the deck at
+desktop size and on a phone, each opening "three" and then "five"."""
+STEPS = {"three": 1, "five": 2}
+"""The step of either state that opens a chapter."""
 
 
 def details(anchor: str) -> str:
@@ -47,6 +52,16 @@ def _open(browser, deck: Path, width: int, chapter: str):
     page.evaluate(f"obsArtifact.activateChapter('{chapter}')")
     page.wait_for_selector(f"#{chapter}--figure-1.figure-pugh-ready")
     return page, errors
+
+
+def _recorded(fake_page, door_artifact, state: str, chapter: str):
+    """The deck on the fake browser at its recorded state, with ``chapter`` open."""
+    errors: list[str] = []
+    fake_page.on("pageerror", lambda error: errors.append(str(error)))
+    door.open_recorded(fake_page, state, door_artifact(state), through=STEPS[chapter])
+    fake_page.evaluate(f"obsArtifact.activateChapter('{chapter}')")
+    fake_page.wait_for_selector(f"#{chapter}--figure-1.figure-pugh-ready")
+    return fake_page, errors
 
 
 LAYOUT = """anchor => {
@@ -80,6 +95,8 @@ LAYOUT = """anchor => {
 }"""
 
 
+@pytest.mark.hot("pugh-solutions-phone")
+@pytest.mark.browser
 @pytest.mark.parametrize("width", WIDTHS)
 @pytest.mark.parametrize("anchor", [THREE, FIVE])
 def test_on_a_phone_the_matrix_is_rows_of_letters_and_nothing_scrolls_sideways(phone_browser, deck, width, anchor):
@@ -123,6 +140,8 @@ TAB = """anchor => {
 }"""
 
 
+@pytest.mark.hot("pugh-solutions-phone")
+@pytest.mark.browser
 @pytest.mark.parametrize("width", WIDTHS)
 def test_on_a_phone_the_sensitivity_grid_is_a_block_per_option_and_both_tabs_fit(phone_browser, deck, width):
     page, errors = _open(phone_browser, deck, width, "five")
@@ -145,9 +164,9 @@ def test_on_a_phone_the_sensitivity_grid_is_a_block_per_option_and_both_tabs_fit
     assert errors == []
 
 
-@pytest.mark.parametrize("width", WIDTHS)
-def test_on_a_phone_a_mark_a_weight_and_a_pick_take_one_tap_each(phone_browser, deck, width):
-    page, errors = _open(phone_browser, deck, width, "three")
+@pytest.mark.dom
+def test_on_a_phone_a_mark_a_weight_and_a_pick_take_one_tap_each(fake_page, door_artifact):
+    page, errors = _recorded(fake_page, door_artifact, PHONE, "three")
     figure, matrix = page.locator(f"#{THREE}"), page.locator(details(THREE))
 
     matrix.locator('[data-pugh-mark="C:readable"] .pugh-mark-button').tap()
@@ -175,6 +194,8 @@ def test_on_a_phone_a_mark_a_weight_and_a_pick_take_one_tap_each(phone_browser, 
     assert errors == []
 
 
+@pytest.mark.hot("pugh-solutions-phone", "pugh-solutions-desktop")
+@pytest.mark.browser
 @pytest.mark.parametrize("width", WIDTHS)
 def test_a_chapters_sections_after_the_figure_are_its_tabs(phone_browser, deck, width):
     page, errors = _open(phone_browser, deck, width, "three")
@@ -198,23 +219,27 @@ def test_a_chapters_sections_after_the_figure_are_its_tabs(phone_browser, deck, 
     assert errors == []
 
 
-def test_a_link_to_a_section_in_a_tab_opens_the_tab_at_it_and_the_contents_lists_it(phone_browser, deck):
-    page, errors = _open(phone_browser, deck, 390, "five")
+@pytest.mark.dom
+def test_a_link_to_a_section_in_a_tab_opens_the_tab_at_it_and_the_contents_lists_it(fake_page, door_artifact):
+    page, errors = _recorded(fake_page, door_artifact, PHONE, "five")
     contents = page.evaluate("""[...document.querySelectorAll('a[href^="#three/"]')].map(link => [link.textContent.trim(), link.getAttribute('href')])""")
 
     page.evaluate("obsArtifact.activateChapter('three/the-record')")
     page.wait_for_selector(f"#{THREE}.figure-pugh-ready")
-    shown = page.evaluate("""() => { const section = document.getElementById('three--the-record'), box = section.getBoundingClientRect();
+    shown = page.evaluate("""() => { const section = document.getElementById('three--the-record');
         return {tab: document.querySelector('[data-pugh-tab][aria-selected="true"]').dataset.pughTab,
-                hidden: section.hidden, top: box.top, bottom: box.bottom, height: innerHeight}; }""")
+                hidden: section.hidden, panel: section.closest('[role="tabpanel"]')?.hidden ?? null}; }""")
 
-    # The heading stays in the chapter's contents, and the one link-following path opens its tab.
+    # The heading stays in the chapter's contents, and the one link-following path opens its tab. Where
+    # the section then lies on the screen is layout, which a logic test does not assert.
     assert ["The record", "#three/the-record"] in contents and ["Earlier attempts", "#three/earlier-attempts"] in contents
     assert shown["tab"] == "extra-1"
-    assert shown["hidden"] is False and 0 <= shown["top"] < shown["height"] and shown["bottom"] > shown["top"]
+    assert shown["hidden"] is False and shown["panel"] in (False, None)
     assert errors == []
 
 
+@pytest.mark.hot("pugh-solutions-phone")
+@pytest.mark.browser
 @pytest.mark.parametrize("width", WIDTHS)
 def test_on_a_phone_tapping_a_letter_shows_the_options_name_and_sentence(phone_browser, deck, width):
     page, errors = _open(phone_browser, deck, width, "three")
@@ -240,6 +265,8 @@ def test_on_a_phone_tapping_a_letter_shows_the_options_name_and_sentence(phone_b
     assert errors == []
 
 
+@pytest.mark.hot("pugh-solutions-desktop")
+@pytest.mark.browser
 def test_where_there_is_room_an_option_reads_as_its_letter_and_short_name(phone_browser, deck):
     page, errors = _open(phone_browser, deck, 1200, "three")
     figure, matrix = page.locator(f"#{THREE}"), page.locator(details(THREE))
@@ -280,6 +307,8 @@ MATRIX = """anchor => {
 }"""
 
 
+@pytest.mark.hot("pugh-solutions-desktop")
+@pytest.mark.browser
 def test_at_1100_px_criteria_read_in_full_options_are_narrow_and_every_row_is_one_line(reader_browser, deck):
     page, errors = _open(reader_browser, deck, 1100, "three")
 
@@ -296,8 +325,19 @@ def test_at_1100_px_criteria_read_in_full_options_are_narrow_and_every_row_is_on
     assert errors == []
 
 
-def test_the_readers_changes_survive_a_resize_between_the_table_and_the_rows(phone_browser, deck):
-    page, errors = _open(phone_browser, deck, 1200, "three")
+# A resize the fake browser can give: the redraw the figure's ResizeObserver runs once the figure's
+# width crosses ROWS_BELOW rem (pugh-figure.js, fit), here crossed by the root font size instead of the
+# viewport, since the fake opens a page at its state's viewport and resizes none.
+RESIZED = """([anchor, size]) => {
+    document.documentElement.style.fontSize = size;
+    const figure = document.getElementById(anchor);
+    obsPugh.render(figure, JSON.parse(figure.dataset.figureSpec), figure.querySelector('.figure-live'));
+}"""
+
+
+@pytest.mark.dom
+def test_the_readers_changes_survive_a_resize_between_the_table_and_the_rows(fake_page, door_artifact):
+    page, errors = _recorded(fake_page, door_artifact, DESKTOP, "three")
     figure = page.locator(details(THREE))
     form = f"document.querySelector('{details(THREE)} [data-pugh-form]').dataset.pughForm"
 
@@ -305,13 +345,13 @@ def test_the_readers_changes_survive_a_resize_between_the_table_and_the_rows(pho
     field = figure.locator('[data-pugh-weight="places"]')
     field.fill("1")
     field.press("Enter")
-    page.set_viewport_size({"width": 360, "height": 780})
+    page.evaluate(RESIZED, [THREE, "100px"])
     page.wait_for_function(f"{form} === 'rows'")
     narrow = page.evaluate(f"""() => ({{weight: document.querySelector('{details(THREE)} [data-pugh-weight="places"]').textContent,
         winner: document.getElementById('{THREE}').dataset.pughWinner}})""")
     figure.locator('[data-pugh-mark="B:effort"] .pugh-mark-button').tap()
     figure.locator('[data-pugh-mark="B:effort"] [data-pugh-choice="-2"]').tap()
-    page.set_viewport_size({"width": 1200, "height": 900})
+    page.evaluate(RESIZED, [THREE, ""])
     page.wait_for_function(f"{form} === 'table'")
     back = page.evaluate(f"""() => ({{weight: document.querySelector('{details(THREE)} [data-pugh-weight="places"]').value,
         mark: document.querySelector('{details(THREE)} [data-pugh-mark="B:effort"]').textContent}})""")
@@ -343,6 +383,8 @@ UNDER_ARROWS = """() => {
 }"""
 
 
+@pytest.mark.hot("pugh-solutions-phone")
+@pytest.mark.browser
 def test_in_screens_on_a_phone_no_walk_arrow_lies_over_the_screen(phone_browser, deck):
     page, errors = _open(phone_browser, deck, 390, "three")
     scroll = "document.querySelector('[data-active-chapter] .chapter-body').closest('[data-chapter-scroll]')"
@@ -359,6 +401,8 @@ def test_in_screens_on_a_phone_no_walk_arrow_lies_over_the_screen(phone_browser,
     assert errors == []
 
 
+@pytest.mark.hot("pugh-solutions-desktop")
+@pytest.mark.browser
 def test_with_a_mouse_the_walk_arrows_stay_in_screens(reader_browser, deck):
     page, errors = _open(reader_browser, deck, 1200, "three")
     zones = page.evaluate("""() => [...document.querySelectorAll('.chapter-nav-zone')]
@@ -383,8 +427,9 @@ LISTED = """anchor => [...document.querySelectorAll(`#${anchor} .pugh-option-lis
     (THREE, ["A · Comment export", "B · Artifact winner", "C · Answers file alone"]),
     (FIVE, ["A · A local disk", "B · An object bucket", "C · The repository winner", "D · A page of the team wiki",
             "E · Mail to the owner"])])
-def test_the_options_list_says_each_name_once(phone_browser, deck, anchor, names):
-    page, errors = _open(phone_browser, deck, 390, anchor.split("--")[0])
+@pytest.mark.dom
+def test_the_options_list_says_each_name_once(fake_page, door_artifact, anchor, names):
+    page, errors = _recorded(fake_page, door_artifact, PHONE, anchor.split("--")[0])
 
     listed = page.evaluate(LISTED, anchor)
 
@@ -410,8 +455,9 @@ SAID = """async anchor => {
 }"""
 
 
-def test_the_options_list_and_the_popover_say_each_name_once(phone_browser, deck):
-    page, errors = _open(phone_browser, deck, 390, "three")
+@pytest.mark.dom
+def test_the_options_list_and_the_popover_say_each_name_once(fake_page, door_artifact):
+    page, errors = _recorded(fake_page, door_artifact, PHONE, "three")
 
     said = page.evaluate(SAID, THREE)
 

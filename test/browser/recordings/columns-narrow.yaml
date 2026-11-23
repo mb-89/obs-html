@@ -1,0 +1,857 @@
+# The browser door's recording of the state columns-narrow (test/browser/expectations.yaml),
+# written by `uv run pytest -m hot --record` (test/browser/door.py); never edited by hand.
+state: columns-narrow
+artifact: test/fixtures/documents/columns.json
+context:
+  viewport: [390, 844]
+  scale: 1
+  touch: false
+  scheme: light
+  motion: no-preference
+  media: screen
+  frame: top
+steps:
+- open: page
+- open: chapter
+  id: columns
+artifactDigest: sha256:a0cd9134766efbc3fb8b18fbf3ff857b1a20cc056cd0af709494e9804d7c3899
+chromium: 153.0.8010.12 (Playwright 1.64.0)
+answers:
+- step: 0
+  asked:
+    box:
+    - '#columns > div:1 > div:2 > div:1 > table:1'
+    - '#columns > div:1 > div:2 > div:1 > table:1 > tbody:1 > tr:1'
+    - '#columns > div:1 > div:2 > div:2 > table:1'
+    - '#columns > div:1 > div:2 > div:2 > table:1 > tbody:1 > tr:1'
+    - '#home > div:1'
+    - '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1'
+    - '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1 > table:1'
+    - '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1 > table:1 > tbody:1 > tr:1'
+    - '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1 > table:1 > tbody:1 > tr:2'
+    - '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1 > table:1 > tbody:1 > tr:3'
+    - '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:2'
+    - '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:2 > div:1'
+    - '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:2 > span:2'
+    - div:1 > div:2 > section:1 > div:1
+    - html:1 > body:1 > div:1 > div:1
+    - html:1 > body:1 > div:1 > div:2
+    - html:1 > body:1 > div:1 > div:3
+    - html:1 > body:1 > div:1 > div:4
+    - html:1 > body:1 > div:1 > main:1 > div:1
+    - section:1 > div:1
+    cascade:
+    - '#home > div:1 > div:1 > section:1 > div:1 > header:1 > div:1|display'
+    - '#home > div:1 > div:1 > section:1 > div:1 > header:1 > div:2 > h1:1|display'
+    - '#home > div:1 > div:1 > section:1 > div:1 > header:1 > div:2|display'
+    - '#home > div:1 > div:1 > section:1 > div:1 > header:1|display'
+    - '#home > div:1 > div:1 > section:1 > div:1|display'
+    - '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:1|borderLeftWidth'
+    - '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:2|borderRightWidth'
+    - '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:2|font'
+    - '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:2|paddingInlineEnd'
+    - '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1 > table:1|--table-cell-padding'
+    - '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1 > table:1|--table-toggle-gap'
+    - '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1 > table:1|--table-toggle-size'
+    - '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1 > table:1|--table-tree-indent'
+    - '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1 > table:1|borderCollapse'
+    - '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1 > table:1|font'
+    - '#home > div:1 > div:1 > section:2 > div:1 > h1:1|display'
+    - '#home > div:1 > div:1 > section:2 > div:1|display'
+    - '#home > div:1 > div:1 > section:3 > div:1 > h1:1|display'
+    - '#home > div:1 > div:1 > section:3 > div:1|display'
+    - html:1 > body:1 > div:3 > section:1 > div:1 > div:1 > div:2 > table:1 > tbody:1 > tr:1 > td:1|borderInlineEndWidth
+    - html:1 > body:1 > div:3 > section:1 > div:1 > div:1 > div:2 > table:1 > tbody:1 > tr:1 > td:1|borderInlineStartWidth
+    - html:1 > body:1 > div:3 > section:1 > div:1 > div:1 > div:2 > table:1 > tbody:1 > tr:1 > td:1|font
+    - html:1 > body:1 > div:3 > section:1 > div:1 > div:1 > div:2 > table:1 > tbody:1 > tr:1 > td:1|paddingInlineEnd
+    - html:1 > body:1 > div:3 > section:1 > div:1 > div:1 > div:2 > table:1 > tbody:1 > tr:1 > td:1|paddingInlineStart
+    - html:1 > body:1 > div:3 > section:1 > div:1 > div:1 > div:2 > table:1 > tbody:1 > tr:1 > td:2|borderInlineEndWidth
+    - html:1 > body:1 > div:3 > section:1 > div:1 > div:1 > div:2 > table:1 > tbody:1 > tr:1 > td:2|borderInlineStartWidth
+    - html:1 > body:1 > div:3 > section:1 > div:1 > div:1 > div:2 > table:1 > tbody:1 > tr:1 > td:2|font
+    - html:1 > body:1 > div:3 > section:1 > div:1 > div:1 > div:2 > table:1 > tbody:1 > tr:1 > td:2|paddingInlineEnd
+    - html:1 > body:1 > div:3 > section:1 > div:1 > div:1 > div:2 > table:1 > tbody:1 > tr:1 > td:2|paddingInlineStart
+    - html:1 > body:1 > div:3 > section:1 > div:1 > div:1 > div:2 > table:1 > tbody:1 > tr:2 > td:1|borderInlineEndWidth
+    - html:1 > body:1 > div:3 > section:1 > div:1 > div:1 > div:2 > table:1 > tbody:1 > tr:2 > td:1|borderInlineStartWidth
+    - html:1 > body:1 > div:3 > section:1 > div:1 > div:1 > div:2 > table:1 > tbody:1 > tr:2 > td:1|font
+    - html:1 > body:1 > div:3 > section:1 > div:1 > div:1 > div:2 > table:1 > tbody:1 > tr:2 > td:1|paddingInlineEnd
+    - html:1 > body:1 > div:3 > section:1 > div:1 > div:1 > div:2 > table:1 > tbody:1 > tr:2 > td:1|paddingInlineStart
+    - html:1 > body:1 > div:3 > section:1 > div:1 > div:1 > div:2 > table:1 > tbody:1 > tr:2 > td:2|borderInlineEndWidth
+    - html:1 > body:1 > div:3 > section:1 > div:1 > div:1 > div:2 > table:1 > tbody:1 > tr:2 > td:2|borderInlineStartWidth
+    - html:1 > body:1 > div:3 > section:1 > div:1 > div:1 > div:2 > table:1 > tbody:1 > tr:2 > td:2|font
+    - html:1 > body:1 > div:3 > section:1 > div:1 > div:1 > div:2 > table:1 > tbody:1 > tr:2 > td:2|paddingInlineEnd
+    - html:1 > body:1 > div:3 > section:1 > div:1 > div:1 > div:2 > table:1 > tbody:1 > tr:2 > td:2|paddingInlineStart
+    - html:1 > body:1 > div:3 > section:1 > div:1 > div:1 > div:2 > table:1 > tbody:1 > tr:3 > td:1|borderInlineEndWidth
+    - html:1 > body:1 > div:3 > section:1 > div:1 > div:1 > div:2 > table:1 > tbody:1 > tr:3 > td:1|borderInlineStartWidth
+    - html:1 > body:1 > div:3 > section:1 > div:1 > div:1 > div:2 > table:1 > tbody:1 > tr:3 > td:1|font
+    - html:1 > body:1 > div:3 > section:1 > div:1 > div:1 > div:2 > table:1 > tbody:1 > tr:3 > td:1|paddingInlineEnd
+    - html:1 > body:1 > div:3 > section:1 > div:1 > div:1 > div:2 > table:1 > tbody:1 > tr:3 > td:1|paddingInlineStart
+    - html:1 > body:1 > div:3 > section:1 > div:1 > div:1 > div:2 > table:1 > tbody:1 > tr:3 > td:2|borderInlineEndWidth
+    - html:1 > body:1 > div:3 > section:1 > div:1 > div:1 > div:2 > table:1 > tbody:1 > tr:3 > td:2|borderInlineStartWidth
+    - html:1 > body:1 > div:3 > section:1 > div:1 > div:1 > div:2 > table:1 > tbody:1 > tr:3 > td:2|font
+    - html:1 > body:1 > div:3 > section:1 > div:1 > div:1 > div:2 > table:1 > tbody:1 > tr:3 > td:2|paddingInlineEnd
+    - html:1 > body:1 > div:3 > section:1 > div:1 > div:1 > div:2 > table:1 > tbody:1 > tr:3 > td:2|paddingInlineStart
+    - html:1 > body:1 > div:3 > section:1 > div:1 > div:1 > div:2 > table:1 > thead:1 > tr:1 > th:1|borderInlineEndWidth
+    - html:1 > body:1 > div:3 > section:1 > div:1 > div:1 > div:2 > table:1 > thead:1 > tr:1 > th:1|borderInlineStartWidth
+    - html:1 > body:1 > div:3 > section:1 > div:1 > div:1 > div:2 > table:1 > thead:1 > tr:1 > th:1|font
+    - html:1 > body:1 > div:3 > section:1 > div:1 > div:1 > div:2 > table:1 > thead:1 > tr:1 > th:1|paddingInlineEnd
+    - html:1 > body:1 > div:3 > section:1 > div:1 > div:1 > div:2 > table:1 > thead:1 > tr:1 > th:1|paddingInlineStart
+    - html:1 > body:1 > div:3 > section:1 > div:1 > div:1 > div:2 > table:1 > thead:1 > tr:1 > th:2|borderInlineEndWidth
+    - html:1 > body:1 > div:3 > section:1 > div:1 > div:1 > div:2 > table:1 > thead:1 > tr:1 > th:2|borderInlineStartWidth
+    - html:1 > body:1 > div:3 > section:1 > div:1 > div:1 > div:2 > table:1 > thead:1 > tr:1 > th:2|font
+    - html:1 > body:1 > div:3 > section:1 > div:1 > div:1 > div:2 > table:1 > thead:1 > tr:1 > th:2|paddingInlineEnd
+    - html:1 > body:1 > div:3 > section:1 > div:1 > div:1 > div:2 > table:1 > thead:1 > tr:1 > th:2|paddingInlineStart
+    - html:1 > body:1|font
+    - html:1|fontSize
+    media:
+    - '(max-width: 30rem)'
+    - '(max-width: 44rem)'
+    - '(prefers-reduced-motion: reduce)'
+    - print
+    - screen
+    resize:
+    - '#columns > div:1 > div:2 > div:1 > table:1'
+    - '#columns > div:1 > div:2 > div:2 > table:1'
+    - '#home > div:1'
+    - html:1 > body:1 > div:1 > div:1
+    - html:1 > body:1 > div:1 > div:2
+    - html:1 > body:1 > div:1 > div:3
+    - html:1 > body:1 > div:1 > div:4
+    - section:1 > div:1
+    - section:1 > div:1 > table:1
+    sizes:
+    - '#columns > div:1 > div:2 > div:1 > table:1 > tbody:1 > tr:1 > td:1 > div:1'
+    - '#columns > div:1 > div:2 > div:1 > table:1 > tbody:1 > tr:1 > td:2 > div:1'
+    - '#columns > div:1 > div:2 > div:2 > table:1 > tbody:1 > tr:1 > td:1 > div:1'
+    - '#columns > div:1 > div:2 > div:2 > table:1 > tbody:1 > tr:1 > td:2 > div:1'
+    - '#home > div:1 > div:1 > section:1 > div:1'
+    - '#home > div:1 > div:1 > section:2 > div:1'
+    - '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1'
+    - '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1 > table:1 > tbody:1 > tr:1 > td:1 > div:1
+      > div:1'
+    - '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1 > table:1 > tbody:1 > tr:1 > td:2 > div:1'
+    - '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1 > table:1 > tbody:1 > tr:2 > td:1 > div:1
+      > div:1'
+    - '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1 > table:1 > tbody:1 > tr:2 > td:2 > div:1'
+    - '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1 > table:1 > tbody:1 > tr:3 > td:1 > div:1
+      > div:1'
+    - '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1 > table:1 > tbody:1 > tr:3 > td:2 > div:1'
+    - '#home > div:1 > div:1 > section:3 > div:1'
+    - html:1 > body:1 > div:3 > section:1 > div:1
+    - html:1 > body:1 > div:3 > section:1 > div:1 > div:1 > div:2 > table:1
+    - html:1 > body:1 > div:3 > section:1 > div:1 > pre:1
+    - html:1 > body:1 > div:3 > section:1 > div:1 > pre:2
+    - section:1 > div:1
+    text-width:
+    - 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|1
+    - 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|2
+    - 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|3
+    - 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|item-1
+    - 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|item-2
+    - 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|item-3
+    - 14.6091px / 21.9137px Georgia, "Times New Roman", serif|1
+    - 14.6091px / 21.9137px Georgia, "Times New Roman", serif|2
+    - 14.6091px / 21.9137px Georgia, "Times New Roman", serif|3
+    - 14.6091px / 21.9137px Georgia, "Times New Roman", serif|item-1
+    - 14.6091px / 21.9137px Georgia, "Times New Roman", serif|item-2
+    - 14.6091px / 21.9137px Georgia, "Times New Roman", serif|item-3
+    - 16px Georgia, "Times New Roman", serif|1
+    - 16px Georgia, "Times New Roman", serif|2
+    - 16px Georgia, "Times New Roman", serif|3
+    - 16px Georgia, "Times New Roman", serif|file.name
+    - 16px Georgia, "Times New Roman", serif|item-1
+    - 16px Georgia, "Times New Roman", serif|item-2
+    - 16px Georgia, "Times New Roman", serif|item-3
+    - 16px Georgia, "Times New Roman", serif|rank
+    - 700 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|file.name
+    - 700 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|rank
+    - 700 14.6091px / 21.9137px Georgia, "Times New Roman", serif|file.name
+    - 700 14.6091px / 21.9137px Georgia, "Times New Roman", serif|rank
+  box:
+    '#home > div:1':
+      border: [0, 80, 375, 1837.88]
+      rects: [[0, 80, 375, 1837.88]]
+    '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1':
+      border: [67.19, 1385.41, 240.63, 135.77]
+      rects: [[67.19, 1385.41, 240.63, 135.77]]
+    '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1 > table:1':
+      border: [67.19, 1385.41, 240.63, 135.77]
+      rects: [[67.19, 1385.41, 240.63, 135.77]]
+    '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1 > table:1 > tbody:1 > tr:1':
+      border: [67.69, 1416.89, 239.63, 34.59]
+      rects: [[67.69, 1416.89, 239.63, 34.59]]
+    '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1 > table:1 > tbody:1 > tr:2':
+      border: [67.69, 1451.48, 239.63, 34.59]
+      rects: [[67.69, 1451.48, 239.63, 34.59]]
+    '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1 > table:1 > tbody:1 > tr:3':
+      border: [67.69, 1486.08, 239.63, 34.59]
+      rects: [[67.69, 1486.08, 239.63, 34.59]]
+    '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:2':
+      border: [153.69, 1385.91, 153.63, 30.98]
+      rects: [[153.69, 1385.91, 153.63, 30.98]]
+    '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:2 > div:1':
+      border: [272.42, 1390.2, 22.39, 22.39]
+      rects: [[272.42, 1390.2, 22.39, 22.39]]
+    '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:2 > span:2':
+      border: [297.22, 1386.41, 9.59, 29.98]
+      rects: [[297.22, 1386.41, 9.59, 29.98]]
+    html:1 > body:1 > div:1 > div:1:
+      border: [0, 0, 0, 0]
+      rects: []
+    html:1 > body:1 > div:1 > div:2:
+      border: [0, 0, 0, 0]
+      rects: []
+    html:1 > body:1 > div:1 > div:3:
+      border: [0, 0, 0, 0]
+      rects: []
+    html:1 > body:1 > div:1 > div:4:
+      border: [0, 0, 0, 0]
+      rects: []
+    html:1 > body:1 > div:1 > main:1 > div:1:
+      border: [0, 64, 390, 780]
+      rects: [[0, 64, 390, 780]]
+  sizes:
+    window:
+      innerWidth: 390
+      innerHeight: 844
+    '#home > div:1 > div:1 > section:1 > div:1':
+      clientWidth: 241
+      clientHeight: 73
+      scrollWidth: 241
+      scrollHeight: 73
+      offsetWidth: 241
+      offsetHeight: 73
+      offsetLeft: 67
+      offsetTop: 76
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    '#home > div:1 > div:1 > section:2 > div:1':
+      clientWidth: 241
+      clientHeight: 269
+      scrollWidth: 241
+      scrollHeight: 269
+      offsetWidth: 241
+      offsetHeight: 269
+      offsetLeft: 67
+      offsetTop: 76
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1':
+      clientWidth: 241
+      clientHeight: 136
+      scrollWidth: 241
+      scrollHeight: 136
+      offsetWidth: 241
+      offsetHeight: 136
+      offsetLeft: 67
+      offsetTop: 167
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    ? '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1 > table:1 > tbody:1 > tr:1 > td:1 > div:1
+      > div:1'
+    : clientWidth: 38
+      clientHeight: 20
+      scrollWidth: 38
+      scrollHeight: 20
+      offsetWidth: 38
+      offsetHeight: 20
+      offsetLeft: 38
+      offsetTop: 7
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1 > table:1 > tbody:1 > tr:1 > td:2 > div:1':
+      clientWidth: 137
+      clientHeight: 20
+      scrollWidth: 137
+      scrollHeight: 20
+      offsetWidth: 137
+      offsetHeight: 20
+      offsetLeft: 8
+      offsetTop: 5
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    ? '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1 > table:1 > tbody:1 > tr:2 > td:1 > div:1
+      > div:1'
+    : clientWidth: 38
+      clientHeight: 20
+      scrollWidth: 38
+      scrollHeight: 20
+      offsetWidth: 38
+      offsetHeight: 20
+      offsetLeft: 38
+      offsetTop: 7
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1 > table:1 > tbody:1 > tr:2 > td:2 > div:1':
+      clientWidth: 137
+      clientHeight: 20
+      scrollWidth: 137
+      scrollHeight: 20
+      offsetWidth: 137
+      offsetHeight: 20
+      offsetLeft: 8
+      offsetTop: 5
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    ? '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1 > table:1 > tbody:1 > tr:3 > td:1 > div:1
+      > div:1'
+    : clientWidth: 38
+      clientHeight: 20
+      scrollWidth: 38
+      scrollHeight: 20
+      offsetWidth: 38
+      offsetHeight: 20
+      offsetLeft: 38
+      offsetTop: 7
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1 > table:1 > tbody:1 > tr:3 > td:2 > div:1':
+      clientWidth: 137
+      clientHeight: 20
+      scrollWidth: 137
+      scrollHeight: 20
+      offsetWidth: 137
+      offsetHeight: 20
+      offsetLeft: 8
+      offsetTop: 5
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    '#home > div:1 > div:1 > section:3 > div:1':
+      clientWidth: 241
+      clientHeight: 112
+      scrollWidth: 241
+      scrollHeight: 112
+      offsetWidth: 241
+      offsetHeight: 112
+      offsetLeft: 67
+      offsetTop: 76
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+  resize:
+    '#home > div:1':
+      content: [375, 1837.88]
+      border: [375, 1837.88]
+    html:1 > body:1 > div:1 > div:1:
+      content: [0, 0]
+      border: [0, 0]
+    html:1 > body:1 > div:1 > div:2:
+      content: [0, 0]
+      border: [0, 0]
+    html:1 > body:1 > div:1 > div:3:
+      content: [0, 0]
+      border: [0, 0]
+    html:1 > body:1 > div:1 > div:4:
+      content: [0, 0]
+      border: [0, 0]
+  scroll-into-view: {}
+  text-width:
+    13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|1: 7.56
+    13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|2: 7.56
+    13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|3: 7.56
+    13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|item-1: 37.77
+    13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|item-2: 37.77
+    13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|item-3: 37.77
+    14.6091px / 21.9137px Georgia, "Times New Roman", serif|1: 7.3
+    14.6091px / 21.9137px Georgia, "Times New Roman", serif|2: 7.3
+    14.6091px / 21.9137px Georgia, "Times New Roman", serif|3: 7.3
+    14.6091px / 21.9137px Georgia, "Times New Roman", serif|item-1: 38.09
+    14.6091px / 21.9137px Georgia, "Times New Roman", serif|item-2: 38.09
+    14.6091px / 21.9137px Georgia, "Times New Roman", serif|item-3: 38.09
+    16px Georgia, "Times New Roman", serif|1: 8
+    16px Georgia, "Times New Roman", serif|2: 8
+    16px Georgia, "Times New Roman", serif|3: 8
+    16px Georgia, "Times New Roman", serif|file.name: 59.97
+    16px Georgia, "Times New Roman", serif|item-1: 41.77
+    16px Georgia, "Times New Roman", serif|item-2: 41.77
+    16px Georgia, "Times New Roman", serif|item-3: 41.77
+    16px Georgia, "Times New Roman", serif|rank: 28.43
+    700 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|file.name: 58.93
+    700 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|rank: 28.71
+    700 14.6091px / 21.9137px Georgia, "Times New Roman", serif|file.name: 57.14
+    700 14.6091px / 21.9137px Georgia, "Times New Roman", serif|rank: 30.01
+  image-size: {}
+  fonts:
+    status: loaded
+  cascade:
+    '#home > div:1 > div:1 > section:1 > div:1 > header:1 > div:1|display': block
+    '#home > div:1 > div:1 > section:1 > div:1 > header:1 > div:2 > h1:1|display': block
+    '#home > div:1 > div:1 > section:1 > div:1 > header:1 > div:2|display': block
+    '#home > div:1 > div:1 > section:1 > div:1 > header:1|display': block
+    '#home > div:1 > div:1 > section:1 > div:1|display': flow-root
+    ? '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:1|borderLeftWidth'
+    : 1px
+    ? '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:2|borderRightWidth'
+    : 1px
+    '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:2|font': 700
+      13.6px / 20.4px Arial, "Helvetica Neue", sans-serif
+    ? '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:2|paddingInlineEnd'
+    : 40px
+    '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1 > table:1|--table-cell-padding': '0.5'
+    '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1 > table:1|--table-toggle-gap': '0.35'
+    '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1 > table:1|--table-toggle-size': '1.5'
+    '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1 > table:1|--table-tree-indent': '1.2'
+    '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1 > table:1|borderCollapse': collapse
+    '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1 > table:1|font': 13.6px / 20.4px Arial,
+      "Helvetica Neue", sans-serif
+    '#home > div:1 > div:1 > section:2 > div:1 > h1:1|display': block
+    '#home > div:1 > div:1 > section:2 > div:1|display': flow-root
+    '#home > div:1 > div:1 > section:3 > div:1 > h1:1|display': block
+    '#home > div:1 > div:1 > section:3 > div:1|display': flow-root
+    html:1 > body:1|font: 16px Georgia, "Times New Roman", serif
+    html:1|fontSize: 16px
+  media:
+    '(max-width: 30rem)': true
+    '(max-width: 44rem)': true
+    '(prefers-reduced-motion: reduce)': false
+    print: false
+    screen: true
+  events:
+  - button:click
+  - input:click
+  - input:input
+  - input:change
+  - checked:true
+  - label:click
+  - input:click
+  - input:input
+  - input:change
+  - checked:false
+  - summary:click
+  - open:true
+  focus:
+    button: button:0
+    input: input:1
+    disabled: input:1
+    tabindex: span:3
+    plain: span:3
+    dialog: button:7
+    closed: span:3
+  popover:
+    shown: true
+    another:
+    - false
+    - true
+    - true
+    hidden: false
+    toggled:
+    - true
+    - true
+  frames:
+  - first
+  - second
+  - nested
+  storage:
+    local: kept
+    session: kept
+- step: 1
+  asked:
+    box:
+    - '#columns > div:1 > div:1 > section:1 > div:1 > div:1 > div:2 > div:2 > section:1 > div:1'
+    - '#columns > div:1 > div:1 > section:1 > div:1 > div:1 > div:2 > div:2 > section:1 > div:1 > table:1'
+    - '#columns > div:1 > div:1 > section:1 > div:1 > div:1 > div:2 > div:2 > section:1 > div:1 > table:1 > tbody:1 > tr:1'
+    - '#columns > div:1 > div:1 > section:1 > div:1 > div:1 > div:2 > div:2 > section:1 > div:1 > table:1 > tbody:1 > tr:2'
+    - '#columns > div:1 > div:1 > section:1 > div:1 > div:1 > div:2 > div:2 > section:1 > div:1 > table:1 > tbody:1 > tr:3'
+    - '#columns > div:1 > div:1 > section:1 > div:1 > div:1 > div:2 > div:2 > section:1 > div:1 > table:1 > thead:1 > tr:1
+      > th:2'
+    - '#columns > div:1 > div:1 > section:1 > div:1 > div:1 > div:2 > div:2 > section:1 > div:1 > table:1 > thead:1 > tr:1
+      > th:2 > div:1'
+    - '#columns > div:1 > div:1 > section:1 > div:1 > div:1 > div:2 > div:2 > section:1 > div:1 > table:1 > thead:1 > tr:1
+      > th:2 > span:2'
+    - '#columns > div:1 > div:1 > section:1 > div:1 > div:2 > div:1 > table:1'
+    - '#columns > div:1 > div:1 > section:1 > div:1 > div:2 > div:1 > table:1 > tbody:1 > tr:1'
+    - '#columns > div:1 > div:1 > section:1 > div:1 > div:2 > div:2 > table:1'
+    - '#columns > div:1 > div:1 > section:1 > div:1 > div:2 > div:2 > table:1 > tbody:1 > tr:1'
+    - '#columns > div:1 > div:2 > div:1 > table:1'
+    - '#columns > div:1 > div:2 > div:1 > table:1 > tbody:1 > tr:1'
+    - '#columns > div:1 > div:2 > div:2 > table:1'
+    - '#columns > div:1 > div:2 > div:2 > table:1 > tbody:1 > tr:1'
+    - html:1 > body:1 > div:1 > main:1 > div:1
+    cascade:
+    - '#columns > div:1 > div:1 > section:1 > div:1 > div:1 > div:2 > div:2 > section:1 > div:1 > table:1 > thead:1 > tr:1
+      > th:1|borderLeftWidth'
+    - '#columns > div:1 > div:1 > section:1 > div:1 > div:1 > div:2 > div:2 > section:1 > div:1 > table:1 > thead:1 > tr:1
+      > th:2|borderRightWidth'
+    - '#columns > div:1 > div:1 > section:1 > div:1 > div:1 > div:2 > div:2 > section:1 > div:1 > table:1 > thead:1 > tr:1
+      > th:2|font'
+    - '#columns > div:1 > div:1 > section:1 > div:1 > div:1 > div:2 > div:2 > section:1 > div:1 > table:1 > thead:1 > tr:1
+      > th:2|paddingInlineEnd'
+    - '#columns > div:1 > div:1 > section:1 > div:1 > div:1 > div:2 > div:2 > section:1 > div:1 > table:1|--table-cell-padding'
+    - '#columns > div:1 > div:1 > section:1 > div:1 > div:1 > div:2 > div:2 > section:1 > div:1 > table:1|--table-toggle-gap'
+    - '#columns > div:1 > div:1 > section:1 > div:1 > div:1 > div:2 > div:2 > section:1 > div:1 > table:1|--table-toggle-size'
+    - '#columns > div:1 > div:1 > section:1 > div:1 > div:1 > div:2 > div:2 > section:1 > div:1 > table:1|--table-tree-indent'
+    - '#columns > div:1 > div:1 > section:1 > div:1 > div:1 > div:2 > div:2 > section:1 > div:1 > table:1|borderCollapse'
+    - '#columns > div:1 > div:1 > section:1 > div:1 > div:1 > div:2 > div:2 > section:1 > div:1 > table:1|font'
+    - '#columns > div:1 > div:1 > section:1 > div:1|display'
+    - '#columns--columns|display'
+    - html:1 > body:1|font
+    - html:1|fontSize
+    media:
+    - '(max-width: 30rem)'
+    - '(max-width: 44rem)'
+    - '(prefers-reduced-motion: reduce)'
+    - print
+    - screen
+    resize:
+    - '#columns > div:1 > div:2 > div:1 > table:1'
+    - '#columns > div:1 > div:2 > div:2 > table:1'
+    - section:1 > div:1
+    - section:1 > div:1 > table:1
+    sizes:
+    - '#columns > div:1 > div:1 > section:1 > div:1'
+    - '#columns > div:1 > div:1 > section:1 > div:1 > div:1 > div:2 > div:2 > section:1 > div:1'
+    - '#columns > div:1 > div:1 > section:1 > div:1 > div:1 > div:2 > div:2 > section:1 > div:1 > table:1 > tbody:1 > tr:1
+      > td:1 > div:1 > div:1'
+    - '#columns > div:1 > div:1 > section:1 > div:1 > div:1 > div:2 > div:2 > section:1 > div:1 > table:1 > tbody:1 > tr:1
+      > td:2 > div:1'
+    - '#columns > div:1 > div:1 > section:1 > div:1 > div:1 > div:2 > div:2 > section:1 > div:1 > table:1 > tbody:1 > tr:2
+      > td:1 > div:1 > div:1'
+    - '#columns > div:1 > div:1 > section:1 > div:1 > div:1 > div:2 > div:2 > section:1 > div:1 > table:1 > tbody:1 > tr:2
+      > td:2 > div:1'
+    - '#columns > div:1 > div:1 > section:1 > div:1 > div:1 > div:2 > div:2 > section:1 > div:1 > table:1 > tbody:1 > tr:3
+      > td:1 > div:1 > div:1'
+    - '#columns > div:1 > div:1 > section:1 > div:1 > div:1 > div:2 > div:2 > section:1 > div:1 > table:1 > tbody:1 > tr:3
+      > td:2 > div:1'
+    - '#columns > div:1 > div:1 > section:1 > div:1 > div:2 > div:1 > table:1 > tbody:1 > tr:1 > td:1 > div:1'
+    - '#columns > div:1 > div:1 > section:1 > div:1 > div:2 > div:1 > table:1 > tbody:1 > tr:1 > td:2 > div:1'
+    - '#columns > div:1 > div:1 > section:1 > div:1 > div:2 > div:2 > table:1 > tbody:1 > tr:1 > td:1 > div:1'
+    - '#columns > div:1 > div:1 > section:1 > div:1 > div:2 > div:2 > table:1 > tbody:1 > tr:1 > td:2 > div:1'
+    - '#columns > div:1 > div:2 > div:1 > table:1 > tbody:1 > tr:1 > td:1 > div:1'
+    - '#columns > div:1 > div:2 > div:1 > table:1 > tbody:1 > tr:1 > td:2 > div:1'
+    - '#columns > div:1 > div:2 > div:2 > table:1 > tbody:1 > tr:1 > td:1 > div:1'
+    - '#columns > div:1 > div:2 > div:2 > table:1 > tbody:1 > tr:1 > td:2 > div:1'
+    - section:1 > div:1
+    text-width:
+    - 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|1
+    - 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|2
+    - 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|3
+    - 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|item-1
+    - 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|item-2
+    - 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|item-3
+    - 16px Georgia, "Times New Roman", serif|1
+    - 16px Georgia, "Times New Roman", serif|2
+    - 16px Georgia, "Times New Roman", serif|3
+    - 16px Georgia, "Times New Roman", serif|file.name
+    - 16px Georgia, "Times New Roman", serif|item-1
+    - 16px Georgia, "Times New Roman", serif|item-2
+    - 16px Georgia, "Times New Roman", serif|item-3
+    - 16px Georgia, "Times New Roman", serif|rank
+    - 700 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|file.name
+    - 700 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|rank
+  box:
+    '#columns > div:1 > div:1 > section:1 > div:1 > div:1 > div:2 > div:2 > section:1 > div:1':
+      border: [67.19, 512.64, 240.63, 135.77]
+      rects: [[67.19, 512.64, 240.63, 135.77]]
+    '#columns > div:1 > div:1 > section:1 > div:1 > div:1 > div:2 > div:2 > section:1 > div:1 > table:1':
+      border: [67.19, 512.64, 240.63, 135.77]
+      rects: [[67.19, 512.64, 240.63, 135.77]]
+    '#columns > div:1 > div:1 > section:1 > div:1 > div:1 > div:2 > div:2 > section:1 > div:1 > table:1 > tbody:1 > tr:1':
+      border: [67.69, 544.13, 239.63, 34.59]
+      rects: [[67.69, 544.13, 239.63, 34.59]]
+    '#columns > div:1 > div:1 > section:1 > div:1 > div:1 > div:2 > div:2 > section:1 > div:1 > table:1 > tbody:1 > tr:2':
+      border: [67.69, 578.72, 239.63, 34.59]
+      rects: [[67.69, 578.72, 239.63, 34.59]]
+    '#columns > div:1 > div:1 > section:1 > div:1 > div:1 > div:2 > div:2 > section:1 > div:1 > table:1 > tbody:1 > tr:3':
+      border: [67.69, 613.31, 239.63, 34.59]
+      rects: [[67.69, 613.31, 239.63, 34.59]]
+    '#columns > div:1 > div:1 > section:1 > div:1 > div:1 > div:2 > div:2 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:2':
+      border: [153.69, 513.14, 153.63, 30.98]
+      rects: [[153.69, 513.14, 153.63, 30.98]]
+    ? '#columns > div:1 > div:1 > section:1 > div:1 > div:1 > div:2 > div:2 > section:1 > div:1 > table:1 > thead:1 > tr:1
+      > th:2 > div:1'
+    : border: [272.42, 517.43, 22.39, 22.39]
+      rects: [[272.42, 517.43, 22.39, 22.39]]
+    ? '#columns > div:1 > div:1 > section:1 > div:1 > div:1 > div:2 > div:2 > section:1 > div:1 > table:1 > thead:1 > tr:1
+      > th:2 > span:2'
+    : border: [297.22, 513.64, 9.59, 29.98]
+      rects: [[297.22, 513.64, 9.59, 29.98]]
+    '#columns > div:1 > div:1 > section:1 > div:1 > div:2 > div:1 > table:1':
+      border: [67.19, 873.16, 240.63, 72.56]
+      rects: [[67.19, 873.16, 240.63, 72.56]]
+    '#columns > div:1 > div:1 > section:1 > div:1 > div:2 > div:1 > table:1 > tbody:1 > tr:1':
+      border: [67.69, 909.44, 239.63, 35.78]
+      rects: [[67.69, 909.44, 239.63, 35.78]]
+    '#columns > div:1 > div:1 > section:1 > div:1 > div:2 > div:2 > table:1':
+      border: [67.19, 961.72, 240.63, 72.56]
+      rects: [[67.19, 961.72, 240.63, 72.56]]
+    '#columns > div:1 > div:1 > section:1 > div:1 > div:2 > div:2 > table:1 > tbody:1 > tr:1':
+      border: [67.69, 998, 239.63, 35.78]
+      rects: [[67.69, 998, 239.63, 35.78]]
+    html:1 > body:1 > div:1 > main:1 > div:1:
+      border: [0, 64, 390, 780]
+      rects: [[0, 64, 390, 780]]
+  sizes:
+    window:
+      innerWidth: 390
+      innerHeight: 844
+    '#columns > div:1 > div:1 > section:1 > div:1':
+      clientWidth: 241
+      clientHeight: 931
+      scrollWidth: 241
+      scrollHeight: 931
+      offsetWidth: 241
+      offsetHeight: 931
+      offsetLeft: 67
+      offsetTop: 76
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    '#columns > div:1 > div:1 > section:1 > div:1 > div:1 > div:2 > div:2 > section:1 > div:1':
+      clientWidth: 241
+      clientHeight: 136
+      scrollWidth: 241
+      scrollHeight: 136
+      offsetWidth: 241
+      offsetHeight: 136
+      offsetLeft: 67
+      offsetTop: 433
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    ? '#columns > div:1 > div:1 > section:1 > div:1 > div:1 > div:2 > div:2 > section:1 > div:1 > table:1 > tbody:1 > tr:1
+      > td:1 > div:1 > div:1'
+    : clientWidth: 38
+      clientHeight: 20
+      scrollWidth: 38
+      scrollHeight: 20
+      offsetWidth: 38
+      offsetHeight: 20
+      offsetLeft: 38
+      offsetTop: 7
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    ? '#columns > div:1 > div:1 > section:1 > div:1 > div:1 > div:2 > div:2 > section:1 > div:1 > table:1 > tbody:1 > tr:1
+      > td:2 > div:1'
+    : clientWidth: 137
+      clientHeight: 20
+      scrollWidth: 137
+      scrollHeight: 20
+      offsetWidth: 137
+      offsetHeight: 20
+      offsetLeft: 8
+      offsetTop: 5
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    ? '#columns > div:1 > div:1 > section:1 > div:1 > div:1 > div:2 > div:2 > section:1 > div:1 > table:1 > tbody:1 > tr:2
+      > td:1 > div:1 > div:1'
+    : clientWidth: 38
+      clientHeight: 20
+      scrollWidth: 38
+      scrollHeight: 20
+      offsetWidth: 38
+      offsetHeight: 20
+      offsetLeft: 38
+      offsetTop: 7
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    ? '#columns > div:1 > div:1 > section:1 > div:1 > div:1 > div:2 > div:2 > section:1 > div:1 > table:1 > tbody:1 > tr:2
+      > td:2 > div:1'
+    : clientWidth: 137
+      clientHeight: 20
+      scrollWidth: 137
+      scrollHeight: 20
+      offsetWidth: 137
+      offsetHeight: 20
+      offsetLeft: 8
+      offsetTop: 5
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    ? '#columns > div:1 > div:1 > section:1 > div:1 > div:1 > div:2 > div:2 > section:1 > div:1 > table:1 > tbody:1 > tr:3
+      > td:1 > div:1 > div:1'
+    : clientWidth: 38
+      clientHeight: 20
+      scrollWidth: 38
+      scrollHeight: 20
+      offsetWidth: 38
+      offsetHeight: 20
+      offsetLeft: 38
+      offsetTop: 7
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    ? '#columns > div:1 > div:1 > section:1 > div:1 > div:1 > div:2 > div:2 > section:1 > div:1 > table:1 > tbody:1 > tr:3
+      > td:2 > div:1'
+    : clientWidth: 137
+      clientHeight: 20
+      scrollWidth: 137
+      scrollHeight: 20
+      offsetWidth: 137
+      offsetHeight: 20
+      offsetLeft: 8
+      offsetTop: 5
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    '#columns > div:1 > div:1 > section:1 > div:1 > div:2 > div:1 > table:1 > tbody:1 > tr:1 > td:1 > div:1':
+      clientWidth: 106
+      clientHeight: 22
+      scrollWidth: 106
+      scrollHeight: 22
+      offsetWidth: 106
+      offsetHeight: 22
+      offsetLeft: 6
+      offsetTop: 6
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    '#columns > div:1 > div:1 > section:1 > div:1 > div:2 > div:1 > table:1 > tbody:1 > tr:1 > td:2 > div:1':
+      clientWidth: 106
+      clientHeight: 22
+      scrollWidth: 106
+      scrollHeight: 22
+      offsetWidth: 106
+      offsetHeight: 22
+      offsetLeft: 6
+      offsetTop: 6
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    '#columns > div:1 > div:1 > section:1 > div:1 > div:2 > div:2 > table:1 > tbody:1 > tr:1 > td:1 > div:1':
+      clientWidth: 106
+      clientHeight: 22
+      scrollWidth: 106
+      scrollHeight: 22
+      offsetWidth: 106
+      offsetHeight: 22
+      offsetLeft: 6
+      offsetTop: 6
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    '#columns > div:1 > div:1 > section:1 > div:1 > div:2 > div:2 > table:1 > tbody:1 > tr:1 > td:2 > div:1':
+      clientWidth: 106
+      clientHeight: 22
+      scrollWidth: 106
+      scrollHeight: 22
+      offsetWidth: 106
+      offsetHeight: 22
+      offsetLeft: 6
+      offsetTop: 6
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+  resize: {}
+  scroll-into-view: {}
+  text-width:
+    13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|1: 7.56
+    13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|2: 7.56
+    13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|3: 7.56
+    13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|item-1: 37.77
+    13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|item-2: 37.77
+    13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|item-3: 37.77
+    16px Georgia, "Times New Roman", serif|1: 8
+    16px Georgia, "Times New Roman", serif|2: 8
+    16px Georgia, "Times New Roman", serif|3: 8
+    16px Georgia, "Times New Roman", serif|file.name: 59.97
+    16px Georgia, "Times New Roman", serif|item-1: 41.77
+    16px Georgia, "Times New Roman", serif|item-2: 41.77
+    16px Georgia, "Times New Roman", serif|item-3: 41.77
+    16px Georgia, "Times New Roman", serif|rank: 28.43
+    700 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|file.name: 58.93
+    700 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|rank: 28.71
+  image-size: {}
+  fonts:
+    status: loaded
+  cascade:
+    ? '#columns > div:1 > div:1 > section:1 > div:1 > div:1 > div:2 > div:2 > section:1 > div:1 > table:1 > thead:1 > tr:1
+      > th:1|borderLeftWidth'
+    : 1px
+    ? '#columns > div:1 > div:1 > section:1 > div:1 > div:1 > div:2 > div:2 > section:1 > div:1 > table:1 > thead:1 > tr:1
+      > th:2|borderRightWidth'
+    : 1px
+    ? '#columns > div:1 > div:1 > section:1 > div:1 > div:1 > div:2 > div:2 > section:1 > div:1 > table:1 > thead:1 > tr:1
+      > th:2|font'
+    : 700 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif
+    ? '#columns > div:1 > div:1 > section:1 > div:1 > div:1 > div:2 > div:2 > section:1 > div:1 > table:1 > thead:1 > tr:1
+      > th:2|paddingInlineEnd'
+    : 40px
+    '#columns > div:1 > div:1 > section:1 > div:1 > div:1 > div:2 > div:2 > section:1 > div:1 > table:1|--table-cell-padding': '0.5'
+    '#columns > div:1 > div:1 > section:1 > div:1 > div:1 > div:2 > div:2 > section:1 > div:1 > table:1|--table-toggle-gap': '0.35'
+    '#columns > div:1 > div:1 > section:1 > div:1 > div:1 > div:2 > div:2 > section:1 > div:1 > table:1|--table-toggle-size': '1.5'
+    '#columns > div:1 > div:1 > section:1 > div:1 > div:1 > div:2 > div:2 > section:1 > div:1 > table:1|--table-tree-indent': '1.2'
+    '#columns > div:1 > div:1 > section:1 > div:1 > div:1 > div:2 > div:2 > section:1 > div:1 > table:1|borderCollapse': collapse
+    '#columns > div:1 > div:1 > section:1 > div:1 > div:1 > div:2 > div:2 > section:1 > div:1 > table:1|font': 13.6px / 20.4px
+      Arial, "Helvetica Neue", sans-serif
+    '#columns > div:1 > div:1 > section:1 > div:1|display': flow-root
+    '#columns--columns|display': block
+    html:1 > body:1|font: 16px Georgia, "Times New Roman", serif
+    html:1|fontSize: 16px
+  media:
+    '(max-width: 30rem)': true
+    '(max-width: 44rem)': true
+    '(prefers-reduced-motion: reduce)': false
+    print: false
+    screen: true
+  events:
+  - button:click
+  - input:click
+  - input:input
+  - input:change
+  - checked:true
+  - label:click
+  - input:click
+  - input:input
+  - input:change
+  - checked:false
+  - summary:click
+  - open:true
+  focus:
+    button: button:0
+    input: input:1
+    disabled: input:1
+    tabindex: span:3
+    plain: span:3
+    dialog: button:7
+    closed: span:3
+  popover:
+    shown: true
+    another:
+    - false
+    - true
+    - true
+    hidden: false
+    toggled:
+    - true
+    - true
+  frames:
+  - first
+  - second
+  - nested
+  storage:
+    local: kept
+    session: kept
+  print: beforeprint

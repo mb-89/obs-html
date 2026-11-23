@@ -100,7 +100,7 @@ def band_artifact() -> str:
     ))
 
 
-@pytest.mark.hot
+@pytest.mark.hot("reading-shell-walk")
 @pytest.mark.browser
 @pytest.mark.parametrize("width", WIDTHS)
 def test_every_top_control_is_one_square_size_in_one_row(tmp_path: Path, reader_browser, width: str) -> None:
@@ -240,7 +240,7 @@ HEADING_IN_VIEW = """() => {
 }"""
 
 
-@pytest.mark.hot
+@pytest.mark.hot("reading-shell-walk")
 @pytest.mark.browser
 def test_a_whole_note_self_link_scrolls_back_to_its_heading(tmp_path: Path, reader_browser) -> None:
     """The self-link fixture with the Comments bar docked right: review mode makes the body wider

@@ -171,6 +171,7 @@ answers:
     session: kept
 - step: 1
   asked:
+    cascade: []
     media:
     - '(max-width: 30rem)'
     - '(max-width: 42rem)'

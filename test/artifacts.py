@@ -12,9 +12,11 @@ of many modules, or one built from a vault by the core, is built once per run by
 through ``built_once`` (test/conftest.py) instead.
 """
 import json
+import os
 
 import library_fakes
 
+from obs_html import build_time
 from obs_html.config import load_config
 from obs_html.render import render
 
@@ -23,7 +25,11 @@ _RENDERED: dict[str, str] = {}
 
 def artifact_html(document: dict, config=None, **options) -> str:
     """The artifact this adapter renders from the Document with ``config``, the packaged configuration
-    where it is None, and ``options``."""
+    where it is None, and ``options``; at the build instant SOURCE_DATE_EPOCH names, where it names one,
+    as the CLI builds, so a browser door's state built through it has one digest (test/browser/door.py)."""
+    fixed = build_time.fixed(os.environ)
+    if fixed is not None:
+        options.setdefault("built", fixed)
     key = json.dumps([library_fakes.mode(), document, repr(config), sorted(options.items())], sort_keys=True,
                      default=repr)
     if key not in _RENDERED:
