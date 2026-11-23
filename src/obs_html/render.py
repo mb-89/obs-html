@@ -1046,7 +1046,8 @@ def render(document: dict[str, object], config: Config,
            style_choice: StyleChoice | None = None,
            target_root: Path | None = None) -> str:
     """The artifact of ``document``, styled by ``style_folder``, else by the installed style component
-    the Document declares, else by the packaged generic module (spec/configuration.md, Declared style). ``built`` is the build's instant, by
+    the Document declares, else by the installed default style component, obs-html-style-generic
+    (spec/configuration.md, Declared style, Default style). ``built`` is the build's instant, by
     default the clock's (spec/architecture.md, Build time). ``vault_link`` is the vault folder's way
     from the page's folder, which makes each source file row a link (spec/cli.md, Source file links).
     ``style_choice`` is the build machine's local themes (style_choice.py), laid over the style as

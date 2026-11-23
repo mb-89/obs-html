@@ -1,10 +1,13 @@
 """Style module loading for self-contained artifact output."""
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
-from importlib.resources import files
+import json
+import os
 from pathlib import Path
 import re
+import sys
 
 from obs_html.errors import InputError
 
@@ -62,11 +65,49 @@ def page_geometry(css: str) -> str | None:
     return re.match(r"@?[-\w]+", css[geometry.start():].lstrip(";{ \t\r\n"))[0]
 
 
+DEFAULT_STYLE = "obs-html-style-generic"
+"""The style component a build without ``--style`` and without ``obs.style`` applies; se.toml requires
+it, and obs-html builds none in (spec/configuration.md, Default style)."""
+MACHINE_VARIABLE = "OBS_LOCAL_FOLDER"
+"""Names obs's machine folder, where obs-components installs components, as obs reads it."""
+
+
+def machine_folder(environ: Mapping[str, str]) -> Path:
+    """obs's machine folder, as obs's component command finds it (obs's spec/design_input/components.md,
+    Installed components): ``OBS_LOCAL_FOLDER`` where set and not empty, else ``obs`` in the user's
+    configuration folder."""
+    if environ.get(MACHINE_VARIABLE):
+        return Path(environ[MACHINE_VARIABLE])
+    if sys.platform == "win32":
+        base = Path(environ.get("APPDATA") or Path.home() / "AppData" / "Roaming")
+    elif sys.platform == "darwin":
+        base = Path.home() / "Library" / "Application Support"
+    else:
+        base = Path(environ.get("XDG_CONFIG_HOME") or Path.home() / ".config")
+    return base / "obs"
+
+
+def default_style(environ: Mapping[str, str] | None = None) -> Path:
+    """The installed folder of DEFAULT_STYLE in obs's machine folder, found as obs finds a declared
+    ``obs.style`` component: listed in components.json as a style, its folder holding style.css."""
+    machine = machine_folder(os.environ if environ is None else environ)
+    folder = machine / "components" / DEFAULT_STYLE
+    try:
+        listed = json.loads((machine / "components.json").read_text(encoding="utf-8"))["components"]
+        kinds = {entry["name"]: entry["kind"] for entry in listed}
+    except (OSError, ValueError, KeyError, TypeError):
+        kinds = {}
+    if kinds.get(DEFAULT_STYLE) != "style" or not (folder / "style.css").is_file():
+        raise InputError("obs-html", "--style", f"is not given and the Document declares no obs.style, so the "
+                         f"build needs the default style component {DEFAULT_STYLE}, which is not installed in the "
+                         f"machine folder {machine}", f"Run obs-components install {DEFAULT_STYLE}, or pass --style "
+                         "FOLDER; see spec/configuration.md (Default style)")
+    return folder
+
+
 def load_style(directory: Path | None = None) -> Style:
-    """Load a style module folder, using the packaged generic module by default."""
-    root = Path(directory) if directory is not None else Path(
-        str(files("obs_html").joinpath("styles", "generic"))
-    )
+    """Load a style module folder, by default the installed default style component (default_style)."""
+    root = Path(directory) if directory is not None else default_style()
     root = root.resolve()
     stylesheet = root / "style.css"
     if not root.is_dir():

@@ -52,6 +52,7 @@ from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 
+import style_component
 from compare_builds import IDENTICAL, compare
 
 ADAPTER = Path(__file__).resolve().parents[1]
@@ -161,10 +162,11 @@ def component(root: Path) -> str:
 
 
 def machine_folder(root: Path, folder: Path) -> Path:
-    """The machine folder in ``folder`` whose one installed component is the side's checkout
-    ``root``, as the adapter component its adapter.json names (component), as test/conftest.py
-    installs it: at the version the side's pyproject.toml holds, with the commit COMMIT (obs's
-    spec/design_input/components.md, Installed components). A ``KeyError``, an ``OSError`` or a
+    """The machine folder in ``folder`` whose installed components are the side's checkout ``root``,
+    as the adapter component its adapter.json names (component), and the default style component
+    obs-html-style-generic, as test/conftest.py installs them: the adapter at the version the side's
+    pyproject.toml holds, with the commit COMMIT (obs's spec/design_input/components.md, Installed
+    components), the style from test/style_component.py's cache. A ``KeyError``, an ``OSError`` or a
     ``ValueError`` names a side without that version or that name."""
     version = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))["project"]["version"]
     name = component(root)
@@ -174,7 +176,8 @@ def machine_folder(root: Path, folder: Path) -> Path:
     if not link.is_symlink():
         link.symlink_to(root.resolve(), target_is_directory=True)
     entry = {"name": name, "kind": "adapter", "version": version, "commit": COMMIT}
-    (machine / "components.json").write_text(json.dumps({"components": [entry]}), encoding="utf-8")
+    style = style_component.install_into(machine, CORE_ROOT)
+    (machine / "components.json").write_text(json.dumps({"components": [entry, style]}), encoding="utf-8")
     return machine
 
 
