@@ -25,6 +25,13 @@
 # `uv run pytest -m hot --record` into test/browser/recordings/<state>.yaml.
 
 states:
+  timeline-desktop:
+    artifact: test/test_timeline_figure_browser.py::timeline_document
+    context: {viewport: [1280, 720], scale: 1, touch: false, scheme: light, motion: no-preference, media: screen, frame: top}
+    steps:
+      - {open: page}
+      - {open: chapter, id: plan}
+      - {open: chapter, id: empty}
   features-desktop:
     artifact: test/fixtures/documents/features.json
     context: {viewport: [1280, 720], scale: 1, touch: false, scheme: light, motion: no-preference, media: screen, frame: top}
