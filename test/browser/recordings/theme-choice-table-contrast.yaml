@@ -14,7 +14,7 @@ steps:
 - open: page
 - open: chapter
   id: one
-artifactDigest: sha256:16c7cba0f48cf6ef8ac0fedb123bfff477c3a4a265382a3e5d8ac6e25312f9e4
+artifactDigest: sha256:8d1f29a3395b6ee31451e02a1ac6692eb2fbffdcd6276bef5b6149819abf9fe3
 chromium: 153.0.8010.12 (Playwright 1.64.0)
 answers:
 - step: 0

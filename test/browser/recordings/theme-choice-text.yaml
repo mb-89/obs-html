@@ -12,7 +12,7 @@ context:
   frame: top
 steps:
 - open: page
-artifactDigest: sha256:81bad1e732a09a9ee6712f94c4657dfaf58015b42d7c391897ce372d1c1914dd
+artifactDigest: sha256:c15c831e578979fbde66f7bf102a6ba8754fa171e3f0cf5076e6cfd3c92709b1
 chromium: 153.0.8010.12 (Playwright 1.64.0)
 answers:
 - step: 0

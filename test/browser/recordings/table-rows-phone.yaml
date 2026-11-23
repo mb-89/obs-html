@@ -16,7 +16,7 @@ steps:
   id: grouped
 - open: chapter
   id: references
-artifactDigest: sha256:80f8cb9acfda0cdec0c7130e45862e79857f8f49e4c06625559b0bf8ae012610
+artifactDigest: sha256:16de4d10b6d50d76c2278c471fd3ac780383b9bf1a9d96492b25d12140bd337e
 chromium: 153.0.8010.12 (Playwright 1.64.0)
 answers:
 - step: 0
@@ -770,29 +770,29 @@ answers:
     - 700 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|file.name
   box:
     '#references > div:1 > div:1 > section:1 > div:1 > section:1 > div:1':
-      border: [67.19, 208.89, 240.63, 132.16]
-      rects: [[67.19, 208.89, 240.63, 132.16]]
+      border: [67.19, 192.89, 240.63, 132.16]
+      rects: [[67.19, 192.89, 240.63, 132.16]]
     '#references > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1':
-      border: [67.19, 208.89, 240.63, 132.16]
-      rects: [[67.19, 208.89, 240.63, 132.16]]
+      border: [67.19, 192.89, 240.63, 132.16]
+      rects: [[67.19, 192.89, 240.63, 132.16]]
     '#references > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:1':
-      border: [67.69, 240.38, 239.63, 30.98]
-      rects: [[67.69, 240.38, 239.63, 30.98]]
+      border: [67.69, 224.38, 239.63, 30.98]
+      rects: [[67.69, 224.38, 239.63, 30.98]]
     '#references > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:2':
-      border: [67.69, 271.36, 239.63, 34.59]
-      rects: [[67.69, 271.36, 239.63, 34.59]]
+      border: [67.69, 255.36, 239.63, 34.59]
+      rects: [[67.69, 255.36, 239.63, 34.59]]
     '#references > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:3':
-      border: [67.69, 305.95, 239.63, 34.59]
-      rects: [[67.69, 305.95, 239.63, 34.59]]
+      border: [67.69, 289.95, 239.63, 34.59]
+      rects: [[67.69, 289.95, 239.63, 34.59]]
     '#references > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:2':
-      border: [144.69, 209.39, 162.63, 30.98]
-      rects: [[144.69, 209.39, 162.63, 30.98]]
+      border: [144.69, 193.39, 162.63, 30.98]
+      rects: [[144.69, 193.39, 162.63, 30.98]]
     '#references > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:2 > div:1':
-      border: [272.42, 213.68, 22.39, 22.39]
-      rects: [[272.42, 213.68, 22.39, 22.39]]
+      border: [272.42, 197.68, 22.39, 22.39]
+      rects: [[272.42, 197.68, 22.39, 22.39]]
     '#references > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:2 > span:2':
-      border: [297.22, 209.89, 9.59, 29.98]
-      rects: [[297.22, 209.89, 9.59, 29.98]]
+      border: [297.22, 193.89, 9.59, 29.98]
+      rects: [[297.22, 193.89, 9.59, 29.98]]
     html:1 > body:1 > div:1 > main:1 > div:1:
       border: [0, 64, 390, 780]
       rects: [[0, 64, 390, 780]]

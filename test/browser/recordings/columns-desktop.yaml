@@ -20,6 +20,10 @@ answers:
 - step: 0
   asked:
     box:
+    - '#columns > div:1 > div:2 > div:1 > table:1'
+    - '#columns > div:1 > div:2 > div:1 > table:1 > tbody:1 > tr:1'
+    - '#columns > div:1 > div:2 > div:2 > table:1'
+    - '#columns > div:1 > div:2 > div:2 > table:1 > tbody:1 > tr:1'
     - '#home > div:1'
     - '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1'
     - '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1 > table:1'
@@ -105,6 +109,8 @@ answers:
     - print
     - screen
     resize:
+    - '#columns > div:1 > div:2 > div:1 > table:1'
+    - '#columns > div:1 > div:2 > div:2 > table:1'
     - '#home > div:1'
     - html:1 > body:1 > div:1 > div:1
     - html:1 > body:1 > div:1 > div:2
@@ -113,6 +119,10 @@ answers:
     - section:1 > div:1
     - section:1 > div:1 > table:1
     sizes:
+    - '#columns > div:1 > div:2 > div:1 > table:1 > tbody:1 > tr:1 > td:1 > div:1'
+    - '#columns > div:1 > div:2 > div:1 > table:1 > tbody:1 > tr:1 > td:2 > div:1'
+    - '#columns > div:1 > div:2 > div:2 > table:1 > tbody:1 > tr:1 > td:1 > div:1'
+    - '#columns > div:1 > div:2 > div:2 > table:1 > tbody:1 > tr:1 > td:2 > div:1'
     - '#home > div:1 > div:1 > section:1 > div:1'
     - '#home > div:1 > div:1 > section:2 > div:1'
     - '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1'
@@ -467,7 +477,13 @@ answers:
     - '#columns > div:1 > div:1 > section:1 > div:1 > div:1 > div:2 > div:2 > section:1 > div:1 > table:1 > thead:1 > tr:1
       > th:2 > span:2'
     - '#columns > div:1 > div:1 > section:1 > div:1 > div:2 > div:1 > table:1'
+    - '#columns > div:1 > div:1 > section:1 > div:1 > div:2 > div:1 > table:1 > tbody:1 > tr:1'
+    - '#columns > div:1 > div:1 > section:1 > div:1 > div:2 > div:2 > table:1'
+    - '#columns > div:1 > div:1 > section:1 > div:1 > div:2 > div:2 > table:1 > tbody:1 > tr:1'
     - '#columns > div:1 > div:2 > div:1 > table:1'
+    - '#columns > div:1 > div:2 > div:1 > table:1 > tbody:1 > tr:1'
+    - '#columns > div:1 > div:2 > div:2 > table:1'
+    - '#columns > div:1 > div:2 > div:2 > table:1 > tbody:1 > tr:1'
     - html:1 > body:1 > div:1 > main:1 > div:1
     cascade:
     - '#columns > div:1 > div:1 > section:1 > div:1 > div:1 > div:2 > div:2 > section:1 > div:1 > table:1 > thead:1 > tr:1
@@ -495,6 +511,8 @@ answers:
     - print
     - screen
     resize:
+    - '#columns > div:1 > div:2 > div:1 > table:1'
+    - '#columns > div:1 > div:2 > div:2 > table:1'
     - section:1 > div:1
     - section:1 > div:1 > table:1
     sizes:
@@ -512,6 +530,14 @@ answers:
       > td:1 > div:1 > div:1'
     - '#columns > div:1 > div:1 > section:1 > div:1 > div:1 > div:2 > div:2 > section:1 > div:1 > table:1 > tbody:1 > tr:3
       > td:2 > div:1'
+    - '#columns > div:1 > div:1 > section:1 > div:1 > div:2 > div:1 > table:1 > tbody:1 > tr:1 > td:1 > div:1'
+    - '#columns > div:1 > div:1 > section:1 > div:1 > div:2 > div:1 > table:1 > tbody:1 > tr:1 > td:2 > div:1'
+    - '#columns > div:1 > div:1 > section:1 > div:1 > div:2 > div:2 > table:1 > tbody:1 > tr:1 > td:1 > div:1'
+    - '#columns > div:1 > div:1 > section:1 > div:1 > div:2 > div:2 > table:1 > tbody:1 > tr:1 > td:2 > div:1'
+    - '#columns > div:1 > div:2 > div:1 > table:1 > tbody:1 > tr:1 > td:1 > div:1'
+    - '#columns > div:1 > div:2 > div:1 > table:1 > tbody:1 > tr:1 > td:2 > div:1'
+    - '#columns > div:1 > div:2 > div:2 > table:1 > tbody:1 > tr:1 > td:1 > div:1'
+    - '#columns > div:1 > div:2 > div:2 > table:1 > tbody:1 > tr:1 > td:2 > div:1'
     - section:1 > div:1
     text-width:
     - 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|1
@@ -560,6 +586,15 @@ answers:
     '#columns > div:1 > div:1 > section:1 > div:1 > div:2 > div:1 > table:1':
       border: [341.23, 684.11, 275.25, 72.56]
       rects: [[341.23, 684.11, 275.25, 72.56]]
+    '#columns > div:1 > div:1 > section:1 > div:1 > div:2 > div:1 > table:1 > tbody:1 > tr:1':
+      border: [341.73, 720.39, 274.25, 35.78]
+      rects: [[341.73, 720.39, 274.25, 35.78]]
+    '#columns > div:1 > div:1 > section:1 > div:1 > div:2 > div:2 > table:1':
+      border: [648.48, 684.11, 275.25, 72.56]
+      rects: [[648.48, 684.11, 275.25, 72.56]]
+    '#columns > div:1 > div:1 > section:1 > div:1 > div:2 > div:2 > table:1 > tbody:1 > tr:1':
+      border: [648.98, 720.39, 274.25, 35.78]
+      rects: [[648.98, 720.39, 274.25, 35.78]]
     html:1 > body:1 > div:1 > main:1 > div:1:
       border: [0, 64, 1280, 836]
       rects: [[0, 64, 1280, 836]]
@@ -673,6 +708,58 @@ answers:
       offsetHeight: 20
       offsetLeft: 8
       offsetTop: 5
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    '#columns > div:1 > div:1 > section:1 > div:1 > div:2 > div:1 > table:1 > tbody:1 > tr:1 > td:1 > div:1':
+      clientWidth: 123
+      clientHeight: 22
+      scrollWidth: 123
+      scrollHeight: 22
+      offsetWidth: 123
+      offsetHeight: 22
+      offsetLeft: 6
+      offsetTop: 6
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    '#columns > div:1 > div:1 > section:1 > div:1 > div:2 > div:1 > table:1 > tbody:1 > tr:1 > td:2 > div:1':
+      clientWidth: 123
+      clientHeight: 22
+      scrollWidth: 123
+      scrollHeight: 22
+      offsetWidth: 123
+      offsetHeight: 22
+      offsetLeft: 6
+      offsetTop: 6
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    '#columns > div:1 > div:1 > section:1 > div:1 > div:2 > div:2 > table:1 > tbody:1 > tr:1 > td:1 > div:1':
+      clientWidth: 123
+      clientHeight: 22
+      scrollWidth: 123
+      scrollHeight: 22
+      offsetWidth: 123
+      offsetHeight: 22
+      offsetLeft: 6
+      offsetTop: 6
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    '#columns > div:1 > div:1 > section:1 > div:1 > div:2 > div:2 > table:1 > tbody:1 > tr:1 > td:2 > div:1':
+      clientWidth: 123
+      clientHeight: 22
+      scrollWidth: 123
+      scrollHeight: 22
+      offsetWidth: 123
+      offsetHeight: 22
+      offsetLeft: 6
+      offsetTop: 6
       clientLeft: 0
       clientTop: 0
       scrollTop: 0
