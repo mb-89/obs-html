@@ -204,6 +204,7 @@ def test_dock_buttons_use_left_right_top_bottom_order() -> None:
 DOCK_LAID_OUT = "() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))"
 
 
+@pytest.mark.hot
 @pytest.mark.browser
 @pytest.mark.parametrize("edge", ["left", "right", "top", "bottom"])
 def test_native_splitter_anchors_and_neighbor_only_geometry(tmp_path, reader_browser, edge):

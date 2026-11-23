@@ -676,6 +676,9 @@ POOL_KINDS = {
                                ("--enable-features=OverlayScrollbar",), None),
     # A further headless shell whose pages are phones (PHONE_CONTEXT).
     "phone_pool": (f"{HEADLESS_SHELL_ENGINE} (phone)", _shell, (), PHONE_CONTEXT),
+    # Full Chromium whose pages are phones: the browser door records a phone's state there
+    # (test/test_door_recordings_browser.py), only with --record.
+    "full_phone_pool": (f"{FULL_CHROMIUM_ENGINE} (phone)", _full_chromium, (), PHONE_CONTEXT),
 }
 
 
@@ -838,6 +841,23 @@ def shared_full_chromium_browser(full_page_pool):
 def phone_browser(phone_pool):
     """As ``reader_browser``, on an emulated phone (``phone_pool``)."""
     lease = BrowserLease(phone_pool)
+    try:
+        yield lease
+    finally:
+        lease.close()
+
+
+@pytest.fixture(scope="session")
+def full_phone_pool(worker_playwright, page_patches):
+    """The test process's page pool over full Chromium whose pages are phones (POOL_KINDS)."""
+    return process_pool("full_phone_pool")
+
+
+@pytest.fixture
+def full_phone_browser(full_phone_pool):
+    """As ``full_chromium_browser``, on an emulated phone (``full_phone_pool``): only the browser
+    door's recorder takes it, for a phone's state."""
+    lease = BrowserLease(full_phone_pool)
     try:
         yield lease
     finally:

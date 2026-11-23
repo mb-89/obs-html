@@ -4,11 +4,14 @@ figures). The pure model's every rule is test/timeline.test.js; these check what
 
 Reader: whoever changes how a timeline figure is drawn, opened, filtered or anchored.
 
-The artifact is built through the core once per run from the vault ``_vault`` writes: a chapter
-whose figure has 2 lanes, records on 30 days across a year end, an anchored Today band, 3 planned
-days, 2 end bands and one release marker, then a block after the figure; and a chapter whose
-figure's query selects nothing.
+The artifact is built through the core from the vault ``_vault`` writes: a chapter whose figure has
+2 lanes, records on 30 days across a year end, an anchored Today band, 3 planned days, 2 end bands
+and one release marker, then a block after the figure; and a chapter whose figure's query selects
+nothing. The logic tests open it on the fake browser as the browser door's state timeline-desktop,
+from its recording (test/browser/browser-door.md); the hot tests, the anchor's place and a phone's
+width, open it in the real browser.
 """
+import json
 import subprocess
 import sys
 from datetime import date, timedelta
@@ -16,11 +19,15 @@ from pathlib import Path
 
 import pytest
 
+from browser import door
 from conftest import built_once
 from obs_html import cli
 
-pytestmark = pytest.mark.browser
 PLAN, EMPTY = "plan", "empty"
+STATE = "timeline-desktop"
+"""The browser door's state the logic tests open: the plan's chapter, then the empty one, at desktop size."""
+THROUGH = {PLAN: 1, EMPTY: 2}
+"""The state's step that opens each chapter."""
 FIGURE = """```figure
 version: 1
 kind: timeline
@@ -74,8 +81,18 @@ def _vault(root: Path) -> None:
         "obs: {document: false}\n---\n# Release one\n", encoding="utf-8")
 
 
+def timeline_document() -> dict:
+    """The Document of the browser door's state timeline-desktop (test/browser/expectations.yaml): the
+    vault ``_vault`` writes, built through the core in the current folder."""
+    _vault(Path("vault"))
+    subprocess.run([sys.executable, "-m", "obs.document", "--source", str(Path("vault") / "manifest.md"),
+                    "--document", "timeline.json"], check=True)
+    return json.loads(Path("timeline.json").read_text(encoding="utf-8"))
+
+
 @pytest.fixture(scope="module")
 def timeline(tmp_path_factory) -> Path:
+    """The artifact the hot tests open, built as the logic tests' state is."""
     def build(folder: Path) -> None:
         _vault(folder / "vault")
         subprocess.run([sys.executable, "-m", "obs.document", "--source", str(folder / "vault" / "manifest.md"),
@@ -83,6 +100,16 @@ def timeline(tmp_path_factory) -> Path:
         assert cli.main([str(folder / "timeline.json"), str(folder / "timeline.html")]) == 0
 
     return built_once(tmp_path_factory, "timeline-figure", build) / "timeline.html"
+
+
+def _opened(fake_page, door_artifact, chapter: str):
+    """The fake page at the state's step that opens ``chapter``, from its recording."""
+    errors: list[str] = []
+    fake_page.on("pageerror", lambda error: errors.append(str(error)))
+    door.open_recorded(fake_page, STATE, door_artifact(STATE), through=THROUGH[chapter])
+    fake_page.wait_for_selector(
+        f"[data-active-chapter] [data-figure-kind='timeline'] {'.timeline' if chapter == PLAN else '.timeline-empty'}")
+    return fake_page, errors
 
 
 def _open(browser, artifact: Path, chapter: str, width: int = 1200, height: int = 900):
@@ -106,8 +133,9 @@ ANCHOR = """() => {
 }"""
 
 
-def test_the_rows_stand_in_their_order_with_one_year_divider_and_planned_days_hollow(reader_browser, timeline) -> None:
-    page, errors = _open(reader_browser, timeline, PLAN)
+@pytest.mark.dom
+def test_the_rows_stand_in_their_order_with_one_year_divider_and_planned_days_hollow(fake_page, door_artifact) -> None:
+    page, errors = _opened(fake_page, door_artifact, PLAN)
 
     assert page.evaluate(ROW_KEYS) == ROWS
     assert page.locator("[data-active-chapter] .timeline-year").count() == 1
@@ -120,19 +148,22 @@ def test_the_rows_stand_in_their_order_with_one_year_divider_and_planned_days_ho
                 marker: row('2026-01-05').querySelector('.timeline-cell').querySelector('.timeline-marker')?.textContent,
                 count: row('2026-01-05').querySelector('.timeline-cell').querySelector('.timeline-count')?.textContent,
                 anchor: document.querySelector('[data-timeline-anchor]').dataset.timelineRow,
-                height: Math.min(...[...document.querySelectorAll('.timeline-summary')].map(node => node.getBoundingClientRect().height)),
                 styled: document.querySelectorAll('[data-active-chapter] .timeline-figure [style]').length};
     }""")
-    assert shown.pop("height") >= 2.4 * 16 - 0.5, "each row is at least 2.4rem tall"
     assert shown == {"lanes": ["Build", "Review"], "past": ["past", "past"], "planned": ["planned", "none"],
                      "band": ["none", "band"], "italic": "italic", "marker": "Release one", "count": None,
                      "anchor": "band:doing", "styled": 0}
     assert errors == []
 
 
+@pytest.mark.hot
+@pytest.mark.browser
 def test_the_today_row_is_in_view_when_the_chapter_opens_and_a_block_link_wins(reader_browser, timeline) -> None:
     page, errors = _open(reader_browser, timeline, PLAN, 1200, 700)
     page.wait_for_function("document.querySelector('[data-chapter-scroll]').scrollTop > 0")
+    height = page.evaluate(
+        "Math.min(...[...document.querySelectorAll('.timeline-summary')].map(node => node.getBoundingClientRect().height))")
+    assert height >= 2.4 * 16 - 0.5, "each row is at least 2.4rem tall"
 
     opened = page.evaluate(ANCHOR)
     assert opened["viewTop"] <= opened["top"] and opened["bottom"] <= opened["viewBottom"], opened
@@ -152,8 +183,9 @@ def test_the_today_row_is_in_view_when_the_chapter_opens_and_a_block_link_wins(r
     assert errors == []
 
 
-def test_opening_a_row_lists_its_items_per_lane_and_an_item_shows_its_text_and_note_link(reader_browser, timeline) -> None:
-    page, errors = _open(reader_browser, timeline, PLAN)
+@pytest.mark.dom
+def test_opening_a_row_lists_its_items_per_lane_and_an_item_shows_its_text_and_note_link(fake_page, door_artifact) -> None:
+    page, errors = _opened(fake_page, door_artifact, PLAN)
 
     page.locator('[data-timeline-row="2025-12-10"] > summary').click()
     page.locator('[data-timeline-row="2026-01-05"] > summary').click()
@@ -172,17 +204,22 @@ def test_opening_a_row_lists_its_items_per_lane_and_an_item_shows_its_text_and_n
     assert shown["release"] == ["Build", "Release one", "Review", ["Item 26"]], "a lane's markers, then its items"
     assert shown["open"] and shown["text"] == "What item 0 did."
     assert shown["link"][0] == "Open Item 0" and shown["link"][1].startswith("#")
-    # The note is outside the reading order, so it opens in the floating window, as any such link does.
-    with page.expect_popup() as opened:
-        page.locator('[data-timeline-row="2025-12-10"] .timeline-item a.internal-link').click()
-    window = opened.value
-    window.wait_for_selector(".guided-card-title:has-text('Item 0')")
-    window.close()
+    # The note is outside the reading order, so it opens in the floating window, as any such link does:
+    # the window the fake's window.open gives, kept to read its card.
+    page.evaluate("""() => {
+        const open = window.open;
+        window.open = (...args) => (globalThis.openedWindow = open.apply(window, args));
+    }""")
+    page.locator('[data-timeline-row="2025-12-10"] .timeline-item a.internal-link').click()
+    page.wait_for_function("""() => [...(globalThis.openedWindow?.document.querySelectorAll('.guided-card-title') || [])]
+        .some(title => title.textContent.includes('Item 0'))""")
+    page.evaluate("globalThis.openedWindow.close()")
     assert errors == []
 
 
-def test_a_global_filter_that_removes_a_lanes_records_drops_them_from_the_counts_and_the_lists(reader_browser, timeline) -> None:
-    page, errors = _open(reader_browser, timeline, PLAN)
+@pytest.mark.dom
+def test_a_global_filter_that_removes_a_lanes_records_drops_them_from_the_counts_and_the_lists(fake_page, door_artifact) -> None:
+    page, errors = _opened(fake_page, door_artifact, PLAN)
     page.locator('[data-timeline-row="2025-12-10"] > summary').click()
     counts = """() => [...document.querySelectorAll('[data-active-chapter] .timeline-row')].map(row =>
         [...row.querySelectorAll('.timeline-cell')].map(cell => Number(cell.querySelector('.timeline-count')?.textContent || 0)))
@@ -201,8 +238,9 @@ def test_a_global_filter_that_removes_a_lanes_records_drops_them_from_the_counts
     assert errors == []
 
 
-def test_print_shows_the_rows_the_reader_opened_from_the_unfiltered_records(reader_browser, timeline) -> None:
-    page, errors = _open(reader_browser, timeline, PLAN)
+@pytest.mark.dom
+def test_print_shows_the_rows_the_reader_opened_from_the_unfiltered_records(fake_page, door_artifact) -> None:
+    page, errors = _opened(fake_page, door_artifact, PLAN)
     page.locator('[data-timeline-row="2025-12-10"] > summary').click()
     page.evaluate("obsArtifact.setFilter(obsQuery.compile('team:Build'))")
     page.wait_for_function("!document.querySelector('[data-timeline-row=\"2025-12-10\"]')")
@@ -226,8 +264,9 @@ def test_print_shows_the_rows_the_reader_opened_from_the_unfiltered_records(read
     assert errors == []
 
 
-def test_an_empty_selection_shows_one_sentence_and_no_grid(reader_browser, timeline) -> None:
-    page, errors = _open(reader_browser, timeline, EMPTY)
+@pytest.mark.dom
+def test_an_empty_selection_shows_one_sentence_and_no_grid(fake_page, door_artifact) -> None:
+    page, errors = _opened(fake_page, door_artifact, EMPTY)
 
     figure = page.locator("[data-active-chapter] [data-figure-kind='timeline']")
     assert figure.locator(".timeline-figure").inner_text() == "No records to show."
@@ -236,6 +275,8 @@ def test_an_empty_selection_shows_one_sentence_and_no_grid(reader_browser, timel
     assert errors == []
 
 
+@pytest.mark.hot
+@pytest.mark.browser
 @pytest.mark.parametrize("appearance", ["light", "dark"])
 def test_at_390_by_844_nothing_scrolls_sideways_with_every_row_open(phone_browser, timeline, appearance) -> None:
     page, errors = _open(phone_browser, timeline, PLAN, 390, 844)

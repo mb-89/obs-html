@@ -41,6 +41,8 @@ BUILD_EPOCH = "1700000000"
 # The local themes the feature fixture carries (spec/configuration.md, Local themes), as
 # test/conftest.py's feature_artifact builds it.
 LOCAL_THEMES = ROOT / "test" / "fixtures" / "local-themes"
+# A one-pixel image, the fixture Document's logo.
+PIXEL = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
 # The artifact's ready mark, in a top-level page and in a frame.
 READY = "() => document.documentElement.dataset.artifactStatus === 'ready'"
 # Two animation frames: what a page shows once the work a step started has been painted.
@@ -123,7 +125,9 @@ def build_feature_file(document: Path, target: Path) -> None:
 
 def build_artifact(name: str, folder: Path) -> Path:
     """The state's artifact, built into ``folder`` with the library fakes this process embeds
-    (test/library_fakes.py) and SOURCE_DATE_EPOCH fixed at BUILD_EPOCH. It is built from ``folder``,
+    (test/library_fakes.py) and SOURCE_DATE_EPOCH fixed at BUILD_EPOCH: a Document file, or
+    ``<module>::<function>``, a function of a test module that returns the Document to render or
+    the artifact's HTML, which it builds in the current folder. It is built from ``folder``,
     outside this checkout: a build records the commit and version of the repository it runs in as
     its target (spec/artifact-ui.md, Generation provenance), which would change the digest with
     every commit of this one."""
@@ -137,9 +141,12 @@ def build_artifact(name: str, folder: Path) -> Path:
             from obs_html.render import render
 
             module, function = source.split("::")
-            document = getattr(importlib.import_module(Path(module).stem), function)()
-            target.write_text(render(document, load_config(), built=build_time.instant(os.environ), target_root=folder),
-                              encoding="utf-8")
+            built = getattr(importlib.import_module(Path(module).stem), function)()
+            if isinstance(built, str):
+                target.write_text(built, encoding="utf-8")
+            else:
+                target.write_text(render(built, load_config(), built=build_time.instant(os.environ), target_root=folder),
+                                  encoding="utf-8")
         else:
             build_feature_file(ROOT / source, target)
     return target
@@ -166,6 +173,27 @@ def _list(dumper: yaml.SafeDumper, value: list):
 
 
 _Dumper.add_representer(list, _list)
+
+
+# The fixture Document's printed PDF, the supplied answer of the print expectation that
+# test_pdf.py records and the PDF inspection tools read (test_pdf_inspect.py).
+PRINTED_PDF = RECORDINGS / "fixture-print.pdf"
+
+
+def print_fixture(folder: Path) -> Path:
+    """Print the fixture Document by this repository's own PDF path into ``folder``, with its image
+    beside it and the build instant fixed at BUILD_EPOCH, so that two prints are equal."""
+    import base64
+
+    from obs_html import cli
+
+    (folder / "images").mkdir(exist_ok=True)
+    (folder / "images" / "logo.png").write_bytes(base64.b64decode(PIXEL))
+    pdf = folder / "artifact.pdf"
+    with _environment(SOURCE_DATE_EPOCH=BUILD_EPOCH):
+        assert cli.main([str(ROOT / "test" / "fixtures" / "documents" / "document.json"), str(pdf)]) == 0, (
+            f"{OWNER}: obs-html could not print the fixture Document")
+    return pdf
 
 
 def recording_path(name: str) -> Path:
@@ -232,10 +260,11 @@ def fake_context(fake_page, state: dict) -> None:
 
 
 def open_state(fake_page, name: str, artifact: Path, recording: dict | None, through: int | None = None,
-               after_step=None) -> None:
+               after_step=None, url: str | None = None) -> None:
     """Open the state in the fake page with ``recording`` (None: the door's defaults) and take its
     steps up to ``through`` (every step where None). Each step is reached as it begins, so the page
-    answers it from that step's recording; ``after_step(index)`` runs once each step has ended."""
+    answers it from that step's recording; ``after_step(index)`` runs once each step has ended. ``url``,
+    where given, is the address the page opens in place of the artifact's file."""
     state = states()[name]
     fake_page.replay(recording)
     fake_context(fake_page, state)
@@ -243,7 +272,7 @@ def open_state(fake_page, name: str, artifact: Path, recording: dict | None, thr
     for index, step in enumerate(steps):
         fake_page.reach(index)
         if index == 0:
-            fake_page.goto(artifact.as_uri())
+            fake_page.goto(url or artifact.as_uri())
         run_step(fake_page, step)
         if after_step is not None:
             after_step(index)
@@ -267,6 +296,18 @@ def frame_answers(name: str) -> dict:
             kept["sizes"] = {"window": answer["sizes"]["window"]}
         frame.append(kept)
     return {**recording, "answers": frame}
+
+
+def open_recorded(fake_page, name: str, artifact: Path, through: int | None = None, url: str | None = None) -> dict:
+    """Open the state in the fake page as a logic test does, with its committed recording, and take its
+    steps up to ``through``; ``url``, where given, is the address the page opens in place of the
+    artifact's file (a served copy, a variant of the same page). Returns the recording."""
+    recording = load_recording(name)
+    assert recording is not None, (f"{OWNER}: the state {name} has no recording "
+                                   f"{recording_path(name).relative_to(ROOT).as_posix()}. Remedy: run `{REMEDY}` "
+                                   "and commit it")
+    open_state(fake_page, name, artifact, recording, through, url=url)
+    return recording
 
 
 def listed(fake_page, name: str, artifact: Path, previous: dict | None) -> dict[int, dict[str, list[str]]]:

@@ -32,6 +32,10 @@ REVIEW_ITEMS = {"artifact-change": 10, "bottom-lines": 12, "callouts": 4, "cards
 HOME = "home"
 PARAGRAPH = {"chapter": "intro", "node": "paragraph-957766ff"}
 ROW = {"chapter": "intro", "node": "bases-cc30b281:alpha"}
+# The fixtures whose paged chapters hold an image figure: the door's default box holds no figure, and
+# their pagination's pages are gone before a recording is taken, so they open on the real browser
+# (browser/browser-door.md, Classification).
+PAGED_FIGURES = {"document", "figures", "figure-references"}
 
 
 def _open(page, path):
@@ -46,6 +50,11 @@ def _open(page, path):
     return page, errors
 
 
+def _open_real(reader_browser, path):
+    """Open ``path`` in a new page of the real browser (PAGED_FIGURES)."""
+    return _open(reader_browser.new_page(viewport={"width": 1200, "height": 900}), path)
+
+
 def _artifact(tmp_path, document: dict):
     artifact = tmp_path / "artifact.html"
     artifact.write_text(artifact_html(document), encoding="utf-8")
@@ -56,12 +65,25 @@ def test_the_review_item_counts_name_every_fixture() -> None:
     assert sorted(REVIEW_ITEMS) == [path.stem for path in DOCUMENTS]
 
 
-@pytest.mark.parametrize("path", DOCUMENTS, ids=lambda path: path.stem)
+@pytest.mark.parametrize("path", [path for path in DOCUMENTS if path.stem not in PAGED_FIGURES],
+                         ids=lambda path: path.stem)
 def test_every_review_item_of_a_fixture_is_a_block_of_its_chapter(path, tmp_path, fake_page) -> None:
+    _review_items_are_blocks(path, tmp_path, lambda artifact: _open(fake_page, artifact))
+
+
+@pytest.mark.browser
+@pytest.mark.parametrize("path", [path for path in DOCUMENTS if path.stem in PAGED_FIGURES],
+                         ids=lambda path: path.stem)
+def test_every_review_item_of_a_paged_figure_fixture_is_a_block_of_its_chapter(path, tmp_path,
+                                                                               reader_browser) -> None:
+    _review_items_are_blocks(path, tmp_path, lambda artifact: _open_real(reader_browser, artifact))
+
+
+def _review_items_are_blocks(path, tmp_path, open_) -> None:
     document = json.loads(path.read_text(encoding="utf-8"))
     artifact = tmp_path / path.name.replace(".json", ".html")
     artifact.write_text(artifact_html(document), encoding="utf-8")
-    page, errors = _open(fake_page, artifact)
+    page, errors = open_(artifact)
     items = page.evaluate("obsComments.reviewItems()")
     # Each item's decision target, through the one mapping: the home page's items are the abstract's.
     targets = page.evaluate("""(items) => obsCommentModel.toCore({files: [], names: [], annotations: [], states: [],
@@ -104,17 +126,18 @@ STATES = """async () => {
 }"""
 
 
-def test_the_bar_shows_the_resolved_model_and_a_reviewed_copy_shows_the_same_states(tmp_path, fake_page) -> None:
+@pytest.mark.browser
+def test_the_bar_shows_the_resolved_model_and_a_reviewed_copy_shows_the_same_states(tmp_path, reader_browser) -> None:
     document = _reviewed(json.loads(FIXTURE.read_text(encoding="utf-8")))
     artifact = tmp_path / "artifact.html"
     artifact.write_text(artifact_html(document), encoding="utf-8")
-    page, errors = _open(fake_page, artifact)
+    page, errors = _open_real(reader_browser, artifact)
     shown = page.evaluate(STATES)
     assert (shown["paragraph"], shown["row"], shown["threads"]) == ("rejected", "accepted", ["c1", "c2"])
     assert shown["island"] == {**document["comments"], "names": ["Reviewer"]}
     copy_path = tmp_path / "reviewed.html"
     copy_path.write_text(page.evaluate("obsComments.reviewedHtml()"), encoding="utf-8")
-    reopened, reopened_errors = _open(fake_page, copy_path)
+    reopened, reopened_errors = _open_real(reader_browser, copy_path)
     assert reopened.evaluate(STATES) == shown
     assert errors == reopened_errors == []
 
@@ -143,11 +166,12 @@ SELECT_ACROSS = """async () => {
 }"""
 
 
-def test_a_selection_across_blocks_targets_the_block_it_starts_in(tmp_path, fake_page) -> None:
+@pytest.mark.browser
+def test_a_selection_across_blocks_targets_the_block_it_starts_in(tmp_path, reader_browser) -> None:
     """Nothing targets a chapter and a quote: the heading the selection starts in is its target, and
     the positions, counted from the heading's start, find the selected text again; the quote is the
     selection's own text, without the review gutter it crosses."""
-    page, errors = _open(fake_page, _artifact(tmp_path, json.loads(FIXTURE.read_text(encoding="utf-8"))))
+    page, errors = _open_real(reader_browser, _artifact(tmp_path, json.loads(FIXTURE.read_text(encoding="utf-8"))))
     shown = page.evaluate(SELECT_ACROSS)
     assert shown["target"]["node"] == shown["heading"] == "section-36539243"
     assert (shown["target"]["start"], shown["target"]["quote"]) == (0, shown["own"])
@@ -175,12 +199,13 @@ RESOLVE_AS_BOB = """async () => {
 }"""
 
 
+@pytest.mark.browser
 def test_a_readers_resolve_of_anothers_comment_is_their_own_state_entry_and_only_own_bodies_edit(
-        tmp_path, fake_page) -> None:
+        tmp_path, reader_browser) -> None:
     """Only the reader's own comment edits and deletes; the island the reader saves carries the reader's
     name as its names."""
     document = _reviewed(json.loads(FIXTURE.read_text(encoding="utf-8")))
-    page, errors = _open(fake_page, _artifact(tmp_path, document))
+    page, errors = _open_real(reader_browser, _artifact(tmp_path, document))
     shown = page.evaluate(RESOLVE_AS_BOB)
     assert shown["editable"] == {"c1": True, "c2": False}
     assert shown["deletable"] == {"c1": False, "c2": True}
@@ -226,14 +251,15 @@ PAINTED = """async ({chapter, bar}) => {
 }"""
 
 
+@pytest.mark.browser
 @pytest.mark.parametrize(("chapter", "node", "quote"), [
     ("intro", "paragraph-957766ff", "the de"),
     ("appendix", None, "heading he"),
 ], ids=["marked paragraph", "unmarked paragraph"])
-def test_a_reopened_reviewed_copy_paints_a_comment_on_its_quote(chapter, node, quote, tmp_path, fake_page) -> None:
+def test_a_reopened_reviewed_copy_paints_a_comment_on_its_quote(chapter, node, quote, tmp_path, reader_browser) -> None:
     """A comment's positions count the block's own text, not the review gutter's controls, so the copy
     reopens with its highlight on the quoted characters, with the Comments bar closed and open."""
-    page, errors = _open(fake_page, _artifact(tmp_path, json.loads(FIXTURE.read_text(encoding="utf-8"))))
+    page, errors = _open_real(reader_browser, _artifact(tmp_path, json.loads(FIXTURE.read_text(encoding="utf-8"))))
     if node is None:
         node = page.evaluate("""async (chapter) => { await obsArtifact.activateChapter(chapter);
             await obsArtifact.whenChapterReady();
@@ -243,7 +269,7 @@ def test_a_reopened_reviewed_copy_paints_a_comment_on_its_quote(chapter, node, q
     assert page.evaluate(PAINTED, {"chapter": chapter, "bar": True}) == [quote]
     copy_path = tmp_path / "reviewed.html"
     copy_path.write_text(page.evaluate("obsComments.reviewedHtml()"), encoding="utf-8")
-    reopened, reopened_errors = _open(fake_page, copy_path)
+    reopened, reopened_errors = _open_real(reader_browser, copy_path)
     assert reopened.evaluate(PAINTED, {"chapter": chapter, "bar": False}) == [quote]
     assert reopened.evaluate(PAINTED, {"chapter": chapter, "bar": True}) == [quote]
     assert errors == reopened_errors == []
@@ -257,7 +283,8 @@ def _old_island() -> dict:
     return json.loads(text.split("data-comment-island>", 1)[1].rsplit("</script>", 1)[0])
 
 
-def test_a_copy_saved_by_3_9_0_reopens_with_each_highlight_on_its_quote(tmp_path, fake_page) -> None:
+@pytest.mark.browser
+def test_a_copy_saved_by_3_9_0_reopens_with_each_highlight_on_its_quote(tmp_path, reader_browser) -> None:
     """Release 3.9.0's positions counted the open bar's review gutter: its copy, rebuilt with its
     comments or loaded into a built artifact, paints each comment on its quote in its block."""
     old = _old_island()
@@ -271,9 +298,9 @@ def test_a_copy_saved_by_3_9_0_reopens_with_each_highlight_on_its_quote(tmp_path
             assert page.evaluate(PAINTED, {"chapter": chapter, "bar": False}) == [quote], chapter
             assert page.evaluate(PAINTED, {"chapter": chapter, "bar": True}) == [quote], chapter
 
-    rebuilt, errors = _open(fake_page, _artifact(tmp_path, {**document, "comments": old}))
+    rebuilt, errors = _open_real(reader_browser, _artifact(tmp_path, {**document, "comments": old}))
     painted(rebuilt)
-    loaded, loaded_errors = _open(fake_page, _artifact(tmp_path, document))
+    loaded, loaded_errors = _open_real(reader_browser, _artifact(tmp_path, document))
     loaded.set_input_files("[data-comment-files]", str(SAVED_BY_3_9_0))
     loaded.wait_for_function("obsComments.data.annotations.length === 2")
     painted(loaded)
@@ -472,6 +499,7 @@ def test_each_block_with_fields_has_a_card_in_order_with_its_path_and_its_click_
     assert errors == []
 
 
+@pytest.mark.hot
 @pytest.mark.browser
 def test_a_cards_click_scrolls_its_block_into_view_and_scrolling_marks_the_cards_on_screen(
         fields_artifact, reader_browser) -> None:

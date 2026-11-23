@@ -37,11 +37,11 @@ const {doorKey} = require("./door-key.js");
 const NAME = "test/browser/fake-browser.cjs";
 const NOTE = "test/browser/browser-door.md";
 const HAPPY_DOM = path.join(__dirname, "node_modules", "happy-dom");
-// The door's default box (browser-door.md, Recording and replay), the DOM tier's constant size.
+// The door's default box (browser-door.md, Recording and replay).
 const BOX = {width: 384, height: 24};
 // One frame of the page's clock, and the time that passes between two requests: one frame.
 const FRAME_MS = 16;
-// The canvas stand-in's text width: every character 7 pixels wide, as the DOM tier measures.
+// The canvas stand-in's text width: every character 7 pixels wide.
 const CHARACTER_WIDTH = 7;
 // How many tasks the page may run at one instant of its clock before a wait gives up on it: a
 // timer loop of zero delays never lets the clock move.
@@ -64,11 +64,30 @@ try {
     happyDom = require(HAPPY_DOM);
     PropertySymbol = require(path.join(HAPPY_DOM, "lib", "PropertySymbol.js"));
 } catch (error) {
-    process.stdout.write(JSON.stringify({id: 0, ok: false, error: {kind: "setup", message:
-        `${NAME}: happy-dom could not be loaded from ${HAPPY_DOM}: ${error.message}. Remedy: npm --prefix test/browser ci.`,
-    }}) + "\n");
+    const message = `${NAME}: happy-dom could not be loaded from ${HAPPY_DOM}: ${error.message}. Remedy: npm --prefix test/browser ci.`;
+    if (require.main !== module) throw new FakeError("setup", message);
+    process.stdout.write(JSON.stringify({id: 0, ok: false, error: {kind: "setup", message}}) + "\n");
     process.exit(1);
 }
+
+// An SVG <style> or <script> (happy-dom 21 compares its end tag with the element's tag name in upper
+// case, but an SVG element keeps its name as written, so the rest of the markup was read as its text
+// and lost): its end tag closes it whatever its case, as an HTML one's does.
+const HTMLParser = require(path.join(HAPPY_DOM, "lib", "html-parser", "HTMLParser.js")).default;
+const parseRawText = HTMLParser.prototype.parseRawTextElementContent;
+HTMLParser.prototype.parseRawTextElementContent = function (tagName, text) {
+    const element = this.currentNode;
+    const own = element?.[PropertySymbol.tagName];
+    if (typeof own !== "string" || own === own.toUpperCase() || own.toUpperCase() !== String(tagName).toUpperCase()) {
+        return parseRawText.call(this, tagName, text);
+    }
+    element[PropertySymbol.tagName] = own.toUpperCase();
+    try {
+        return parseRawText.call(this, tagName, text);
+    } finally {
+        element[PropertySymbol.tagName] = own;
+    }
+};
 
 // The Popover API stand-in (happy-dom 21 has none): which popovers are open, and `:popover-open`
 // in every selector match, the stylesheets' and the page's alike.
@@ -123,6 +142,23 @@ CSSValueFormatter.getColor = function (value) {
     return CSSValueFormatter.getColor((usedScheme() === "dark" ? parts[1] : parts[0]).trim());
 };
 
+// A computed value as Chromium computes it, where happy-dom 21 keeps it as written: a whole
+// light-dark() pair (resolved only in the properties it parses as colours, so `stroke` and `fill`
+// kept it) is the colour of the page's used scheme, and a calc() of pixel lengths added and
+// subtracted is its length. A custom property keeps what it was given, in both engines.
+function resolvedValue(value) {
+    if (typeof value !== "string") return value;
+    if (/^\s*light-dark\(/i.test(value)) return CSSValueFormatter.getColor(value) ?? value;
+    const sum = /^calc\(\s*(-?[\d.]+px(?:\s+[-+]\s+-?[\d.]+px)*)\s*\)$/.exec(value.trim());
+    if (!sum) return value;
+    const terms = sum[1].split(/\s+/);
+    let total = parseFloat(terms[0]);
+    for (let index = 1; index < terms.length; index += 2) {
+        total += (terms[index] === "-" ? -1 : 1) * parseFloat(terms[index + 1]);
+    }
+    return `${Math.round(total * 1000) / 1000}px`;
+}
+
 function schemeOf(page) {
     let resolving = false;
     return () => {
@@ -143,6 +179,30 @@ function schemeOf(page) {
     };
 }
 
+// Logical margins and paddings (happy-dom 21 keeps `margin-block` and its longhands as written and
+// computes no length for them): in the horizontal, left-to-right writing mode of every page, block
+// start and end are top and bottom, and inline start and end left and right. A declaration of one is
+// set as its physical sides, and the computed logical property reads its physical side.
+const CSSPropertyManager = require(path.join(HAPPY_DOM, "lib", "css", "declaration", "property-manager",
+    "CSSPropertyManager.js")).default;
+const LOGICAL_SIDES = {block: ["top", "bottom"], inline: ["left", "right"]};
+const LOGICAL = /^(margin|padding)-(block|inline)(?:-(start|end))?$/;
+const setProperty = CSSPropertyManager.prototype.set;
+CSSPropertyManager.prototype.set = function (name, value, important) {
+    const logical = LOGICAL.exec(String(name));
+    if (!logical || value === null) return setProperty.call(this, name, value, important);
+    const [, box, axis, edge] = logical;
+    const [start, end] = LOGICAL_SIDES[axis];
+    const values = topLevel(String(value).trim(), " ").filter(Boolean);
+    const sides = edge ? [[edge === "start" ? start : end, String(value).trim()]]
+        : [[start, values[0]], [end, values[1] ?? values[0]]];
+    return sides.flatMap(([side, each]) => setProperty.call(this, `${box}-${side}`, each, important) || []);
+};
+// The physical computed property a logical one reads, by its camel-case name.
+const PHYSICAL = Object.fromEntries(["margin", "padding"].flatMap((box) => Object.entries({
+    BlockStart: "Top", BlockEnd: "Bottom", InlineStart: "Left", InlineEnd: "Right"})
+    .map(([logical, side]) => [`${box}${logical}`, `${box}${side}`])));
+
 // Chromium's user-agent rules happy-dom 21 lacks: `[hidden]` and a closed `[popover]` are display
 // none, at the user-agent level, so an author's display still wins. happy-dom's element defaults
 // apply an entry's keys where the element's property of that name is truthy.
@@ -153,6 +213,40 @@ for (const [tag, rule] of Object.entries(elementDefaults)) {
     if (tag === "default") continue;
     elementDefaults[tag] = {...(typeof rule === "string" ? {default: rule} : rule), hidden: "display: none;",
         [CLOSED_POPOVER]: "display: none;"};
+}
+// A header cell is bold, as Chromium's user-agent sheet makes it.
+elementDefaults.TH.default = `${elementDefaults.TH.default} font-weight: bold;`;
+
+// The computed `font` as Chromium writes it (happy-dom 21 joins the longhands as written, so a rem
+// size and a unitless line height stayed so, and a weight was dropped): style, small caps and weight
+// where they are not normal, the size and the line height in pixels, then the family. The runtime
+// measures text in that font (table.js), so the recorded widths are found by it.
+const FONT_WEIGHTS = {normal: "400", bold: "700"};
+function pixels(value, base) {
+    const match = /^(-?[\d.]+)(px|rem|em|%)?$/.exec(String(value).trim());
+    if (!match) return null;
+    const number = parseFloat(match[1]);
+    return match[2] === "px" || !match[2] && number === 0 ? number : match[2] === "%" ? number * base() / 100
+        : match[2] ? number * base(match[2]) : null;
+}
+function lengthText(number) {
+    return `${Math.round(number * 10000) / 10000}px`;
+}
+function computedFont(window, element, style) {
+    const sizeOf = (node) => {
+        if (!node || node.nodeType !== 1) return 16;
+        const own = ownStyle(window, node).fontSize;
+        return pixels(own, (unit) => unit === "rem" ? sizeOf(window.document.documentElement === node ? null
+            : window.document.documentElement) : sizeOf(node.parentElement)) ?? 16;
+    };
+    const size = sizeOf(element);
+    const height = String(style.lineHeight || "normal").trim();
+    const line = height === "normal" ? "" : /^[\d.]+$/.test(height) ? lengthText(parseFloat(height) * size)
+        : lengthText(pixels(height, (unit) => unit === "rem" ? sizeOf(window.document.documentElement) : size) ?? size);
+    const weight = FONT_WEIGHTS[style.fontWeight] || style.fontWeight || "400";
+    return [style.fontStyle && style.fontStyle !== "normal" ? style.fontStyle : "",
+        style.fontVariant === "small-caps" ? "small-caps" : "", weight === "400" ? "" : weight,
+        line ? `${lengthText(size)} / ${line}` : lengthText(size), style.fontFamily].filter(Boolean).join(" ");
 }
 
 // Chromium's table display values and preformatted text, which happy-dom 21 drops or lacks: its
@@ -347,7 +441,8 @@ class Clock {
     add(handler, delay, args, interval, at) {
         const id = ++this.serial;
         const wait = Math.max(0, Number(delay) || 0);
-        this.tasks.push({id, at: at ?? this.now + wait, handler, args, interval: interval ? Math.max(1, wait) : 0});
+        this.tasks.push({id, at: at ?? this.now + wait, delay: wait, handler, args, interval: interval ? Math.max(1, wait) : 0,
+            frame: args === null});
         return id;
     }
 
@@ -522,13 +617,17 @@ class FakePage {
 
     settings() {
         const page = this;
+        // A replayed phone's state is a touch device at its scale, as Chromium's emulated phone is:
+        // happy-dom answers `(pointer: coarse)` and `(hover: none)` from the touch points.
+        const context = this.recording?.context || {};
         return {
             // A page without scripts, as a frame sandboxed without allow-scripts, runs none of its own.
             enableJavaScriptEvaluation: this.scripts,
             suppressInsecureJavaScriptEnvironmentWarning: true,
             suppressCodeGenerationFromStringsWarning: true,
             device: {...this.media},
-            viewport: {width: this.viewport[0], height: this.viewport[1], devicePixelRatio: 1},
+            navigator: {maxTouchPoints: context.touch ? 1 : 0},
+            viewport: {width: this.viewport[0], height: this.viewport[1], devicePixelRatio: context.scale || 1},
             navigation: {disableMainFrameNavigation: true, disableChildPageNavigation: true},
             fetch: {interceptor: {
                 beforeAsyncRequest: ({request, window}) => {
@@ -597,7 +696,8 @@ class FakePage {
         for (const [key, value] of Object.entries(saved.session)) window.sessionStorage.setItem(key, value);
     }
 
-    async open(url, timeout) {
+    // Opens `url`; a file page shows `html` where it is given, in place of the file's own text.
+    async open(url, timeout, html) {
         this.close();
         const target = remote(url);
         if (target) {
@@ -615,9 +715,8 @@ class FakePage {
         this.window = page.mainFrame.window;
         install(this.window, this);
         if (url.startsWith("file:")) {
-            let html;
             try {
-                html = fs.readFileSync(fileURLToPath(url), "utf8");
+                html ??= fs.readFileSync(fileURLToPath(url), "utf8");
             } catch (error) {
                 throw new FakeError("error", `${NAME}: goto ${url}: the file could not be read: ${error.message}.`);
             }
@@ -710,7 +809,7 @@ function rendered(window, element) {
 }
 
 // innerText as the HTML standard's rendered text collection steps give it, as Chromium does: happy-dom
-// 21 joins table cells with nothing, keeps a line break of the source and none of a `<br>`, and
+// 21 breaks the line only before a block or flex child, joins table cells with nothing, keeps a line break of the source and none of a `<br>`, and
 // collapses no white space. A table cell ends in a tab and a table row in a line break, a block ends
 // in a line break and a paragraph in two, white space collapses as the element's `white-space` says,
 // and an element that is not rendered, or a closed details' content, gives nothing. Its element
@@ -945,7 +1044,16 @@ function install(window, page) {
         window.dispatchEvent(new window.Event("afterprint"));
     };
 
-    // The canvas text measure: a 2D context whose measureText is the DOM tier's constant width.
+    // A modal dialog is reported to the test as a `dialog` event and dismissed at once, as Playwright
+    // dismisses one: alert returns nothing, confirm false and prompt null.
+    for (const [type, dismissed] of [["alert", undefined], ["confirm", false], ["prompt", null]]) {
+        window[type] = (message = "") => {
+            page.event({type: "dialog", kind: type, message: String(message)});
+            return dismissed;
+        };
+    }
+
+    // The canvas text measure: a 2D context whose measureText is the recorded width, else the default.
     window.HTMLCanvasElement.prototype.getContext = function (type) {
         if (type !== "2d") return null;
         const canvas = this;
@@ -991,14 +1099,20 @@ function installRecorded(window, page) {
                 return (property) => {
                     page.ask("cascade", `${key}|${property}`);
                     const camel = String(property).replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
-                    return initial(camel, target.getPropertyValue(property));
+                    if (PHYSICAL[camel]) return initial(PHYSICAL[camel], target[PHYSICAL[camel]]);
+                    if (camel === "font") return computedFont(window, element, target);
+                    if (camel === "fontWeight") return FONT_WEIGHTS[target.fontWeight] || target.fontWeight;
+                    const value = target.getPropertyValue(property);
+                    return initial(camel, String(property).startsWith("--") ? value : resolvedValue(value));
                 };
             }
-            const value = target[name];
+            const value = resolvedValue(typeof name === "string" && PHYSICAL[name] ? target[PHYSICAL[name]] : target[name]);
             if (typeof value === "function") return value.bind(target);
             if (typeof name === "string" && /^[a-z]/i.test(name) && name !== "length") {
                 page.ask("cascade", `${key}|${name}`);
-                return initial(name, value);
+                if (name === "font") return computedFont(window, element, target);
+                if (name === "fontWeight") return FONT_WEIGHTS[value] || value;
+                return initial(PHYSICAL[name] || name, value);
             }
             return value;
         }});
@@ -1811,6 +1925,12 @@ process.on("unhandledRejection", (reason) => {
         message: reason?.message !== undefined ? String(reason.message) : String(reason), stack: reason?.stack ? String(reason.stack) : ""});
 });
 
+// The page the next request is for: page errors and light-dark() answer for it.
+function use(page) {
+    current = page;
+    usedScheme = schemeOf(page);
+}
+
 function pageOf(request) {
     const page = pages.get(request.page);
     if (!page) throw new FakeError("error", `${NAME}: no page ${request.page}; it was closed or never opened.`);
@@ -1914,6 +2034,9 @@ const OPERATIONS = {
     async emulate_media(page, request) {
         Object.assign(page.media, request.media);
         if (page.browser) Object.assign(page.browser.settings.device, request.media);
+        // happy-dom 21 keeps each computed style it gave, so a media rule the new media turns on or
+        // off changed nothing on an open page: its computed styles are given anew, as Chromium's are.
+        if (page.window) page.window.document[PropertySymbol.clearComputedStyleCache]();
         if (page.window) await page.between();
     },
     async evaluate(page, request) {
@@ -2147,36 +2270,46 @@ async function answer(request) {
     }
     if (request.op === "new_page") return operation(request);
     const page = pageOf(request);
-    current = page;
-    usedScheme = schemeOf(page);
+    use(page);
     return operation(page, request);
 }
 
-const lines = readline.createInterface({input: process.stdin});
-let queue = Promise.resolve();
-lines.on("line", (line) => {
-    queue = queue.then(async () => {
-        let request;
-        try {
-            request = JSON.parse(line);
-        } catch (error) {
-            process.stdout.write(JSON.stringify({id: 0, ok: false, error: {kind: "error", message: `${NAME}: a request was no JSON: ${error.message}`}}) + "\n");
-            return;
-        }
-        let reply;
-        try {
-            reply = {id: request.id, ok: true, value: await answer(request)};
-        } catch (error) {
-            reply = {id: request.id, ok: false, error: {kind: error instanceof FakeError ? error.kind : "pageerror",
-                name: error?.name || "Error", message: error?.message !== undefined ? String(error.message) : String(error),
-                stack: error?.stack ? String(error.stack) : ""}};
-        }
-        const page = pages.get(request.page);
-        reply.events = page ? page.events.splice(0) : [];
-        process.stdout.write(JSON.stringify(reply) + "\n");
+// Runs a script's source in the page as a classic script of its own, named `filename` in the stacks of
+// what it calls; what it throws is thrown to the caller.
+function runScript(window, source, filename) {
+    window[PropertySymbol.evaluateScript](`(function () {\n${source}\n})`, {filename}).call(window);
+}
+
+// As a module, the DOM tier's harness (artifact-harness.cjs) opens a page in its own process.
+module.exports = {FakePage, FakeError, use, runScript, NAME, NOTE};
+
+if (require.main === module) {
+    const lines = readline.createInterface({input: process.stdin});
+    let queue = Promise.resolve();
+    lines.on("line", (line) => {
+        queue = queue.then(async () => {
+            let request;
+            try {
+                request = JSON.parse(line);
+            } catch (error) {
+                process.stdout.write(JSON.stringify({id: 0, ok: false, error: {kind: "error", message: `${NAME}: a request was no JSON: ${error.message}`}}) + "\n");
+                return;
+            }
+            let reply;
+            try {
+                reply = {id: request.id, ok: true, value: await answer(request)};
+            } catch (error) {
+                reply = {id: request.id, ok: false, error: {kind: error instanceof FakeError ? error.kind : "pageerror",
+                    name: error?.name || "Error", message: error?.message !== undefined ? String(error.message) : String(error),
+                    stack: error?.stack ? String(error.stack) : ""}};
+            }
+            const page = pages.get(request.page);
+            reply.events = page ? page.events.splice(0) : [];
+            process.stdout.write(JSON.stringify(reply) + "\n");
+        });
     });
-});
-lines.on("close", () => {
-    for (const page of pages.values()) page.close();
-    process.exit(0);
-});
+    lines.on("close", () => {
+        for (const page of pages.values()) page.close();
+        process.exit(0);
+    });
+}

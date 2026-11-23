@@ -12,8 +12,9 @@ directly or through a fixture of its own module, or that carries the ``browser``
 
 A row's Package names the package that moves the file while it still drives a real browser, and
 reads ``moved by `<package>` `` once the package has landed and every browser test of the file
-takes the fake browser (``added by `<package>` `` for a file a package wrote on it): a file that
-takes no real browser any more has a moved row, and a moved row's file takes none.
+takes the fake browser, but the named exceptions of a logic file, which carry the ``hot`` mark
+(``added by `<package>` `` for a file a package wrote on it): a file that takes no real browser
+any more, or only in its hot tests, has a moved row, and a moved row's file takes none outside them.
 """
 import ast
 import re
@@ -32,15 +33,26 @@ ROW = re.compile(r"^\| `(?P<file>[^`]+)` \| (?P<cls>[^|]*?) \| (?P<package>[^|]*
 MOVED = re.compile(r"^(?:moved|added) by `(?P<package>[a-z0-9-]+)`$")
 
 
-def marked_browser(node: ast.AST) -> bool:
-    """Whether a decorator list or a ``pytestmark`` value names ``pytest.mark.browser``."""
-    return any(isinstance(each, ast.Attribute) and each.attr == "browser"
+def marked(node: ast.AST, mark: str) -> bool:
+    """Whether a decorator list or a ``pytestmark`` value names ``pytest.mark.<mark>``."""
+    return any(isinstance(each, ast.Attribute) and each.attr == mark
                and isinstance(each.value, ast.Attribute) and each.value.attr == "mark" for each in ast.walk(node))
 
 
-def _takes(functions: list[ast.FunctionDef], fixtures: set[str]) -> bool:
+def marked_browser(node: ast.AST) -> bool:
+    """Whether a decorator list or a ``pytestmark`` value names ``pytest.mark.browser``."""
+    return marked(node, "browser")
+
+
+def hot(function: ast.FunctionDef) -> bool:
+    """Whether a test carries the ``hot`` mark: a named exception of a logic file, which stays in the
+    real Chromium (browser-door.md, Classification)."""
+    return marked(ast.Module(function.decorator_list, []), "hot")
+
+
+def _takes(functions: list[ast.FunctionDef], fixtures: set[str], but_hot: bool = False) -> bool:
     """Whether a test of the module takes one of ``fixtures``, directly or through a fixture of the
-    module that takes one, at any depth."""
+    module that takes one, at any depth; with ``but_hot``, a test other than a hot one."""
     taken = set(fixtures)
     while True:
         more = {function.name for function in functions
@@ -48,7 +60,8 @@ def _takes(functions: list[ast.FunctionDef], fixtures: set[str]) -> bool:
         if not more:
             break
         taken |= more
-    return any(function.name.startswith("test_") and fixture_names(function) & taken for function in functions)
+    return any(function.name.startswith("test_") and fixture_names(function) & taken
+               and not (but_hot and hot(function)) for function in functions)
 
 
 def _functions(path: Path) -> tuple[ast.Module, list[ast.FunctionDef]]:
@@ -56,16 +69,17 @@ def _functions(path: Path) -> tuple[ast.Module, list[ast.FunctionDef]]:
     return module, [node for node in ast.walk(module) if isinstance(node, ast.FunctionDef)]
 
 
-def takes_a_real_browser(path: Path) -> bool:
-    """Whether a test of the module takes a real browser (REAL_BROWSER) or carries the browser mark."""
+def takes_a_real_browser(path: Path, but_hot: bool = False) -> bool:
+    """Whether a test of the module takes a real browser (REAL_BROWSER) or carries the browser mark;
+    with ``but_hot``, a test other than one with the hot mark."""
     module, functions = _functions(path)
     if any(isinstance(node, ast.Assign) and any(isinstance(target, ast.Name) and target.id == "pytestmark"
                                                  for target in node.targets) and marked_browser(node.value)
            for node in module.body):
         return True
-    return _takes(functions, REAL_BROWSER) or any(
+    return _takes(functions, REAL_BROWSER, but_hot) or any(
         function.name.startswith("test_") and marked_browser(ast.Module(function.decorator_list, []))
-        for function in functions)
+        and not (but_hot and hot(function)) for function in functions)
 
 
 def takes_the_fake_browser(path: Path) -> bool:
@@ -122,17 +136,22 @@ def test_each_row_has_a_class_a_package_and_a_reason() -> None:
 
 
 def moved_rows_wrong(rows: list[dict[str, str]], files: dict[str, Path]) -> list[str]:
-    """Each row whose Package says moved while its file takes a real browser, or does not while its
-    file takes only the fake browser, or that moves a hot file."""
+    """Each row whose Package says moved while a test of its file other than a hot one takes a real
+    browser, or does not while its file takes only the fake browser and the hot tests the reason
+    names, or that moves a hot file."""
     wrong = []
     for row in rows:
         path = files.get(row["file"])
         if path is None:
             continue
         moved = bool(MOVED.match(row["package"]))
-        if moved and takes_a_real_browser(path):
-            wrong.append(f"{row['file']}: its Package says {row['package']}, but a test of it takes a real browser "
-                         "or carries the browser mark")
+        if moved and takes_a_real_browser(path, but_hot=True):
+            wrong.append(f"{row['file']}: its Package says {row['package']}, but a test of it without the hot mark "
+                         "takes a real browser or carries the browser mark")
+        elif (not moved and row["cls"] == "logic" and not takes_a_real_browser(path, but_hot=True)
+              and takes_the_fake_browser(path)):
+            wrong.append(f"{row['file']}: its logic tests run on the fake browser, but its Package {row['package']} "
+                         "does not say moved by `<package>`")
         elif not moved and not takes_a_real_browser(path):
             wrong.append(f"{row['file']}: its tests run on the fake browser, but its Package {row['package']} does not "
                          "say moved by `<package>` or added by `<package>`")
@@ -162,6 +181,37 @@ def test_the_moved_check_names_a_row_that_disagrees_with_its_file(tmp_path: Path
     rows = [{"file": "test_on_fake.py", "cls": "logic", "package": "moved by `fake-browser-door`"},
             {"file": "test_on_real.py", "cls": "logic", "package": "`fake-browser-door`"}]
     assert moved_rows_wrong(rows, files) == []
+
+
+def test_a_moved_row_may_keep_its_hot_exceptions_on_the_real_browser(tmp_path: Path) -> None:
+    (tmp_path / "test_with_hot.py").write_text('''
+import pytest
+
+def test_reads(fake_page):
+    pass
+
+@pytest.mark.hot
+@pytest.mark.browser
+def test_measures(reader_browser):
+    pass
+''', encoding="utf-8")
+    (tmp_path / "test_unmarked.py").write_text('''
+import pytest
+
+def test_reads(fake_page):
+    pass
+
+@pytest.mark.browser
+def test_measures(reader_browser):
+    pass
+''', encoding="utf-8")
+    files = {path.name: path for path in tmp_path.glob("test_*.py")}
+    rows = [{"file": "test_with_hot.py", "cls": "logic", "package": "moved by `layout-logic-to-fake-browser`"},
+            {"file": "test_unmarked.py", "cls": "logic", "package": "`layout-logic-to-fake-browser`"}]
+    assert moved_rows_wrong(rows, files) == []
+    rows = [{"file": "test_with_hot.py", "cls": "logic", "package": "`layout-logic-to-fake-browser`"},
+            {"file": "test_unmarked.py", "cls": "logic", "package": "moved by `layout-logic-to-fake-browser`"}]
+    assert [line.split(":")[0] for line in moved_rows_wrong(rows, files)] == ["test_with_hot.py", "test_unmarked.py"]
 
 
 def test_the_check_finds_a_browser_test_through_a_module_fixture_and_the_mark(tmp_path: Path) -> None:

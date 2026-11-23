@@ -6,18 +6,29 @@ never stored.
 The design owner is spec/artifact-ui.md (Styling, and What counts as a change). The pages carry the
 made-up fixture theme (test/fixtures/local-themes) or a copy of it whose local.json names it; the
 choice logic's pure core is style-choice.test.js's.
+
+The select's width and the printed theme are hot: they open the viewer fixture
+(test/browser/viewer.py) in the real Chromium. The others run on the fake browser
+(test/browser/browser-door.md), each page from the recording of its state
+(test/browser/expectations.yaml) at desktop size; the fake has no frames, so the artifact is the
+top-level page, as it is in the viewer's frame. Where a theme lays the page out again, they check
+that the runtime measured again in the theme's styles, from what the page asked the fake after the
+choice, not the recorded sizes.
 """
+import re
+from pathlib import Path
+
 import pytest
 
 from artifacts import artifact_html
+from browser import door
+from browser.fake_page import expect
 from browser.viewer import open_viewer
 from documents import chapter, document, heading, node, paragraph
 from test_appearance_browser import choose, rgba
 from test_features import with_context_note
 from test_local_themes import fixture_choice, with_style
 from test_local_themes_browser import DEFAULT, PAINTED, THEME, rgb, starting_in
-
-pytestmark = pytest.mark.browser
 
 SELECT = "[data-style-select]"
 SETTINGS = """() => {
@@ -93,53 +104,125 @@ def table_document() -> dict:
     return document("Table", chapter("one", "One", heading(1, "One"), base), records=records)
 
 
-def open_chapter(frame) -> None:
-    frame.locator('[data-step="1"]').first.click()
-    frame.locator("[data-chapter-body] h1, .paged-reader h1").first.wait_for()
+# The pages of the browser door's states (test/browser/expectations.yaml), each built in the current
+# folder (browser/door.py, build_artifact).
+
+def plain_page() -> dict:
+    return document("Plain", chapter("one", "One", heading(1, "One"), paragraph("Text.")))
 
 
-def test_a_page_without_local_themes_offers_no_theme(tmp_path, reader_browser) -> None:
-    source = document("Plain", chapter("one", "One", heading(1, "One"), paragraph("Text.")))
-    html = artifact_html(source)
+def text_page_default() -> str:
+    return text_page()
+
+
+def text_page_contrast() -> str:
+    return text_page("contrast", Path.cwd())
+
+
+def long_page_default() -> str:
+    return long_page(fixture_choice())
+
+
+def table_default() -> str:
+    return artifact_html(table_document(), style_choice=fixture_choice())
+
+
+def table_contrast() -> str:
+    return artifact_html(table_document(), style_choice=starting_in(Path.cwd(), "contrast"))
+
+
+def _bold(start: str | None) -> str:
+    folder = with_style(Path.cwd(), ".data-table-scroll table { font-weight: 700; }\n")
+    if start:
+        (folder / "local.json").write_text(f'{{"startTheme": "{start}"}}', encoding="utf-8")
+    return artifact_html(table_document(), style_choice=fixture_choice(folder))
+
+
+def bold_table_default() -> str:
+    """A table whose theme contrast changes only its text metrics: bold."""
+    return _bold(None)
+
+
+def bold_table_contrast() -> str:
+    return _bold("contrast")
+
+
+def guided_card_page() -> str:
+    return artifact_html(with_context_note(), style_choice=fixture_choice())
+
+
+def colour(value: str) -> tuple[float, float, float, float]:
+    """A computed colour as red, green, blue and alpha: Chromium writes rgb(), the fake hex."""
+    if re.fullmatch(r"#[0-9a-fA-F]{6}", value):
+        return rgb(value)
+    return rgba(value)
+
+
+def opened(fake_page, door_artifact, state: str, errors: list[str], url: str | None = None):
+    """The state's page in the fake browser, opened from its recording, as the top-level page;
+    ``errors`` collects page errors and console errors, as the viewer fixture's do."""
+    fake_page.on("pageerror", lambda error: errors.append(str(error)))
+    fake_page.on("console", lambda message: errors.append(message.text) if message.type == "error" else None)
+    door.open_recorded(fake_page, state, door_artifact(state), url=url)
+    expect(fake_page.locator("html")).to_have_attribute("data-artifact-status", "ready")
+    return fake_page
+
+
+def measured_fonts(page) -> set[str]:
+    """The fonts of the texts the runtime measured since the last call (the fake's text-width calls)."""
+    return {key.split("|", 1)[0] for kinds in page.asked().values() for key in kinds.get("text-width", [])}
+
+
+def asked_boxes(page) -> set[str]:
+    """The elements whose box or sizes the runtime asked for since the last call."""
+    return {key for kinds in page.asked().values() for kind in ("box", "sizes") for key in kinds.get(kind, [])}
+
+
+@pytest.mark.dom
+def test_a_page_without_local_themes_offers_no_theme(door_artifact, fake_page) -> None:
+    html = artifact_html(plain_page())
     assert "data-style-select" not in html and 'id="feature-styles-style-choice"' not in html
     assert "obsStyleChoice" not in html and ".settings-style" not in html
     errors: list[str] = []
-    _page, frame = open_viewer(tmp_path, reader_browser, errors, html, "light")
+    frame = opened(fake_page, door_artifact, "theme-choice-plain", errors)
     assert frame.locator(SELECT).count() == 0
     assert frame.evaluate("() => document.documentElement.hasAttribute('data-style')") is False
     assert errors == []
 
 
-def test_the_settings_bar_offers_default_then_each_theme_below_appearance(tmp_path, reader_browser) -> None:
+@pytest.mark.dom
+def test_the_settings_bar_offers_default_then_each_theme_below_appearance(door_artifact, fake_page) -> None:
     errors: list[str] = []
-    _page, frame = open_viewer(tmp_path, reader_browser, errors, text_page(), "light")
+    frame = opened(fake_page, door_artifact, "theme-choice-text", errors)
     assert frame.evaluate(SETTINGS) == {
         "count": 1, "afterAppearance": True, "label": "Theme", "aria": "Theme",
         "options": [["default", "Default"], ["contrast", "contrast"]], "value": "default", "root": "default"}
-    _page, frame = open_viewer(tmp_path, reader_browser, errors, text_page("contrast", tmp_path), "light")
+    frame = opened(fake_page, door_artifact, "theme-choice-text-contrast", errors)
     settings = frame.evaluate(SETTINGS)
     assert (settings["count"], settings["value"], settings["root"]) == (1, "contrast", "contrast"), settings
     assert errors == []
 
 
+@pytest.mark.dom
 @pytest.mark.parametrize("host_scheme", ["light", "dark"])
-def test_choosing_a_theme_restyles_at_once_in_each_appearance(tmp_path, reader_browser, host_scheme) -> None:
+def test_choosing_a_theme_restyles_at_once_in_each_appearance(door_artifact, fake_page, host_scheme) -> None:
     errors: list[str] = []
-    _page, frame = open_viewer(tmp_path, reader_browser, errors, text_page(), host_scheme)
+    frame = opened(fake_page, door_artifact, "theme-choice-text", errors)
+    frame.emulate_media(color_scheme=host_scheme)
     for appearance in ("light", "dark"):
         choose(frame, appearance)
         for style, colours in (("contrast", THEME), ("default", DEFAULT)):
             pick(frame, style)
             assert frame.evaluate("() => document.documentElement.dataset.style") == style
             painted = frame.evaluate(PAINTED, "html")
-            assert rgba(painted["background"]) == rgb(colours["canvas"][appearance]), f"{appearance} {style}: {painted}"
-            assert rgba(painted["color"]) == rgb(colours["text"][appearance]), f"{appearance} {style}: {painted}"
+            assert colour(painted["background"]) == rgb(colours["canvas"][appearance]), f"{appearance} {style}: {painted}"
+            assert colour(painted["color"]) == rgb(colours["text"][appearance]), f"{appearance} {style}: {painted}"
     pick(frame, "contrast")
     for appearance in ("light", "dark"):
         choose(frame, appearance)
         assert frame.evaluate("() => document.documentElement.dataset.style") == "contrast"
         painted = frame.evaluate(PAINTED, "html")
-        assert rgba(painted["background"]) == rgb(THEME["canvas"][appearance]), f"{appearance}: {painted}"
+        assert colour(painted["background"]) == rgb(THEME["canvas"][appearance]), f"{appearance}: {painted}"
     assert errors == []
 
 
@@ -148,40 +231,48 @@ def _sheets(frame):
     return frame.evaluate(SHEETS)
 
 
-def test_choosing_a_theme_lays_the_sheets_out_again(tmp_path, reader_browser) -> None:
+@pytest.mark.dom
+def test_choosing_a_theme_lays_the_sheets_out_again(door_artifact, fake_page) -> None:
+    """The sheets are laid out again in the chosen theme: after the choice the runtime measures again
+    the blocks it laid the sheets out from, and numbers every sheet; where the sheets break is the
+    recorded Chromium's layout, which a logic test does not assert."""
     errors: list[str] = []
-    _page, opened = open_viewer(tmp_path, reader_browser, errors, long_page(starting_in(tmp_path, "contrast")), "light")
-    open_chapter(opened)
-    expected = _sheets(opened)
-    _page, frame = open_viewer(tmp_path, reader_browser, errors, long_page(fixture_choice()), "light")
-    open_chapter(frame)
-    before = _sheets(frame)
-    assert before != expected, "the fixture theme's spacing pages the chapter differently"
+    frame = opened(fake_page, door_artifact, "theme-choice-long", errors)
+    _sheets(frame)
+    paged = asked_boxes(frame)
     pick(frame, "contrast")
-    assert _sheets(frame) == expected
+    sheets = _sheets(frame)
+    again = asked_boxes(frame)
+    assert again & paged, "choosing a theme measured none of the blocks the sheets were laid out from again"
+    assert sheets and all(number for _first, _last, number in sheets), sheets
     assert errors == []
 
 
 def _columns(frame):
     frame.evaluate("() => { obsPages.setPaged(false); obsArtifact.activateChapter('one'); }")
     frame.locator("[data-active-chapter] .data-table-shell thead th").first.wait_for()
-    return frame.evaluate(COLUMNS)
+    frame.evaluate("() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done)))")
+    return measured_fonts(frame)
 
 
-def test_choosing_a_theme_measures_the_table_columns_again(tmp_path, reader_browser) -> None:
+@pytest.mark.dom
+def test_choosing_a_theme_measures_the_table_columns_again(door_artifact, fake_page) -> None:
+    """The columns take the widths of their texts in the chosen theme: after the choice the runtime
+    measures the table's texts again, in fonts a page opened in that theme measures them in."""
     errors: list[str] = []
-    contrast = artifact_html(table_document(), style_choice=starting_in(tmp_path, "contrast"))
-    _page, opened = open_viewer(tmp_path, reader_browser, errors, contrast, "light")
-    expected = _columns(opened)
-    _page, frame = open_viewer(tmp_path, reader_browser, errors, artifact_html(
-        table_document(), style_choice=fixture_choice()), "light")
+    expected = _columns(opened(fake_page, door_artifact, "theme-choice-table-contrast", errors))
+    frame = opened(fake_page, door_artifact, "theme-choice-table", errors)
     before = _columns(frame)
-    assert before != expected, "the fixture theme's font and padding size the columns differently"
+    assert before and before != expected, "the fixture theme's font sizes the columns differently"
     pick(frame, "contrast")
-    frame.wait_for_function(f"(expected) => JSON.stringify(({COLUMNS})()) === JSON.stringify(expected)", arg=expected)
+    frame.evaluate("() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done)))")
+    after = measured_fonts(frame)
+    assert after and after <= expected, (after, expected)
     assert errors == []
 
 
+@pytest.mark.hot
+@pytest.mark.browser
 @pytest.mark.parametrize("width", [390, 1180])
 def test_the_theme_select_is_as_wide_as_its_options_as_the_appearance_select_is(tmp_path, reader_browser, width) -> None:
     errors: list[str] = []
@@ -194,80 +285,91 @@ def test_the_theme_select_is_as_wide_as_its_options_as_the_appearance_select_is(
     assert errors == []
 
 
-def test_a_theme_that_changes_only_text_metrics_measures_the_columns_again(tmp_path, reader_browser) -> None:
+@pytest.mark.dom
+def test_a_theme_that_changes_only_text_metrics_measures_the_columns_again(door_artifact, fake_page) -> None:
+    """A theme that only makes the table bold leaves the table's box as it is, so no resize measures
+    it again: the choice itself does, in the fonts a page opened in that theme measures in and no
+    longer in the fixture theme's plain cells' font."""
     errors: list[str] = []
-    folder = with_style(tmp_path, ".data-table-scroll table { font-weight: 700; }\n")
-    (folder / "local.json").write_text('{"startTheme": "contrast"}', encoding="utf-8")
-    _page, opened = open_viewer(tmp_path, reader_browser, errors, artifact_html(
-        table_document(), style_choice=fixture_choice(folder)), "light")
-    expected = _columns(opened)
-    (folder / "local.json").unlink()
-    _page, frame = open_viewer(tmp_path, reader_browser, errors, artifact_html(
-        table_document(), style_choice=fixture_choice(folder)), "light")
-    assert _columns(frame) != expected, "a bold table sizes its columns differently"
-    box = frame.evaluate(TABLE_BOX)
+    expected = _columns(opened(fake_page, door_artifact, "theme-choice-bold-table-contrast", errors))
+    frame = opened(fake_page, door_artifact, "theme-choice-bold-table", errors)
+    before = _columns(frame)
+    assert before - expected, "the fixture theme measures the plain cells in a font the bold theme does not"
     pick(frame, "contrast")
     frame.evaluate("() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done)))")
-    # The table's own box keeps its size, so only the theme choice measures the columns again.
-    assert frame.evaluate(TABLE_BOX) == box
-    assert frame.evaluate(COLUMNS) == expected
+    after = measured_fonts(frame)
+    assert after and after <= expected, (after, expected, before)
     assert errors == []
 
 
-def test_the_theme_choice_is_session_only(tmp_path, reader_browser) -> None:
+@pytest.mark.dom
+def test_the_theme_choice_is_session_only(door_artifact, fake_page) -> None:
     errors: list[str] = []
-    page, frame = open_viewer(tmp_path, reader_browser, errors, text_page(), "light")
-    stored, unsaved = frame.evaluate(STORED), frame.evaluate(UNSAVED)
+    page = opened(fake_page, door_artifact, "theme-choice-text", errors)
+    stored, unsaved = page.evaluate(STORED), page.evaluate(UNSAVED)
     assert unsaved["changed"] is False and unsaved["warned"] is False
-    pick(frame, "contrast")
-    assert frame.evaluate("() => document.documentElement.dataset.style") == "contrast"
-    assert frame.evaluate(STORED) == stored
-    assert frame.evaluate(UNSAVED) == unsaved
+    pick(page, "contrast")
+    assert page.evaluate("() => document.documentElement.dataset.style") == "contrast"
+    assert page.evaluate(STORED) == stored
+    assert page.evaluate(UNSAVED) == unsaved
     page.reload()
-    frame = page.locator("#artifact").element_handle().content_frame()
-    frame.wait_for_function("document.documentElement.dataset.artifactStatus === 'ready'")
-    assert frame.evaluate("() => document.documentElement.dataset.style") == "default"
-    assert frame.evaluate("() => document.querySelector('[data-style-select]').value") == "default"
+    page.wait_for_function("document.documentElement.dataset.artifactStatus === 'ready'")
+    assert page.evaluate("() => document.documentElement.dataset.style") == "default"
+    assert page.evaluate("() => document.querySelector('[data-style-select]').value") == "default"
     assert errors == []
 
 
-def test_a_saved_copy_reopens_in_the_start_theme_with_one_theme_select(tmp_path, reader_browser) -> None:
+@pytest.mark.dom
+def test_a_saved_copy_reopens_in_the_start_theme_with_one_theme_select(door_artifact, fake_page, tmp_path) -> None:
     errors: list[str] = []
-    _page, frame = open_viewer(tmp_path, reader_browser, errors, text_page(), "light")
+    frame = opened(fake_page, door_artifact, "theme-choice-text", errors)
     unchosen = frame.evaluate("obsComments.reviewedHtml()")
     pick(frame, "contrast")
     copy = frame.evaluate("obsComments.reviewedHtml()")
     assert "data-style-select" not in copy
     assert copy == unchosen, "a saved copy holds nothing of the reader's theme"
-    _page, reopened = open_viewer(tmp_path, reader_browser, errors, copy, "light")
+    saved = tmp_path / "copy.html"
+    saved.write_text(copy, encoding="utf-8")
+    reopened = opened(fake_page, door_artifact, "theme-choice-text", errors, url=saved.as_uri())
     assert reopened.evaluate("() => document.documentElement.dataset.style") == "default"
     assert reopened.locator(SELECT).count() == 1
     assert errors == []
 
 
-def test_a_guided_card_window_follows_the_theme(tmp_path, reader_browser) -> None:
-    artifact = tmp_path / "context.html"
-    artifact.write_text(artifact_html(with_context_note(), style_choice=fixture_choice()), encoding="utf-8")
-    page = reader_browser.new_page(viewport={"width": 1100, "height": 800})
+# The window the guided card opened, kept for the test: window.open as the page has it.
+KEEP_WINDOW = """() => {
+    const open = window.open;
+    window.open = (...args) => (globalThis.openedWindow = open.apply(window, args));
+}"""
+WINDOW_PAINTED = """() => {
+    const child = globalThis.openedWindow;
+    const computed = child.getComputedStyle(child.document.documentElement);
+    return {style: child.document.documentElement.dataset.style, background: computed.backgroundColor,
+            card: Boolean(child.document.querySelector(".guided-card-window"))};
+}"""
+
+
+@pytest.mark.dom
+def test_a_guided_card_window_follows_the_theme(door_artifact, fake_page) -> None:
     errors: list[str] = []
-    page.on("pageerror", lambda error: errors.append(str(error)))
-    page.goto(artifact.as_uri())
-    page.wait_for_function("document.documentElement.dataset.artifactStatus === 'ready'")
+    page = opened(fake_page, door_artifact, "theme-choice-guided-card", errors)
     page.evaluate("() => { obsPages.setPaged(false); obsArtifact.activateChapter('one'); }")
     choose(page, "light")
-    with page.expect_popup() as opened:
-        page.locator("[data-chapter-body] a[href='#aside']").click()
-    window = opened.value
-    window.wait_for_selector(".guided-card-window")
+    page.evaluate(KEEP_WINDOW)
+    page.locator("[data-chapter-body] a[href='#aside']").click()
+    page.wait_for_function("() => globalThis.openedWindow?.document.querySelector('.guided-card-window')")
     for style, colours in (("contrast", THEME), ("default", DEFAULT)):
         pick(page, style)
-        window.wait_for_function("(style) => document.documentElement.dataset.style === style", arg=style)
-        painted = window.evaluate(PAINTED, "html")
-        assert rgba(painted["background"]) == rgb(colours["canvas"]["light"]), f"{style}: {painted}"
-    window.close()
+        page.wait_for_function("(style) => globalThis.openedWindow.document.documentElement.dataset.style === style",
+                               arg=style)
+        painted = page.evaluate(WINDOW_PAINTED)
+        assert painted["card"] and colour(painted["background"]) == rgb(colours["canvas"]["light"]), f"{style}: {painted}"
+    page.evaluate("() => globalThis.openedWindow.close()")
     assert errors == []
 
 
+@pytest.mark.hot
+@pytest.mark.browser
 def test_export_to_pdf_prints_the_chosen_theme_in_light(tmp_path, reader_browser) -> None:
     errors: list[str] = []
     page, frame = open_viewer(tmp_path, reader_browser, errors, text_page(), "dark")
