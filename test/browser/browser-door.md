@@ -109,7 +109,7 @@ table headers' phone tap. `layout-logic-to-fake-browser` took `test_pdf_inspect.
 recorded PDF and drives no browser.
 `browser-door-recorder` added two files: `test_browser_door.py`, logic, with 5 tests, and
 `test_door_recordings_browser.py`, hot, with one test per top-level state.
-`hot-tests-record` moved the 19 named tests of hot files to the fake.
+`hot-tests-record` moved the 12 named tests of hot files to the fake, 13 collected.
 
 ## The fake browser
 
@@ -311,8 +311,8 @@ holds every hot test to a committed recording, but those its RECORDS_NOTHING nam
 timing, the page pool, the recorder itself, the library doors' pages, which hold no artifact, and the
 chapter sweep's child. A hot row's Package reads ``recorded by `hot-tests-record` `` once every test of
 its file but the hot ones takes the fake browser. The 18 states it added are the pages these files
-visit at their own viewports. The 19 tests the rows name as moving to the fake run on `fake_page` from
-those states. What it took:
+visit at their own viewports. The 12 tests the rows name as moving to the fake run on `fake_page` from
+those states, 13 collected: a phone deck test ran at 360 and 390 px and runs at its state's 390. What it took:
 
 - **A state's own reads.** A state's `reads` (`<selector>|<property>`) are cascade reads of the
   elements its selectors find, after each step, beside the runtime's own: the appearance and
