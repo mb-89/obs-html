@@ -51,8 +51,8 @@ tests go. The reason names each test that goes the other way.
 | `test_artifact_browser.py` | hot | `hot-tests-record` | The print book, a centred title page, a bar that follows the pointer and gutters clear of the arrow are layout. Except `test_figures_draw_their_plot_and_sankey` and `test_base_tables_evaluate_document_records_and_marks_show_their_icon`, which move to the fake. |
 | `test_attachment_editions.py` | logic | `viewer-logic-to-fake-browser` | The editions' download offers and their bytes. The undecided-downloads help needs the viewer frame's recorded refusals. |
 | `test_attachment_replacement_browser.py` | logic | moved by `more-logic-to-fake-browser` | The trusted extension's one transaction over records; no layout. |
-| `test_bars.py` | logic | `layout-logic-to-fake-browser` | Bar discovery and the dock's order are DOM. Except `test_native_splitter_anchors_and_neighbor_only_geometry`, which measures the splitter's geometry and stays hot. |
-| `test_bless_browser.py` | logic | `layout-logic-to-fake-browser` | Verdicts, drafts in session storage, Send's payload and the swipe walk are runtime state; the swipe's coordinates come from recorded boxes. Except the band and pill fits: `test_the_pill_and_keys_show_only_on_asking_chapters_and_the_page_fits_a_phone`, `test_the_band_holds_every_key_in_one_row_at_phone_width_with_the_notices_shown`, `test_the_pill_keeps_its_text_while_the_band_has_room`, `test_the_band_of_a_nested_bless_chapter_fits_at_360_px`, `test_the_pill_names_the_pick_by_its_short_name_where_the_band_has_room`, `test_the_deck_opens_in_screens_on_a_phone_that_fit_and_walk_by_swipe_and_keys` and `test_printing_from_screens_prints_each_screen_from_a_new_page_without_a_page_frame`, which stay hot. |
+| `test_bars.py` | logic | moved by `layout-logic-to-fake-browser` | Bar discovery and the dock's order are DOM. Except `test_native_splitter_anchors_and_neighbor_only_geometry`, which measures the splitter's geometry and stays hot. |
+| `test_bless_browser.py` | logic | moved by `layout-logic-to-fake-browser` | Verdicts, drafts in session storage, Send's payload, the answered deck, screens' walk and the swipe are runtime state, from the recorded states `bless-deck-desktop`, `bless-deck-phone` and `bless-plain-phone`. Except the band and pill fits: `test_the_pill_and_keys_show_only_on_asking_chapters_and_the_page_fits_a_phone`, `test_the_band_holds_every_key_in_one_row_at_phone_width_with_the_notices_shown`, `test_the_pill_keeps_its_text_while_the_band_has_room`, `test_the_band_of_a_nested_bless_chapter_fits_at_360_px`, `test_the_pill_names_the_pick_by_its_short_name_where_the_band_has_room`, `test_the_deck_opens_in_screens_on_a_phone_that_fit_and_walk_by_swipe_and_keys` and `test_printing_from_screens_prints_each_screen_from_a_new_page_without_a_page_frame`, which stay hot. |
 | `test_browser_door.py` | logic | added by `browser-door-recorder` | The conformance check: the fake's computed answers held to the recordings, and the fake answering a recorded box, text width and refusal. |
 | `test_callouts_embeds_attachments.py` | hot | `hot-tests-record` | Two of its three browser tests are painted tones and a bottom line that leads its page in every layout. Except `test_a_parent_s_preview_begins_with_its_bottom_line_and_holds_no_child_s_lead`, which moves to the fake. |
 | `test_cards_counts_quantities_browser.py` | logic | moved by `fake-browser-door` | Counts and drill-downs over the selection chain: pure runtime logic. |
@@ -67,7 +67,7 @@ tests go. The reason names each test that goes the other way.
 | `test_feature_layout_browser.py` | hot | `hot-tests-record` | The faults the feature fixture's card group found at their widths: buttons apart, clear of the arrow, scrolled into view. Except `test_the_home_chooser_closes_on_a_click_on_the_menu_or_a_docked_bar`, which moves to the fake. |
 | `test_features_browser.py` | logic | `viewer-logic-to-fake-browser` | What each canary says about a refusing host, from the viewer frame's recorded refusals. Except `test_a_host_stand_in_is_in_place_before_the_artifacts_first_script`, which is the order of scripts in a srcdoc frame and stays hot. |
 | `test_figure_frame.py` | hot | `hot-tests-record` | One frame and caption position for every kind, a border token, and a legend moved back inside after a resize are layout. Except `test_only_kinds_with_options_show_the_tables_options_menu_whose_changes_stay_in_the_view`, which moves to the fake. |
-| `test_figure_links.py` | logic | `layout-logic-to-fake-browser` | A link inside a figure shows its hover card and navigates: the card's place comes from recorded boxes, its content and the navigation are runtime logic. |
+| `test_figure_links.py` | logic | moved by `layout-logic-to-fake-browser` | A link inside a figure shows its hover card and navigates: the card's place comes from recorded boxes, its content and the navigation are runtime logic. |
 | `test_file_offers_browser.py` | logic | `viewer-logic-to-fake-browser` | Every offer saves through the host's save path, or is hidden with its warning: runtime logic against the viewer's recorded refusals. |
 | `test_images_from_assets.py` | logic | `viewer-logic-to-fake-browser` | An image renders from its asset's bytes and a failed one shows its label. The decoded size is a recorded answer. |
 | `test_library_doors_browser.py` | hot | `hot-tests-record` | The library doors' contract suite: it runs each door against the real library, and Plotly draws only in a real layout engine. |
@@ -77,17 +77,16 @@ tests go. The reason names each test that goes the other way.
 | `test_live_source_browser.py` | logic | moved by `more-logic-to-fake-browser` | A live source's rows, groups and its one logged error: runtime logic on a top-level page. |
 | `test_live_web_browser.py` | logic | `viewer-logic-to-fake-browser` | The web route's requests, kept results and rate limits over a served page and in the viewer: network and storage logic; blocked storage is a recorded refusal. |
 | `test_local_themes_browser.py` | hot | `hot-tests-record` | A theme's painted colours in each appearance, and a themed page that prints light: the browser's cascade and print. |
-| `test_notice_center_browser.py` | logic | `layout-logic-to-fake-browser` | Icons, counts, lists, lines and their replacement are runtime state. Except `test_icon_opens_its_list_an_entry_expands_and_escape_closes` (full Chromium's named set), `test_a_confirmed_send_shows_the_sinks_name_under_the_band_and_the_line_goes` and `test_in_a_figure_overlay_the_line_shows_with_the_notice_icons`, which place the line on the screen and stay hot. |
+| `test_notice_center_browser.py` | logic | moved by `layout-logic-to-fake-browser` | Icons, counts, lists, the changed-HTML and filter entries and the passing line's text, replacement and print are runtime state, from the recorded preview, artifact-change and sent-deck states. Except `test_icon_opens_its_list_an_entry_expands_and_escape_closes` (full Chromium's named set), `test_a_confirmed_send_shows_the_sinks_name_under_the_band_and_the_line_goes` and `test_in_a_figure_overlay_the_line_shows_with_the_notice_icons`, which place the line on the screen and stay hot. |
 | `test_page_pool_browser.py` | hot | `browser-door-recorder` | It tests the door's own pool: a real browser's reuse, crash and hang. |
 | `test_parity_browser.py` | hot | `hot-tests-record` | The reading rows and the covered-control sweep in preview frames at their widths, with overlay scrollbars: what lies over what is layout. |
 | `test_pdf.py` | hot | `hot-tests-record` | The PDF path prints with full Chromium; a print is the browser's own work. It records the fixture's printed PDF. |
-| `test_pdf_inspect.py` | logic | `layout-logic-to-fake-browser` | The inspection tools read a PDF; they read the fixture's PDF that `test_pdf.py` recorded instead of printing one. |
 | `test_property_editors_browser.py` | logic | moved by `more-logic-to-fake-browser` | Canonical edits that survive a reviewed copy: runtime state and the copy's markup. |
-| `test_pugh_figures_browser.py` | logic | `layout-logic-to-fake-browser` | The decision engine's verdicts, weights, marks, vetoes, tabs and the printed verdict are runtime logic. Except `test_at_phone_width_the_matrix_is_rows_and_a_wide_table_scrolls_with_its_criteria_held`, which stays hot. |
+| `test_pugh_figures_browser.py` | logic | moved by `layout-logic-to-fake-browser` | The decision engine's verdicts, weights, marks, vetoes, tabs and the printed verdict are runtime logic. Except `test_at_phone_width_the_matrix_is_rows_and_a_wide_table_scrolls_with_its_criteria_held`, which stays hot. |
 | `test_pugh_phone_browser.py` | hot | `hot-tests-record` | Rows over columns, nothing scrolls sideways, both tabs fit and one line per row on a phone are layout. Except `test_on_a_phone_a_mark_a_weight_and_a_pick_take_one_tap_each`, `test_a_link_to_a_section_in_a_tab_opens_the_tab_at_it_and_the_contents_lists_it`, `test_the_readers_changes_survive_a_resize_between_the_table_and_the_rows`, `test_the_options_list_says_each_name_once` and `test_the_options_list_and_the_popover_say_each_name_once`, which move to the fake. |
-| `test_pugh_solutions_browser.py` | logic | `layout-logic-to-fake-browser` | Sections, the options list, hover-card content, the chart's question and the print's sections are runtime logic; a folded part's empty client rects follow from its computed display. Except `test_a_counts_hover_card_lies_over_the_matrix_unclipped_and_a_tap_elsewhere_hides_it` and `test_each_options_row_holds_its_radio_arrow_letter_and_name_on_one_centre_line`, which stay hot. |
+| `test_pugh_solutions_browser.py` | logic | moved by `layout-logic-to-fake-browser` | Sections, the options list, hover-card content, the chart's question and the print's sections are runtime logic; a folded part's empty client rects follow from its computed display. Except `test_a_counts_hover_card_lies_over_the_matrix_unclipped_and_a_tap_elsewhere_hides_it` and `test_each_options_row_holds_its_radio_arrow_letter_and_name_on_one_centre_line`, which stay hot. |
 | `test_reader_text.py` | logic | moved by `fake-browser-door` | The reader-facing text names no kind, and damaged data says so: text in the DOM. |
-| `test_reading_shell_browser.py` | logic | `layout-logic-to-fake-browser` | The title page, the contents walk and shown sections are DOM and runtime state. Except `test_every_top_control_is_one_square_size_in_one_row` and `test_a_whole_note_self_link_scrolls_back_to_its_heading`, which stay hot. |
+| `test_reading_shell_browser.py` | logic | moved by `layout-logic-to-fake-browser` | The title page, the contents walk and shown sections are DOM and runtime state, each opened from its recorded state as a top-level page. Except `test_every_top_control_is_one_square_size_in_one_row` and `test_a_whole_note_self_link_scrolls_back_to_its_heading`, which stay hot. |
 | `test_references_browser.py` | logic | moved by `more-logic-to-fake-browser` | The hover card's reference link and glossary definition: its content. |
 | `test_register_passing_browser.py` | logic | moved by `fake-browser-door` | Passing rows fold into one count line that follows the filters, search and print: runtime logic; the tones are computed styles the fake's cascade gives. |
 | `test_sandboxed_preview_browser.py` | hot | `browser-door-recorder` | What a scripts-only sandboxed srcdoc frame refuses is the browser's enforcement. It records those refusals for the fake's viewer frame. Except `test_the_same_artifact_opened_normally_shows_no_notice`, `test_applying_or_clearing_a_filter_does_not_claim_the_html_changed` and `test_opening_a_preview_fails_at_once_when_the_artifact_cannot_start`, which move to the fake. |
@@ -99,14 +98,15 @@ tests go. The reason names each test that goes the other way.
 | `test_table_detail_fields_browser.py` | logic | moved by `fake-browser-door` | The fields an opened row shows and what the filter box finds: runtime logic. |
 | `test_table_headers_browser.py` | logic | `more-logic-to-fake-browser` | Headers sort on click, shift-click, Enter and a tap, and show no card: events and DOM. Except `test_on_a_phone_a_tap_on_a_header_sorts_and_opens_no_card`, which stays on the real browser's emulated phone: it taps with a coarse pointer, and the fake emulates no touch device. |
 | `test_table_rows_one_line_browser.py` | hot | `hot-tests-record` | One line per row at 390 px, cut cells and the print book's full cells are text layout. |
-| `test_theme_choice_browser.py` | logic | `layout-logic-to-fake-browser` | The offered themes, restyling, re-measured columns, session-only choice and a saved copy are runtime logic; the columns come from recorded text widths per font. Except `test_the_theme_select_is_as_wide_as_its_options_as_the_appearance_select_is` and `test_export_to_pdf_prints_the_chosen_theme_in_light`, which stay hot. |
-| `test_timeline_figure_browser.py` | logic | `layout-logic-to-fake-browser` | Rows in order, the drill-down, the filter and print's rows are runtime logic. Except `test_the_today_row_is_in_view_when_the_chapter_opens_and_a_block_link_wins` and `test_at_390_by_844_nothing_scrolls_sideways_with_every_row_open`, which stay hot. |
+| `test_theme_choice_browser.py` | logic | moved by `layout-logic-to-fake-browser` | The offered themes, restyling, re-measured sheets and columns, session-only choice, a saved copy and the guided card's window are runtime logic; a re-measure shows as the texts measured again in the theme's fonts, from recorded text widths per font, and the blocks measured again. Except `test_the_theme_select_is_as_wide_as_its_options_as_the_appearance_select_is` and `test_export_to_pdf_prints_the_chosen_theme_in_light`, which stay hot. |
+| `test_timeline_figure_browser.py` | logic | moved by `layout-logic-to-fake-browser` | Rows in order, the drill-down, the filter and print's rows are runtime logic. Except `test_the_today_row_is_in_view_when_the_chapter_opens_and_a_block_link_wins` and `test_at_390_by_844_nothing_scrolls_sideways_with_every_row_open`, which stay hot; the first also holds each row's height of at least 2.4rem, which the rows' test measured before. |
 
 That makes 35 logic files with 299 collected tests and 17 hot files with 188. Of the named
 exceptions, 37 collected tests of logic files stay on the real browser and 19 of hot files move to
 the fake. Once every package has landed, 206 of the 487 run in the one real Chromium, and a landing
 runs them only when a recording is stale (below). `more-logic-to-fake-browser` added the 37th, the
-table headers' phone tap.
+table headers' phone tap. `layout-logic-to-fake-browser` took `test_pdf_inspect.py` out of the table, as it reads the
+recorded PDF and drives no browser.
 `browser-door-recorder` added two files: `test_browser_door.py`, logic, with 5 tests, and
 `test_door_recordings_browser.py`, hot, with one test per top-level state.
 
@@ -264,6 +264,44 @@ harness. What changed for them:
   the floating window opens there; the contract that reads it in the page refuses the window
   first.
 
+**As built** (`layout-logic-to-fake-browser`): the nine files of package 5 that still drive a
+browser run their logic tests on the fake browser, 66 collected tests, from recordings of the 27
+states they open; their named exceptions, 35 collected tests, carry the `hot` mark and keep their
+real fixtures. `test_pdf_inspect.py` left the table: it reads the fixture's printed PDF,
+`recordings/fixture-print.pdf`, which `test_pdf.py`'s hot test records with `--record` at the
+door's build instant, so two recordings are equal, and it drives no browser. What it took:
+
+- **A state of a test's own page.** A state's artifact is a function of the test module that
+  returns the Document or the artifact's HTML, built in a fresh folder. A logic test opens its state
+  with `door.open_recorded` (its artifact from `door_artifact`, its context, its committed
+  recording, its steps up to the one it needs); a served copy or a variant of the same page (other
+  settings, a saved copy) opens at its own address and replays the same recording, since keys, not
+  the page, select an answer.
+- **Hot exceptions in a moved row.** A logic file's row says moved once every test of it but those
+  with the `hot` mark takes the fake browser ([test_browser_door.py](../structure/test_browser_door.py)).
+- **No layout in a logic test.** A box, size, fit or page break a moved test measured is asserted
+  by a hot test of its file that opens the same page, or dropped; a re-measure after a theme choice
+  is asserted as the texts the runtime measures again in the theme's fonts. The viewer frame's
+  tests whose subject is not the sandbox open the artifact as a top-level page, and the moved tests
+  run at their state's viewport.
+
+What the moved files asked of the fake, each held by `test_fake_browser.py`:
+
+- **Logical margins and paddings.** happy-dom 21 computed no length for `margin-block` and its
+  longhands, which `pages.js` reads; in the horizontal, left-to-right writing mode of every page, a
+  logical side is set and read as its physical one.
+- **An SVG `<style>`.** happy-dom 21 read the markup after an inline SVG's `<style>` as its text and
+  lost it; the end tag closes it in any case.
+- **Computed values as Chromium writes them.** A whole `light-dark()` pair in any property is the
+  used scheme's colour, a `calc()` of pixel lengths is its length, and `font` is written with
+  pixel sizes and line height and a numeric weight, the font `table.js` measures in; `th` is bold.
+  A custom property keeps what it was given, as in Chromium.
+- **`innerText`** breaks the line around every block-level child, a list item among them.
+- **A media change on an open page** gives its computed styles anew, so a print rule takes effect.
+- **A phone's state** is a touch device at its scale: `(pointer: coarse)` and `(hover: none)` match
+  and `devicePixelRatio` is 3. Playwright's `on("dialog")` hears an alert, a confirm or a prompt,
+  which the fake dismisses as Playwright does.
+
 ## The browser door's expectations
 
 An expectation is one thing obs-html relies on the browser for. They live in
@@ -317,8 +355,11 @@ states are those the hot tests visit, plus one per fixture and context that the 
 desktop 1280 by 720, the viewer frame 1100 by 700, and a phone 390 by 844.
 [expectations.yaml](expectations.yaml) holds them; `browser-door-recorder` recorded two,
 `features-desktop`, the feature fixture opening `figures` and then `prose`, and
-`preview-viewer-frame`, the preview of `test_sandboxed_preview_browser.py` in the viewer frame.
-The phone needs a phone context of the one Chromium, which `hot-tests-record` adds.
+`preview-viewer-frame`, the preview of `test_sandboxed_preview_browser.py` in the viewer frame;
+`layout-logic-to-fake-browser` added those of the files it moved (below). A state's artifact is a
+Document file or a function of a test module that returns the Document or the artifact's HTML. A
+phone's state has the scale and touch of `test/conftest.py`'s `PHONE_CONTEXT`, 3 and true, and is
+recorded on full Chromium's phone pages (`full_phone_browser`), only with `--record`.
 
 **An element's key** is the same in both engines: the id of its nearest ancestor that has one,
 then its tag and position among its siblings of that tag below it. `test/browser/door-key.js`

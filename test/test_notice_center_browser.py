@@ -1,16 +1,34 @@
-"""The notice center: at most three severity icons with count pills, each opening its list."""
+"""The notice center: at most three severity icons with count pills, each opening its list.
+
+The logic tests run on the fake browser (test/browser/browser-door.md), each from the browser
+door's recorded state it opens: the preview Document and the artifact-change fixture at desktop
+size, and the sent deck on a phone. The tests that place the icons' list or the passing line on
+the screen stay in the real Chromium and carry the hot mark.
+"""
 import json
+import os
 import re
 from pathlib import Path
 
 import pytest
 
+from browser import door
+from browser.fake_page import expect
 from conftest import built_once
-from test_moved_dom_contracts import _artifact
+from test_moved_dom_contracts import _document
 from test_sandboxed_preview_browser import keep_screenshot, open_page, preview_artifact
 
+PREVIEW = "notice-center-desktop"
+"""The browser door's state of the preview Document at desktop size."""
+CHANGE = "artifact-change-desktop"
+"""The browser door's state of the artifact-change fixture at desktop size."""
+SENT = "sent-deck-phone"
+"""The browser door's state of the sent deck, with the line on and the named sink, on a phone."""
 
-pytestmark = pytest.mark.browser
+
+def artifact_change_document() -> dict:
+    """The Document of the state artifact-change-desktop (test/browser/expectations.yaml)."""
+    return _document("artifact-change")
 
 
 def open_artifact(tmp_path: Path, reader_browser, errors: list[str]):
@@ -23,23 +41,30 @@ def open_artifact(tmp_path: Path, reader_browser, errors: list[str]):
     return page
 
 
+def open_state(fake_page, door_artifact, state: str, errors: list[str], url: str | None = None):
+    """The state opened in the fake browser with its recording, page errors and console errors
+    collected in ``errors``."""
+    fake_page.on("pageerror", lambda error: errors.append(str(error)))
+    fake_page.on("console", lambda message: errors.append(message.text) if message.type == "error" else None)
+    door.open_recorded(fake_page, state, door_artifact(state), url=url)
+    return fake_page
+
+
 def post(page, notices: list[dict]) -> None:
     page.evaluate("(notices) => notices.forEach((notice) => globalThis.obsNotices.post(notice))", notices)
 
 
 def visible_icons(page) -> dict[str, str]:
-    icons = page.locator("[data-header-notices] [data-notice-icon]:visible")
+    icons = page.locator("[data-header-notices] [data-notice-icon]").filter(visible=True)
     return {icons.nth(index).get_attribute("data-notice-icon"): icons.nth(index).inner_text().strip()
             for index in range(icons.count())}
 
 
-def test_three_severities_give_exactly_three_icons_with_counts(tmp_path: Path, reader_browser) -> None:
+@pytest.mark.dom
+def test_three_severities_give_exactly_three_icons_with_counts(door_artifact, fake_page) -> None:
     errors: list[str] = []
-    page = open_artifact(tmp_path, reader_browser, errors)
+    page = open_state(fake_page, door_artifact, PREVIEW, errors)
     assert visible_icons(page) == {}
-    # The icons take their place in the top band's one row; the reader below never moves.
-    reader_top = lambda: page.locator("[data-chapter-scroll]").bounding_box()["y"]
-    top = reader_top()
     post(page, [
         {"id": "e1", "severity": "error", "title": "Broken figure", "details": "The figure failed."},
         {"id": "w1", "severity": "warning", "title": "First warning"},
@@ -48,30 +73,30 @@ def test_three_severities_give_exactly_three_icons_with_counts(tmp_path: Path, r
         {"id": "i2", "severity": "information", "title": "Second note"},
         {"id": "i3", "severity": "information", "title": "Third note"},
     ])
-    icons = page.locator("[data-header-notices] [data-notice-icon]:visible")
+    icons = page.locator("[data-header-notices] [data-notice-icon]").filter(visible=True)
     assert [icons.nth(index).get_attribute("data-notice-icon") for index in range(icons.count())] == [
         "error", "warning", "information"]
     assert [icons.nth(index).locator("[data-notice-count]").inner_text() for index in range(3)] == [
         "1", "2", "3"]
     assert icons.nth(1).get_attribute("aria-label") == "Warnings: 2 notices"
-    assert reader_top() == top
-    keep_screenshot(page, "notice-center-three-icons")
     page.evaluate("['e1', 'w1', 'w2', 'i1', 'i2', 'i3'].forEach((id) => globalThis.obsNotices.remove(id))")
     assert visible_icons(page) == {}
-    assert reader_top() == top
     assert errors == []
 
 
-def test_ten_notices_of_one_severity_give_one_icon_with_pill_ten(tmp_path: Path, reader_browser) -> None:
+@pytest.mark.dom
+def test_ten_notices_of_one_severity_give_one_icon_with_pill_ten(door_artifact, fake_page) -> None:
     errors: list[str] = []
-    page = open_artifact(tmp_path, reader_browser, errors)
+    page = open_state(fake_page, door_artifact, PREVIEW, errors)
     post(page, [{"id": f"w{index}", "severity": "warning", "title": f"Warning {index}"} for index in range(10)])
-    icons = page.locator("[data-header-notices] [data-notice-icon]:visible")
+    icons = page.locator("[data-header-notices] [data-notice-icon]").filter(visible=True)
     assert icons.count() == 1
     assert icons.first.locator("[data-notice-count]").inner_text() == "10"
     assert errors == []
 
 
+@pytest.mark.hot
+@pytest.mark.browser
 def test_icon_opens_its_list_an_entry_expands_and_escape_closes(tmp_path: Path, full_chromium_browser) -> None:
     from playwright.sync_api import expect
 
@@ -111,9 +136,10 @@ def test_icon_opens_its_list_an_entry_expands_and_escape_closes(tmp_path: Path, 
     assert errors == []
 
 
-def test_an_unknown_severity_names_the_post_and_the_choices(tmp_path: Path, reader_browser) -> None:
+@pytest.mark.dom
+def test_an_unknown_severity_names_the_post_and_the_choices(door_artifact, fake_page) -> None:
     errors: list[str] = []
-    page = open_artifact(tmp_path, reader_browser, errors)
+    page = open_state(fake_page, door_artifact, PREVIEW, errors)
     message = page.evaluate("""() => {
         try { globalThis.obsNotices.post({id: "x", severity: "fatal", title: "X"}); }
         catch (error) { return error.message; }
@@ -121,13 +147,10 @@ def test_an_unknown_severity_names_the_post_and_the_choices(tmp_path: Path, read
     assert message == 'obsNotices.post(x): unknown severity "fatal"; use one of error, warning, information.'
 
 
-def test_changed_html_and_the_applied_filter_are_entries_that_keep_their_behaviour(
-        tmp_path: Path, reader_browser) -> None:
-    from playwright.sync_api import expect
-
+@pytest.mark.dom
+def test_changed_html_and_the_applied_filter_are_entries_that_keep_their_behaviour(door_artifact, fake_page) -> None:
     errors: list[str] = []
-    page = open_page(reader_browser, _artifact(tmp_path, "artifact-change"), errors)
-    expect(page.locator("html")).to_have_attribute("data-artifact-status", "ready")
+    page = open_state(fake_page, door_artifact, CHANGE, errors)
     unload_prevented = """() => {
         const event = new Event("beforeunload", {cancelable: true});
         window.dispatchEvent(event);
@@ -232,20 +255,28 @@ def _build_sent(folder: Path, settings: dict | None, bundled: bool, name: str) -
     return folder / name
 
 
+LINE_ON = {"artifact": {"reading": {"briefNoticeMilliseconds": BRIEF_MILLISECONDS}}}
+"""The setting that turns the line on, for a short time."""
+
+
+def sent_deck_artifact() -> str:
+    """The artifact of the state sent-deck-phone (test/browser/expectations.yaml): the deck with the
+    line on and the named sink, built in the current folder."""
+    return _build_sent(Path(os.getcwd()), LINE_ON, True, "deck.html").read_text(encoding="utf-8")
+
+
 @pytest.fixture(scope="module")
 def line_on(tmp_path_factory) -> Path:
     """The deck with the line on and the named sink."""
-    settings = {"artifact": {"reading": {"briefNoticeMilliseconds": BRIEF_MILLISECONDS}}}
     return built_once(tmp_path_factory, "sent-line-on",
-                      lambda folder: _build_sent(folder, settings, True, "deck.html")) / "deck.html"
+                      lambda folder: _build_sent(folder, LINE_ON, True, "deck.html")) / "deck.html"
 
 
 @pytest.fixture(scope="module")
 def line_served(tmp_path_factory) -> Path:
     """The deck with the line on and no bundle, so Send posts to obs-html serve."""
-    settings = {"artifact": {"reading": {"briefNoticeMilliseconds": BRIEF_MILLISECONDS}}}
     return built_once(tmp_path_factory, "sent-line-served",
-                      lambda folder: _build_sent(folder, settings, False, "deck.html")) / "deck.html"
+                      lambda folder: _build_sent(folder, LINE_ON, False, "deck.html")) / "deck.html"
 
 
 @pytest.fixture(scope="module")
@@ -277,6 +308,8 @@ def _send_a_verdict(page) -> None:
     page.locator("[data-bless-send]").click()
 
 
+@pytest.mark.hot
+@pytest.mark.browser
 @pytest.mark.parametrize("viewport", SENT_VIEWPORTS, ids=["phone", "desktop"])
 def test_a_confirmed_send_shows_the_sinks_name_under_the_band_and_the_line_goes(
         line_on: Path, reader_browser, viewport: dict) -> None:
@@ -310,12 +343,12 @@ def test_a_confirmed_send_shows_the_sinks_name_under_the_band_and_the_line_goes(
     assert errors == []
 
 
-def test_a_new_line_replaces_the_shown_one_and_reduced_motion_drops_the_fade(line_on: Path, reader_browser) -> None:
+@pytest.mark.dom
+def test_a_new_line_replaces_the_shown_one_and_reduced_motion_drops_the_fade(door_artifact, fake_page) -> None:
     """Requirement 1: one line at a time, the new text restarting the time; with reduced motion it
     goes without the fade; it is never printed."""
-    from playwright.sync_api import expect
-
-    page, errors = _open_deck(reader_browser, line_on.as_uri(), SENT_VIEWPORTS[0])
+    errors: list[str] = []
+    page = open_state(fake_page, door_artifact, SENT, errors)
     page.emulate_media(reduced_motion="reduce")
     page.evaluate("globalThis.obsNotices.brief('First.'); globalThis.obsNotices.brief('Second.')")
     line = page.locator("[data-brief-notice]")
@@ -330,6 +363,8 @@ def test_a_new_line_replaces_the_shown_one_and_reduced_motion_drops_the_fade(lin
     assert errors == []
 
 
+@pytest.mark.hot
+@pytest.mark.browser
 def test_in_a_figure_overlay_the_line_shows_with_the_notice_icons(line_on: Path, reader_browser) -> None:
     """Requirement 1: where a figure overlay holds the notice icons, the line shows there with them."""
     from playwright.sync_api import expect
@@ -346,16 +381,17 @@ def test_in_a_figure_overlay_the_line_shows_with_the_notice_icons(line_on: Path,
     assert errors == []
 
 
-def test_through_obs_html_serve_the_line_says_sent(line_served: Path, reader_browser, tmp_path: Path) -> None:
+@pytest.mark.dom
+def test_through_obs_html_serve_the_line_says_sent(line_served: Path, door_artifact, fake_page, tmp_path: Path) -> None:
     """Requirements 3 and 6: the local server gives no name, so the line and the entry name no place."""
     import serving
-    from playwright.sync_api import expect
 
     artifact = tmp_path / "deck.html"
     artifact.write_bytes(line_served.read_bytes())
     served = serving.started(artifact)
+    errors: list[str] = []
     try:
-        page, errors = _open_deck(reader_browser, served.url, SENT_VIEWPORTS[0])
+        page = open_state(fake_page, door_artifact, SENT, errors, url=served.url)
         _send_a_verdict(page)
         expect(page.locator("[data-brief-notice]")).to_have_text("Sent.")
         entry = page.locator('[data-notice="bless-send"] [data-notice-details]')
@@ -366,14 +402,15 @@ def test_through_obs_html_serve_the_line_says_sent(line_served: Path, reader_bro
     assert errors == []
 
 
+@pytest.mark.dom
 @pytest.mark.parametrize("built", ["line_absent", "line_zero"], ids=["absent", "zero"])
-def test_with_the_default_no_line_shows_and_the_entry_says_what_was_sent(request, reader_browser, built: str) -> None:
+def test_with_the_default_no_line_shows_and_the_entry_says_what_was_sent(request, door_artifact, fake_page,
+                                                                           built: str) -> None:
     """Requirement 2: with the default the line is off and no part of the page (features.py, the bless
     feature's part brief-notice): obsNotices.brief is absent, Send raises no page error and the entry
     alone says what was sent, in plain words."""
-    from playwright.sync_api import expect
-
-    page, errors = _open_deck(reader_browser, request.getfixturevalue(built).as_uri(), SENT_VIEWPORTS[0])
+    errors: list[str] = []
+    page = open_state(fake_page, door_artifact, SENT, errors, url=request.getfixturevalue(built).as_uri())
     assert page.evaluate("() => 'brief' in globalThis.obsNotices || 'obsNoticeBrief' in globalThis") is False
     _send_a_verdict(page)
     entry = page.locator('[data-notice="bless-send"] [data-notice-details]')

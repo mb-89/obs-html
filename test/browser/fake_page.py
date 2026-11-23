@@ -89,6 +89,20 @@ class Request:
         return f"Request({self.url!r})"
 
 
+class Dialog:
+    """A modal dialog the page opened, as Playwright's ``on("dialog")`` hands it: the fake has already
+    dismissed it, so accept and dismiss do nothing."""
+
+    def __init__(self, type_: str, message: str) -> None:
+        self.type, self.message = type_, message
+
+    def accept(self, prompt_text: str | None = None) -> None:
+        pass
+
+    def dismiss(self) -> None:
+        pass
+
+
 class Download:
     """A file the page downloaded, as Playwright's ``download`` hands it over."""
 
@@ -128,7 +142,7 @@ class ExpectedDownload:
 
 
 # The page events a test may listen to with ``on`` and ``once``.
-EVENTS = ("pageerror", "console", "request")
+EVENTS = ("pageerror", "console", "request", "dialog")
 
 
 class FakeBrowser:
@@ -445,6 +459,8 @@ class FakePage:
                 self._emit("console", ConsoleMessage(event["level"], event["text"]))
             elif event["type"] == "request":
                 self._emit("request", Request(event["url"]))
+            elif event["type"] == "dialog":
+                self._emit("dialog", Dialog(event["kind"], event["message"]))
 
     def _emit(self, name: str, value) -> None:
         for listener, once in list(self._listeners.get(name, [])):

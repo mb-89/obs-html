@@ -12,12 +12,26 @@ import pytest
 import yaml
 from pypdf import PdfReader
 
+from browser import door
 from conftest import FIXTURE, ROOT
 from documents import chapter, document, node
 from obs_html import cli, pdf
 
 
 PIXEL = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
+
+
+@pytest.mark.hot
+@pytest.mark.browser
+def test_the_fixtures_printed_pdf_is_recorded(recording, pdf_browser, tmp_path) -> None:
+    """The print expectation's supplied answer (test/browser/browser-door.md, The browser door's
+    expectations): the fixture Document printed by the PDF path, which the PDF inspection tools read
+    (test_pdf_inspect.py) without a browser. Only `uv run pytest -m hot --record` runs it."""
+    printed = door.print_fixture(tmp_path)
+    reader = PdfReader(BytesIO(printed.read_bytes()))
+    assert "Fixture document" in reader.pages[0].extract_text()
+    door.PRINTED_PDF.parent.mkdir(exist_ok=True)
+    shutil.copyfile(printed, door.PRINTED_PDF)
 
 
 @pytest.mark.browser

@@ -7,8 +7,9 @@ its Pareto and Sensitivity framing.
 The artifact is the phone deck (fixtures/phone-deck), built through the core once per run, as
 test_pugh_phone_browser.py builds it: "three" has context, concern, success criteria and marks with
 reasons, and two ``##`` sections after its figure; "five" is superseded, and one of its criteria's
-labels starts with an acronym, another with a code span. Pages are a desktop reader
-(1200 px) or an emulated phone (390 px, conftest.py, PHONE_CONTEXT).
+labels starts with an acronym, another with a code span. The logic tests open it on the fake browser
+at its recorded states, a desktop (1280 by 720) and a phone (390 by 844); the hot tests in the real
+browser, a desktop reader (1200 px) or an emulated phone (390 px, conftest.py, PHONE_CONTEXT).
 """
 import subprocess
 import sys
@@ -16,29 +17,54 @@ from pathlib import Path
 
 import pytest
 
-from conftest import ROOT, built_once
+from browser import door
+from conftest import ROOT
 from obs_html import cli
 
-pytestmark = pytest.mark.browser
 DECK = ROOT / "test" / "fixtures" / "phone-deck" / "manifest.md"
 THREE, FIVE = "three--figure-1", "five--figure-1"
 CARD = "#hover-card"
 
 
-@pytest.fixture(scope="module")
-def deck(tmp_path_factory) -> Path:
-    def build(folder: Path) -> None:
-        subprocess.run([sys.executable, "-m", "obs.document", "--source", str(DECK),
-                        "--document", str(folder / "deck.json")], check=True)
-        assert cli.main([str(folder / "deck.json"), str(folder / "deck.html")]) == 0
-
-    return built_once(tmp_path_factory, "phone-deck", build) / "deck.html"
+DESKTOP, PHONE = "pugh-solutions-desktop", "pugh-solutions-phone"
+"""The browser door's states the logic tests open (test/browser/expectations.yaml): the deck at
+desktop size, opening "three" and then "five", and on a phone, opening "three"."""
+STEPS = {(DESKTOP, "three"): 1, (DESKTOP, "five"): 2, (PHONE, "three"): 1}
+"""The step of each state that opens a chapter."""
 
 
-def _open(browser, deck: Path, width: int, chapter: str):
-    page = browser.new_page(viewport={"width": width, "height": 780})
+def phone_deck() -> str:
+    """The artifact of both states: the phone deck, built through the core in the current folder."""
+    subprocess.run([sys.executable, "-m", "obs.document", "--source", str(DECK), "--document", "deck.json"], check=True)
+    assert cli.main(["deck.json", "deck.html"]) == 0
+    return Path("deck.html").read_text(encoding="utf-8")
+
+
+@pytest.fixture
+def deck(door_artifact) -> Path:
+    """The phone deck's artifact, as the states build it, for the hot tests' real browser."""
+    return door_artifact(DESKTOP)
+
+
+def _opened(page, chapter: str):
     errors: list[str] = []
     page.on("pageerror", lambda error: errors.append(str(error)))
+    return errors
+
+
+def _open(fake_page, door_artifact, state: str, chapter: str):
+    """The deck on the fake browser at its recorded state, with ``chapter`` open."""
+    errors = _opened(fake_page, chapter)
+    door.open_recorded(fake_page, state, door_artifact(state), through=STEPS[state, chapter])
+    fake_page.evaluate(f"obsArtifact.activateChapter('{chapter}')")
+    fake_page.wait_for_selector(f"#{chapter}--figure-1.figure-pugh-ready")
+    return fake_page, errors
+
+
+def _open_real(browser, deck: Path, width: int, chapter: str):
+    """The deck in the real browser, for the hot tests."""
+    page = browser.new_page(viewport={"width": width, "height": 780})
+    errors = _opened(page, chapter)
     page.goto(deck.as_uri())
     page.wait_for_function("document.documentElement.dataset.artifactStatus === 'ready'")
     page.evaluate(f"obsArtifact.activateChapter('{chapter}')")
@@ -67,8 +93,9 @@ SECTIONS = """anchor => {
 }"""
 
 
-def test_a_decision_chapter_reads_potential_solutions_then_details(reader_browser, deck):
-    page, errors = _open(reader_browser, deck, 1200, "three")
+@pytest.mark.dom
+def test_a_decision_chapter_reads_potential_solutions_then_details(fake_page, door_artifact):
+    page, errors = _open(fake_page, door_artifact, DESKTOP, "three")
 
     sections = page.evaluate(SECTIONS, THREE)
     page.locator('[data-heading-section-target="three--details"]').click()
@@ -112,8 +139,9 @@ SUCCESS_B = "Success criterion: The answers check refuses an artifact without it
 SUCCESS_C = "Success criterion: The server keeps every answers file it writes."
 
 
-def test_the_options_list_carries_the_pick_the_winner_mark_and_the_y_statement(phone_browser, deck):
-    page, errors = _open(phone_browser, deck, 390, "three")
+@pytest.mark.dom
+def test_the_options_list_carries_the_pick_the_winner_mark_and_the_y_statement(fake_page, door_artifact):
+    page, errors = _open(fake_page, door_artifact, PHONE, "three")
     figure = page.locator(f"#{THREE}")
 
     shown = page.evaluate(SOLUTIONS, THREE)
@@ -148,8 +176,9 @@ def test_the_options_list_carries_the_pick_the_winner_mark_and_the_y_statement(p
     assert errors == []
 
 
-def test_a_superseded_decision_says_so_at_its_top_and_its_statement_needs_no_context(reader_browser, deck):
-    page, errors = _open(reader_browser, deck, 1200, "five")
+@pytest.mark.dom
+def test_a_superseded_decision_says_so_at_its_top_and_its_statement_needs_no_context(fake_page, door_artifact):
+    page, errors = _open(fake_page, door_artifact, DESKTOP, "five")
 
     top = page.evaluate("""() => { const body = document.querySelector('[data-active-chapter] [data-chapter-body]');
         const note = body.querySelector('[data-pugh-superseded]'), heading = body.querySelector('h1');
@@ -165,8 +194,9 @@ def test_a_superseded_decision_says_so_at_its_top_and_its_statement_needs_no_con
     assert errors == []
 
 
-def test_a_marks_reason_is_an_argument_in_the_hover_card_of_its_cell_and_its_count(reader_browser, deck):
-    page, errors = _open(reader_browser, deck, 1200, "three")
+@pytest.mark.dom
+def test_a_marks_reason_is_an_argument_in_the_hover_card_of_its_cell_and_its_count(fake_page, door_artifact):
+    page, errors = _open(fake_page, door_artifact, DESKTOP, "three")
     figure = page.locator(f"#{THREE}")
     details = page.locator(f'[data-pugh-details="{THREE}"]')
 
@@ -220,9 +250,11 @@ OVER = """anchor => {
 }"""
 
 
+@pytest.mark.hot
+@pytest.mark.browser
 @pytest.mark.parametrize("width", [390, 1200])
 def test_a_counts_hover_card_lies_over_the_matrix_unclipped_and_a_tap_elsewhere_hides_it(phone_browser, deck, width):
-    page, errors = _open(phone_browser, deck, width, "three")
+    page, errors = _open_real(phone_browser, deck, width, "three")
     count = page.locator(f'[data-pugh-details="{THREE}"] [data-pugh-texts="losses"] [data-pugh-count="C"]')
 
     count.evaluate("node => node.scrollIntoView({block: 'center'})")
@@ -239,8 +271,9 @@ def test_a_counts_hover_card_lies_over_the_matrix_unclipped_and_a_tap_elsewhere_
     assert errors == []
 
 
-def test_sensitivity_leads_with_the_share_and_keeps_the_draw_range_in_its_hover_card(reader_browser, deck):
-    page, errors = _open(reader_browser, deck, 1200, "three")
+@pytest.mark.dom
+def test_sensitivity_leads_with_the_share_and_keeps_the_draw_range_in_its_hover_card(fake_page, door_artifact):
+    page, errors = _open(fake_page, door_artifact, DESKTOP, "three")
     details = page.locator(f'[data-pugh-details="{THREE}"]')
 
     details.locator('[data-pugh-tab="sensitivity"]').click()
@@ -268,8 +301,9 @@ PARETO = """anchor => {
 }"""
 
 
-def test_the_pareto_plot_colours_each_option_as_its_chip_and_labels_its_axes(reader_browser, deck):
-    page, errors = _open(reader_browser, deck, 1200, "five")
+@pytest.mark.dom
+def test_the_pareto_plot_colours_each_option_as_its_chip_and_labels_its_axes(fake_page, door_artifact):
+    page, errors = _open(fake_page, door_artifact, DESKTOP, "five")
     page.locator(f'[data-pugh-details="{FIVE}"] [data-pugh-tab="pareto"]').click()
 
     pareto = page.evaluate(PARETO, FIVE)
@@ -284,11 +318,12 @@ def test_the_pareto_plot_colours_each_option_as_its_chip_and_labels_its_axes(rea
     assert errors == []
 
 
-def test_a_print_shows_the_solutions_expanded_and_the_matrix_under_details(reader_browser, deck):
+@pytest.mark.dom
+def test_a_print_shows_the_solutions_expanded_and_the_matrix_under_details(fake_page, door_artifact):
     """artifact-ui.md, Decision figures: print shows every option expanded, the Proposed winner box,
     then under Details the Matrix tab and the chapter's sections, with no tabs; the
     reader's view is as before afterwards."""
-    page, errors = _open(reader_browser, deck, 1200, "three")
+    page, errors = _open(fake_page, door_artifact, DESKTOP, "three")
     page.locator(f'[data-pugh-details="{THREE}"] [data-pugh-tab="pareto"]').click()
 
     printed = page.evaluate("""async anchor => {
@@ -344,11 +379,12 @@ PROPOSED = """anchor => {
 }"""
 
 
-def test_the_proposed_winner_is_a_box_like_the_bottom_line_and_each_option_says_its_success(phone_browser, deck):
+@pytest.mark.dom
+def test_the_proposed_winner_is_a_box_like_the_bottom_line_and_each_option_says_its_success(fake_page, door_artifact):
     """artifact-ui.md, Decision figures: after Potential solutions, the Proposed winner section holds
     one box drawn as the report's bottom-line-up-front box, the Y-statement, not bold, then the
     proposed option's success criterion; each option's expander shows its own."""
-    page, errors = _open(phone_browser, deck, 390, "three")
+    page, errors = _open(fake_page, door_artifact, PHONE, "three")
 
     shown = page.evaluate(PROPOSED, THREE)
 
@@ -380,13 +416,15 @@ CENTRES = """anchor => {
 }"""
 
 
+@pytest.mark.hot
+@pytest.mark.browser
 @pytest.mark.parametrize("width", [390, 1200])
 def test_each_options_row_holds_its_radio_arrow_letter_and_name_on_one_centre_line(request, deck, width):
     """artifact-ui.md, Decision figures: in every row of Potential solutions, None of the above
     included, the radio, the expander's arrow, the letter chip and the short name share one
     vertical centre, on a phone and on a desktop."""
     browser = request.getfixturevalue("phone_browser" if width < 600 else "reader_browser")
-    page, errors = _open(browser, deck, width, "three")
+    page, errors = _open_real(browser, deck, width, "three")
 
     rows = page.evaluate(CENTRES, THREE)
 
@@ -410,12 +448,12 @@ SHARE_QUESTION = "Does the winner still win when every weight shifts a little at
 GRID_QUESTION = "How far must each weight move before another option wins?"
 
 
+@pytest.mark.dom
 @pytest.mark.parametrize("width", [390, 1200])
-def test_each_chart_opens_with_the_question_it_answers(request, deck, width):
+def test_each_chart_opens_with_the_question_it_answers(fake_page, door_artifact, width):
     """artifact-ui.md, Decision figures: the matrix, the Sensitivity bar and the Sensitivity grid each
     open with one line, the question it answers; the Checklist and Pareto have none."""
-    browser = request.getfixturevalue("phone_browser" if width < 600 else "reader_browser")
-    page, errors = _open(browser, deck, width, "three")
+    page, errors = _open(fake_page, door_artifact, PHONE if width < 600 else DESKTOP, "three")
 
     questions = dict(page.evaluate(QUESTIONS, THREE))
 

@@ -11,6 +11,8 @@ verdict's test reads a third, the same Document with an answer to its decisions 
 reader's view or the viewport lease their own. Every page runs with every request outside the
 artifact refused and recorded.
 """
+from __future__ import annotations
+
 import contextlib
 import io
 import json
@@ -18,6 +20,7 @@ from pathlib import Path
 
 import pytest
 
+from browser import door
 from conftest import ROOT, built_once
 from obs_html import cli
 
@@ -31,23 +34,35 @@ LETTERS = {"D": "A", "A": "B", "B": "C", "C": "D"}
 """The option figure decides the upstream project's matrix with the fourth option C (build_documents.py, DECISION),
 whose options the fence lists D, A, B, C: their letters."""
 
-pytestmark = pytest.mark.browser
 
 
-@pytest.fixture(scope="module")
-def artifact(tmp_path_factory) -> Path:
-    def build(folder: Path) -> None:
-        assert cli.main([str(PUGH), str(folder / "artifact.html")]) == 0
-
-    return built_once(tmp_path_factory, "pugh-artifact", build) / "artifact.html"
+STATES = {"plain": "pugh-figures-desktop", "verdict": "pugh-verdict-desktop", "answered": "pugh-verdict-answered-desktop"}
+"""The browser door's states the logic tests open (test/browser/expectations.yaml): the pugh fixture's,
+the decision-verdict fixture's and the answered decision-verdict Document's decisions chapter at
+desktop size, each built by a function below."""
 
 
-@pytest.fixture(scope="module")
-def verdict_artifact(tmp_path_factory) -> Path:
-    def build(folder: Path) -> None:
-        assert cli.main([str(PUGH_VERDICT), str(folder / "artifact.html")]) == 0
+def _built(document: Path) -> str:
+    """The artifact of ``document`` built in the current folder, as the browser door builds a state's."""
+    assert cli.main([str(document), "artifact.html"]) == 0
+    return Path("artifact.html").read_text(encoding="utf-8")
 
-    return built_once(tmp_path_factory, "pugh-verdict-artifact", build) / "artifact.html"
+
+def pugh_artifact() -> str:
+    """The artifact of the state pugh-figures-desktop: the pugh fixture Document's."""
+    return _built(PUGH)
+
+
+def verdict_artifact() -> str:
+    """The artifact of the state pugh-verdict-desktop: the decision-verdict fixture Document's."""
+    return _built(PUGH_VERDICT)
+
+
+def answered_verdict_artifact() -> str:
+    """The artifact of the state pugh-verdict-answered-desktop: the decision-verdict Document whose
+    decisions chapter carries ANSWER."""
+    Path("document.json").write_text(json.dumps(_answered(), ensure_ascii=False), encoding="utf-8")
+    return _built(Path("document.json"))
 
 
 ANSWER = {"verdict": "bless", "figures": {
@@ -58,17 +73,21 @@ ANSWER = {"verdict": "bless", "figures": {
 (obs input-model, Answers): a weight and a mark, a weight alone, and a veto with a lifted gate."""
 
 
+def _answered() -> dict:
+    """The decision-verdict Document whose decisions chapter carries ANSWER."""
+    document = json.loads(PUGH_VERDICT.read_text(encoding="utf-8"))
+    [chapter] = [chapter for chapter in document["chapters"] if chapter["id"] == "decisions"]
+    chapter["bless"] = {"answer": ANSWER}
+    return document
+
+
 @pytest.fixture(scope="module")
 def answered_verdict(tmp_path_factory) -> Path:
-    """The decision-verdict Document whose decisions chapter carries ANSWER, and its artifact, in one folder."""
+    """The folder of the decision-verdict Document whose decisions chapter carries ANSWER."""
     def build(folder: Path) -> None:
-        document = json.loads(PUGH_VERDICT.read_text(encoding="utf-8"))
-        [chapter] = [chapter for chapter in document["chapters"] if chapter["id"] == "decisions"]
-        chapter["bless"] = {"answer": ANSWER}
-        (folder / "document.json").write_text(json.dumps(document, ensure_ascii=False), encoding="utf-8")
-        assert cli.main([str(folder / "document.json"), str(folder / "artifact.html")]) == 0
+        (folder / "document.json").write_text(json.dumps(_answered(), ensure_ascii=False), encoding="utf-8")
 
-    return built_once(tmp_path_factory, "pugh-verdict-answered-artifact", build)
+    return built_once(tmp_path_factory, "pugh-verdict-answered-document", build)
 
 
 @pytest.fixture(scope="module")
@@ -91,25 +110,25 @@ def printed_verdicts(tmp_path_factory, answered_verdict) -> dict[str, dict[str, 
 
 
 class Reader:
-    """A page of the artifact whose requests beyond the file itself are refused and recorded."""
+    """A page of the artifact, on the fake browser at its recorded state, whose requests beyond the
+    file itself are recorded (the fake refuses every one, test/browser/browser-door.md)."""
 
-    def __init__(self, browser, artifact: Path, width: int = 1200, anchors: tuple[str, ...] = (OPTION, WIDE)):
-        self.page = browser.new_page(viewport={"width": width, "height": 900})
+    def __init__(self, page, artifact: Path, state: str, anchors: tuple[str, ...] = (OPTION, WIDE)):
+        self.page = page
         self.requests: list[str] = []
         self.errors: list[str] = []
-
-        def refuse(route):
-            self.requests.append(route.request.url)
-            route.abort()
-
-        self.page.route("**/*", lambda route: route.continue_()
-                        if route.request.url.startswith(("file:", "data:", "blob:")) else refuse(route))
+        self.page.on("request", lambda request: None if request.url.startswith(("file:", "data:", "blob:"))
+                     else self.requests.append(request.url))
         self.page.on("pageerror", lambda error: self.errors.append(str(error)))
-        self.page.goto(artifact.as_uri())
-        self.page.wait_for_function("document.documentElement.dataset.artifactStatus === 'ready'")
+        door.open_recorded(self.page, state, artifact)
         self.page.evaluate("obsPages.setPaged(false); obsArtifact.activateChapter('decisions')")
         for anchor in anchors:
             self.page.wait_for_selector(f"#{anchor}.figure-pugh-ready")
+
+    @classmethod
+    def opened(cls, fake_page, door_artifact, kind: str = "plain", anchors: tuple[str, ...] = (OPTION, WIDE)) -> Reader:
+        """The reader of the state STATES names for ``kind``."""
+        return cls(fake_page, door_artifact(STATES[kind]), STATES[kind], anchors)
 
     def view(self, anchor: str) -> dict:
         """What the figure shows: its parts in order, the options list, winner, totals and columns by
@@ -178,14 +197,32 @@ class Reader:
         assert self.errors == []
 
 
-@pytest.fixture(scope="module")
-def shared_reader(artifact, shared_reader_browser) -> Reader:
-    """One page of the artifact for the module's checks that only read what it decided."""
-    return Reader(shared_reader_browser, artifact)
+class BrowserReader(Reader):
+    """A page of the artifact in the real browser, for the hot test, whose requests beyond the file
+    itself are refused and recorded."""
+
+    def __init__(self, browser, artifact: Path, width: int = 1200, anchors: tuple[str, ...] = (OPTION, WIDE)):
+        self.page = browser.new_page(viewport={"width": width, "height": 900})
+        self.requests: list[str] = []
+        self.errors: list[str] = []
+
+        def refuse(route):
+            self.requests.append(route.request.url)
+            route.abort()
+
+        self.page.route("**/*", lambda route: route.continue_()
+                        if route.request.url.startswith(("file:", "data:", "blob:")) else refuse(route))
+        self.page.on("pageerror", lambda error: self.errors.append(str(error)))
+        self.page.goto(artifact.as_uri())
+        self.page.wait_for_function("document.documentElement.dataset.artifactStatus === 'ready'")
+        self.page.evaluate("obsPages.setPaged(false); obsArtifact.activateChapter('decisions')")
+        for anchor in anchors:
+            self.page.wait_for_selector(f"#{anchor}.figure-pugh-ready")
 
 
-def test_the_page_decides_the_upstream_test_vectors_and_the_matrix_tab_shows_the_decision(shared_reader) -> None:
-    reader = shared_reader
+@pytest.mark.dom
+def test_the_page_decides_the_upstream_test_vectors_and_the_matrix_tab_shows_the_decision(fake_page, door_artifact) -> None:
+    reader = Reader.opened(fake_page, door_artifact)
     decided = reader.page.evaluate("""matrices => matrices.map(({matrix}) => {
         const result = globalThis.obsPughEngine.decide(matrix);
         return {totals: Object.fromEntries(result.candidates.map(c => [c.key, c.total])), ranking: result.ranking,
@@ -237,8 +274,9 @@ def test_the_page_decides_the_upstream_test_vectors_and_the_matrix_tab_shows_the
     reader.clean()
 
 
-def test_the_reader_expands_an_option_changes_weights_and_marks_and_rules_a_world(artifact, reader_browser) -> None:
-    reader = Reader(reader_browser, artifact)
+@pytest.mark.dom
+def test_the_reader_expands_an_option_changes_weights_and_marks_and_rules_a_world(fake_page, door_artifact) -> None:
+    reader = Reader.opened(fake_page, door_artifact)
     page, figure = reader.page, reader.page.locator(f"#{OPTION}")
     tie = SMALL_WITH_C["expected"]["ties"]["A"]
 
@@ -301,11 +339,12 @@ def test_the_reader_expands_an_option_changes_weights_and_marks_and_rules_a_worl
     reader.clean()
 
 
-def test_an_option_the_reader_opens_stays_open_through_a_redraw_before_its_toggle_event(artifact, reader_browser) -> None:
+@pytest.mark.dom
+def test_an_option_the_reader_opens_stays_open_through_a_redraw_before_its_toggle_event(fake_page, door_artifact) -> None:
     """A details element's toggle event is a task of its own, queued after the click that opened it,
     so a redraw that runs first (a weight's change, CI's flake on the test above) must still find
     the option open: here the click and the redraw share one task, before any toggle event fires."""
-    reader = Reader(reader_browser, artifact)
+    reader = Reader.opened(fake_page, door_artifact)
     opened = reader.page.evaluate("""anchor => {
         const figure = document.getElementById(anchor), option = () => figure.querySelector('.pugh-option-list [data-pugh-option="B"] details');
         option().querySelector('summary').click();
@@ -320,10 +359,11 @@ def test_an_option_the_reader_opens_stays_open_through_a_redraw_before_its_toggl
     reader.clean()
 
 
-def test_a_print_reads_the_readers_view_and_never_writes_it(artifact, reader_browser) -> None:
+@pytest.mark.dom
+def test_a_print_reads_the_readers_view_and_never_writes_it(fake_page, door_artifact) -> None:
     """artifact-ui.md, Printing: Export PDF prints the reader's weights with every option expanded,
     and afterwards the reader's view shows only the option the reader opened, on the tab they left."""
-    reader = Reader(reader_browser, artifact)
+    reader = Reader.opened(fake_page, door_artifact)
     page, figure = reader.page, reader.page.locator(f"#{OPTION}")
     figure.locator('.pugh-option-list [data-pugh-option="B"] summary').click()
     reader.weigh("speed", 9)
@@ -353,8 +393,10 @@ def test_a_print_reads_the_readers_view_and_never_writes_it(artifact, reader_bro
     reader.clean()
 
 
-def test_at_phone_width_the_matrix_is_rows_and_a_wide_table_scrolls_with_its_criteria_held(artifact, reader_browser) -> None:
-    reader = Reader(reader_browser, artifact, width=390)
+@pytest.mark.hot
+@pytest.mark.browser
+def test_at_phone_width_the_matrix_is_rows_and_a_wide_table_scrolls_with_its_criteria_held(door_artifact, reader_browser) -> None:
+    reader = BrowserReader(reader_browser, door_artifact(STATES["plain"]), width=390)
 
     phone = reader.page.evaluate("""anchor => {
         const rows = document.querySelector(`#${anchor} [data-pugh-form="rows"]`), cells = rows.querySelector('.pugh-row-cells');
@@ -396,8 +438,9 @@ PARETO = """anchor => {
 }"""
 
 
-def test_the_pareto_tab_draws_the_options_with_the_engines_plot_and_flags_a_dominated_winner(artifact, reader_browser) -> None:
-    reader = Reader(reader_browser, artifact)
+@pytest.mark.dom
+def test_the_pareto_tab_draws_the_options_with_the_engines_plot_and_flags_a_dominated_winner(fake_page, door_artifact) -> None:
+    reader = Reader.opened(fake_page, door_artifact)
     figure = reader.page.locator(f"#{OPTION}")
     figure.locator('[data-pugh-tab="pareto"]').click()
     front = reader.page.evaluate(PARETO, OPTION)
@@ -430,11 +473,12 @@ ENGINE_FIELDS = {"chosen", "checklist", "what", "wins", "losses"}
 """The gated fence's fields that are obs's, not the engine's (capabilities/pugh-decisions, Fence fields and the engine)."""
 
 
+@pytest.mark.dom
 def test_with_the_option_on_the_proposed_winner_states_the_verdict_each_runner_ups_tie_and_each_veto(
-        verdict_artifact, reader_browser) -> None:
+        fake_page, door_artifact) -> None:
     """artifact-ui.md, The engine's bottom line: the engine's verdict, each runner-up's single-weight
     tie and whether that change is reasonable, and each vetoed option with its reasons."""
-    reader = Reader(reader_browser, verdict_artifact, anchors=(OPTION, WIDE, GATED))
+    reader = Reader.opened(fake_page, door_artifact, "verdict", anchors=(OPTION, WIDE, GATED))
 
     assert reader.bottom(OPTION) == [
         ["verdict", None, "The choice holds: C · Quick wins 96.0 % of the weight draws within ±1."],
@@ -450,15 +494,16 @@ def test_with_the_option_on_the_proposed_winner_states_the_verdict_each_runner_u
     reader.clean()
 
 
+@pytest.mark.dom
 def test_the_readers_vetoes_lifts_and_datum_feed_the_engine_and_the_page_decides_again_at_once(
-        verdict_artifact, reader_browser) -> None:
+        fake_page, door_artifact) -> None:
     """artifact-ui.md, The reader's vetoes and datum: each key is one of the engine's overrides, and the
     figure shows what decide() gives with them, at once."""
     from fixtures.build_documents import GATED as gated
     matrix = {key: value for key, value in gated.items() if key not in ENGINE_FIELDS}
     matrix["candidates"] = [{key: value for key, value in option.items() if key not in ENGINE_FIELDS}
                             for option in gated["candidates"]]
-    reader = Reader(reader_browser, verdict_artifact, anchors=(OPTION, WIDE, GATED))
+    reader = Reader.opened(fake_page, door_artifact, "verdict", anchors=(OPTION, WIDE, GATED))
     page, figure = reader.page, reader.page.locator(f"#{GATED}")
     letters = {"D": "A", "A": "B", "B": "C", "C": "D"}
 
@@ -513,17 +558,16 @@ def test_the_readers_vetoes_lifts_and_datum_feed_the_engine_and_the_page_decides
     reader.clean()
 
 
-
 @pytest.mark.parametrize("answered", [False, True], ids=["plain", "answered"])
+@pytest.mark.dom
 def test_the_printed_verdict_is_every_line_the_page_draws_for_every_decision(
-        answered, verdict_artifact, answered_verdict, printed_verdicts, reader_browser) -> None:
+        answered, printed_verdicts, fake_page, door_artifact) -> None:
     """cli.md, Printing the verdicts: the print states each decision as the page shows it, every line
     of its bottom line; answered, as the answer left it (verdicts.py and the page map the anchors and
     the answer apart: render.py, figures.py)."""
-    artifact = answered_verdict / "artifact.html" if answered else verdict_artifact
     printed = printed_verdicts["answered" if answered else "plain"]
     assert list(printed) == [OPTION, WIDE, GATED]
-    reader = Reader(reader_browser, artifact, anchors=tuple(printed))
+    reader = Reader.opened(fake_page, door_artifact, "answered" if answered else "verdict", anchors=tuple(printed))
     assert {anchor: reader.bottom(anchor) for anchor in printed} == printed
     # The answered page decides the answer, not the fence: its lines differ from the plain print's.
     assert answered is (printed != printed_verdicts["plain"])

@@ -1,0 +1,276 @@
+# The browser door's recording of the state pugh-verdict-answered-desktop (test/browser/expectations.yaml),
+# written by `uv run pytest -m hot --record` (test/browser/door.py); never edited by hand.
+state: pugh-verdict-answered-desktop
+artifact: test/test_pugh_figures_browser.py::answered_verdict_artifact
+context:
+  viewport: [1280, 720]
+  scale: 1
+  touch: false
+  scheme: light
+  motion: no-preference
+  media: screen
+  frame: top
+steps:
+- open: page
+- open: chapter
+  id: decisions
+artifactDigest: sha256:0929f61643d5ef705f6e70f65d6c2ff9ef7534025978dac39526a9fde8d3d646
+chromium: 153.0.8010.12 (Playwright 1.64.0)
+answers:
+- step: 0
+  asked:
+    box:
+    - '#decisions > div:1'
+    - '#decisions--block-gated'
+    - '#decisions--block-option'
+    - '#decisions--block-wide'
+    - html:1 > body:1 > div:1 > div:1
+    - html:1 > body:1 > div:1 > div:2
+    - html:1 > body:1 > div:1 > div:3
+    - html:1 > body:1 > div:1 > div:4
+    - html:1 > body:1 > div:1 > main:1 > div:1
+    cascade:
+    - '#decisions > div:1|paddingLeft'
+    - '#decisions > div:1|paddingRight'
+    - html:1|fontSize
+    media:
+    - '(max-width: 30rem)'
+    - '(max-width: 42rem)'
+    - '(max-width: 44rem)'
+    - '(pointer: coarse)'
+    - '(prefers-reduced-motion: reduce)'
+    - print
+    - screen
+    resize:
+    - '#decisions > div:1'
+    - '#decisions--block-gated'
+    - '#decisions--block-option'
+    - '#decisions--block-wide'
+    - html:1 > body:1 > div:1 > div:1
+    - html:1 > body:1 > div:1 > div:2
+    - html:1 > body:1 > div:1 > div:3
+    - html:1 > body:1 > div:1 > div:4
+    sizes:
+    - '#decisions--block-gated'
+    - '#decisions--block-option'
+    - '#decisions--block-wide'
+  box:
+    '#decisions > div:1':
+      border: [0, 64, 1265, 2918.36]
+      rects: [[0, 64, 1265, 2918.36]]
+    '#decisions--block-gated':
+      border: [56.5, 2137.63, 1152, 792.73]
+      rects: [[56.5, 2137.63, 1152, 792.73]]
+    '#decisions--block-option':
+      border: [56.5, 461.44, 1152, 759.31]
+      rects: [[56.5, 461.44, 1152, 759.31]]
+    '#decisions--block-wide':
+      border: [56.5, 1240.75, 1152, 876.88]
+      rects: [[56.5, 1240.75, 1152, 876.88]]
+    html:1 > body:1 > div:1 > div:1:
+      border: [0, 0, 0, 0]
+      rects: []
+    html:1 > body:1 > div:1 > div:2:
+      border: [0, 0, 0, 0]
+      rects: []
+    html:1 > body:1 > div:1 > div:3:
+      border: [0, 0, 0, 0]
+      rects: []
+    html:1 > body:1 > div:1 > div:4:
+      border: [0, 0, 0, 0]
+      rects: []
+    html:1 > body:1 > div:1 > main:1 > div:1:
+      border: [0, 64, 1280, 656]
+      rects: [[0, 64, 1280, 656]]
+  sizes:
+    window:
+      innerWidth: 1280
+      innerHeight: 720
+    '#decisions--block-gated':
+      clientWidth: 1152
+      clientHeight: 791
+      scrollWidth: 1165
+      scrollHeight: 791
+      offsetWidth: 1152
+      offsetHeight: 793
+      offsetLeft: 57
+      offsetTop: 2074
+      clientLeft: 0
+      clientTop: 1
+      scrollTop: 0
+      scrollLeft: 0
+    '#decisions--block-option':
+      clientWidth: 1152
+      clientHeight: 757
+      scrollWidth: 1165
+      scrollHeight: 757
+      offsetWidth: 1152
+      offsetHeight: 759
+      offsetLeft: 57
+      offsetTop: 397
+      clientLeft: 0
+      clientTop: 1
+      scrollTop: 0
+      scrollLeft: 0
+    '#decisions--block-wide':
+      clientWidth: 1152
+      clientHeight: 875
+      scrollWidth: 1165
+      scrollHeight: 875
+      offsetWidth: 1152
+      offsetHeight: 877
+      offsetLeft: 57
+      offsetTop: 1177
+      clientLeft: 0
+      clientTop: 1
+      scrollTop: 0
+      scrollLeft: 0
+  resize:
+    '#decisions > div:1':
+      content: [1209, 2870.36]
+      border: [1265, 2918.36]
+    '#decisions--block-gated':
+      content: [1152, 766.73]
+      border: [1152, 792.73]
+    '#decisions--block-option':
+      content: [1152, 733.31]
+      border: [1152, 759.31]
+    '#decisions--block-wide':
+      content: [1152, 850.88]
+      border: [1152, 876.88]
+    html:1 > body:1 > div:1 > div:1:
+      content: [0, 0]
+      border: [0, 0]
+    html:1 > body:1 > div:1 > div:2:
+      content: [0, 0]
+      border: [0, 0]
+    html:1 > body:1 > div:1 > div:3:
+      content: [0, 0]
+      border: [0, 0]
+    html:1 > body:1 > div:1 > div:4:
+      content: [0, 0]
+      border: [0, 0]
+  scroll-into-view: {}
+  text-width: {}
+  image-size: {}
+  fonts:
+    status: loaded
+  cascade:
+    '#decisions > div:1|paddingLeft': 28px
+    '#decisions > div:1|paddingRight': 28px
+    html:1|fontSize: 16px
+  media:
+    '(max-width: 30rem)': false
+    '(max-width: 42rem)': false
+    '(max-width: 44rem)': false
+    '(pointer: coarse)': false
+    '(prefers-reduced-motion: reduce)': false
+    print: false
+    screen: true
+  events:
+  - button:click
+  - input:click
+  - input:input
+  - input:change
+  - checked:true
+  - label:click
+  - input:click
+  - input:input
+  - input:change
+  - checked:false
+  - summary:click
+  - open:true
+  focus:
+    button: button:0
+    input: input:1
+    disabled: input:1
+    tabindex: span:3
+    plain: span:3
+    dialog: button:7
+    closed: span:3
+  popover:
+    shown: true
+    another:
+    - false
+    - true
+    - true
+    hidden: false
+    toggled:
+    - true
+    - true
+  frames:
+  - first
+  - second
+  - nested
+  storage:
+    local: kept
+    session: kept
+- step: 1
+  asked:
+    media:
+    - '(max-width: 30rem)'
+    - '(max-width: 42rem)'
+    - '(max-width: 44rem)'
+    - '(pointer: coarse)'
+    - '(prefers-reduced-motion: reduce)'
+    - print
+    - screen
+  box: {}
+  sizes:
+    window:
+      innerWidth: 1280
+      innerHeight: 720
+  resize: {}
+  scroll-into-view: {}
+  text-width: {}
+  image-size: {}
+  fonts:
+    status: loaded
+  cascade: {}
+  media:
+    '(max-width: 30rem)': false
+    '(max-width: 42rem)': false
+    '(max-width: 44rem)': false
+    '(pointer: coarse)': false
+    '(prefers-reduced-motion: reduce)': false
+    print: false
+    screen: true
+  events:
+  - button:click
+  - input:click
+  - input:input
+  - input:change
+  - checked:true
+  - label:click
+  - input:click
+  - input:input
+  - input:change
+  - checked:false
+  - summary:click
+  - open:true
+  focus:
+    button: button:0
+    input: input:1
+    disabled: input:1
+    tabindex: span:3
+    plain: span:3
+    dialog: button:7
+    closed: span:3
+  popover:
+    shown: true
+    another:
+    - false
+    - true
+    - true
+    hidden: false
+    toggled:
+    - true
+    - true
+  frames:
+  - first
+  - second
+  - nested
+  storage:
+    local: kept
+    session: kept
+  print: beforeprint
