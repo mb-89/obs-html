@@ -125,11 +125,23 @@ def test_a_border_token_set_once_frames_every_kind(figures_artifact, reader_brow
     assert errors == []
 
 
-@pytest.mark.browser
+# The browser door's state the logic test opens: the figures Document in the scrolling layout at 1200
+# by 1000, its gallery opened (test/browser/expectations.yaml), with the library doors' fakes.
+STATE = "figures-scrolling-desktop"
+
+
+@pytest.mark.dom
 def test_only_kinds_with_options_show_the_tables_options_menu_whose_changes_stay_in_the_view(
-    figures_artifact, reader_browser,
+    door_artifact, fake_page,
 ) -> None:
-    page, errors = _open(reader_browser, figures_artifact)
+    from browser import door
+
+    page, errors = fake_page, []
+    page.on("pageerror", lambda error: errors.append(str(error)))
+    door.open_recorded(page, STATE, door_artifact(STATE))
+    page.evaluate("obsArtifact.activateChapter('gallery')")
+    page.wait_for_selector(".obs-figure[data-figure-kind='plot'].figure-plot-ready")
+    page.wait_for_selector(".obs-figure[data-figure-kind='equations'].figure-plot-ready")
     menus = page.evaluate("""() => [...document.querySelectorAll('.obs-figure')].map(figure => [
         figure.dataset.figureKind,
         figure.querySelectorAll(':scope > .figure-expand').length,
@@ -137,13 +149,14 @@ def test_only_kinds_with_options_show_the_tables_options_menu_whose_changes_stay
     stored = page.evaluate("JSON.stringify(Object.entries(localStorage).sort())")
 
     plot = page.locator(".obs-figure[data-figure-kind='plot']")
+    legend = plot.locator(".options-menu button", has_text="Legend")
     plot.locator(":scope > .options-menu-toggle").click()
-    plot.locator(".options-menu").get_by_role("button", name="Legend").click()
+    legend.click()
     page.wait_for_function("!document.querySelector(\".obs-figure[data-figure-kind='plot'] g.legend\")")
 
     assert menus == [[kind, 1, int(FIGURE_KINDS[kind].options != ())] for kind in KINDS]
     assert [kind for kind in KINDS if FIGURE_KINDS[kind].options] == ["plot", "equations", "pugh"]
-    assert plot.locator(".options-menu").get_by_role("button", name="Legend").get_attribute("aria-pressed") == "false"
+    assert legend.count() == 1 and legend.get_attribute("aria-pressed") == "false"
     assert page.evaluate("JSON.stringify(Object.entries(localStorage).sort())") == stored  # Nothing is saved.
     assert errors == []
 

@@ -3,10 +3,12 @@
 import pytest
 
 from artifacts import artifact_html
+from browser import door
 from conftest import FIXTURE, PIXEL
 
-
-pytestmark = pytest.mark.browser
+STATE = "fixture-scrolling-desktop"
+"""The browser door's state the logic tests open: the fixture Document in the scrolling layout at
+1200 by 1000, its intro and then its appendix opened."""
 
 
 def scrolling_fixture() -> dict:
@@ -33,42 +35,41 @@ def artifact_page(fixture_artifact, reader_browser):
     assert errors == []
 
 
-@pytest.fixture(scope="module")
-def shared_artifact_page(fixture_artifact, shared_reader_browser):
-    """The fixture artifact opened once for the module's checks that only open a chapter and read it."""
-    page = shared_reader_browser.new_page(viewport={"width": 1200, "height": 1000})
+def _recorded(fake_page, door_artifact, chapter: str) -> list[str]:
+    """Open the fixture artifact from its state in the fake browser through the step that opens
+    ``chapter`` (STEPS); the page errors and console errors that arise, which a check holds empty."""
     errors = []
-    page.on("pageerror", lambda error: errors.append(str(error)))
-    page.on("console", lambda message: message.type == "error" and errors.append(message.text))
-    page.goto(fixture_artifact.as_uri())
-    page.wait_for_function("document.documentElement.dataset.artifactStatus === 'ready'")
-    return page, errors
+    fake_page.on("pageerror", lambda error: errors.append(str(error)))
+    fake_page.on("console", lambda message: message.type == "error" and errors.append(message.text))
+    door.open_recorded(fake_page, STATE, door_artifact(STATE), through=STEPS[chapter])
+    return errors
 
 
-@pytest.fixture
-def read_only_page(shared_artifact_page):
-    """The shared fixture artifact page for one read-only check; no page error may arise during it."""
-    page, errors = shared_artifact_page
-    yield page
+# The step of the state that opens each chapter (test/browser/expectations.yaml).
+STEPS = {"intro": 1, "appendix": 2}
+
+
+@pytest.mark.dom
+def test_figures_draw_their_plot_and_sankey(fake_page, door_artifact) -> None:
+    errors = _recorded(fake_page, door_artifact, "appendix")
+    fake_page.wait_for_selector("#appendix--figure-response.figure-plot-ready")
+    assert fake_page.locator("#appendix--figure-response .scatterlayer .trace").count() == 2
+    assert fake_page.locator("#appendix--figure-flow .sankey-node").count() == 3
     assert errors == []
 
 
-def test_figures_draw_their_plot_and_sankey(read_only_page) -> None:
-    read_only_page.evaluate("obsArtifact.activateChapter('appendix')")
-    read_only_page.wait_for_selector("#appendix--figure-response.figure-plot-ready")
-    assert read_only_page.locator("#appendix--figure-response .scatterlayer .trace").count() == 2
-    assert read_only_page.locator("#appendix--figure-flow .sankey-node").count() == 3
-
-
-def test_base_tables_evaluate_document_records_and_marks_show_their_icon(read_only_page) -> None:
-    read_only_page.evaluate("obsArtifact.activateChapter('intro')")
-    rows = read_only_page.locator('[data-data-table="intro-base-1"] tbody tr[data-row-key]')
+@pytest.mark.dom
+def test_base_tables_evaluate_document_records_and_marks_show_their_icon(fake_page, door_artifact) -> None:
+    errors = _recorded(fake_page, door_artifact, "intro")
+    rows = fake_page.locator('[data-data-table="intro-base-1"] tbody tr[data-row-key]')
     rows.first.wait_for()
     assert [row.get_attribute("data-row-key") for row in rows.all()] == ["note:beta", "note:alpha"]
-    assert read_only_page.locator(".semantic-mark-icon--risk .resource-icon").inner_text() == "!"
+    assert fake_page.locator(".semantic-mark-icon--risk .resource-icon").inner_text() == "!"
+    assert errors == []
 
 
 @pytest.mark.hot("fixture-scrolling-desktop")
+@pytest.mark.browser
 def test_the_print_book_holds_every_front_page_and_chapter(artifact_page) -> None:
     artifact_page.evaluate("window.print = () => {}; globalThis.obsPages.exportPDF()")
     text = artifact_page.locator(".print-book").inner_text()
@@ -77,6 +78,7 @@ def test_the_print_book_holds_every_front_page_and_chapter(artifact_page) -> Non
 
 
 @pytest.mark.hot("fixture-scrolling-desktop")
+@pytest.mark.browser
 def test_everything_on_the_title_page_is_centered(tmp_path, reader_browser) -> None:
     import json
     document = json.loads(FIXTURE.read_text(encoding="utf-8"))
@@ -126,6 +128,7 @@ def test_everything_on_the_title_page_is_centered(tmp_path, reader_browser) -> N
 
 
 @pytest.mark.hot("fixture-scrolling-desktop")
+@pytest.mark.browser
 @pytest.mark.parametrize("width, side", [(700, "right"), (700, "left"), (1100, "right"), (1100, "top")])
 def test_a_resized_bar_follows_the_pointer(artifact_page, width, side) -> None:
     """A narrow screen insets an overlaid bar beside the chapter arrows; dragging its edge still
@@ -147,6 +150,7 @@ def test_a_resized_bar_follows_the_pointer(artifact_page, width, side) -> None:
 
 
 @pytest.mark.hot("fixture-scrolling-desktop")
+@pytest.mark.browser
 @pytest.mark.parametrize("paged", [False, True])
 def test_review_gutters_stay_clear_of_the_previous_arrow(artifact_page, paged) -> None:
     """Review mode's gutters (Accept, Reject, Reset) start beyond Previous's pointer area, so

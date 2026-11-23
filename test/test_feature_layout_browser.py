@@ -14,9 +14,9 @@ from pathlib import Path
 
 import pytest
 
-from preview import click_where_visible, open_preview
+from browser import door
+from preview import open_preview
 
-pytestmark = pytest.mark.browser
 COVERAGE = Path(__file__).parent / "browser" / "control-coverage.js"
 CARDS = "references"
 
@@ -43,6 +43,7 @@ def faults(opened, width: int, layouts: list) -> list[tuple[str, str]]:
 
 
 @pytest.mark.hot("features-cards-desktop")
+@pytest.mark.browser
 @pytest.mark.parametrize("width", [1100, 1600])
 def test_cards_side_by_side_in_review_mode_keep_their_review_buttons_apart(opened, width: int) -> None:
     found = faults(opened, width, [["comments", "right"]])
@@ -50,6 +51,7 @@ def test_cards_side_by_side_in_review_mode_keep_their_review_buttons_apart(opene
 
 
 @pytest.mark.hot("features-cards-phone")
+@pytest.mark.browser
 @pytest.mark.parametrize("width", [360, 700])
 def test_a_card_metric_at_the_document_end_is_clear_of_the_next_chapter_arrow(opened, width: int) -> None:
     found = faults(opened, width, [None])
@@ -57,23 +59,29 @@ def test_a_card_metric_at_the_document_end_is_clear_of_the_next_chapter_arrow(op
 
 
 @pytest.mark.hot("features-cards-desktop")
+@pytest.mark.browser
 def test_a_card_quantity_link_scrolls_into_view_with_the_filter_bar_docked_aside(opened) -> None:
     found = faults(opened, 1100, [["filter", "left"], ["filter", "right"]])
     assert [fault for fault in found if fault[0].startswith("a.internal-link")] == [], found
 
 
 CHOOSER = ".chapter-breadcrumb-chooser"
+# The browser door's state the chooser's logic test opens: the feature fixture at 1100 by 800, its card
+# group's chapter opened (test/browser/expectations.yaml), as a top-level page.
+STATE = "features-cards-desktop"
 
 
-def test_the_home_chooser_closes_on_a_click_on_the_menu_or_a_docked_bar(opened) -> None:
+@pytest.mark.dom
+def test_the_home_chooser_closes_on_a_click_on_the_menu_or_a_docked_bar(door_artifact, fake_page) -> None:
     """At Home, Enter on Home opens its chooser; a click on the menu button, on a menu row's dock
     direction or inside a docked bar closes it, as a click anywhere outside the breadcrumbs does.
     The fixture opens in screens, which have no Home (artifact-ui.md, Screens): shown as pages."""
-    page, frame = opened
-    page.evaluate("() => document.getElementById('artifact').style.width = '1100px'")
-    frame.evaluate("() => { obsPages.setPaged(true); obsArtifact.activateChapter('home'); }")
-    home = frame.locator(".chapter-home-link")
-    chooser = frame.locator(f"{CHOOSER}[open]")
+    page, errors = fake_page, []
+    page.on("pageerror", lambda error: errors.append(str(error)))
+    door.open_recorded(page, STATE, door_artifact(STATE), through=0)
+    page.evaluate("() => { obsPages.setPaged(true); obsArtifact.activateChapter('home'); }")
+    home = page.locator(".chapter-home-link")
+    chooser = page.locator(f"{CHOOSER}[open]")
 
     def open_chooser() -> None:
         home.focus()
@@ -81,13 +89,14 @@ def test_the_home_chooser_closes_on_a_click_on_the_menu_or_a_docked_bar(opened) 
         assert chooser.count() == 1, "Enter on Home at Home opens the top-level chooser"
 
     open_chooser()
-    click_where_visible(page, frame, "[data-menu-button]")
+    page.locator("[data-menu-button]").first.click()
     assert chooser.count() == 0, "a click on the menu button closes the chooser"
     open_chooser()
-    click_where_visible(page, frame, '[data-dock-bar="toc"][data-dock-direction="right"]')
+    page.locator('[data-dock-bar="toc"][data-dock-direction="right"]').first.click()
     assert chooser.count() == 0, "a click on a menu row's dock direction closes the chooser"
-    click_where_visible(page, frame, "[data-menu-button]")  # The menu, which overlays the bar's top, closes.
+    page.locator("[data-menu-button]").first.click()  # The menu, which overlays the bar's top, closes.
     open_chooser()
-    click_where_visible(page, frame, "[data-toc-action]")
+    page.locator("[data-toc-action]").first.click()
     assert chooser.count() == 0, "a click inside a docked bar closes the chooser"
-    frame.evaluate("() => { obsArtifact.closeBar('toc'); obsPages.setPaged(false); }")
+    page.evaluate("() => { obsArtifact.closeBar('toc'); obsPages.setPaged(false); }")
+    assert errors == []

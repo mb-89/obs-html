@@ -542,11 +542,19 @@ def test_a_bottom_line_leads_its_page_in_every_layout(tmp_path, reader_browser) 
     assert errors == [] and phone_errors == []
 
 
-@pytest.mark.browser
-def test_a_parent_s_preview_begins_with_its_bottom_line_and_holds_no_child_s_lead(tmp_path, reader_browser) -> None:
-    from playwright.sync_api import expect
+# The browser door's state the logic test opens: the bottom-lines Document at 1200 by 900, its
+# chapter product and then its chapter other opened (test/browser/expectations.yaml).
+BOTTOM_LINES_STATE = "bottom-lines-desktop"
 
-    page, errors = _bottom_line_page(tmp_path, reader_browser, 1200)
+
+@pytest.mark.dom
+def test_a_parent_s_preview_begins_with_its_bottom_line_and_holds_no_child_s_lead(door_artifact, fake_page) -> None:
+    from browser import door
+    from browser.fake_page import expect
+
+    page, errors = fake_page, []
+    page.on("pageerror", lambda error: errors.append(str(error)))
+    door.open_recorded(page, BOTTOM_LINES_STATE, door_artifact(BOTTOM_LINES_STATE), through=2)
     page.evaluate("obsPages.setPaged(false); obsArtifact.activateChapter('other')")
     page.locator("[data-chapter-body] p a[href='#product']").hover()
     card = page.locator("#hover-card")
