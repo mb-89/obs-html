@@ -300,3 +300,20 @@ def test_css_math_a_selector_lists_weight_and_an_inherited_colour_scheme_compute
                 style.marginLeft, getComputedStyle(document.documentElement).colorScheme,
                 getComputedStyle(document.getElementById("choice")).colorScheme];
     }""") == ["16px", "100px", "96px", "84px", "8px", "32px", "light", "light"]
+
+
+def test_a_table_section_lists_its_rows_and_enter_in_a_changed_field_fires_change(tmp_path, fake_page) -> None:
+    """Two gaps of happy-dom 21 the moved hot-file tests met (browser-door.md, As built by
+    hot-tests-record): a tbody had no rows, which pipe-tables.js walks, and Enter in a text field
+    whose value the reader changed fired no change, which Chromium fires."""
+    page = _open(tmp_path, fake_page, '<table><tbody><tr><td>a</td></tr><tr><td>b</td></tr></tbody></table>'
+                                      '<input id="weight" value="2">')
+    assert page.evaluate("() => [...document.querySelector('tbody').rows].map((row) => row.textContent)") == ["a", "b"]
+    page.evaluate("""() => { window.changes = [];
+        document.getElementById("weight").addEventListener("change", (event) => changes.push(event.target.value)); }""")
+    field = page.locator("#weight")
+    field.press("Enter")
+    field.fill("1")
+    field.press("Enter")
+    field.press("Enter")
+    assert page.evaluate("() => changes") == ["1"]

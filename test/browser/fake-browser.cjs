@@ -226,6 +226,16 @@ const INHERITED = require(path.join(HAPPY_DOM, "lib", "css", "declaration", "com
     "CSSComputedStyleInheritedProperties.js")).default;
 INHERITED["color-scheme"] = true;
 
+// A table section's rows (happy-dom 21 has none on thead, tbody and tfoot, which pipe-tables.js
+// walks): its own tr children, in order, as Chromium's live collection holds them.
+const HTMLTableSectionElement = require(path.join(HAPPY_DOM, "lib", "nodes", "html-table-section-element",
+    "HTMLTableSectionElement.js")).default;
+if (!("rows" in HTMLTableSectionElement.prototype)) {
+    Object.defineProperty(HTMLTableSectionElement.prototype, "rows", {configurable: true, get() {
+        return [...this.children].filter((child) => child.localName === "tr");
+    }});
+}
+
 // innerText (happy-dom 21 breaks the line only before a block or flex child): a line break before
 // and after every block-level child, a list item, a grid or a table among them, as Chromium does.
 const HTMLElement = require(path.join(HAPPY_DOM, "lib", "nodes", "html-element", "HTMLElement.js")).default;
@@ -1643,6 +1653,9 @@ class Input {
             if (tag === "button" || tag === "summary" || tag === "a" && target.hasAttribute("href") ||
                     tag === "input" && ["button", "submit", "reset", "image"].includes(target.type)) {
                 if (this.keyboardEvent("keypress", key, target)) this.activate(target);
+            } else if (tag === "input" && this.editable(target)) {
+                // Enter in a text field the reader changed commits it: change fires, as in Chromium.
+                if (this.keyboardEvent("keypress", key, target)) this.leave(target);
             }
             return;
         }
