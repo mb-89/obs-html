@@ -1,4 +1,4 @@
-"""Native-browser tier: property editors commit canonical edits that survive a reviewed copy.
+"""Fake-browser tier: property editors commit canonical edits that survive a reviewed copy.
 
 Moved from the interim's test_property_editors_browser.py
 (test_native_property_edits_survive_actual_reviewed_download_and_reopen), rebuilt on a Document
@@ -9,12 +9,13 @@ from pathlib import Path
 import pytest
 
 from artifacts import artifact_html
+from browser.fake_page import expect
 from browser.viewer import with_stand_in
 
 from documents import chapter, document as build, heading, node, paragraph
 
 
-pytestmark = pytest.mark.browser
+pytestmark = pytest.mark.dom
 EDITOR = node("property-editors", source="version: 1\nfield: explanation\nlabel: Explanation\n",
               spec={"version": 1, "field": "explanation", "label": "Explanation"}, writes=["explanation"])
 TABLE = {"obs": {"records": "note"}, "views": [{"type": "table", "order": ["identifier", "explanation"]}]}
@@ -34,12 +35,10 @@ def _artifact(path: Path) -> Path:
     return path
 
 
-def test_native_property_edits_survive_actual_reviewed_download_and_reopen(tmp_path, reader_browser) -> None:
-    from playwright.sync_api import expect
-
+def test_native_property_edits_survive_actual_reviewed_download_and_reopen(tmp_path, fake_page) -> None:
     artifact = _artifact(tmp_path / "artifact.html")
     malicious = 'Accepted α 中 </script><script>window.editExecuted=true</script> **literal**'
-    page = reader_browser.new_page()
+    page = fake_page
     page.set_default_timeout(5000)
     errors = []
     page.on("pageerror", lambda error: errors.append(str(error)))
@@ -105,7 +104,7 @@ def test_native_property_edits_survive_actual_reviewed_download_and_reopen(tmp_p
     assert errors == []
 
 
-def test_the_runtime_commits_only_the_fields_the_notes_editors_declare(tmp_path, reader_browser) -> None:
+def test_the_runtime_commits_only_the_fields_the_notes_editors_declare(tmp_path, fake_page) -> None:
     """artifact.js's commit guard (``obsArtifact.commitCanonicalProjection``) accepts a field only
     when a property editor of the note declares it in the core's ``attrs.writes``; it refuses
     every other field, protected or not, and every field of a note without an editor."""
@@ -119,7 +118,7 @@ def test_the_runtime_commits_only_the_fields_the_notes_editors_declare(tmp_path,
                             {"id": "two", "type": "note", "path": "two.md", "fields": dict(fields)}))
     artifact = tmp_path / "artifact.html"
     artifact.write_text(artifact_html(source), encoding="utf-8")
-    page = reader_browser.new_page()
+    page = fake_page
     errors: list[str] = []
     page.on("pageerror", lambda error: errors.append(str(error)))
     page.goto(artifact.as_uri())

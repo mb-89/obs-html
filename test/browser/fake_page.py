@@ -7,18 +7,19 @@ worker's one Node process, test/browser/fake-browser.cjs. The facade has what th
 ``goto``, ``evaluate``, ``wait_for_function``, ``keyboard.press``, ``mouse``,
 ``set_viewport_size`` (it reopens the page) and ``emulate_media``; and ``locator`` with CSS
 selectors, its ``first``, ``nth`` and ``filter`` (``has_text``, ``has``), its actions and reads, and
-``expect`` for its retried assertions; and the browser door's ``replay``, ``reach`` and ``asked``,
+``expect`` for its retried assertions; ``expect_download`` for a file the page downloads; and the browser door's ``replay``, ``reach`` and ``asked``,
 through which test/browser/door.py opens a state with its recording and lists what the page asked. Waits and retries run on the page's own clock in the host,
 never on wall time. A method the facade lacks fails with :class:`FakeBrowserUnsupported`, naming
 the method and the design note; Playwright's text and role selectors do not exist here, so a test
 that moves writes them as CSS and a text filter.
 
-Each page error and console message reaches the listeners a test added with ``on``, as Playwright
-delivers them; a request the page made that leaves the machine is recorded with
+Each page error, console message and request reaches the listeners a test added with ``on``, as
+Playwright delivers them; a request the page made that leaves the machine is recorded with
 test/network_guard.py, which fails the test.
 """
 from __future__ import annotations
 
+import base64
 import json
 import os
 import re
@@ -76,6 +77,58 @@ class ConsoleMessage:
 
     def __repr__(self) -> str:
         return f"ConsoleMessage({self.type!r}, {self.text!r})"
+
+
+class Request:
+    """A request the page made through happy-dom's fetch, as Playwright's ``request`` hands it over."""
+
+    def __init__(self, url: str) -> None:
+        self.url = url
+
+    def __repr__(self) -> str:
+        return f"Request({self.url!r})"
+
+
+class Download:
+    """A file the page downloaded, as Playwright's ``download`` hands it over."""
+
+    def __init__(self, filename: str, url: str, data: bytes) -> None:
+        self.suggested_filename = filename
+        self.url = url
+        self._data = data
+
+    def save_as(self, path) -> None:
+        Path(path).write_bytes(self._data)
+
+
+class ExpectedDownload:
+    """What ``with page.expect_download() as info`` binds: ``info.value`` is the download once the
+    block has ended."""
+
+    def __init__(self, page: FakePage, timeout: float) -> None:
+        self._page = page
+        self._timeout = timeout
+        self._after = 0
+        self._value: Download | None = None
+
+    def __enter__(self) -> ExpectedDownload:
+        self._after = self._page._call("downloads")
+        return self
+
+    def __exit__(self, kind, error, trace) -> None:
+        if kind is None:
+            done = self._page._call("wait_for_download", after=self._after, timeout=self._timeout)
+            self._value = Download(done["filename"], done["url"], base64.b64decode(done["data"]))
+
+    @property
+    def value(self) -> Download:
+        if self._value is None:
+            raise FakeBrowserError(f"{OWNER}: expect_download's value is there once its with block has ended")
+        return self._value
+
+
+# The page events a test may listen to with ``on`` and ``once``.
+EVENTS = ("pageerror", "console", "request")
 
 
 class FakeBrowser:
@@ -390,6 +443,8 @@ class FakePage:
                 self._emit("pageerror", PageError(event["name"], event["message"], event.get("stack", "")))
             elif event["type"] == "console":
                 self._emit("console", ConsoleMessage(event["level"], event["text"]))
+            elif event["type"] == "request":
+                self._emit("request", Request(event["url"]))
 
     def _emit(self, name: str, value) -> None:
         for listener, once in list(self._listeners.get(name, [])):
@@ -398,12 +453,12 @@ class FakePage:
             listener(value)
 
     def on(self, event: str, listener) -> None:
-        if event not in ("pageerror", "console"):
+        if event not in EVENTS:
             raise unsupported("page", f"on({event!r})")
         self._listeners.setdefault(event, []).append((listener, False))
 
     def once(self, event: str, listener) -> None:
-        if event not in ("pageerror", "console"):
+        if event not in EVENTS:
             raise unsupported("page", f"once({event!r})")
         self._listeners.setdefault(event, []).append((listener, True))
 
@@ -421,6 +476,11 @@ class FakePage:
 
     def wait_for_function(self, expression: str, arg=None, timeout: float | None = None, polling=None):
         return self._call("wait_for_function", expression=expression, arg=arg, timeout=self._timeout(timeout))
+
+    def expect_download(self, timeout: float | None = None) -> ExpectedDownload:
+        """The file the page downloads within the ``with`` block, a blob: or data: URL a link with a
+        ``download`` attribute names; the block's end waits for it on the page's clock."""
+        return ExpectedDownload(self, self._timeout(timeout))
 
     def wait_for_selector(self, selector: str, state: str = "visible", timeout: float | None = None) -> FakeLocator:
         locator = self.locator(selector)
