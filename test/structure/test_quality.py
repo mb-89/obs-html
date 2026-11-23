@@ -51,13 +51,15 @@ TESTS = Path(__file__).parents[1]
 # path (``pdf_browser``) runs the CLI, whose build is what it tests.
 BROWSER_FIXTURES = {"reader_browser", "shared_reader_browser", "overlay_scrollbar_browser", "page_pool",
                     "overlay_scrollbar_pool", "worker_playwright", "full_chromium_browser",
-                    "shared_full_chromium_browser", "full_page_pool", "phone_browser", "phone_pool"}
+                    "shared_full_chromium_browser", "full_page_pool", "phone_browser", "phone_pool",
+                    "full_phone_browser", "full_phone_pool"}
 # The fixtures that hand a test a page of the fake browser, happy-dom in Node (test/browser/
 # browser-door.md); test/conftest.py owns them. They start no Chromium.
 FAKE_BROWSER_FIXTURES = {"fake_page"}
 # The fixtures that run a test on full Chromium instead of the headless shell; test/conftest.py
 # owns them. The PDF path's browser (``pdf_browser``) is full Chromium too.
-FULL_CHROMIUM_FIXTURES = {"full_chromium_browser", "shared_full_chromium_browser", "full_page_pool", "pdf_browser"}
+FULL_CHROMIUM_FIXTURES = {"full_chromium_browser", "shared_full_chromium_browser", "full_page_pool", "pdf_browser",
+                          "full_phone_browser", "full_phone_pool"}
 # Every test of the module.
 EVERY_TEST = "every test"
 # The named set that runs on full Chromium, by module: the checks whose behaviour can differ in the

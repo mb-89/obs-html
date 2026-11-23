@@ -70,6 +70,25 @@ try {
     process.exit(1);
 }
 
+// An SVG <style> or <script> (happy-dom 21 compares its end tag with the element's tag name in upper
+// case, but an SVG element keeps its name as written, so the rest of the markup was read as its text
+// and lost): its end tag closes it whatever its case, as an HTML one's does.
+const HTMLParser = require(path.join(HAPPY_DOM, "lib", "html-parser", "HTMLParser.js")).default;
+const parseRawText = HTMLParser.prototype.parseRawTextElementContent;
+HTMLParser.prototype.parseRawTextElementContent = function (tagName, text) {
+    const element = this.currentNode;
+    const own = element?.[PropertySymbol.tagName];
+    if (typeof own !== "string" || own === own.toUpperCase() || own.toUpperCase() !== String(tagName).toUpperCase()) {
+        return parseRawText.call(this, tagName, text);
+    }
+    element[PropertySymbol.tagName] = own.toUpperCase();
+    try {
+        return parseRawText.call(this, tagName, text);
+    } finally {
+        element[PropertySymbol.tagName] = own;
+    }
+};
+
 // The Popover API stand-in (happy-dom 21 has none): which popovers are open, and `:popover-open`
 // in every selector match, the stylesheets' and the page's alike.
 const openPopovers = new WeakSet();
@@ -137,6 +156,30 @@ function schemeOf(page) {
         }
     };
 }
+
+// Logical margins and paddings (happy-dom 21 keeps `margin-block` and its longhands as written and
+// computes no length for them): in the horizontal, left-to-right writing mode of every page, block
+// start and end are top and bottom, and inline start and end left and right. A declaration of one is
+// set as its physical sides, and the computed logical property reads its physical side.
+const CSSPropertyManager = require(path.join(HAPPY_DOM, "lib", "css", "declaration", "property-manager",
+    "CSSPropertyManager.js")).default;
+const LOGICAL_SIDES = {block: ["top", "bottom"], inline: ["left", "right"]};
+const LOGICAL = /^(margin|padding)-(block|inline)(?:-(start|end))?$/;
+const setProperty = CSSPropertyManager.prototype.set;
+CSSPropertyManager.prototype.set = function (name, value, important) {
+    const logical = LOGICAL.exec(String(name));
+    if (!logical || value === null) return setProperty.call(this, name, value, important);
+    const [, box, axis, edge] = logical;
+    const [start, end] = LOGICAL_SIDES[axis];
+    const values = topLevel(String(value).trim(), " ").filter(Boolean);
+    const sides = edge ? [[edge === "start" ? start : end, String(value).trim()]]
+        : [[start, values[0]], [end, values[1] ?? values[0]]];
+    return sides.flatMap(([side, each]) => setProperty.call(this, `${box}-${side}`, each, important) || []);
+};
+// The physical computed property a logical one reads, by its camel-case name.
+const PHYSICAL = Object.fromEntries(["margin", "padding"].flatMap((box) => Object.entries({
+    BlockStart: "Top", BlockEnd: "Bottom", InlineStart: "Left", InlineEnd: "Right"})
+    .map(([logical, side]) => [`${box}${logical}`, `${box}${side}`])));
 
 // Chromium's user-agent rules happy-dom 21 lacks: `[hidden]` and a closed `[popover]` are display
 // none, at the user-agent level, so an author's display still wins. happy-dom's element defaults
@@ -757,6 +800,15 @@ function install(window, page) {
         window.dispatchEvent(new window.Event("afterprint"));
     };
 
+    // A modal dialog is reported to the test as a `dialog` event and dismissed at once, as Playwright
+    // dismisses one: alert returns nothing, confirm false and prompt null.
+    for (const [type, dismissed] of [["alert", undefined], ["confirm", false], ["prompt", null]]) {
+        window[type] = (message = "") => {
+            page.event({type: "dialog", kind: type, message: String(message)});
+            return dismissed;
+        };
+    }
+
     // The canvas text measure: a 2D context whose measureText is the recorded width, else the default.
     window.HTMLCanvasElement.prototype.getContext = function (type) {
         if (type !== "2d") return null;
@@ -803,14 +855,15 @@ function installRecorded(window, page) {
                 return (property) => {
                     page.ask("cascade", `${key}|${property}`);
                     const camel = String(property).replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
+                    if (PHYSICAL[camel]) return initial(PHYSICAL[camel], target[PHYSICAL[camel]]);
                     return initial(camel, target.getPropertyValue(property));
                 };
             }
-            const value = target[name];
+            const value = typeof name === "string" && PHYSICAL[name] ? target[PHYSICAL[name]] : target[name];
             if (typeof value === "function") return value.bind(target);
             if (typeof name === "string" && /^[a-z]/i.test(name) && name !== "length") {
                 page.ask("cascade", `${key}|${name}`);
-                return initial(name, value);
+                return initial(PHYSICAL[name] || name, value);
             }
             return value;
         }});

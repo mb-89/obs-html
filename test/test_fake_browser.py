@@ -181,3 +181,37 @@ def test_the_cascade_still_applies_every_rule_that_can_match(tmp_path, fake_page
     assert colours[:6] == [f"rgb({index}, 0, 0)" for index in range(1, 6)] + ["rgb(6, 0, 0)"]
     assert colours[7] == "rgb(6, 0, 0)"
     assert "rgb(6, 0, 0)" != colours[6] and colours[8] != "rgb(1, 0, 0)"
+
+
+def test_logical_margins_compute_as_their_physical_sides_and_an_svg_style_ends_at_its_end_tag(tmp_path,
+                                                                                               fake_page) -> None:
+    """Two gaps of happy-dom 21 (browser-door.md, As built by layout-logic-to-fake-browser): it computed
+    no length for `margin-block` and its longhands, which the page's runtime reads (pages.js), and it
+    read the markup after an SVG `<style>` as that style's text."""
+    page = _open(tmp_path, fake_page, '<p>a</p><b>b</b><i>c</i><div id="drawn"></div>',
+                 "<style>:root { --space: 1.25rem; } p { margin-block: var(--space); }"
+                 " b { display: block; margin-block-start: 0; margin-block-end: 2rem; }"
+                 " i { display: block; margin-block: 1rem 3px; padding-inline: 4px 5px; }</style>")
+    assert page.evaluate("""() => ["p", "b", "i"].map((tag) => {
+        const style = getComputedStyle(document.querySelector(tag));
+        return [style.marginBlockStart, style.marginBlockEnd, style.getPropertyValue("margin-block-end"),
+                style.marginTop, style.marginBottom];
+    })""") == [["20px", "20px", "20px", "20px", "20px"], ["0px", "32px", "32px", "0px", "32px"],
+               ["16px", "3px", "3px", "16px", "3px"]]
+    assert page.evaluate("""() => {
+        const style = getComputedStyle(document.querySelector("i"));
+        return [style.paddingInlineStart, style.paddingInlineEnd];
+    }""") == ["4px", "5px"]
+    page.evaluate("""() => { document.querySelector("#drawn").innerHTML =
+        '<svg><style>rect { fill: red; }</style><text>x</text><rect class="one"/></svg><p class="after">after</p>'; }""")
+    assert page.locator("#drawn svg text").text_content() == "x"
+    assert page.locator("#drawn svg rect.one").count() == 1
+    assert page.locator("#drawn > p.after").text_content() == "after"
+
+
+def test_a_modal_dialog_is_reported_and_dismissed(tmp_path, fake_page) -> None:
+    page = _open(tmp_path, fake_page, "<p>Text</p>")
+    dialogs = []
+    page.on("dialog", lambda dialog: dialogs.append((dialog.type, dialog.message)))
+    assert page.evaluate("() => [alert('One'), confirm('Two'), prompt('Three')]") == [None, False, None]
+    assert dialogs == [("alert", "One"), ("confirm", "Two"), ("prompt", "Three")]
