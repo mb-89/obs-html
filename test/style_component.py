@@ -38,15 +38,8 @@ class ProvisionError(RuntimeError):
     """The default style component cannot be provided; the message names why and the remedy."""
 
 
-def admitted(requirement: str, version: tuple[int, int, int]) -> bool:
-    """Whether the caret pin ``requirement`` (``^1.0``, ``^0.4``, ``^0.0.3``) admits ``version``."""
-    floor = tuple(int(part) for part in requirement.lstrip("^").split("."))
-    floor = (*floor, *(0,) * (3 - len(floor)))
-    fixed = next((index for index, part in enumerate(floor) if part), 2)
-    return version >= floor and version[:fixed + 1] == floor[:fixed + 1]
-
-
-def _core_components(core_root: Path):
+def core_components(core_root: Path):
+    """The core's component code, obs's ``src/obs/components.py`` in the checkout ``core_root``."""
     spec = importlib.util.spec_from_file_location("obs_core_components", core_root / "src" / "obs" / "components.py")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -62,8 +55,9 @@ def _entry(machine: Path) -> dict[str, str] | None:
     return entry if entry and (machine / "components" / NAME / "style.css").is_file() else None
 
 
-def _newest() -> tuple[tuple[int, int, int], str, str]:
-    """The newest admitted release of NAME, as its version, tag and commit, from the repository's tags."""
+def _newest(admits) -> tuple[tuple[int, int, int], str, str]:
+    """The newest release of NAME that se.toml's requirement admits, read by the core's ``admits``, as its
+    version, tag and commit, from the repository's tags."""
     listed = subprocess.run(["git", "ls-remote", "--tags", ADDRESS], capture_output=True, text=True,
                             encoding="utf-8", env={**os.environ, "GIT_TERMINAL_PROMPT": "0"}, check=False)
     if listed.returncode:
@@ -79,7 +73,7 @@ def _newest() -> tuple[tuple[int, int, int], str, str]:
         else:
             commits.setdefault(tag, commit)
     releases = sorted((tuple(map(int, match.groups())), tag, commit) for tag, commit in commits.items()
-                      if (match := _TAG.fullmatch(tag)) and admitted(REQUIREMENT, tuple(map(int, match.groups()))))
+                      if (match := _TAG.fullmatch(tag)) and admits(REQUIREMENT, tuple(map(int, match.groups()))))
     if not releases:
         raise ProvisionError(f"test/style_component.py: {ADDRESS} has no release that se.toml's {REQUIREMENT} "
                              "admits. Remedy: release one, or change the requirement in se.toml")
@@ -91,8 +85,8 @@ def provided(core_root: Path) -> Path:
     CACHE.parent.mkdir(parents=True, exist_ok=True)
     with FileLock(f"{CACHE}.lock"):
         if _entry(CACHE) is None:
-            core = _core_components(core_root)
-            version, tag, commit = _newest()
+            core = core_components(core_root)
+            version, tag, commit = _newest(core.admits)
             release = core.Release("style", NAME, version, tag, commit, ADDRESS)
             previous = os.environ.get(core.VARIABLE)
             os.environ[core.VARIABLE] = str(CACHE)

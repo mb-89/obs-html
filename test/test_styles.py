@@ -53,6 +53,45 @@ def test_without_the_default_component_installed_a_build_fails_naming_its_instal
     assert not (tmp_path / "artifact.html").exists()
 
 
+def test_installing_obs_html_through_the_core_installs_the_default_style_it_requires(
+        tmp_path: Path, monkeypatch) -> None:
+    """obs at its pin installs the components a component's se.toml requires (obs's
+    spec/design_input/components.md, Requirements), so installing obs-html installs DEFAULT_STYLE; the
+    core's Git door is a fake that serves this checkout's adapter.json and se.toml and the installed
+    style, so nothing is fetched."""
+    import shutil
+
+    import style_component
+    from conftest import CORE_ROOT, MACHINE, ROOT
+
+    core = style_component.core_components(CORE_ROOT)
+    trees = {"obs-html": tmp_path / "obs-html", DEFAULT_STYLE: MACHINE / "components" / DEFAULT_STYLE}
+    trees["obs-html"].mkdir()
+    for name in ("adapter.json", "se.toml"):
+        shutil.copy(ROOT / name, trees["obs-html"] / name)
+
+    class Host(core.Git):
+        def fetch(self, folder: Path, address: str, tag: str, into: Path) -> None:
+            shutil.copytree(trees[address], into, dirs_exist_ok=True)
+
+    def release(kind: str, name: str, version: tuple[int, int, int]):
+        return core.Release(kind, name, version, f"v{'.'.join(map(str, version))}", "0" * 40, name)
+
+    monkeypatch.setattr(core, "GIT", Host())
+    monkeypatch.setenv(core.VARIABLE, str(tmp_path / "machine"))
+    offered = {DEFAULT_STYLE: {version: release("style", DEFAULT_STYLE, version)
+                               for version in ((0, 9, 0), (1, 0, 0), (1, 2, 0), (2, 0, 0))}}
+    said: list[str] = []
+    core.install_with_requirements(ROOT, release("adapter", "obs-html", (0, 5, 0)), offered, said.append)
+
+    assert core.requirements(ROOT, "obs-html") == {DEFAULT_STYLE: "^1.0"}
+    assert {name: entry["version"] for name, entry in core.installed().items()} == {
+        "obs-html": "0.5.0", DEFAULT_STYLE: "1.2.0"}
+    assert said[-1].endswith(", required by obs-html")
+    css = tmp_path / "machine" / "components" / DEFAULT_STYLE / "style.css"
+    assert css.read_text(encoding="utf-8") == (trees[DEFAULT_STYLE] / "style.css").read_text(encoding="utf-8")
+
+
 def test_explicit_style_module_overrides_the_default(document, tmp_path: Path) -> None:
     style = _style(tmp_path, ":root { --module-style: selected; }")
 
