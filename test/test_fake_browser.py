@@ -227,3 +227,16 @@ def test_a_replayed_phone_state_is_a_touch_device_at_its_scale(tmp_path, fake_pa
     assert _open(tmp_path, fake_page, "<p>Phone</p>").evaluate(asked) == [True, True, True, 3]
     fake_page.replay(None)
     assert _open(tmp_path, fake_page, "<p>Desktop</p>").evaluate(asked) == [False, False, False, 1]
+
+
+def test_a_media_change_on_an_open_page_gives_its_computed_styles_anew(tmp_path, fake_page) -> None:
+    """happy-dom 21 kept each computed style it gave, so emulating print on an open page left a
+    print rule without effect (browser-door.md, As built by layout-logic-to-fake-browser)."""
+    page = _open(tmp_path, fake_page, '<p class="line">Line</p>', "<style>@media print { .line { display: none; } }</style>")
+    line = page.locator(".line")
+    assert line.evaluate("(element) => getComputedStyle(element).display") == "block"
+    page.emulate_media(media="print")
+    assert line.evaluate("(element) => getComputedStyle(element).display") == "none"
+    expect(line).to_be_hidden()
+    page.emulate_media(media="screen")
+    expect(line).to_be_visible()

@@ -1749,6 +1749,9 @@ const OPERATIONS = {
     async emulate_media(page, request) {
         Object.assign(page.media, request.media);
         if (page.browser) Object.assign(page.browser.settings.device, request.media);
+        // happy-dom 21 keeps each computed style it gave, so a media rule the new media turns on or
+        // off changed nothing on an open page: its computed styles are given anew, as Chromium's are.
+        if (page.window) page.window.document[PropertySymbol.clearComputedStyleCache]();
         if (page.window) await page.between();
     },
     async evaluate(page, request) {
