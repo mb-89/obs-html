@@ -1,23 +1,25 @@
-// The artifact verification harness: opens a generated artifact in a Node DOM (linkedom) with no
-// native browser, runs its embedded runtime and drives it step by step.
+// The artifact verification harness: opens a generated artifact in the fake browser (happy-dom in
+// Node, test/browser/fake-browser.cjs, browser-door.md) with no native browser, lets its runtime start
+// as a reader's browser starts it and drives it step by step.
 //
-// As a module: `open(artifactPath, linkedomPath)` returns the opened artifact; artifact-ui.cjs and
-// the steps below build on it. As a command:
+// As a module: `open(artifactPath, options)` returns the opened artifact; artifact-ui.cjs and the
+// steps below build on it. Its options: `recording`, a browser door state's recording (door.py), so
+// the page answers its layout calls from it (else from the door's default answers); `hold`, the ids
+// of runtime scripts the page does not run, which a caller runs itself with its own stand-ins
+// (`run`); and `viewport`. As a command:
 //
-//   node ./artifact-harness.cjs <artifact.html> <linkedom module> <steps.json>
+//   node ./artifact-harness.cjs <artifact.html> <steps.json> [<recording.json>]
 //
 // runs the JSON list of steps (each {"step": <name>, ...arguments}) and prints one JSON result
 // per step as a JSON list. A failed step exits 1 with a message naming the harness, the step and
 // the remedy.
 const fs = require("node:fs");
-const vm = require("node:vm");
+const path = require("node:path");
+const {pathToFileURL} = require("node:url");
+const {FakePage, use, runScript} = require("./fake-browser.cjs");
+const {doorElement} = require("./door-key.js");
 
 const NAME = "test/browser/artifact-harness.cjs";
-const STARTUP_SCRIPTS = ["reader-startup-script", "running-header-script", "artifact-bootstrap-script"];
-const RUNTIME_SCRIPTS = ["query-script", "yaml-script", "base-script", "data-table-script",
-    "assets-script", "notices-script", "canonical-transaction-script", "artifact-script", "pages-script", "comment-model-script"];
-// The runtime scripts a feature owns (obs_html/features.py, elements), which ship only with it.
-const FEATURE_SCRIPTS = new Set(["yaml-script", "data-table-script"]);
 
 class HarnessError extends Error {
     constructor(step, problem, remedy) {
@@ -25,108 +27,45 @@ class HarnessError extends Error {
     }
 }
 
-// Browser stand-ins the runtime needs and linkedom lacks. Layout is constant: every element is
-// 384 by 24 pixels in a 1200 by 900 window and every sheet fits, so geometry comes from the
-// runtime's declared paper, never from measured pixels.
-function install(window, document) {
-    Object.defineProperty(Object.getPrototypeOf(document.createDocumentFragment()), "textContent", {
-        configurable: true,
-        get() { return [...this.childNodes].map((node) => node.textContent || "").join(""); },
+// Each animation frame the runtime asks for while the harness runs the page's timers, at most.
+const FRAMES = 100;
+// How long the page may take, on its own clock, to open and to reach its ready mark.
+const TIMEOUT = 30000;
+
+// The page's own global: what a script of the page reads as globalThis, and where a caller's
+// stand-in (`artifact.context.localStorage = ...`) is defined, as the fake defines its refusals.
+function globalOf(window) {
+    const global = window.eval("globalThis");
+    const define = window.eval("(name, value) => Object.defineProperty(globalThis, name, " +
+        "{value, writable: true, configurable: true, enumerable: true})");
+    return new Proxy(global, {
+        get: (target, name) => target[name],
+        set: (_target, name, value) => {
+            define(name, value);
+            return true;
+        },
+        deleteProperty: (target, name) => Reflect.deleteProperty(target, name),
+        has: (target, name) => name in target,
     });
-    if (document.createElement("a").hash === undefined) {
-        Object.defineProperty(window.HTMLAnchorElement.prototype, "hash", {
-            get() { return new URL(this.href, "https://artifact.invalid/").hash; },
-        });
-    }
-    window.HTMLCanvasElement.prototype.getContext = () => ({
-        font: "", measureText: (text) => ({width: text.length * 7}),
-    });
-    window.HTMLElement.prototype.showPopover = function () { this.dataset.open = "true"; };
-    window.HTMLElement.prototype.hidePopover = function () { delete this.dataset.open; };
-    window.HTMLElement.prototype.getBoundingClientRect = () => ({
-        left: 100, right: 122, top: 200, bottom: 222, width: 384, height: 24,
-    });
-    window.HTMLElement.prototype.getClientRects = function () { return [this.getBoundingClientRect()]; };
-    window.HTMLElement.prototype.scrollIntoView = function () {};
-    Object.defineProperty(window.HTMLElement.prototype, "clientHeight", {
-        configurable: true, get() { return 10000; },
-    });
-    Object.defineProperty(window.HTMLElement.prototype, "scrollHeight", {
-        configurable: true, get() { return 0; },
-    });
-    window.location = {hash: "", pathname: "/artifacts/artifact.html"};
-    window.history = {
-        pushState(_state, _unused, hash) { window.location.hash = hash; },
-        replaceState(_state, _unused, hash) { window.location.hash = hash; },
-    };
-    window.innerWidth = 1200;
-    window.innerHeight = 900;
 }
 
-function textRange(document) {
-    return class TextRange {
-        selectNodeContents(node) {
-            this.root = node;
-            this.commonAncestorContainer = node;
-            this.startContainer = node;
-            this.startOffset = 0;
-            this.endContainer = node;
-            this.endOffset = node.childNodes.length;
+// The page's scripts without the held ones: the HTML parser ends a script at its first `</script`,
+// so this match is exactly the element the parser would build.
+function without(html, held) {
+    let shown = html;
+    for (const id of held) {
+        const pattern = new RegExp(`<script id="${id}"[^>]*>[\\s\\S]*?</script>`, "g");
+        if (!pattern.test(shown)) {
+            throw new HarnessError("open", `the artifact has no <script id="${id}"> to hold back.`,
+                "render the artifact with this repository's obs-html, not another adapter or an older build.");
         }
-        cloneRange() { return Object.assign(new TextRange(), this); }
-        cloneContents() {
-            const fragment = document.createDocumentFragment();
-            fragment.append(document.createTextNode(this.toString()));
-            return fragment;
-        }
-        setStart(node, offset) { this.startContainer = node; this.startOffset = offset; }
-        setEnd(node, offset) { this.endContainer = node; this.endOffset = offset; }
-        toString() {
-            const root = this.root || (this.startContainer.nodeType === 3
-                ? this.startContainer.parentElement : this.startContainer);
-            const position = (node, offset) => {
-                let total = 0;
-                let found = false;
-                const visit = (current) => {
-                    if (found) return;
-                    if (current === node) {
-                        total += current.nodeType === 3 ? offset
-                            : [...current.childNodes].slice(0, offset).reduce(
-                                (sum, child) => sum + child.textContent.length, 0,
-                            );
-                        found = true;
-                    } else if (current.nodeType === 3) total += current.textContent.length;
-                    else [...current.childNodes].forEach(visit);
-                };
-                visit(root);
-                return total;
-            };
-            return root.textContent.slice(
-                position(this.startContainer, this.startOffset), position(this.endContainer, this.endOffset),
-            );
-        }
-        getClientRects() { return []; }
-    };
+        shown = shown.replace(pattern, "");
+    }
+    return shown;
 }
 
-function runScript(document, context, id) {
-    const script = document.getElementById(id);
-    if (!script) {
-        throw new HarnessError("open", `the artifact has no <script id="${id}">.`,
-            "render the artifact with this repository's obs-html, not another adapter or an older build.");
-    }
-    vm.runInContext(script.textContent, context, {filename: id});
-}
-
-// Opens the artifact and runs its startup and runtime scripts in the order the browser does.
-async function open(artifactPath, linkedomPath) {
-    let parseHTML;
-    try {
-        ({parseHTML} = require(linkedomPath));
-    } catch (error) {
-        throw new HarnessError("open", `linkedom could not be loaded from ${linkedomPath}: ${error.message}`,
-            "npm --prefix test/browser ci");
-    }
+// Opens the artifact in the fake browser and runs it until its ready mark.
+async function open(artifactPath, {recording = null, hold = [], viewport} = {}) {
     let html;
     try {
         html = fs.readFileSync(artifactPath, "utf8");
@@ -134,44 +73,95 @@ async function open(artifactPath, linkedomPath) {
         throw new HarnessError("open", `the artifact ${artifactPath} could not be read: ${error.message}`,
             "pass the path of an artifact rendered with obs-html.");
     }
-    const {window, document} = parseHTML(html);
-    install(window, document);
-    const TextRange = textRange(document);
-    document.createRange = () => new TextRange();
-    let timerId = 0;
-    const timers = new Map();
-    const runTimers = () => {
-        const pending = [...timers.values()];
-        timers.clear();
-        pending.forEach(({callback}) => callback());
+    const page = new FakePage(1, {viewport: viewport || recording?.context?.viewport || [1280, 720]});
+    page.recording = recording;
+    use(page);
+    await page.open(pathToFileURL(path.resolve(artifactPath)).href, TIMEOUT, without(html, hold));
+    const {window} = page;
+    const {document} = window;
+    const status = () => document.documentElement.dataset.artifactStatus;
+    await page.until(() => ["ready", "error"].includes(status()), TIMEOUT);
+    const artifact = {page, window, document, context: globalOf(window)};
+    // The errors the page raised since the last look, thrown as the step's own.
+    artifact.raise = () => {
+        const errors = page.events.filter((event) => event.type === "pageerror");
+        page.events = page.events.filter((event) => event.type !== "pageerror");
+        if (errors.length) {
+            const [first] = errors;
+            const error = new Error(`the page raised ${first.name}: ${first.message}\n${first.stack}`);
+            error.name = first.name;
+            throw error;
+        }
     };
-    const context = vm.createContext({
-        window, document, console, CustomEvent: window.CustomEvent, AbortController, URLSearchParams, URL,
-        MutationObserver: window.MutationObserver,
-        DOMParser: window.DOMParser,
-        TextEncoder, TextDecoder, ReadableStream, Response, CompressionStream, DecompressionStream,
-        atob, btoa, structuredClone, performance,
-        addEventListener: window.addEventListener.bind(window),
-        removeEventListener: window.removeEventListener.bind(window),
-        NodeFilter: {SHOW_TEXT: 4},
-        getComputedStyle: () => ({
-            font: "14px sans-serif", fontSize: "16px", paddingLeft: "24px", getPropertyValue: () => "0",
-        }),
-        ResizeObserver: class { observe() {} disconnect() {} },
-        setTimeout: (callback, delay) => {
-            timers.set(++timerId, {callback, delay});
-            return timerId;
-        },
-        clearTimeout: (id) => timers.delete(id),
-        requestAnimationFrame: (callback) => callback(),
-    });
-    STARTUP_SCRIPTS.forEach((id) => runScript(document, context, id));
-    await context.obsHtmlDataReady;
-    await context.obsHtmlReady;
-    vm.runInContext("globalThis.obsStartup = undefined;", context);
-    RUNTIME_SCRIPTS.filter((id) => !FEATURE_SCRIPTS.has(id) || document.getElementById(id))
-        .forEach((id) => runScript(document, context, id));
-    return {window, document, context, parseHTML, TextRange, timers, runTimers};
+    if (status() !== "ready") {
+        const errors = page.events.filter((event) => event.type === "pageerror").map((event) => event.message);
+        throw new HarnessError("open", `the artifact did not reach its ready mark (status ${status() || "none"})` +
+            `${errors.length ? `: ${errors.join("; ")}` : ""}.`, "open it in a browser and read the page's error notice.");
+    }
+    artifact.raise();
+    // Runs a runtime's source in the page as one of its scripts, named `filename` in stacks, and
+    // throws what it threw.
+    artifact.run = (source, filename = "script") => {
+        runScript(window, source, filename);
+        artifact.raise();
+    };
+    // The page's pending timers (not its animation frames), each with its delay and callback.
+    artifact.timers = {
+        values: () => page.clock.tasks.filter((task) => !task.frame)
+            .map((task) => ({delay: task.delay, callback: () => {
+                if (!page.clock.tasks.includes(task)) return;
+                page.clock.run(task);
+                artifact.raise();
+            }}))[Symbol.iterator](),
+    };
+    // Runs every timer and frame the page has asked for, and each frame those ask for in turn, on
+    // the page's clock; a timer a timer sets waits for the next call.
+    artifact.runTimers = () => {
+        const due = [...page.clock.tasks].sort((one, other) => one.at - other.at || one.id - other.id);
+        for (const task of due) if (page.clock.tasks.includes(task)) page.clock.run(task);
+        for (let round = 0; round < FRAMES; round += 1) {
+            const frames = page.clock.tasks.filter((task) => task.frame);
+            if (!frames.length) break;
+            for (const task of frames) if (page.clock.tasks.includes(task)) page.clock.run(task);
+        }
+        artifact.raise();
+    };
+    // Lets the page run what is due now and one frame of its clock, as passes between two inputs.
+    artifact.settle = async () => {
+        await page.between();
+        artifact.raise();
+    };
+    // Awaits a promise of the page while its clock runs, as time passes in a browser, and throws
+    // what the page raised meanwhile; a promise that never settles fails the step.
+    artifact.wait = async (value, what = "a promise of the page") => {
+        if (!value || typeof value.then !== "function") return value;
+        const outcome = {done: false};
+        value.then((result) => Object.assign(outcome, {done: true, result}),
+            (error) => Object.assign(outcome, {done: true, error, failed: true}));
+        if (!await page.until(() => outcome.done, TIMEOUT)) {
+            throw new HarnessError("wait", `${what} did not settle within ${TIMEOUT} ms of the page's clock, ` +
+                "and the page had nothing left to run.", "await only what the page resolves on its own.");
+        }
+        artifact.raise();
+        if (outcome.failed) throw outcome.error;
+        return outcome.result;
+    };
+    // Runs the page on its clock until `check` holds, and returns what it answered; fails the step
+    // where the page has nothing left to run first.
+    artifact.until = async (check, what = "the page's condition") => {
+        const met = await page.until(check, TIMEOUT);
+        artifact.raise();
+        if (!met) {
+            throw new HarnessError("until", `${what} did not hold within ${TIMEOUT} ms of the page's clock, ` +
+                "and the page had nothing left to run.", "wait only for what the page reaches on its own.");
+        }
+        return met;
+    };
+    // From now on the page answers its layout calls from the recording's step `step` (door.py).
+    artifact.reach = (step) => { page.reached = step; };
+    // A saved copy's HTML as a document of the page's own realm.
+    artifact.parse = (source) => new window.DOMParser().parseFromString(source, "text/html");
+    return artifact;
 }
 
 const activeChapter = (artifact) => artifact.document.querySelector("[data-active-chapter]");
@@ -223,7 +213,7 @@ const STEPS = {
                 "name a slug the data step lists under notes.");
         }
         artifact.context.obsArtifact.activateChapter(chapter);
-        await artifact.context.obsArtifact.whenChapterReady();
+        await artifact.wait(artifact.context.obsArtifact.whenChapterReady(), "the chapter's ready promise");
         const active = activeChapter(artifact);
         return {
             chapter: active.dataset.chapter,
@@ -253,6 +243,7 @@ const STEPS = {
     },
     async paged(artifact, {enabled}) {
         artifact.context.obsPages.setPaged(enabled);
+        await artifact.settle();
         const screen = pagedReader(artifact);
         return {
             paged: artifact.document.documentElement.classList.contains("paged-mode"),
@@ -264,6 +255,7 @@ const STEPS = {
     // Presentation (the paged screen reader) and print (the print book and its media boxes).
     async geometry(artifact) {
         const {document, window, context} = artifact;
+        await artifact.settle();
         const screen = pagedReader(artifact);
         const presentation = screen ? sheets(artifact, screen) : null;
         window.dispatchEvent(new window.Event("beforeprint"));
@@ -279,6 +271,22 @@ const STEPS = {
         } finally {
             window.dispatchEvent(new window.Event("afterprint"));
         }
+    },
+    // From now on the page answers from the recording's step (browser-door.md, Recording and replay).
+    async reach(artifact, {index}) {
+        artifact.reach(index);
+        return {reached: index};
+    },
+    // The border box the page gets for the element of a door key (door-key.js): the recording's
+    // answer at the step reached, else the door's default.
+    async box(artifact, {key}) {
+        const element = doorElement(key, artifact.document);
+        if (!element) {
+            throw new HarnessError("box", `no element of the page has the key "${key}".`,
+                "name a key a recording of this artifact lists under box.");
+        }
+        const {x, y, width, height} = element.getBoundingClientRect();
+        return {key, border: [x, y, width, height]};
     },
 };
 
@@ -298,14 +306,16 @@ module.exports = {open, runSteps, HarnessError};
 
 if (require.main === module) {
     (async () => {
-        const [artifactPath, linkedomPath, stepsPath] = process.argv.slice(2);
+        const [artifactPath, stepsPath, recordingPath] = process.argv.slice(2);
         if (!stepsPath) {
-            throw new HarnessError("usage", "expected <artifact.html> <linkedom module> <steps.json>.",
-                "pass all three arguments.");
+            throw new HarnessError("usage", "expected <artifact.html> <steps.json> [<recording.json>].",
+                "pass the artifact and its steps, and a state's recording where the page answers from one.");
         }
-        const artifact = await open(artifactPath, linkedomPath);
+        const recording = recordingPath ? JSON.parse(fs.readFileSync(recordingPath, "utf8")) : null;
+        const artifact = await open(artifactPath, {recording});
         const steps = JSON.parse(fs.readFileSync(stepsPath, "utf8"));
         process.stdout.write(JSON.stringify(await runSteps(artifact, steps)));
+        artifact.page.close();
     })().catch((error) => {
         console.error(error instanceof HarnessError ? error.message : error);
         process.exitCode = 1;

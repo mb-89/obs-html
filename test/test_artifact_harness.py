@@ -1,12 +1,13 @@
-"""DOM tier: the artifact verification harness (test/browser/artifact-harness.cjs) on a rendered artifact."""
+"""DOM tier: the artifact verification harness (test/browser/artifact-harness.cjs) on a rendered artifact, in the
+fake browser (test/browser/browser-door.md)."""
 import json
-import os
 import shutil
 import subprocess
 from pathlib import Path
 
 import pytest
 
+from browser import door
 from conftest import ROOT
 from documents import chapter, document, heading, node, paragraph
 from obs_html.config import load_config
@@ -41,16 +42,20 @@ def artifact(tmp_path_factory: pytest.TempPathFactory) -> Path:
     return path
 
 
-def run_harness(artifact: Path, tmp_path: Path, *steps: dict, check: bool = True) -> list | str:
-    """Run the harness's steps on the artifact; returns each step's result, or stderr when failing."""
-    module = os.environ.get("OBS_HTML_TEST_DOM_MODULE") or str(
-        ROOT / "test" / "browser" / "node_modules" / "linkedom")
+def run_harness(artifact: Path, tmp_path: Path, *steps: dict, check: bool = True,
+                recording: dict | None = None) -> list | str:
+    """Run the harness's steps on the artifact, answering from a state's recording where given; returns
+    each step's result, or stderr when failing."""
     node_program = shutil.which("node")
-    if not node_program or not Path(module).is_dir():
-        pytest.fail("The DOM tier needs Node and linkedom: npm --prefix test/browser ci")
+    if not node_program or not (ROOT / "test" / "browser" / "node_modules" / "happy-dom").is_dir():
+        pytest.fail("The DOM tier needs Node and the fake browser: npm --prefix test/browser ci")
     script = tmp_path / "steps.json"
     script.write_text(json.dumps(list(steps)), encoding="utf-8")
-    result = subprocess.run([node_program, str(HARNESS), str(artifact), module, str(script)],
+    replayed = []
+    if recording is not None:
+        replayed = [tmp_path / "recording.json"]
+        replayed[0].write_text(json.dumps(recording), encoding="utf-8")
+    result = subprocess.run([node_program, str(HARNESS), str(artifact), str(script), *map(str, replayed)],
                             text=True, encoding="utf-8", capture_output=True, cwd=ROOT, timeout=60)
     if not check:
         assert result.returncode == 1, result.stdout
@@ -120,3 +125,18 @@ def test_harness_opens_a_toc_false_chapter_by_its_fragment(tmp_path: Path) -> No
     data, active = run_harness(path, tmp_path, {"step": "data"}, {"step": "activate", "chapter": "reached"})
     assert (data["status"], data["toc"]) == ("ready", 2)
     assert active == {"chapter": "reached", "hash": "#reached", "title": "Reached"}
+
+
+def test_harness_answers_layout_from_the_recording_of_the_state_it_opens(door_artifact, tmp_path: Path) -> None:
+    """The harness opens a door state's artifact with its recording: from the step it has reached on, a
+    box that step recorded is the recorded Chromium's; before it, the door's default."""
+    recording = door.load_recording("features-desktop")
+    earlier = set(recording["answers"][0].get("box", {}))
+    later = next(answer for answer in recording["answers"][1:] if set(answer.get("box", {})) - earlier)
+    key = sorted(set(later["box"]) - earlier)[0]
+    chapter = recording["steps"][later["step"]]["id"]
+    _, defaulted, _, replayed = run_harness(
+        door_artifact("features-desktop"), tmp_path, {"step": "activate", "chapter": chapter}, {"step": "box", "key": key},
+        {"step": "reach", "index": later["step"]}, {"step": "box", "key": key}, recording=recording)
+    assert replayed == {"key": key, "border": later["box"][key]["border"]}
+    assert defaulted["border"] != replayed["border"]

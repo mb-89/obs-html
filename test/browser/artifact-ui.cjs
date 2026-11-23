@@ -1,16 +1,26 @@
+// The DOM tier's interaction contracts (test/test_dom.py, test/test_moved_dom_contracts.py): opens a
+// rendered artifact in the fake browser through artifact-harness.cjs and drives one mode of it.
+//
+//   node ./artifact-ui.cjs <artifact.html> <runtime> <runtime> <runtime> [<mode> [<argument>]]
+//
+// The contracts are those of the runtime without its bars: every mode holds back the page's own
+// storage and bar scripts, and a mode given runtimes (bars/*.js, storage.js) runs them itself, each
+// after its stand-ins (a storage that refuses, a clipboard).
 const fs = require("node:fs");
-const vm = require("node:vm");
 const assert = require("node:assert/strict");
 const harness = require("./artifact-harness.cjs");
 // The step the run is in and the verify steps that finished; a run that exits unsettled names its step.
-const progress = {step: process.argv[7] || "the default run", settled: false, finished: []};
+const [artifactPath, ...rest] = process.argv.slice(2);
+const runtimes = rest.slice(0, 3);
+const [mode, modeArgument] = rest.slice(3);
+const progress = {step: mode || "the default run", settled: false, finished: []};
 const finish = (step, line) => {
     console.log(line);
     progress.finished.push(step);
 };
 async function run() {
-const {window, document, context, parseHTML, TextRange, timers, runTimers} =
-    await harness.open(process.argv[2], process.argv[3]);
+const artifact = await harness.open(artifactPath, {hold: ["storage-script", "bar-scripts"]});
+const {window, document, context, run: runScript, parse, timers, runTimers, settle, wait, until} = artifact;
 const body = document.querySelector("[data-chapter-body]");
 // Artifact-ui.md "Reading shell": Home and the breadcrumbs live in the one-row top band.
 const band = document.querySelector("[data-top-band-path]");
@@ -25,12 +35,30 @@ const tables = () => [...body.querySelectorAll(".data-table-shell")];
 const firstNodeId = (slug) => /data-node-id="([^"]+)"/.exec(
     context.obsArtifact.records.find((record) => record.slug === slug).html)[1];
 const thread = (fields) => ({created: "2026-11-09T10:00:00Z", mediaType: "text/plain", replies: [], ...fields});
-const navigate = (slug) => context.obsArtifact.activateChapter(slug);
+// A chapter opens as in a browser: its tables and figures render a frame or two after it is shown.
+// A reader's selection, made with the page's Selection API; null clears it.
+const select = (range) => {
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    if (range) selection.addRange(range);
+};
+// The chapter a click or an address opened, once its tables and figures have rendered.
+const chapterReady = () => wait(context.obsArtifact.whenChapterReady(), "the opened chapter's ready promise");
+const navigate = async (slug) => {
+    context.obsArtifact.activateChapter(slug);
+    await wait(context.obsArtifact.whenChapterReady(), `opening the chapter ${slug}`);
+};
 // Artifact-ui.md "Floating window": a link to a note outside the contents shows it as context; the page stays.
-const followToContext = (link, slug) => {
+// The contract reads the window shown in the page, where a separate window is refused: the fake
+// browser opens one (window.open), as a top-level Chromium does.
+const followToContext = async (link, slug) => {
     const page = current();
+    const open = window.open;
+    context.open = () => null;
     click(link);
+    context.open = open;
     assert.equal(current(), page);
+    await chapterReady();
     const floating = document.querySelector("[data-guided-card]");
     assert.ok(floating, `${slug} opens in the floating window`);
     assert.equal(floating.querySelector("[data-guided-card-use]").textContent, "Context");
@@ -38,11 +66,11 @@ const followToContext = (link, slug) => {
         context.obsArtifact.records.find((record) => record.slug === slug).title);
     click(floating.querySelector("[data-guided-card-close]"));
     assert.equal(document.querySelector("[data-guided-card]"), null);
-    navigate(slug);
+    await navigate(slug);
 };
-if (process.argv[7] === "--discovered-query-controls-only") {
-    for (const path of process.argv.slice(4, 6)) {
-        vm.runInContext(fs.readFileSync(path, "utf8"), context, {filename: path});
+if (mode === "--discovered-query-controls-only") {
+    for (const path of runtimes.slice(0, 2)) {
+        runScript(fs.readFileSync(path, "utf8"), path);
     }
     let changes = 0;
     document.addEventListener("obs-filter-change", () => { changes++; });
@@ -75,7 +103,7 @@ if (process.argv[7] === "--discovered-query-controls-only") {
     assert.equal(changes, 2);
     return;
 }
-if (process.argv[7] === "--table-controls-only") {
+if (mode === "--table-controls-only") {
     const rows = Array.from({length: 5}, (_, index) => ({
         key: `row-${index + 1}`,
         values: {name: `Item ${index + 1}`, status: index < 3 ? "A" : "B"},
@@ -126,17 +154,17 @@ if (process.argv[7] === "--table-controls-only") {
     assert.equal(footer.querySelector(".data-table-count").textContent, "0 of 5 items");
     return;
 }
-if (process.argv[7] === "--table-help-only") {
+if (mode === "--table-help-only") {
     progress.step = "verifyTableHelpOnly";
     await verifyTableHelpOnly();
     return;
 }
-if (process.argv[7] === "--inspect-json") {
+if (mode === "--inspect-json") {
     // Prints records, rendered table row keys and duplicate DOM ids for the listed chapters.
     const chapters = {};
-    for (const slug of JSON.parse(process.argv[8] || "[]")) {
-        navigate(slug);
-        await context.obsArtifact.whenChapterReady();
+    for (const slug of JSON.parse(modeArgument || "[]")) {
+        await navigate(slug);
+        await wait(context.obsArtifact.whenChapterReady());
         runTimers();
         const ids = [...document.querySelectorAll("[id]")].map(element => element.id);
         const rowKeys = shell => [...shell.querySelectorAll("tbody tr[data-row-key]")].map(row => row.dataset.rowKey);
@@ -171,25 +199,22 @@ if (process.argv[7] === "--inspect-json") {
     console.log(JSON.stringify({records, chapters}));
     return;
 }
-if (process.argv[7] === "--comment-order-only") {
+if (mode === "--comment-order-only") {
     progress.step = "verifyCommentOrderOnly";
     await verifyCommentOrderOnly();
     return;
 }
-if (process.argv[7] === "--comments-only") {
+if (mode === "--comments-only") {
     progress.step = "verifyCommentExportOnly";
     await verifyCommentExportOnly();
     return;
 }
-if (process.argv[7] === "--artifact-change-only") {
-    context.structuredClone = structuredClone;
-    context.Node = window.Node;
-    context.CSS = {escape: value => value};
-    context.getSelection = () => null;
+if (mode === "--artifact-change-only") {
+    select(null);
     context.localStorage = {getItem: () => null, setItem() {}};
-    vm.runInContext(fs.readFileSync(process.argv[6], "utf8"), context);
-    vm.runInContext(fs.readFileSync(process.argv[4], "utf8"), context);
-    vm.runInContext(fs.readFileSync(process.argv[5], "utf8"), context);
+    runScript(fs.readFileSync(runtimes[2], "utf8"));
+    runScript(fs.readFileSync(runtimes[0], "utf8"));
+    runScript(fs.readFileSync(runtimes[1], "utf8"));
     const changed = () => {
         const entry = document.querySelector('[data-notice-list="information"] [data-notice="changed-html"]');
         assert.equal(Boolean(entry?.querySelector("[data-artifact-download]")), Boolean(entry),
@@ -221,8 +246,8 @@ if (process.argv[7] === "--artifact-change-only") {
     const opened = timestamp();
     context.obsArtifact.setViewSelection("proof", ["a"], ["a", "b"]);
     assert.equal(artifactDirty(), false, "A view selection is not a change of the HTML.");
-    navigate("one");
-    await context.obsArtifact.whenChapterReady();
+    await navigate("one");
+    await wait(context.obsArtifact.whenChapterReady());
     runTimers();
     const headers = () => [...tables()[0].querySelectorAll("thead th[data-column-key]")];
     const columns = () => headers().map(cell => cell.dataset.columnKey);
@@ -252,17 +277,20 @@ if (process.argv[7] === "--artifact-change-only") {
         write: async contents => {output = contents;},
         close: async () => {closed = true;},
     })});
-    await context.obsComments.saveReviewedCopy();
+    await wait(context.obsComments.saveReviewedCopy());
     assert.equal(closed, true);
     assert.equal(artifactDirty(), false);
     assert.equal(semanticDirty(), false);
-    assert.ok(output.includes("Changed"));
-    const saved = parseHTML(output).document;
+    // A saved copy's data island, as the copy opens it: the edits and reader state it carries.
+    const savedData = (html) => {
+        const island = parse(html).querySelector("[data-artifact-data]");
+        assert.equal(island.dataset.encoding, "gzip");
+        return require("node:zlib").gunzipSync(Buffer.from(island.textContent.trim(), "base64")).toString("utf8");
+    };
+    assert.ok(savedData(output).includes("Changed"));
+    const saved = parse(output);
     assert.equal(saved.querySelector("[data-header-notices]"), null, "Notice DOM is never saved.");
-    const savedIsland = saved.querySelector("[data-artifact-data]");
-    assert.equal(savedIsland.dataset.encoding, "gzip");
-    const savedReader = JSON.parse(require("node:zlib").gunzipSync(
-        Buffer.from(savedIsland.textContent.trim(), "base64")).toString("utf8")).readerState;
+    const savedReader = JSON.parse(savedData(output)).readerState;
     assert.deepEqual(savedReader.views.proof, ["a"], "A saved copy persists the view selection.");
     assert.deepEqual(Object.values(savedReader.tables)[0].columns, columns(),
         "A saved copy persists the table columns.");
@@ -273,32 +301,29 @@ if (process.argv[7] === "--artifact-change-only") {
     // A review comment is a change, but not a content edit: the timestamp stays.
     const reviewed = timestamp();
     const paragraph = body.querySelector("p");
-    const range = new TextRange();
+    const range = document.createRange();
     range.selectNodeContents(paragraph);
-    context.getSelection = () => ({
-        rangeCount: 1, isCollapsed: false, getRangeAt: () => range, removeAllRanges() {},
-    });
+    select(range);
     document.dispatchEvent(new window.Event("selectionchange"));
     click(document.querySelector("[data-comment-add]"));
-    context.getSelection = () => null;
+    select(null);
     assert.equal(context.obsComments.data.annotations.length, 1);
     assert.equal(artifactDirty(), true, "A review comment is a change of the HTML.");
     assert.equal(semanticDirty(), true);
     assert.equal(timestamp(), reviewed, "A review comment leaves the timestamp.");
     context.showSaveFilePicker = async () => {throw Object.assign(new Error("cancel"), {name: "AbortError"});};
-    await context.obsComments.saveReviewedCopy();
+    await wait(context.obsComments.saveReviewedCopy());
     assert.equal(artifactDirty(), true, "Cancel is not a save.");
-    context.Blob = Blob;
     let downloads = 0;
     context.URL = {createObjectURL: () => {downloads++; return "blob:proof";}, revokeObjectURL() {}};
     context.showSaveFilePicker = async () => ({createWritable: async () => ({
         write: async () => {}, close: async () => {throw new Error("close failed");},
     })});
-    await context.obsComments.saveReviewedCopy();
+    await wait(context.obsComments.saveReviewedCopy());
     assert.equal(artifactDirty(), true, "Failed close cannot confirm retention.");
     assert.equal(downloads, 1);
     delete context.showSaveFilePicker;
-    await context.obsComments.saveReviewedCopy();
+    await wait(context.obsComments.saveReviewedCopy());
     assert.equal(artifactDirty(), true, "Fallback download is unconfirmed.");
     assert.equal(downloads, 2);
     const writeIsland = context.obsArtifactTransport.writeIsland;
@@ -314,10 +339,10 @@ if (process.argv[7] === "--artifact-change-only") {
     while (!resume) await new Promise(setImmediate);
     context.obsArtifact.commitProperty("one", "explanation", "Newer edit");
     resume();
-    await pending;
+    await wait(pending);
     assert.equal(artifactDirty(), true, "A confirmed capture cannot clean a later canonical edit.");
     assert.equal(semanticDirty(), true);
-    assert.ok(!output.includes("Newer edit"));
+    assert.ok(!savedData(output).includes("Newer edit"));
     context.obsArtifact.commitProperty("one", "explanation", "Changed");
     assert.equal(artifactDirty(), false, "Reverting to the confirmed capture is clean.");
     assert.equal(semanticDirty(), false);
@@ -326,7 +351,7 @@ if (process.argv[7] === "--artifact-change-only") {
 }
 // Artifact-ui.md "Comments bar": a metadata-only note shows empty, and the page has no chevron and no
 // field table; its fields show on its front matter card, each value as its display HTML.
-navigate("metadata-only");
+await navigate("metadata-only");
 assert.equal(body.textContent.includes("Ada"), false);
 assert.equal(document.querySelector("[data-frontmatter-toggle], [data-frontmatter-panel]"), null);
 const metadataOnly = context.obsArtifact.records.find((record) => record.slug === "metadata-only");
@@ -334,7 +359,7 @@ const citationCell = document.createElement("div");
 context.obsArtifact.appendFieldValue(citationCell, metadataOnly, "citation", "");
 assert.ok(citationCell.querySelector("strong"));
 assert.ok(citationCell.querySelector('a[href="#details"]'));
-navigate("home");
+await navigate("home");
 const openChildren = (labels) => {
     const crumb = band.querySelector("[data-breadcrumb-current]");
     const chapter = current();
@@ -351,6 +376,7 @@ const openChildren = (labels) => {
 };
 
 assert.equal(current(), "home");
+await chapterReady();
 const tocHeader = document.querySelector('[data-bar="toc"] .dock-bar-header');
 assert.equal(tocHeader.querySelectorAll("[data-toc-action]").length, 2);
 assert.equal(document.querySelector('[data-bar="toc"] .dock-bar-content [data-toc-action]'), null);
@@ -359,6 +385,9 @@ assert.equal(body.querySelectorAll("h1").length, 1);
 assert.ok(body.textContent.includes("Abstract prose."));
 assert.equal(body.querySelector(".content-emphasis p").textContent.trim(), "Abstract prose.");
 const pageNumber = (element) => Number(element.textContent.match(/^Page (\d+) of \d+$/)[1]);
+// The paged reader numbers its pages once the page has measured them, a few frames after it shows.
+const pagesMeasured = () => until(() => ![...document.querySelectorAll(".paged-reader .paper-page-number")]
+    .some((number) => number.textContent === "Calculating pages…"), "the paged reader's page numbers");
 assert.equal(tables().length, 2);
 assert.equal(tables()[0].querySelectorAll("tbody tr").length, 3);
 assert.equal(tables()[1].querySelectorAll("tbody tr").length, 6);
@@ -373,24 +402,29 @@ assert.match(
 );
 const drillDown = `#tags?tableFilter=${encodeURIComponent("type:/^open_point$/")}`;
 window.location.hash = drillDown;
-window.dispatchEvent(new window.Event("popstate"));
+await settle();
+await wait(context.obsArtifact.whenChapterReady(), "the drill-down's chapter");
 assert.equal(current(), "tags");
+await chapterReady();
 assert.equal(body.querySelectorAll("tbody tr[data-row-key]").length, 1);
 assert.ok(body.querySelector("tbody").textContent.includes("child_open"));
 assert.notEqual(document.querySelector("[data-menu-button]").dataset.filterActive, "true");
-navigate("home");
+await navigate("home");
 assert.ok(body.innerHTML.indexOf("Abstract prose.") < body.innerHTML.indexOf("data-data-table="));
 assert.equal(tables()[1].querySelector("tbody").textContent.includes("team: Ada, Lin"), true);
 assert.equal(tables()[1].querySelector("tbody").textContent.includes('{"team"'), false);
 openChildren(["Parent", "Glossary", "Tags", "References"]);
 click(band.querySelector(".chapter-breadcrumb-menu a[href='#parent']"));
 assert.equal(current(), "parent");
+await chapterReady();
 let chooser = openChildren(["Child"]);
 click(chooser.querySelector("a"));
 assert.equal(current(), "child");
+await chapterReady();
 chooser = openChildren(["Node"]);
 click(chooser.querySelector("a"));
 assert.equal(current(), "node");
+await chapterReady();
 const quantityTable = body.querySelector(".data-table-shell");
 const quantityRow = quantityTable.querySelector("tbody tr[data-row-key]");
 assert.ok(quantityRow.querySelector('a[href="#details"]'));
@@ -405,15 +439,17 @@ let crumb = band.querySelector("[data-breadcrumb-current]");
 assert.equal(crumb.hasAttribute("aria-controls"), false);
 click(crumb);
 assert.equal(current(), "node");
+await chapterReady();
 click(band.querySelector(".chapter-breadcrumbs > a[href='#parent']"));
 assert.equal(current(), "parent");
-navigate("child");
+await chapterReady();
+await navigate("child");
 // Artifact-ui.md "Styling" and "Comments bar": a note with body content shows its frontmatter, such as
 // its `bottom line` field, only on its front matter card; a bottom line is a [!bluf] callout.
 assert.equal(body.textContent.includes("Child result."), false);
 assert.ok(context.obsArtifact.records.find((record) => record.slug === "child").metadataEntries
     .some(([, value]) => value.includes("Child result.")));
-navigate("home");
+await navigate("home");
 let shell = tables()[0];
 assert.equal(shell.querySelector('tr[data-row-key="parent"] td:last-child').textContent, "");
 assert.equal(shell.querySelector('tr[data-row-key="node"] .data-table-tree-toggle'), null);
@@ -436,6 +472,7 @@ assert.equal(preview.querySelector("a").getAttribute("href"), "#child");
 assert.ok(preview.querySelector("p").textContent.startsWith("Question."));
 assert.ok(preview.querySelector("p").textContent.length <= settings.excerptCharacters);
 assert.equal(current(), "home");
+await chapterReady();
 assert.equal(childLink.getAttribute("aria-describedby"), preview.id);
 // Lifecycle (artifact-ui.md "Overlays"): leaving the link and the card keeps the card.
 trigger(childLink, "pointerout", preview);
@@ -461,8 +498,9 @@ trigger(childLink, "focusin");
 runTimers();
 click(preview.querySelector("a"));
 assert.equal(current(), "child");
+await chapterReady();
 assert.equal(preview.hidden, true);
-navigate("home");
+await navigate("home");
 shell = tables()[0];
 const nodeLink = shell.querySelector('tr[data-row-key="node"] a[href="#node"]');
 trigger(nodeLink, "pointerover");
@@ -497,7 +535,7 @@ trigger(document.querySelector("[data-chapter-scroll]"), "scroll");
 assert.equal(preview.hidden, true, "The card closes once its trigger scrolls out of view");
 const referenceRecord = context.obsArtifact.records.find((record) => record.slug === "reference");
 assert.ok(referenceRecord, "The linked reference note is in the canonical store");
-navigate("parent");
+await navigate("parent");
 const referenceLink = body.querySelector('a[href="#reference"]');
 assert.ok(referenceLink, "The rendered citation remains a clickable internal link");
 trigger(referenceLink, "pointerover");
@@ -510,7 +548,7 @@ assert.equal(preview.querySelectorAll("dd")[1].textContent,
     "A source whose metadata is its complete content.");
 assert.equal(preview.textContent.includes("position"), false);
 assert.equal(preview.textContent.includes("origin"), false);
-navigate("references");
+await navigate("references");
 const referenceTables = tables();
 assert.equal(referenceTables.length, 2);
 assert.deepEqual([...referenceTables[0].querySelectorAll("tr[data-row-key]")]
@@ -521,7 +559,7 @@ assert.ok(referenceTables[0].querySelector("tbody tr[data-row-key='note:quiet-re
     .textContent.includes("[2]"));
 assert.deepEqual([...referenceTables[1].querySelectorAll("tr[data-row-key]")]
     .map((row) => row.dataset.rowKey), ["note:quiet-reference", "note:reference"]);
-navigate("home");
+await navigate("home");
 shell = tables()[0];
 const external = document.createElement("a");
 external.href = "https://example.invalid/";
@@ -536,7 +574,8 @@ assert.equal(preview.hidden, true);
 external.remove();
 click(shell.querySelector('tr[data-row-key="node"] a[href="#node"]'));
 assert.equal(current(), "node");
-navigate("home");
+await chapterReady();
+await navigate("home");
 shell = tables()[0];
 click(shell.querySelector(".data-table-tree-toggle"));
 assert.equal(shell.querySelectorAll("tbody tr").length, 1);
@@ -553,8 +592,8 @@ editor.dispatchEvent(new window.Event("blur"));
 assert.equal(editor.getAttribute("aria-invalid"), "true");
 assert.equal(shell.querySelector('[role="alert"]').hidden, false);
 assert.equal(shell.querySelectorAll("tbody tr").length, 3);
-navigate("parent");
-navigate("home");
+await navigate("parent");
+await navigate("home");
 shell = tables()[0];
 editor = shell.querySelector("textarea");
 assert.equal(editor.value, "views: [");
@@ -572,19 +611,20 @@ assert.equal(shell.dataset.queryView, "false");
 assert.equal(shell.querySelectorAll("tbody tr").length, 2);
 assert.equal(shell.querySelector("thead th").dataset.columnKey, "term");
 assert.equal(tables()[1].querySelectorAll("tbody tr").length, 6);
-navigate("parent");
-navigate("home");
+await navigate("parent");
+await navigate("home");
 assert.equal(tables()[0].querySelectorAll("tbody tr").length, 2);
 assert.equal(tables()[0].querySelector("thead th").dataset.columnKey, "term");
-navigate("tags");
+await navigate("tags");
 assert.equal(body.querySelector(".data-table-tree-toggle"), null);
 assert.equal(body.querySelector("[data-table-detail-toggle]"), null);
 assert.equal(body.querySelector(".data-table-detail-row"), null);
 assert.equal(body.querySelectorAll("tbody tr[data-row-key]").length, 2);
 click(body.querySelector('tbody a[data-source-chapter="child"]'));
 assert.equal(current(), "child");
+await chapterReady();
 assert.ok(body.textContent.includes("Question."));
-navigate("glossary");
+await navigate("glossary");
 assert.equal(body.querySelectorAll("tbody tr").length, 3);
 const abbreviationTable = body.querySelectorAll(".data-table-shell")[1];
 assert.equal(abbreviationTable.querySelectorAll("tbody tr[data-row-key]").length, 1);
@@ -618,12 +658,14 @@ assert.equal(conclusion.getAttribute("aria-expanded"), "false");
 const glossaryHash = window.location.hash;
 click(conclusion);
 assert.equal(current(), "glossary");
+await chapterReady();
 assert.equal(window.location.hash, glossaryHash);
 assert.ok(body.querySelector('tr[data-detail-owner="glossary:conclusion"] h1'));
 assert.equal(body.querySelector('tr[data-row-key="glossary:conclusion"] [data-table-detail-toggle]').getAttribute("aria-expanded"), "true");
 click(body.querySelector('tr[data-row-key="glossary:conclusion"] .data-table-tree-toggle'));
 assert.equal(body.querySelector('tr[data-detail-owner="glossary:conclusion"]'), null);
 assert.equal(current(), "glossary");
+await chapterReady();
 click(body.querySelector('tr[data-row-key="glossary:conclusion"] [data-table-detail-toggle]'));
 assert.ok(body.querySelector('tr[data-detail-owner="glossary:conclusion"]'));
 click(body.querySelector('tr[data-row-key="glossary:conclusion"] [data-table-detail-toggle]'));
@@ -642,24 +684,28 @@ assert.ok(detail.querySelector("h1").textContent.includes("BLUF"));
 assert.equal(detail.querySelectorAll(".data-table-shell").length, 1);
 assert.equal(detail.querySelectorAll(".data-table-shell tbody tr[data-row-key]").length, 2);
 assert.equal(body.querySelector(".data-table-count").textContent, "2 of 2 items");
-followToContext(detail.querySelector('a[href="#details"]'), "details");
+await followToContext(detail.querySelector('a[href="#details"]'), "details");
 assert.equal(current(), "details");
+await chapterReady();
 assert.equal(band.querySelector(".chapter-home-link").getAttribute("href"), "#home");
 assert.ok(body.textContent.includes("Nested content."));
 assert.equal(document.querySelector('[data-step="1"]').disabled, true);
 assert.equal(document.querySelector('[data-step="-1"]').disabled, true);
-followToContext(body.querySelector('a[href="#conclusion"]'), "conclusion");
+await followToContext(body.querySelector('a[href="#conclusion"]'), "conclusion");
 assert.equal(current(), "conclusion");
+await chapterReady();
 assert.equal(body.querySelector("h1").textContent, "Conclusion");
 const outsideHome = band.querySelector(".chapter-home-link");
 assert.equal(outsideHome.hasAttribute("data-breadcrumb-current"), false);
 click(outsideHome);
 assert.equal(current(), "home");
+await chapterReady();
 assert.equal(window.location.hash, "#home");
 openChildren(["Parent", "Glossary", "Tags", "References"]);
 const tocCount = document.querySelectorAll("[data-toc-link]").length;
-context.obsArtifact.activateChapter("details/more");
+await navigate("details/more");
 assert.equal(current(), "details");
+await chapterReady();
 assert.equal(window.location.hash, "#details/more");
 assert.ok(document.getElementById("details--more"));
 assert.equal(document.querySelectorAll("[data-toc-link]").length, tocCount);
@@ -667,23 +713,30 @@ const noteFilter = context.obsQuery.compile("title: Parent");
 assert.equal(context.obsArtifact.setFilter(noteFilter), 1);
 click(band.querySelector(".chapter-home-link"));
 assert.equal(current(), "home");
+await chapterReady();
 context.obsArtifact.setFilter(context.obsQuery.compile(""));
-navigate("glossary");
+await navigate("glossary");
 entry = body.querySelector('tr[data-row-key="glossary:bluf"]');
 click(entry.querySelector("[data-table-detail-toggle]"));
 assert.equal(current(), "glossary");
-followToContext(body.querySelector('tr[data-detail-owner="glossary:bluf"] a[href="#details"]'), "details");
+await chapterReady();
+await followToContext(body.querySelector('tr[data-detail-owner="glossary:bluf"] a[href="#details"]'), "details");
 assert.equal(current(), "details");
-followToContext(body.querySelector('a[href="#conclusion"]'), "conclusion");
+await chapterReady();
+await followToContext(body.querySelector('a[href="#conclusion"]'), "conclusion");
 assert.equal(current(), "conclusion");
+await chapterReady();
 click(band.querySelector(".chapter-home-link"));
 assert.equal(current(), "home");
-navigate("child");
-navigate("bluf");
+await chapterReady();
+await navigate("child");
+await navigate("bluf");
 assert.equal(current(), "bluf");
+await chapterReady();
 assert.equal(body.querySelector("h1").textContent, "BLUF");
 click(band.querySelector(".chapter-home-link"));
 assert.equal(current(), "home");
+await chapterReady();
 
 shell = tables()[0];
 click(shell.querySelector(".data-table-options-toggle"));
@@ -706,6 +759,7 @@ assert.ok(nonChapterNote.querySelector(".data-table-tree-toggle"));
 assert.ok(nonChapterNote.querySelector("[data-table-detail-toggle]"));
 click(nonChapterNote.querySelector("[data-table-detail-toggle]"));
 assert.equal(current(), "home");
+await chapterReady();
 assert.equal(shell.querySelector('tr[data-detail-owner="note:conclusion"] h1').textContent, "Conclusion");
 
 const nodeRows = ["A", "B"].map((name) => ({
@@ -775,7 +829,7 @@ async function verifyPages() {
                 this.querySelectorAll("p, h1, h2, tr").length * 10;
         },
     });
-    navigate("home");
+    await navigate("home");
     // Restore the edited summary query, then replace the authored metadata filter.
     shell = tables()[0];
     click(shell.querySelector(".data-table-options-toggle"));
@@ -809,24 +863,29 @@ async function verifyPages() {
     assert.equal(pagedChooser.hasAttribute("open"), true);
     click(pagedChooser.querySelector('a[href="#parent"]'));
     assert.equal(current(), "parent");
+    await chapterReady();
     pagedCrumb = band.querySelector("[data-breadcrumb-current]");
     click(pagedCrumb);
     pagedChooser = document.getElementById(pagedCrumb.getAttribute("aria-controls"));
     assert.equal(pagedChooser.hasAttribute("open"), true);
     click(pagedChooser.querySelector('a[href="#child"]'));
     assert.equal(current(), "child");
+    await chapterReady();
     click(band.querySelector('.chapter-breadcrumbs > a[href="#parent"]'));
     assert.equal(current(), "parent");
-    navigate("conclusion");
+    await chapterReady();
+    await navigate("conclusion");
     assert.ok(band.querySelector(".chapter-breadcrumbs"));
     click(band.querySelector(".chapter-home-link"));
     assert.equal(current(), "home");
+    await chapterReady();
     assert.equal(band.querySelectorAll(".chapter-breadcrumbs").length, 1);
     context.obsPages.setPaged(false);
     assert.equal(band.querySelectorAll(".chapter-breadcrumbs").length, 1);
     assert.equal(body.querySelector(".chapter-breadcrumbs"), null);
     context.obsPages.setPaged(true);
     assert.equal(band.querySelectorAll(".chapter-breadcrumbs").length, 1);
+    await pagesMeasured();
     const sheets = [...pagedReader.querySelectorAll(".paper-sheet")];
     const homeLastPage = pageNumber(sheets.at(-1).querySelector(".paper-page-number"));
     assert.equal(sheets[0].dataset.pageChapter, "home");
@@ -843,20 +902,26 @@ async function verifyPages() {
     assert.ok(pagedReader.querySelector(".data-table-controls"));
     click(document.querySelector('[data-step="1"]'));
     assert.equal(current(), "parent");
+    await chapterReady();
     assert.equal(pagedReader.querySelector(".paper-sheet").dataset.pageChapter, "parent");
+    await pagesMeasured();
     assert.equal(pageNumber(pagedReader.querySelector(".paper-page-number")), homeLastPage + 1);
+    await pagesMeasured();
     const parentLastPage = pageNumber([...pagedReader.querySelectorAll(".paper-page-number")].at(-1));
-    navigate("child");
+    await navigate("child");
+    await pagesMeasured();
     assert.equal(pageNumber(pagedReader.querySelector(".paper-page-number")), parentLastPage + 1);
+    await pagesMeasured();
     const childLastPage = pageNumber([...pagedReader.querySelectorAll(".paper-page-number")].at(-1));
-    navigate("node");
+    await navigate("node");
+    await pagesMeasured();
     assert.equal(pageNumber(pagedReader.querySelector(".paper-page-number")), childLastPage + 1);
     assert.ok(pagedReader.querySelectorAll(".paper-sheet").length >= 1);
-    navigate(drillDown.slice(1));
+    await navigate(drillDown.slice(1));
     assert.equal(pagedReader.querySelectorAll("tbody tr[data-row-key]").length, 1);
     assert.ok(pagedReader.textContent.includes("child_open"));
     assert.equal(pagedReader.textContent.includes("child_question"), false);
-    navigate("node");
+    await navigate("node");
     const nodeSource = document.createElement("div");
     context.obsArtifact.renderStatic("node", nodeSource);
     const normalize = (text) => text.replace(/\s/g, "");
@@ -866,7 +931,7 @@ async function verifyPages() {
     nodeRecord.html += '<table><thead><tr><th>Repeated header</th></tr></thead><tbody>' +
         Array.from({length: 40}, (_, index) => `<tr><td>Row ${index}</td></tr>`).join("") +
         "</tbody></table>";
-    navigate("node");
+    await navigate("node");
     assert.equal(pagedReader.querySelectorAll("tbody tr").length, 41);
     assert.equal(pagedReader.querySelectorAll("thead").length, 2);
     assert.ok([...pagedReader.querySelectorAll(".paper-content")].every(
@@ -876,7 +941,7 @@ async function verifyPages() {
 
     context.obsArtifact.setFilter(context.obsQuery.compile("title: Child"));
     assert.equal(band.querySelectorAll(".chapter-breadcrumbs").length, 1);
-    navigate("home");
+    await navigate("home");
     assert.equal(pagedReader.querySelectorAll(".page-contents a").length, 2);
     const printBook = document.querySelector(".print-book");
     const immediateFrame = context.requestAnimationFrame;
@@ -920,7 +985,7 @@ async function verifyPages() {
     await flushPromises();
     assert.equal(frames.length, 1);
     frames.shift()();
-    await firstExport;
+    await wait(firstExport);
     decodeImage = () => Promise.resolve();
     context.requestAnimationFrame = immediateFrame;
     assert.equal(printCalls, 1);
@@ -940,7 +1005,7 @@ async function verifyPages() {
     assert.equal(document.documentElement.classList.contains("preparing-print"), false);
     assert.equal(pagedReader.hidden, false);
     context.obsArtifact.setFilter(context.obsQuery.compile(""));
-    await context.obsPages.exportPDF();
+    await wait(context.obsPages.exportPDF());
     assert.equal(printBook.querySelectorAll(".page-contents a").length, 6);
     assert.ok(printBook.querySelector("#pdf-node"));
     const artifactPageNumbers = [...printBook.querySelectorAll(".paper-page-number")].map(
@@ -951,16 +1016,19 @@ async function verifyPages() {
     assert.ok(printBook.querySelector('a[href="#pdf-conclusion"]') === null);
     // Artifact-ui.md "Pages and PDF": a note outside the print links the companion HTML and its fragment;
     // pages.js fixLinks writes an empty query before the fragment so Chromium keeps the destination.
-    assert.ok(printBook.querySelector('a[href="artifact.html?#conclusion"]'));
+    // The companion is the HTML file the page was opened from.
+    const companion = decodeURIComponent(window.location.pathname.split("/").at(-1));
+    assert.ok(printBook.querySelector(`a[href="${companion}?#conclusion"]`));
     // The glossary's link to its BLUF note, which the contents do not list, is such a link too.
-    assert.ok(printBook.querySelector('a[href="artifact.html?#bluf"]'));
+    assert.ok(printBook.querySelector(`a[href="${companion}?#bluf"]`));
     assert.ok(printBook.querySelector('a[href="#pdf-child"]'));
     assert.ok(printBook.querySelector('a[href="#pdf-node--extra"]'));
     assert.ok([...printBook.querySelectorAll(".paper-content")].every(
         (element) => element.scrollHeight <= element.clientHeight,
     ));
     window.dispatchEvent(new window.Event("afterprint"));
-    navigate("node");
+    await navigate("node");
+    await pagesMeasured();
     assert.equal(pagedReader.querySelector(".paper-page-number").textContent, pdfNodeFirstPage);
     context.obsPages.setPaged(false);
     assert.equal(document.querySelector("[data-active-chapter]").hidden, false);
@@ -971,24 +1039,24 @@ async function verifyPages() {
     assert.equal(printBook.children.length, 0);
     const workingPrint = window.print;
     window.print = () => { throw new Error("The document is already open."); };
-    await assert.rejects(context.obsPages.exportPDF(), /document is already open/);
+    await assert.rejects(wait(context.obsPages.exportPDF()), /document is already open/);
     assert.equal(printBook.children.length, 0);
     assert.equal(document.documentElement.classList.contains("preparing-print"), false);
     window.print = workingPrint;
-    await context.obsPages.exportPDF();
+    await wait(context.obsPages.exportPDF());
     assert.ok(printBook.querySelector("#pdf-child"));
     // A host that omits afterprint must not leave the export command locked.
-    await context.obsPages.exportPDF();
+    await wait(context.obsPages.exportPDF());
     assert.ok(printBook.querySelector("#pdf-child"));
     window.dispatchEvent(new window.Event("afterprint"));
     const callsBeforeAssetFailure = printCalls;
     imageWidth = 0;
-    await assert.rejects(context.obsPages.exportPDF(), /Image could not load: Obsidian/);
+    await assert.rejects(wait(context.obsPages.exportPDF()), /Image could not load: Obsidian/);
     assert.equal(printCalls, callsBeforeAssetFailure);
     assert.equal(printBook.children.length, 0);
     imageWidth = 100;
     decodeImage = () => Promise.reject(new Error("invalid image"));
-    await assert.rejects(context.obsPages.exportPDF(), /could not decode/);
+    await assert.rejects(wait(context.obsPages.exportPDF()), /could not decode/);
     assert.equal(printCalls, callsBeforeAssetFailure);
     decodeImage = () => new Promise(() => {});
     const timedOutExport = context.obsPages.exportPDF();
@@ -999,7 +1067,7 @@ async function verifyPages() {
     );
     assert.ok(deadline);
     deadline.callback();
-    await assert.rejects(timedOutExport, /Timed out waiting for print images or fonts/);
+    await assert.rejects(wait(timedOutExport), /Timed out waiting for print images or fonts/);
     assert.equal(printBook.children.length, 0);
     assert.equal(printCalls, callsBeforeAssetFailure);
     decodeImage = () => Promise.resolve();
@@ -1010,7 +1078,7 @@ async function verifyPages() {
         delay === JSON.parse(document.querySelector("[data-artifact-data]").textContent)
             .printReadyTimeoutMilliseconds,
     ).callback();
-    await assert.rejects(fontTimeoutExport, /Timed out waiting/);
+    await assert.rejects(wait(fontTimeoutExport), /Timed out waiting/);
     assert.equal(printCalls, callsBeforeAssetFailure);
     document.fonts = fontFaceSet(Promise.resolve());
     imageComplete = false;
@@ -1020,17 +1088,17 @@ async function verifyPages() {
     const loadingImages = [...printBook.querySelectorAll("img")];
     imageComplete = true;
     loadingImages.forEach((image) => image.dispatchEvent(new window.Event("load")));
-    await loadingExport;
+    await wait(loadingExport);
     assert.equal(printCalls, callsBeforeAssetFailure + 1);
     window.dispatchEvent(new window.Event("afterprint"));
     imageComplete = false;
     const failedLoad = context.obsPages.exportPDF();
     await flushPromises();
     printBook.querySelector("img").dispatchEvent(new window.Event("error"));
-    await assert.rejects(failedLoad, /Image could not load/);
+    await assert.rejects(wait(failedLoad), /Image could not load/);
     assert.equal(printBook.children.length, 0);
     imageComplete = true;
-    await context.obsPages.exportPDF();
+    await wait(context.obsPages.exportPDF());
     assert.equal(printCalls, callsBeforeAssetFailure + 2);
     window.dispatchEvent(new window.Event("afterprint"));
     finish("verifyPages", "PASS: internal previews, canonical note details, query editing, inherited metadata filters, paged front matter, measured overflow, filtered PDF projection, anchor/companion links, and print cleanup.");
@@ -1042,7 +1110,7 @@ async function verifyTableHelpOnly() {
         event.relatedTarget = relatedTarget;
         element.dispatchEvent(event);
     };
-    navigate("chapter");
+    await navigate("chapter");
     const card = document.getElementById("hover-card");
     const action = body.querySelector('[data-artifact-action="replaceEvidence"]');
     assert.equal(action.title, "Replace evidence");
@@ -1088,9 +1156,9 @@ async function verifyTableHelpOnly() {
     runTimers();
     assert.ok(card.textContent.includes("Plain text <em>is not HTML</em>."));
     assert.equal(card.querySelector("em"), null);
-    navigate("target");
+    await navigate("target");
     assert.equal(card.hidden, true);
-    navigate("chapter");
+    await navigate("chapter");
     const renderedHelp = body.querySelector('[aria-label="Evidence help"]');
     assert.notEqual(renderedHelp, help);
     fire(renderedHelp, "pointerover");
@@ -1108,7 +1176,7 @@ async function verifyTableHelpOnly() {
 
 async function verifyComments() {
     const sharedImage = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a8xoAAAAASUVORK5CYII=";
-    navigate("parent");
+    await navigate("parent");
     assert.equal(body.querySelector('img[alt="Shared image"]').getAttribute("src"), sharedImage);
     const staticParent = document.createElement("div");
     context.obsArtifact.renderStatic("parent", staticParent);
@@ -1119,15 +1187,10 @@ async function verifyComments() {
         getItem: (key) => storage.get(key) || null,
         setItem: (key, value) => storage.set(key, value),
     };
-    vm.runInContext(fs.readFileSync(process.argv[6], "utf8"), context, {filename: "storage.js"});
-    context.Node = window.Node;
-    context.NodeFilter = {SHOW_TEXT: 4};
-    context.CSS = {escape: (value) => value};
-    let selection = null;
-    context.getSelection = () => selection;
+    runScript(fs.readFileSync(runtimes[2], "utf8"), "storage.js");
     const appearance = document.querySelector("[data-theme-select]");
     Object.defineProperty(appearance, "value", {configurable: true, writable: true, value: "dark"});
-    vm.runInContext(fs.readFileSync(process.argv[5], "utf8"), context, {filename: "settings.js"});
+    runScript(fs.readFileSync(runtimes[1], "utf8"), "settings.js");
     assert.equal(document.documentElement.dataset.theme, "system");
     assert.equal(appearance.value, "system");
     appearance.value = "system";
@@ -1165,10 +1228,12 @@ async function verifyComments() {
         staticRenderCalls += 1;
         return originalRenderStatic.apply(this, args);
     };
+    // Only the comments bar's own clones count: the fake browser clones nodes as it parses markup.
     let targetCloneCalls = 0;
     const originalCloneNode = window.Node.prototype.cloneNode;
     window.Node.prototype.cloneNode = function (...args) {
-        targetCloneCalls += 1;
+        const caller = (new Error().stack || "").split("\n")[2] || "";
+        if (/\bcomments\.js:/.test(caller)) targetCloneCalls += 1;
         return originalCloneNode.apply(this, args);
     };
     let railMeasureCalls = 0;
@@ -1180,9 +1245,9 @@ async function verifyComments() {
         if (/\bcomments\.js:/.test(caller)) railMeasureCalls += 1;
         return originalGetClientRects.apply(this, args);
     };
-    vm.runInContext(fs.readFileSync(process.argv[4], "utf8"), context, {filename: "comments.js"});
+    runScript(fs.readFileSync(runtimes[0], "utf8"), "comments.js");
     context.obsPages.setPaged(true);
-    navigate("glossary");
+    await navigate("glossary");
     context.obsArtifact.openBar("comments", "right");
     let row = body.querySelector('tr[data-row-key="glossary:bluf"]');
     assert.match(row.dataset.reviewItem, /^bases-[0-9a-f]+(-\d+)?:[a-z]/, "a Base row is its keyed row");
@@ -1199,10 +1264,10 @@ async function verifyComments() {
     const detailToggle = ".data-table-tree-toggle, [data-table-detail-toggle]";
     {
         click(row.querySelector(detailToggle));
-        const plainRange = new TextRange();
+        const plainRange = document.createRange();
         plainRange.selectNodeContents(body.querySelector(
             'tr[data-detail-owner="glossary:bluf"] [data-node-id="paragraph-5e2c6006"]'));
-        selection = {rangeCount: 1, isCollapsed: false, getRangeAt: () => plainRange, removeAllRanges() {}};
+        select(plainRange);
         document.dispatchEvent(new window.Event("selectionchange"));
         const add = document.querySelector("[data-comment-add]");
         assert.equal(add.disabled, false);
@@ -1220,7 +1285,7 @@ async function verifyComments() {
         assert.equal(row.dataset.reviewState, "accepted");
         assert.equal(row.querySelector(".review-action--comment").dataset.count, "1");
         click(document.querySelector(".comment-target"));
-        await context.obsArtifact.whenChapterReady();
+        await wait(context.obsArtifact.whenChapterReady());
         assert.equal(document.querySelector("[data-active-chapter]").dataset.chapter, "glossary");
         assert.ok(body.querySelector('tr[data-detail-owner="glossary:bluf"]'));
         row = body.querySelector('tr[data-row-key="glossary:bluf"]');
@@ -1246,10 +1311,15 @@ async function verifyComments() {
     row = body.querySelector('tr[data-row-key="glossary:bluf"]');
     assert.equal(row.dataset.reviewItem, reviewId);
     assert.equal(row.dataset.reviewState, "accepted");
+    // The work the edit started ends first, so the counts below are the expansion's own.
+    await settle();
+    row = body.querySelector('tr[data-row-key="glossary:bluf"]');
     staticRenderCalls = 0;
     targetCloneCalls = 0;
     railMeasureCalls = 0;
     click(row.querySelector("[data-table-detail-toggle]"));
+    // The bar refreshes its rails in the next frame.
+    await settle();
     assert.equal(staticRenderCalls, 0, "expanding a table detail must not statically render artifact records");
     assert.equal(targetCloneCalls, 0, "a table refresh must not clone full review-target text");
     assert.equal(
@@ -1266,9 +1336,9 @@ async function verifyComments() {
     assert.equal(detail.querySelectorAll("[data-review-item], [data-review-gutter]").length, 0);
 
     const paragraph = detail.querySelector("p");
-    const range = new TextRange();
+    const range = document.createRange();
     range.selectNodeContents(paragraph);
-    selection = {rangeCount: 1, isCollapsed: false, getRangeAt: () => range, removeAllRanges() {}};
+    select(range);
     document.dispatchEvent(new window.Event("selectionchange"));
     const add = document.querySelector("[data-comment-add]");
     assert.equal(add.disabled, false);
@@ -1285,16 +1355,16 @@ async function verifyComments() {
     assert.equal(row.dataset.reviewState, "accepted");
     assert.equal(row.querySelector(".review-action--comment").dataset.count, "2");
     click(document.querySelectorAll(".comment-target")[1]);
-    await context.obsArtifact.whenChapterReady();
+    await wait(context.obsArtifact.whenChapterReady());
     assert.ok(body.querySelector('tr[data-detail-owner="glossary:bluf"]'));
     row = body.querySelector('tr[data-row-key="glossary:bluf"]');
     assert.equal(row.dataset.reviewItem, reviewId);
     assert.equal(row.querySelectorAll("[data-review-gutter]").length, 1);
     // The owning row body below a `details: columns` view's panels is the row's note detail too.
-    const ownerRange = new TextRange();
+    const ownerRange = document.createRange();
     ownerRange.selectNodeContents(body.querySelector(
         'tr[data-detail-owner="glossary:bluf"] .data-table-owner-content [data-node-id="paragraph-5e2c6006"]'));
-    selection = {rangeCount: 1, isCollapsed: false, getRangeAt: () => ownerRange, removeAllRanges() {}};
+    select(ownerRange);
     document.dispatchEvent(new window.Event("selectionchange"));
     assert.equal(document.querySelector("[data-comment-add]").disabled, false);
     click(document.querySelector("[data-comment-add]"));
@@ -1326,10 +1396,13 @@ async function verifyComments() {
     assert.ok(staticRenderCalls > 0, "editing a table definition must refresh cached review identities");
     row = body.querySelector('tr[data-row-key="glossary:bluf"]');
     assert.equal(row.dataset.reviewState, "accepted");
+    // The work the edit started ends first, so the counts below are the expansion's own.
+    await settle();
+    row = body.querySelector('tr[data-row-key="glossary:bluf"]');
     staticRenderCalls = 0;
     click(row.querySelector("[data-table-detail-toggle]"));
     assert.equal(staticRenderCalls, 0, "cached review identities remain reusable after a definition edit");
-    const reviewed = await context.obsComments.reviewedHtml();
+    const reviewed = await wait(context.obsComments.reviewedHtml());
     assert.ok(reviewed.includes('"field":'));
     assert.equal(reviewed.includes('class="paged-reader chapter-body"'), false);
     assert.equal(reviewed.includes('class="print-book chapter-body"'), false);
@@ -1420,12 +1493,12 @@ async function verifyComments() {
         getItem() { throw new Error("Storage denied"); },
         setItem() { throw new Error("Storage denied"); },
     };
-    vm.runInContext(fs.readFileSync(process.argv[4], "utf8"), context, {filename: "comments-storage.js"});
+    runScript(fs.readFileSync(runtimes[0], "utf8"), "comments-storage.js");
     assert.equal(document.querySelector('[data-storage-warning="reviewer"]').hidden, false);
     assert.equal(document.querySelector("[data-comment-announcer]").classList.contains("visually-hidden"), false);
     const island = document.querySelector("[data-comment-island]");
     island.textContent = '{"invalid":true}';
-    vm.runInContext(fs.readFileSync(process.argv[4], "utf8"), context, {filename: "comments-invalid.js"});
+    runScript(fs.readFileSync(runtimes[0], "utf8"), "comments-invalid.js");
     assert.equal(island.textContent, '{"invalid":true}');
     assert.equal(document.querySelector("[data-comment-save]").disabled, true);
     assert.ok(runtimeErrors.some((message) => message.includes("original review data was preserved")));
@@ -1435,14 +1508,11 @@ async function verifyComments() {
 // Artifact-ui.md "Comments bar": the cards stand in document order, each labelled by its path.
 async function verifyCommentOrderOnly() {
     context.localStorage = {getItem: () => null, setItem() {}};
-    vm.runInContext(fs.readFileSync(process.argv[6], "utf8"), context, {filename: "storage.js"});
-    context.Node = window.Node;
-    context.NodeFilter = {SHOW_TEXT: 4};
-    context.CSS = {escape: (value) => value};
-    context.getSelection = () => null;
-    vm.runInContext(fs.readFileSync(process.argv[5], "utf8"), context, {filename: "settings.js"});
-    vm.runInContext(fs.readFileSync(process.argv[4], "utf8"), context, {filename: "comments.js"});
-    navigate("child");
+    runScript(fs.readFileSync(runtimes[2], "utf8"), "storage.js");
+    select(null);
+    runScript(fs.readFileSync(runtimes[1], "utf8"), "settings.js");
+    runScript(fs.readFileSync(runtimes[0], "utf8"), "comments.js");
+    await navigate("child");
     context.obsArtifact.openBar("comments", "right");
     // A block's core id, found by its text in its chapter's HTML.
     const nodeOf = (slug, text) => new RegExp(`data-node-id="([^"]+)">${text}<`).exec(
@@ -1495,7 +1565,7 @@ async function verifyCommentOrderOnly() {
 }
 
 async function verifyCommentExportOnly() {
-    navigate("parent");
+    await navigate("parent");
     // The synthetic detail table below stands in for a register: the build maps its row key to a record.
     const artifactIsland = document.querySelector("[data-artifact-data]");
     const artifactJson = JSON.parse(artifactIsland.textContent);
@@ -1506,23 +1576,16 @@ async function verifyCommentExportOnly() {
         getItem: (key) => storage.get(key) || null,
         setItem: (key, value) => storage.set(key, value),
     };
-    vm.runInContext(fs.readFileSync(process.argv[6], "utf8"), context, {filename: "storage.js"});
-    context.Node = window.Node;
-    context.NodeFilter = {SHOW_TEXT: 4};
-    context.CSS = {escape: (value) => value};
-    let selection = null;
-    context.getSelection = () => selection;
-    vm.runInContext(fs.readFileSync(process.argv[5], "utf8"), context, {filename: "settings.js"});
-    vm.runInContext(fs.readFileSync(process.argv[4], "utf8"), context, {filename: "comments.js"});
+    runScript(fs.readFileSync(runtimes[2], "utf8"), "storage.js");
+    runScript(fs.readFileSync(runtimes[1], "utf8"), "settings.js");
+    runScript(fs.readFileSync(runtimes[0], "utf8"), "comments.js");
     context.obsArtifact.openBar("comments", "right");
 
     const paragraph = body.querySelector("p");
     assert.ok(paragraph);
-    const range = new TextRange();
+    const range = document.createRange();
     range.selectNodeContents(paragraph);
-    selection = {
-        rangeCount: 1, isCollapsed: false, getRangeAt: () => range, removeAllRanges() {},
-    };
+    select(range);
     document.dispatchEvent(new window.Event("selectionchange"));
     click(document.querySelector("[data-comment-add]"));
     const annotation = context.obsComments.data.annotations[0];
@@ -1574,12 +1637,9 @@ async function verifyCommentExportOnly() {
     sheet.append(footer);
     document.documentElement.classList.add("paged-mode");
     const detailParagraph = table.querySelector("p");
-    const detailRange = new TextRange();
+    const detailRange = document.createRange();
     detailRange.selectNodeContents(detailParagraph);
-    selection = {
-        rangeCount: 1, isCollapsed: false, getRangeAt: () => detailRange,
-        removeAllRanges() {},
-    };
+    select(detailRange);
     document.dispatchEvent(new window.Event("selectionchange"));
     click(document.querySelector("[data-comment-add]"));
     const detail = context.obsComments.data.annotations.at(-1);
@@ -1619,7 +1679,10 @@ async function verifyCommentExportOnly() {
     assert.ok(clipboardText.includes("Parent"));
     assert.ok(clipboardText.includes("Page: "));
     assert.ok(clipboardText.includes("text positions"));
-    assert.ok(clipboardText.includes(paragraph.textContent));
+    // The paragraph's own text: its review gutter, which the comments bar shows in it, is no quote.
+    const quoted = [...paragraph.childNodes].filter((child) => !child.matches?.("[data-review-gutter]"))
+        .map((child) => child.textContent).join("");
+    assert.ok(clipboardText.includes(quoted));
     assert.ok(clipboardText.includes("Reviewer Ω"));
     assert.ok(clipboardText.includes("<Second line> & safe."));
     assert.ok(clipboardText.includes("Nested reply."));
@@ -1678,8 +1741,8 @@ async function verifyCommentExportOnly() {
     assert.match(document.querySelector("[data-comment-announcer]").textContent, /no comments/i);
     context.obsComments.data.annotations = annotations;
     assert.equal(originalFilter, "");
-    const saved = await context.obsComments.reviewedHtml();
-    const reopened = parseHTML(saved).document;
+    const saved = await wait(context.obsComments.reviewedHtml());
+    const reopened = parse(saved);
     const savedData = JSON.parse(reopened.querySelector("[data-comment-island]").textContent);
     // The island holds the core's order, by time; the threads are the same.
     const byId = (list) => JSON.parse(JSON.stringify(list)).sort((first, second) => (first.id < second.id ? -1 : 1));
@@ -1687,12 +1750,12 @@ async function verifyCommentExportOnly() {
         byId(JSON.parse(originalData).annotations));
     assert.equal(reopened.querySelector("[data-comment-copy]").textContent, "Copy comments to clipboard");
     context.DOMParser = window.DOMParser;
-    await context.obsComments.importFiles([{text: async () => saved}]);
+    await wait(context.obsComments.importFiles([{text: async () => saved}]));
     assert.equal(context.obsComments.data.annotations.length, annotationCount);
     const returnedWith = async (island) => {
-        const returned = parseHTML(saved).document;
+        const returned = parse(saved);
         returned.querySelector("[data-comment-island]").textContent = JSON.stringify(island);
-        await context.obsComments.importFiles([{text: async () => returned.documentElement.outerHTML}]);
+        await wait(context.obsComments.importFiles([{text: async () => returned.documentElement.outerHTML}]));
     };
     // A copy saved before comments went through the core targets items by position: it is rejected.
     await returnedWith({version: 2, annotations: [], reviews: [{chapter: "parent", item: "item-1",
@@ -1718,7 +1781,7 @@ console.log(`PASS default run: ${progress.finished.join(", ")}`);
 }
 run().then(() => { progress.settled = true; },
     (error) => { progress.settled = true; console.error(error); process.exitCode = 1; });
-// With the harness's fake timers nothing keeps the event loop alive: an await that never settles ends the process.
+// The page's timers run on its own clock, so nothing keeps Node's event loop alive: an await that never settles ends the process.
 process.on("exit", () => {
     if (progress.settled || process.exitCode !== undefined) return;
     process.stderr.write(`test/browser/artifact-ui.cjs: the run stopped in ${progress.step} ` +
