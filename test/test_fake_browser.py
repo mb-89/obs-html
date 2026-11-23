@@ -63,6 +63,8 @@ def test_a_request_to_anything_but_a_local_server_fails_and_fails_the_test(tmp_p
     threading.Thread(target=server.serve_forever, daemon=True).start()
     try:
         page = _open(tmp_path, fake_page, "<p>Text</p>")
+        requests: list[str] = []
+        page.on("request", lambda request: requests.append(request.url))
         local = f"http://127.0.0.1:{server.server_address[1]}/data"
         assert page.evaluate("url => fetch(url).then(response => response.text())", local) == "local answer"
         assert network_guard.take() == []
@@ -70,6 +72,8 @@ def test_a_request_to_anything_but_a_local_server_fails_and_fails_the_test(tmp_p
         assert "leaves the machine" in message and NOTE in message
         [recorded] = network_guard.take()
         assert "example.org:443" in recorded and "fake page" in recorded
+        # Each request reaches the page's request listeners, the refused one too, as Playwright's do.
+        assert requests == [local, "https://example.org/data"]
     finally:
         server.shutdown()
         server.server_close()
@@ -109,8 +113,9 @@ def test_the_stand_ins_answer_as_the_design_lists(tmp_path, fake_page) -> None:
         print();
         return [select.options[0].value, select.options[0].textContent, clone.constructor === Object,
                 Array.isArray(clone.list) && clone.list[1].two, clone.when instanceof Date, round === 'obs '.repeat(50),
-                digest, printed, document.querySelector('#canvas').getContext('2d').measureText('four').width];
-    }""") == ["one", "First", True, 2, True, True, 32, ["before", "after"], 28]
+                digest, printed, document.querySelector('#canvas').getContext('2d').measureText('four').width,
+                bytes instanceof Uint8Array];
+    }""") == ["one", "First", True, 2, True, True, 32, ["before", "after"], 28, True]
     menu = page.locator("#menu")
     assert not menu.is_visible()
     page.evaluate("document.querySelector('#menu').showPopover()")
@@ -120,6 +125,29 @@ def test_the_stand_ins_answer_as_the_design_lists(tmp_path, fake_page) -> None:
     page.evaluate("document.querySelector('#menu').showPopover()")
     page.locator("#open").click()  # a pointerdown outside an auto popover closes it
     assert page.evaluate("document.querySelector('#menu').matches(':popover-open')") is False
+
+
+def test_a_download_link_hands_its_file_to_expect_download(tmp_path, fake_page) -> None:
+    page = _open(tmp_path, fake_page, '<a id="data" download="note.txt" href="data:text/plain,two%20words">Data</a>'
+                                      '<a id="kept" download href="data:text/plain,kept">Kept</a>')
+    with page.expect_download() as made:
+        page.evaluate("""() => { const link = document.createElement('a');
+            link.href = URL.createObjectURL(new Blob(['made in the page'], {type: 'text/html'}));
+            link.download = 'copy.html'; document.body.append(link); link.click(); link.remove(); }""")
+    made.value.save_as(tmp_path / "copy.html")
+    assert made.value.suggested_filename == "copy.html"
+    assert (tmp_path / "copy.html").read_text(encoding="utf-8") == "made in the page"
+    with page.expect_download() as clicked:
+        page.locator("#data").click()
+    clicked.value.save_as(tmp_path / "note.txt")
+    assert (clicked.value.suggested_filename, (tmp_path / "note.txt").read_text(encoding="utf-8")) == (
+        "note.txt", "two words")
+    # A prevented click downloads nothing, and the page stays where it is.
+    page.evaluate("document.querySelector('#kept').addEventListener('click', event => event.preventDefault())")
+    with pytest.raises(FakeTimeoutError, match="downloaded nothing"):
+        with page.expect_download(timeout=1000):
+            page.locator("#kept").click()
+    assert page.url == (tmp_path / "page.html").as_uri()
 
 
 def test_the_page_runs_on_its_own_clock_and_a_wait_that_cannot_hold_ends_at_once(tmp_path, fake_page) -> None:

@@ -31,6 +31,7 @@ const path = require("node:path");
 const readline = require("node:readline");
 const util = require("node:util");
 const {fileURLToPath} = require("node:url");
+const {resolveObjectURL} = require("node:buffer");
 const {doorKey} = require("./door-key.js");
 
 const NAME = "test/browser/fake-browser.cjs";
@@ -77,6 +78,28 @@ const matchPseudoItem = SelectorItem.prototype.matchPseudoItem;
 SelectorItem.prototype.matchPseudoItem = function (scope, element, parentChildren, pseudo, ignoreErrors) {
     if (pseudo.name === "popover-open") return openPopovers.has(element) ? {priorityWeight: 10} : null;
     return matchPseudoItem.call(this, scope, element, parentChildren, pseudo, ignoreErrors);
+};
+
+// A click on a link with a `download` attribute that no listener prevented downloads the file its
+// blob: or data: URL holds, as Chromium does, instead of navigating; the facade's expect_download
+// hands it over. happy-dom would open the link's URL instead. Its element classes are shared by
+// every window, so the link is patched once, and the page is the one of the link's window. happy-dom
+// calls a target's dispatchEvent once per phase; as its own link does, the download follows the
+// dispatch's end (phase none) or its bubbling through the link.
+const windowPages = new WeakMap();
+const HTMLAnchorElement = require(path.join(HAPPY_DOM, "lib", "nodes", "html-anchor-element", "HTMLAnchorElement.js")).default;
+const dispatchAnchor = HTMLAnchorElement.prototype.dispatchEvent;
+const dispatchElement = Object.getPrototypeOf(HTMLAnchorElement.prototype).dispatchEvent;
+HTMLAnchorElement.prototype.dispatchEvent = function (event) {
+    const window = this[PropertySymbol.window];
+    const page = windowPages.get(window);
+    if (!page || event.type !== "click" || !this.hasAttribute("download")) return dispatchAnchor.call(this, event);
+    const result = dispatchElement.call(this, event);
+    const phase = event.eventPhase;
+    if (!event.defaultPrevented && event instanceof window.MouseEvent && (phase === 0 || phase === 3)) {
+        page.download(this.getAttribute("href") || "", this.getAttribute("download"));
+    }
+    return result;
 };
 
 // light-dark() in the cascade (happy-dom 21 drops a colour it cannot parse): the first colour where
@@ -353,6 +376,8 @@ class FakePage {
         this.hovered = null;
         this.dirty = new WeakSet();
         this.pending = 0;
+        // The files the page downloaded, in order: {filename, url, bytes (a Buffer) or error}.
+        this.downloads = [];
         // The state's recording the page replays (null: the door's defaults), the step it has
         // reached, and what it asked at each step, by expectation and key.
         this.recording = null;
@@ -390,6 +415,30 @@ class FakePage {
 
     event(event) {
         this.events.push(event);
+    }
+
+    // The page downloads the file `url` names, a blob: URL the page made or a data: URL, under the
+    // link's `download` name, else the URL's last segment.
+    download(url, name) {
+        const entry = {url, filename: name || decodeURIComponent(url.split(/[?#]/)[0].split("/").pop() || "") || "download"};
+        this.downloads.push(entry);
+        if (url.startsWith("blob:")) {
+            const blob = resolveObjectURL(url);
+            if (!blob) {
+                entry.error = `the blob: URL ${url} names no blob; the page revoked it before the download`;
+                return;
+            }
+            entry.pending = true;
+            this.track(blob.arrayBuffer().then((buffer) => { entry.bytes = Buffer.from(buffer); },
+                (error) => { entry.error = String(error?.message || error); })
+                .finally(() => { entry.pending = false; }));
+        } else if (url.startsWith("data:")) {
+            const inline = /^data:[^,]*?(;base64)?,(.*)$/s.exec(url);
+            entry.bytes = inline[1] ? Buffer.from(decodeURIComponent(inline[2]), "base64")
+                : Buffer.from(decodeURIComponent(inline[2]), "utf8");
+        } else {
+            entry.error = `the fake browser downloads only a blob: or data: URL, not ${url} (${NOTE}, The fake browser)`;
+        }
     }
 
     uncaught(error) {
@@ -430,15 +479,25 @@ class FakePage {
             navigation: {disableMainFrameNavigation: true, disableChildPageNavigation: true},
             fetch: {interceptor: {
                 beforeAsyncRequest: ({request, window}) => {
-                    page.refuse(request.url, window);
+                    page.request(request, window);
                     return undefined;
                 },
                 beforeSyncRequest: ({request, window}) => {
-                    page.refuse(request.url, window);
+                    page.request(request, window);
                     return undefined;
                 },
             }},
         };
+    }
+
+    // Each request the page makes through happy-dom's fetch (fetch, XMLHttpRequest and the resources
+    // happy-dom loads) is a `request` event, as Playwright's page reports it, but for happy-dom's
+    // CORS preflight, which Playwright does not report. The interceptor cannot tell the preflight
+    // from a page's own OPTIONS request, which the runtime never makes, so no OPTIONS request is
+    // reported. One that leaves the machine is refused.
+    request(request, window) {
+        if (request.method !== "OPTIONS") this.event({type: "request", url: String(request.url)});
+        this.refuse(request.url, window);
     }
 
     // Refuses a request that leaves the machine, as test/network_guard.py refuses a socket.
@@ -669,6 +728,15 @@ function install(window, page) {
             ? (...args) => page.track(target[name](...args)) : target[name]}),
     }});
     window.structuredClone = window.eval(`(${structuredCloneStandIn.toString()})`);
+    // happy-dom's TextEncoder is Node's, whose bytes are Node's Uint8Array: the runtime's
+    // `bytes instanceof Uint8Array` refused them. The stand-in encodes with Node's and hands the
+    // bytes over as the page's own Uint8Array, as Chromium does.
+    const encoder = new globalThis.TextEncoder();
+    window.TextEncoder = window.eval(`(encode, encodeInto) => class TextEncoder {
+        get encoding() { return "utf-8"; }
+        encode(text = "") { return new Uint8Array(encode(String(text))); }
+        encodeInto(text, target) { return encodeInto(String(text), target); }
+    }`)((text) => encoder.encode(text), (text, target) => encoder.encodeInto(text, target));
     window.Option = window.eval(`(function Option(text, value, defaultSelected, selected) {
         const option = document.createElement("option");
         if (text !== undefined) option.textContent = String(text);
@@ -677,6 +745,8 @@ function install(window, page) {
         if (selected || defaultSelected) option.selected = true;
         return option;
     })`);
+
+    windowPages.set(window, page);
 
     // print fires beforeprint and afterprint, as Chromium's returns at once in a test run. Nothing is
     // laid out for print, so no print media is applied in between: print layout and the printed PDF
@@ -1574,6 +1644,23 @@ const actionable = (window, element) => !visible(window, element) ? "is not visi
 const shown = (window, element) => !visible(window, element) ? "is not visible" : "";
 
 const OPERATIONS = {
+    // The page's download after the first `after` it made: its name, URL and bytes, base64.
+    async wait_for_download(page, request) {
+        const done = await page.until(() => {
+            const entry = page.downloads[request.after];
+            return entry && !entry.pending ? entry : null;
+        }, request.timeout);
+        if (!done) {
+            throw new FakeError("timeout", `${NAME}: expect_download: the page downloaded nothing within ${request.timeout} ` +
+                "ms of its clock, and had nothing left to run.");
+        }
+        if (done.error) throw new FakeError("error", `${NAME}: expect_download: ${done.error}.`);
+        await page.between();
+        return {filename: done.filename, url: done.url, data: done.bytes.toString("base64")};
+    },
+    async downloads(page) {
+        return page.downloads.length;
+    },
     async new_page(request) {
         const id = pages.size ? Math.max(...pages.keys()) + 1 : 1;
         pages.set(id, new FakePage(id, request));

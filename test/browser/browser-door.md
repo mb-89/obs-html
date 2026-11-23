@@ -225,6 +225,18 @@ required, each found where the fake answered otherwise than the recorded Chromiu
 - **The window's own properties.** A getter that throws, defined on happy-dom's window object, reads
   as `undefined` inside the page; the viewer frame's refusals are defined on the page's own global.
 
+**As built** (`more-logic-to-fake-browser`): three things the moved files asked of the fake, each
+held by `test_fake_browser.py`:
+
+- **`TextEncoder`.** happy-dom's is Node's, whose bytes are Node's `Uint8Array`, so the runtime's
+  `bytes instanceof Uint8Array` refused them. The stand-in hands them over as the page's own.
+- **Requests.** `on("request")` hears each request the page makes through happy-dom's fetch, as
+  Playwright's does. happy-dom's CORS preflight passes the same interceptor, where Playwright
+  reports none, so no `OPTIONS` request is reported.
+- **Downloads.** A click on a link with a `download` attribute that no listener prevented downloads
+  its blob: or data: URL instead of navigating, and `expect_download` hands the file over, with its
+  `suggested_filename` and `save_as`.
+
 ## The browser door's expectations
 
 An expectation is one thing obs-html relies on the browser for. They live in
