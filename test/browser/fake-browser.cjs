@@ -514,12 +514,16 @@ class FakePage {
 
     settings() {
         const page = this;
+        // A replayed phone's state is a touch device at its scale, as Chromium's emulated phone is:
+        // happy-dom answers `(pointer: coarse)` and `(hover: none)` from the touch points.
+        const context = this.recording?.context || {};
         return {
             enableJavaScriptEvaluation: true,
             suppressInsecureJavaScriptEnvironmentWarning: true,
             suppressCodeGenerationFromStringsWarning: true,
             device: {...this.media},
-            viewport: {width: this.viewport[0], height: this.viewport[1], devicePixelRatio: 1},
+            navigator: {maxTouchPoints: context.touch ? 1 : 0},
+            viewport: {width: this.viewport[0], height: this.viewport[1], devicePixelRatio: context.scale || 1},
             navigation: {disableMainFrameNavigation: true, disableChildPageNavigation: true},
             fetch: {interceptor: {
                 beforeAsyncRequest: ({request, window}) => {

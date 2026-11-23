@@ -215,3 +215,15 @@ def test_a_modal_dialog_is_reported_and_dismissed(tmp_path, fake_page) -> None:
     page.on("dialog", lambda dialog: dialogs.append((dialog.type, dialog.message)))
     assert page.evaluate("() => [alert('One'), confirm('Two'), prompt('Three')]") == [None, False, None]
     assert dialogs == [("alert", "One"), ("confirm", "Two"), ("prompt", "Three")]
+
+
+def test_a_replayed_phone_state_is_a_touch_device_at_its_scale(tmp_path, fake_page) -> None:
+    """A phone's state is recorded on Chromium's emulated phone, which has touch: the fake that replays
+    it answers the pointer and hover media as a touch device and has the state's device scale."""
+    phone = {"context": {"viewport": [390, 844], "scale": 3, "touch": True, "frame": "top"}, "answers": []}
+    asked = """() => [matchMedia('(pointer: coarse)').matches, matchMedia('(hover: none)').matches,
+        navigator.maxTouchPoints > 0, devicePixelRatio]"""
+    fake_page.replay(phone)
+    assert _open(tmp_path, fake_page, "<p>Phone</p>").evaluate(asked) == [True, True, True, 3]
+    fake_page.replay(None)
+    assert _open(tmp_path, fake_page, "<p>Desktop</p>").evaluate(asked) == [False, False, False, 1]
