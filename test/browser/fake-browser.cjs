@@ -176,6 +176,28 @@ for (const [tag, rule] of Object.entries({THEAD: "display: table-header-group;",
     elementDefaults[tag] = typeof current === "object" && current ? {...current, default: `${current.default || ""} ${rule}`} : rule;
 }
 
+// The cascade's cache: happy-dom keeps an element's computed style only through a WeakRef, so the
+// garbage collector dropped it between two reads and the whole cascade ran again, most of a page's
+// time where the runtime measures. The fake holds each cached style until happy-dom itself
+// invalidates the entry (a DOM change sets its result to null), so a cache hit is as valid as
+// happy-dom's own.
+const CSSComputedStyle = require(path.join(HAPPY_DOM, "lib", "css", "declaration", "computed-style",
+    "CSSComputedStyle.js")).default;
+class HeldStyle {
+    constructor(value) { this.value = value; }
+    deref() { return this.value; }
+}
+const computeStyle = CSSComputedStyle.prototype.getComputedStyle;
+CSSComputedStyle.prototype.getComputedStyle = function () {
+    const result = computeStyle.call(this);
+    for (let element = this.element; element && element.nodeType === 1; element = element.parentNode) {
+        const entry = element[PropertySymbol.cache]?.computedStyle;
+        const held = entry?.result && !(entry.result instanceof HeldStyle) ? entry.result.deref() : null;
+        if (held) entry.result = new HeldStyle(held);
+    }
+    return result;
+};
+
 // The cascade's speed: happy-dom matches every style rule against every element it computes. A rule
 // whose selectors each need, in their rightmost compound, an id, a class or a tag the element lacks
 // cannot match it, so the full match is skipped; every other rule is matched as before. Only the
@@ -703,7 +725,20 @@ const KEPT = {" ": "\uE000", "\t": "\uE001", "\n": "\uE002"};
 const LINE_END = "\uE003";
 function renderedText(window, root) {
     const items = [];
-    const style = (element) => ownStyle(window, element);
+    // Nothing changes while the text is collected, so each element's style is computed once.
+    const styles = new Map();
+    const style = (element) => {
+        if (!styles.has(element)) styles.set(element, ownStyle(window, element));
+        return styles.get(element);
+    };
+    const lastRows = new Map();
+    const lastRow = (table) => {
+        if (!lastRows.has(table)) {
+            lastRows.set(table, [...table.querySelectorAll("tr")].filter((row) => row.closest("table") === table &&
+                style(row).display === "table-row").at(-1));
+        }
+        return lastRows.get(table);
+    };
     const transform = (text, how) => how === "uppercase" ? text.toUpperCase() : how === "lowercase" ? text.toLowerCase()
         : how === "capitalize" ? text.replace(/(^|\s)(\S)/g, (_, space, letter) => space + letter.toUpperCase()) : text;
     const collect = (node) => {
@@ -748,12 +783,11 @@ function renderedText(window, root) {
             }
             return null;
         };
-        if (computed.display === "table-cell" && next(node) && style(next(node)).display === "table-cell") items.push("\t");
+        const following = computed.display === "table-cell" ? next(node) : null;
+        if (following && style(following).display === "table-cell") items.push("\t");
         if (computed.display === "table-row") {
             const table = node.closest("table");
-            const rows = table ? [...table.querySelectorAll("tr")].filter((row) => row.closest("table") === table &&
-                style(row).display === "table-row") : [];
-            if (rows.at(-1) !== node) items.push(KEPT["\n"]);
+            if (!table || lastRow(table) !== node) items.push(KEPT["\n"]);
         }
         if (paragraph) items.push(2);
         else if (block) items.push(1);
