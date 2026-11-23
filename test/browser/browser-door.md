@@ -26,7 +26,8 @@ Chromium, with 487 collected tests. 51 take a page from `test/conftest.py`'s poo
 `pdf_browser`), and one, the chapter sweep, starts its own sweep child. The work issue counted 79
 files with a wider text search. The other matches of that search are not browser tests: the
 helpers they import (`browser/viewer.py`, `chapter_sweep.py`, `serving.py`), the measurement tools
-under `test/measure/`, and the tests of the DOM tier, which already run in Node over linkedom.
+under `test/measure/`, and the tests of the DOM tier, which ran in Node over linkedom then and run
+on the fake browser since `dom-tier-on-fake-browser` (below).
 
 The runtime asks the browser for layout far more often than the tests do. In `src/obs_html`'s
 scripts: 49 calls of `getBoundingClientRect`, 7 of `getClientRects`, 37 reads of `clientWidth` and
@@ -110,11 +111,11 @@ when a recording is stale (below).
 
 ## The fake browser
 
-**Picked: happy-dom 21.0.4** (published 20 Oct 2026). It runs in Node, as the DOM tier does, and
+**Picked: happy-dom 21.0.4** (published 20 Oct 2026). It runs in Node, as the DOM tier did, and
 the probe below shows it gives most of the answers the runtime needs on its own.
 
 The probe ran the three candidates on 22 Nov 2026: happy-dom 21.0.4, jsdom 31.0.1 and linkedom
-0.18.12, the version the DOM tier pins.
+0.18.12, the version the DOM tier pinned then.
 
 | Answer | happy-dom | jsdom | linkedom |
 |---|---|---|---|
@@ -134,8 +135,8 @@ to its `obs-startup ready` mark in about 0.4 s, with no error. It needed three s
 compression streams and `structuredClone` taken from Node, the `Option` constructor, and a canvas
 text measure. Not picked: jsdom, which lacks the observers, `matchMedia`, `scrollIntoView`, the
 clipboard and `dialog.showModal` that the runtime calls; and linkedom, which has no computed style, focus or
-form behaviour. The DOM tier stands those in by hand today, with every element 384 by 24 pixels
-(`artifact-harness.cjs`).
+form behaviour. The DOM tier stood those in by hand, with every element 384 by 24 pixels
+(`artifact-harness.cjs`), until it moved to the fake browser.
 
 **What happy-dom cannot give, and the recordings supply:**
 
@@ -224,6 +225,31 @@ required, each found where the fake answered otherwise than the recorded Chromiu
   and overflow `visible`, a transparent background).
 - **The window's own properties.** A getter that throws, defined on happy-dom's window object, reads
   as `undefined` inside the page; the viewer frame's refusals are defined on the page's own global.
+
+**As built** (`dom-tier-on-fake-browser`): the DOM tier runs on the fake browser and linkedom is
+gone. [artifact-harness.cjs](artifact-harness.cjs) loads the fake's host as a module in its own
+Node process, so its steps drive the page's runtime directly, and opens a rendered artifact as a file
+page: the page starts its own scripts as a reader's browser does, on the page's clock, until its
+ready mark. Given a state's recording, the page answers its layout calls from it, from the step the
+harness has reached (`reach`), as `fake_page` does; otherwise it gets the door's defaults.
+[artifact-ui.cjs](artifact-ui.cjs), the interim adapter's contracts, opens its artifact through the
+harness. What changed for them:
+
+- **The runtime without its bars.** The contracts are those of the runtime alone: every mode holds
+  back the page's storage and bar scripts (`hold`), and a mode that tests a bar runs it itself, after
+  its own stand-ins (a storage that refuses, a clipboard), named in stacks as its file.
+- **Stand-ins only for the case under test.** Selections are made with the fake's Selection API, a
+  saved copy is parsed with the page's `DOMParser`, and the page's own `structuredClone`, `Node`,
+  `CSS` and `Blob` serve; a stand-in a contract still sets (a refusing storage, a clipboard, a
+  failing save, an image that never decodes) is defined on the page's own global, as the fake's
+  refusals are.
+- **Time on the page's clock.** A chapter's tables, page numbers and review rails come a few frames
+  after it opens, as in a browser: a contract awaits the chapter's ready promise or the page's own
+  condition (`wait`, `until`) on the page's clock, where linkedom's stand-ins ran every frame at
+  once. `runTimers` runs the timers and frames the page has asked for.
+- **A separate window.** The fake's `window.open` gives a window, as a top-level Chromium does, so
+  the floating window opens there; the contract that reads it in the page refuses the window
+  first.
 
 ## The browser door's expectations
 
@@ -340,7 +366,8 @@ needs answers that send the runtime down the real browser's branches, not a repl
 recorded scroll position is not replayed: the runtime sets its own.
 
 A key with no recorded answer gets the door's default: an empty box for an element whose computed
-display is `none` or that is not in the document, else the DOM tier's 384 by 24 box. The fake lists
+display is `none` or that is not in the document, else a box of 384 by 24 pixels at the viewport's
+origin, the size linkedom's DOM tier gave every element. The fake lists
 each default it gave in the test's report. In a viewer-frame state each call the recording lists
 under `viewer-frame` is applied as it says: it throws, returns its value (`null` for
 `window.open`) or rejects, and fires the events recorded with it.
