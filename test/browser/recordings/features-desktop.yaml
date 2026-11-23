@@ -398,6 +398,7 @@ answers:
     - '#figures--block-image-figure'
     - '#figures--block-plot-figure'
     - '#figures--block-plot-figure > div:1 > div:1'
+    - '#figures--block-plot-figure > div:1 > div:1 > div:1 > div:1 > svg:1 > g:2'
     - '#figures--block-sankey-figure'
     - '#figures--block-timeline-figure'
     - html:1 > body:1 > div:1 > main:1 > div:1
@@ -430,6 +431,9 @@ answers:
     '#figures--block-plot-figure > div:1 > div:1':
       border: [248.5, 1110.81, 768, 450]
       rects: [[248.5, 1110.81, 768, 450]]
+    '#figures--block-plot-figure > div:1 > div:1 > div:1 > div:1 > svg:1 > g:2':
+      border: [948.66, 1210.81, 120, 48]
+      rects: [[948.66, 1210.81, 120, 48]]
     '#figures--block-sankey-figure':
       border: [56.5, 1653.97, 1152, 1172.47]
       rects: [[56.5, 1653.97, 1152, 1172.47]]

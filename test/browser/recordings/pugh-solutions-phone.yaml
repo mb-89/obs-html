@@ -14,6 +14,8 @@ steps:
 - open: page
 - open: chapter
   id: three
+- open: chapter
+  id: five
 artifactDigest: sha256:84e32236e1e12fa83b1abcd9d80d0691f9928a5fbb3f3302e11b23d1ade54044
 chromium: 153.0.8010.12 (Playwright 1.64.0)
 answers:
@@ -171,6 +173,7 @@ answers:
     session: kept
 - step: 1
   asked:
+    cascade: []
     media:
     - '(max-width: 30rem)'
     - '(max-width: 42rem)'
@@ -191,6 +194,118 @@ answers:
   fonts:
     status: loaded
   cascade: {}
+  media:
+    '(max-width: 30rem)': true
+    '(max-width: 42rem)': true
+    '(max-width: 44rem)': true
+    '(pointer: coarse)': true
+    '(prefers-reduced-motion: reduce)': false
+    print: false
+    screen: true
+  events:
+  - button:click
+  - input:click
+  - input:input
+  - input:change
+  - checked:true
+  - label:click
+  - input:click
+  - input:input
+  - input:change
+  - checked:false
+  - summary:click
+  - open:true
+  focus:
+    button: button:0
+    input: input:1
+    disabled: input:1
+    tabindex: span:3
+    plain: span:3
+    dialog: button:7
+    closed: span:3
+  popover:
+    shown: true
+    another:
+    - false
+    - true
+    - true
+    hidden: false
+    toggled:
+    - true
+    - true
+  frames:
+  - first
+  - second
+  - nested
+  storage:
+    local: kept
+    session: kept
+- step: 2
+  asked:
+    box:
+    - '#five > div:1 > div:2'
+    - '#five--figure-1'
+    - html:1 > body:1 > div:1 > main:1 > div:1
+    cascade:
+    - '#five > div:1 > div:2|paddingLeft'
+    - '#five > div:1 > div:2|paddingRight'
+    - html:1|fontSize
+    media:
+    - '(max-width: 30rem)'
+    - '(max-width: 42rem)'
+    - '(max-width: 44rem)'
+    - '(pointer: coarse)'
+    - '(prefers-reduced-motion: reduce)'
+    - print
+    - screen
+    resize:
+    - '#five > div:1 > div:2'
+    - '#five--figure-1'
+    sizes:
+    - '#five--figure-1'
+  box:
+    '#five > div:1 > div:2':
+      border: [12, 337.7, 366, 180.56]
+      rects: [[12, 337.7, 366, 180.56]]
+    '#five--figure-1':
+      border: [16, 337.7, 358, 180.56]
+      rects: [[16, 337.7, 358, 180.56]]
+    html:1 > body:1 > div:1 > main:1 > div:1:
+      border: [0, 64, 390, 780]
+      rects: [[0, 64, 390, 780]]
+  sizes:
+    window:
+      innerWidth: 390
+      innerHeight: 844
+    '#five--figure-1':
+      clientWidth: 358
+      clientHeight: 179
+      scrollWidth: 358
+      scrollHeight: 179
+      offsetWidth: 358
+      offsetHeight: 181
+      offsetLeft: 16
+      offsetTop: 274
+      clientLeft: 0
+      clientTop: 1
+      scrollTop: 0
+      scrollLeft: 0
+  resize:
+    '#five > div:1 > div:2':
+      content: [366, 180.56]
+      border: [366, 180.56]
+    '#five--figure-1':
+      content: [358, 154.56]
+      border: [358, 180.56]
+  scroll-into-view: {}
+  text-width: {}
+  image-size: {}
+  fonts:
+    status: loaded
+  cascade:
+    '#five > div:1 > div:2|paddingLeft': 0px
+    '#five > div:1 > div:2|paddingRight': 0px
+    html:1|fontSize: 16px
   media:
     '(max-width: 30rem)': true
     '(max-width: 42rem)': true

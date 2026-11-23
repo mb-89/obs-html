@@ -1,0 +1,827 @@
+# The browser door's recording of the state fixture-scrolling-desktop (test/browser/expectations.yaml),
+# written by `uv run pytest -m hot --record` (test/browser/door.py); never edited by hand.
+state: fixture-scrolling-desktop
+artifact: test/test_artifact_browser.py::scrolling_fixture
+context:
+  viewport: [1200, 1000]
+  scale: 1
+  touch: false
+  scheme: light
+  motion: no-preference
+  media: screen
+  frame: top
+steps:
+- open: page
+- open: chapter
+  id: intro
+- open: chapter
+  id: appendix
+artifactDigest: sha256:004b8abeb8a6336e2ccba7c076d3fa334ca7a09352913784e769810994c97ac3
+chromium: 153.0.8010.12 (Playwright 1.64.0)
+answers:
+- step: 0
+  asked:
+    box:
+    - '#home > div:1'
+    - html:1 > body:1 > div:1 > div:1
+    - html:1 > body:1 > div:1 > div:2
+    - html:1 > body:1 > div:1 > div:3
+    - html:1 > body:1 > div:1 > div:4
+    - html:1 > body:1 > div:1 > main:1 > div:1
+    - section:1 > div:1
+    - section:1 > div:2
+    cascade:
+    - html:1 > body:1|font
+    - html:1|fontSize
+    media:
+    - '(max-width: 30rem)'
+    - '(max-width: 42rem)'
+    - '(max-width: 44rem)'
+    - '(prefers-reduced-motion: reduce)'
+    - print
+    - screen
+    resize:
+    - '#home > div:1'
+    - html:1 > body:1 > div:1 > div:1
+    - html:1 > body:1 > div:1 > div:2
+    - html:1 > body:1 > div:1 > div:3
+    - html:1 > body:1 > div:1 > div:4
+    - section:1 > div:1
+    - section:1 > div:1 > table:1
+    - section:1 > div:2
+    - section:1 > div:2 > table:1
+    sizes:
+    - section:1 > div:1
+    - section:1 > div:2
+    text-width:
+    - 16px Georgia, "Times New Roman", serif|1
+    - 16px Georgia, "Times New Roman", serif|2
+    - 16px Georgia, "Times New Roman", serif|Alpha
+    - 16px Georgia, "Times New Roman", serif|Beta
+    - 16px Georgia, "Times New Roman", serif|Name
+    - 16px Georgia, "Times New Roman", serif|alpha
+    - 16px Georgia, "Times New Roman", serif|beta
+    - 16px Georgia, "Times New Roman", serif|file.name
+    - 16px Georgia, "Times New Roman", serif|gamma
+    - 16px Georgia, "Times New Roman", serif|rank
+  box:
+    '#home > div:1':
+      border: [208.5, 64, 768, 449.05]
+      rects: [[208.5, 64, 768, 449.05]]
+    html:1 > body:1 > div:1 > div:1:
+      border: [0, 0, 0, 0]
+      rects: []
+    html:1 > body:1 > div:1 > div:2:
+      border: [0, 0, 0, 0]
+      rects: []
+    html:1 > body:1 > div:1 > div:3:
+      border: [0, 0, 0, 0]
+      rects: []
+    html:1 > body:1 > div:1 > div:4:
+      border: [0, 0, 0, 0]
+      rects: []
+    html:1 > body:1 > div:1 > main:1 > div:1:
+      border: [0, 64, 1200, 936]
+      rects: [[0, 64, 1200, 936]]
+  sizes:
+    window:
+      innerWidth: 1200
+      innerHeight: 1000
+  resize:
+    '#home > div:1':
+      content: [584, 337.05]
+      border: [768, 449.05]
+    html:1 > body:1 > div:1 > div:1:
+      content: [0, 0]
+      border: [0, 0]
+    html:1 > body:1 > div:1 > div:2:
+      content: [0, 0]
+      border: [0, 0]
+    html:1 > body:1 > div:1 > div:3:
+      content: [0, 0]
+      border: [0, 0]
+    html:1 > body:1 > div:1 > div:4:
+      content: [0, 0]
+      border: [0, 0]
+  scroll-into-view: {}
+  text-width:
+    16px Georgia, "Times New Roman", serif|1: 8
+    16px Georgia, "Times New Roman", serif|2: 8
+    16px Georgia, "Times New Roman", serif|Alpha: 39.1
+    16px Georgia, "Times New Roman", serif|Beta: 29.32
+    16px Georgia, "Times New Roman", serif|Name: 38.2
+    16px Georgia, "Times New Roman", serif|alpha: 34.65
+    16px Georgia, "Times New Roman", serif|beta: 26.65
+    16px Georgia, "Times New Roman", serif|file.name: 59.97
+    16px Georgia, "Times New Roman", serif|gamma: 47.09
+    16px Georgia, "Times New Roman", serif|rank: 28.43
+  image-size: {}
+  fonts:
+    status: loaded
+  cascade:
+    html:1 > body:1|font: 16px Georgia, "Times New Roman", serif
+    html:1|fontSize: 16px
+  media:
+    '(max-width: 30rem)': false
+    '(max-width: 42rem)': false
+    '(max-width: 44rem)': false
+    '(prefers-reduced-motion: reduce)': false
+    print: false
+    screen: true
+  events:
+  - button:click
+  - input:click
+  - input:input
+  - input:change
+  - checked:true
+  - label:click
+  - input:click
+  - input:input
+  - input:change
+  - checked:false
+  - summary:click
+  - open:true
+  focus:
+    button: button:0
+    input: input:1
+    disabled: input:1
+    tabindex: span:3
+    plain: span:3
+    dialog: button:7
+    closed: span:3
+  popover:
+    shown: true
+    another:
+    - false
+    - true
+    - true
+    hidden: false
+    toggled:
+    - true
+    - true
+  frames:
+  - first
+  - second
+  - nested
+  storage:
+    local: kept
+    session: kept
+- step: 1
+  asked:
+    box:
+    - '#intro > div:1 > section:1 > div:1'
+    - '#intro > div:1 > section:1 > div:1 > table:1'
+    - '#intro > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:1'
+    - '#intro > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:2'
+    - '#intro > div:1 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:3'
+    - '#intro > div:1 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:3 > div:1'
+    - '#intro > div:1 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:3 > span:2'
+    - html:1 > body:1 > div:1 > main:1 > div:1
+    cascade:
+    - '#intro > div:1 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:1|borderLeftWidth'
+    - '#intro > div:1 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:3|borderRightWidth'
+    - '#intro > div:1 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:3|font'
+    - '#intro > div:1 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:3|paddingInlineEnd'
+    - '#intro > div:1 > section:1 > div:1 > table:1|--table-cell-padding'
+    - '#intro > div:1 > section:1 > div:1 > table:1|--table-toggle-gap'
+    - '#intro > div:1 > section:1 > div:1 > table:1|--table-toggle-size'
+    - '#intro > div:1 > section:1 > div:1 > table:1|--table-tree-indent'
+    - '#intro > div:1 > section:1 > div:1 > table:1|borderCollapse'
+    - '#intro > div:1 > section:1 > div:1 > table:1|font'
+    - html:1 > body:1|font
+    - html:1|fontSize
+    media:
+    - '(max-width: 30rem)'
+    - '(max-width: 42rem)'
+    - '(max-width: 44rem)'
+    - '(prefers-reduced-motion: reduce)'
+    - print
+    - screen
+    resize:
+    - section:1 > div:1
+    - section:1 > div:1 > table:1
+    sizes:
+    - '#intro > div:1 > section:1 > div:1'
+    - '#intro > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:1 > td:1 > div:1 > div:1'
+    - '#intro > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:1 > td:2 > div:1'
+    - '#intro > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:1 > td:3 > div:1'
+    - '#intro > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:2 > td:1 > div:1 > div:1'
+    - '#intro > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:2 > td:2 > div:1'
+    - '#intro > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:2 > td:3 > div:1'
+    - section:1 > div:1
+    text-width:
+    - 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|1
+    - 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|2
+    - 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|Alpha
+    - 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|Beta
+    - 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|alpha
+    - 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|beta
+    - 16px Georgia, "Times New Roman", serif|1
+    - 16px Georgia, "Times New Roman", serif|2
+    - 16px Georgia, "Times New Roman", serif|Alpha
+    - 16px Georgia, "Times New Roman", serif|Beta
+    - 16px Georgia, "Times New Roman", serif|Name
+    - 16px Georgia, "Times New Roman", serif|alpha
+    - 16px Georgia, "Times New Roman", serif|beta
+    - 16px Georgia, "Times New Roman", serif|file.name
+    - 16px Georgia, "Times New Roman", serif|rank
+    - 700 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|Name
+    - 700 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|file.name
+    - 700 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|rank
+  box:
+    '#intro > div:1 > section:1 > div:1':
+      border: [292.5, 327.67, 584, 101.17]
+      rects: [[292.5, 327.67, 584, 101.17]]
+    '#intro > div:1 > section:1 > div:1 > table:1':
+      border: [292.5, 327.67, 584, 101.17]
+      rects: [[292.5, 327.67, 584, 101.17]]
+    '#intro > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:1':
+      border: [293, 359.16, 583, 34.59]
+      rects: [[293, 359.16, 583, 34.59]]
+    '#intro > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:2':
+      border: [293, 393.75, 583, 34.59]
+      rects: [[293, 393.75, 583, 34.59]]
+    '#intro > div:1 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:3':
+      border: [430, 328.17, 446, 30.98]
+      rects: [[430, 328.17, 446, 30.98]]
+    '#intro > div:1 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:3 > div:1':
+      border: [841.11, 332.46, 22.39, 22.39]
+      rects: [[841.11, 332.46, 22.39, 22.39]]
+    '#intro > div:1 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:3 > span:2':
+      border: [865.91, 328.67, 9.59, 29.98]
+      rects: [[865.91, 328.67, 9.59, 29.98]]
+    html:1 > body:1 > div:1 > main:1 > div:1:
+      border: [0, 64, 1200, 936]
+      rects: [[0, 64, 1200, 936]]
+  sizes:
+    window:
+      innerWidth: 1200
+      innerHeight: 1000
+    '#intro > div:1 > section:1 > div:1':
+      clientWidth: 584
+      clientHeight: 101
+      scrollWidth: 584
+      scrollHeight: 101
+      offsetWidth: 584
+      offsetHeight: 101
+      offsetLeft: 293
+      offsetTop: 264
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    '#intro > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:1 > td:1 > div:1 > div:1':
+      clientWidth: 26
+      clientHeight: 20
+      scrollWidth: 26
+      scrollHeight: 20
+      offsetWidth: 26
+      offsetHeight: 20
+      offsetLeft: 38
+      offsetTop: 7
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    '#intro > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:1 > td:2 > div:1':
+      clientWidth: 39
+      clientHeight: 20
+      scrollWidth: 39
+      scrollHeight: 20
+      offsetWidth: 39
+      offsetHeight: 20
+      offsetLeft: 8
+      offsetTop: 5
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    '#intro > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:1 > td:3 > div:1':
+      clientWidth: 429
+      clientHeight: 20
+      scrollWidth: 429
+      scrollHeight: 20
+      offsetWidth: 429
+      offsetHeight: 20
+      offsetLeft: 8
+      offsetTop: 5
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    '#intro > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:2 > td:1 > div:1 > div:1':
+      clientWidth: 33
+      clientHeight: 20
+      scrollWidth: 33
+      scrollHeight: 20
+      offsetWidth: 33
+      offsetHeight: 20
+      offsetLeft: 38
+      offsetTop: 7
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    '#intro > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:2 > td:2 > div:1':
+      clientWidth: 39
+      clientHeight: 20
+      scrollWidth: 39
+      scrollHeight: 20
+      offsetWidth: 39
+      offsetHeight: 20
+      offsetLeft: 8
+      offsetTop: 5
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    '#intro > div:1 > section:1 > div:1 > table:1 > tbody:1 > tr:2 > td:3 > div:1':
+      clientWidth: 429
+      clientHeight: 20
+      scrollWidth: 429
+      scrollHeight: 20
+      offsetWidth: 429
+      offsetHeight: 20
+      offsetLeft: 8
+      offsetTop: 5
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+  resize: {}
+  scroll-into-view: {}
+  text-width:
+    13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|1: 7.56
+    13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|2: 7.56
+    13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|Alpha: 34.77
+    13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|Beta: 27.96
+    13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|alpha: 33.26
+    13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|beta: 26.46
+    16px Georgia, "Times New Roman", serif|1: 8
+    16px Georgia, "Times New Roman", serif|2: 8
+    16px Georgia, "Times New Roman", serif|Alpha: 39.1
+    16px Georgia, "Times New Roman", serif|Beta: 29.32
+    16px Georgia, "Times New Roman", serif|Name: 38.2
+    16px Georgia, "Times New Roman", serif|alpha: 34.65
+    16px Georgia, "Times New Roman", serif|beta: 26.65
+    16px Georgia, "Times New Roman", serif|file.name: 59.97
+    16px Georgia, "Times New Roman", serif|rank: 28.43
+    700 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|Name: 37.02
+    700 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|file.name: 58.93
+    700 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|rank: 28.71
+  image-size: {}
+  fonts:
+    status: loaded
+  cascade:
+    '#intro > div:1 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:1|borderLeftWidth': 1px
+    '#intro > div:1 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:3|borderRightWidth': 1px
+    '#intro > div:1 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:3|font': 700 13.6px / 20.4px Arial, "Helvetica Neue",
+      sans-serif
+    '#intro > div:1 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:3|paddingInlineEnd': 40px
+    '#intro > div:1 > section:1 > div:1 > table:1|--table-cell-padding': '0.5'
+    '#intro > div:1 > section:1 > div:1 > table:1|--table-toggle-gap': '0.35'
+    '#intro > div:1 > section:1 > div:1 > table:1|--table-toggle-size': '1.5'
+    '#intro > div:1 > section:1 > div:1 > table:1|--table-tree-indent': '1.2'
+    '#intro > div:1 > section:1 > div:1 > table:1|borderCollapse': collapse
+    '#intro > div:1 > section:1 > div:1 > table:1|font': 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif
+    html:1 > body:1|font: 16px Georgia, "Times New Roman", serif
+    html:1|fontSize: 16px
+  media:
+    '(max-width: 30rem)': false
+    '(max-width: 42rem)': false
+    '(max-width: 44rem)': false
+    '(prefers-reduced-motion: reduce)': false
+    print: false
+    screen: true
+  events:
+  - button:click
+  - input:click
+  - input:input
+  - input:change
+  - checked:true
+  - label:click
+  - input:click
+  - input:input
+  - input:change
+  - checked:false
+  - summary:click
+  - open:true
+  focus:
+    button: button:0
+    input: input:1
+    disabled: input:1
+    tabindex: span:3
+    plain: span:3
+    dialog: button:7
+    closed: span:3
+  popover:
+    shown: true
+    another:
+    - false
+    - true
+    - true
+    hidden: false
+    toggled:
+    - true
+    - true
+  frames:
+  - first
+  - second
+  - nested
+  storage:
+    local: kept
+    session: kept
+- step: 2
+  asked:
+    box:
+    - '#appendix > div:1'
+    - '#appendix > div:1 > section:1 > div:2'
+    - '#appendix > div:1 > section:1 > div:2 > table:1'
+    - '#appendix > div:1 > section:1 > div:2 > table:1 > tbody:1 > tr:1'
+    - '#appendix > div:1 > section:1 > div:2 > table:1 > tbody:1 > tr:2'
+    - '#appendix > div:1 > section:1 > div:2 > table:1 > tbody:1 > tr:3'
+    - '#appendix > div:1 > section:1 > div:2 > table:1 > thead:1 > tr:1 > th:2'
+    - '#appendix > div:1 > section:1 > div:2 > table:1 > thead:1 > tr:1 > th:2 > div:1'
+    - '#appendix > div:1 > section:1 > div:2 > table:1 > thead:1 > tr:1 > th:2 > span:2'
+    - '#appendix--figure-3'
+    - '#appendix--figure-4'
+    - '#appendix--figure-5'
+    - '#appendix--figure-5 > div:1 > div:2'
+    - '#appendix--figure-6'
+    - '#appendix--figure-7'
+    - '#appendix--figure-flow'
+    - '#appendix--figure-response'
+    - '#appendix--figure-response > div:1 > div:1'
+    - '#appendix--figure-response > div:1 > div:1 > div:1 > div:1 > svg:1 > g:2'
+    - html:1 > body:1 > div:1 > main:1 > div:1
+    cascade:
+    - '#appendix > div:1 > section:1 > div:2 > table:1 > thead:1 > tr:1 > th:1|borderLeftWidth'
+    - '#appendix > div:1 > section:1 > div:2 > table:1 > thead:1 > tr:1 > th:2|borderRightWidth'
+    - '#appendix > div:1 > section:1 > div:2 > table:1 > thead:1 > tr:1 > th:2|font'
+    - '#appendix > div:1 > section:1 > div:2 > table:1 > thead:1 > tr:1 > th:2|paddingInlineEnd'
+    - '#appendix > div:1 > section:1 > div:2 > table:1|--table-cell-padding'
+    - '#appendix > div:1 > section:1 > div:2 > table:1|--table-toggle-gap'
+    - '#appendix > div:1 > section:1 > div:2 > table:1|--table-toggle-size'
+    - '#appendix > div:1 > section:1 > div:2 > table:1|--table-tree-indent'
+    - '#appendix > div:1 > section:1 > div:2 > table:1|borderCollapse'
+    - '#appendix > div:1 > section:1 > div:2 > table:1|font'
+    - '#appendix > div:1|paddingLeft'
+    - '#appendix > div:1|paddingRight'
+    - html:1 > body:1|font
+    - html:1|--color-border
+    - html:1|fontSize
+    media:
+    - '(max-width: 30rem)'
+    - '(max-width: 42rem)'
+    - '(max-width: 44rem)'
+    - '(prefers-reduced-motion: reduce)'
+    - print
+    - screen
+    resize:
+    - '#appendix > div:1'
+    - '#appendix--figure-3'
+    - '#appendix--figure-4'
+    - '#appendix--figure-5'
+    - '#appendix--figure-5 > div:1 > div:2'
+    - '#appendix--figure-6'
+    - '#appendix--figure-7'
+    - '#appendix--figure-flow'
+    - '#appendix--figure-response'
+    - '#appendix--figure-response > div:1 > div:1'
+    - section:1 > div:2
+    - section:1 > div:2 > table:1
+    sizes:
+    - '#appendix > div:1 > section:1 > div:2'
+    - '#appendix > div:1 > section:1 > div:2 > table:1 > tbody:1 > tr:1 > td:1 > div:1 > div:1'
+    - '#appendix > div:1 > section:1 > div:2 > table:1 > tbody:1 > tr:1 > td:2 > div:1'
+    - '#appendix > div:1 > section:1 > div:2 > table:1 > tbody:1 > tr:2 > td:1 > div:1 > div:1'
+    - '#appendix > div:1 > section:1 > div:2 > table:1 > tbody:1 > tr:2 > td:2 > div:1'
+    - '#appendix > div:1 > section:1 > div:2 > table:1 > tbody:1 > tr:3 > td:1 > div:1 > div:1'
+    - '#appendix > div:1 > section:1 > div:2 > table:1 > tbody:1 > tr:3 > td:2 > div:1'
+    - '#appendix--figure-5 > div:1 > div:2'
+    - '#appendix--figure-6'
+    - '#appendix--figure-response > div:1 > div:1'
+    - section:1 > div:2
+    text-width:
+    - 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|1
+    - 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|2
+    - 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|alpha
+    - 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|beta
+    - 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|gamma
+    - 16px Georgia, "Times New Roman", serif|1
+    - 16px Georgia, "Times New Roman", serif|2
+    - 16px Georgia, "Times New Roman", serif|alpha
+    - 16px Georgia, "Times New Roman", serif|beta
+    - 16px Georgia, "Times New Roman", serif|file.name
+    - 16px Georgia, "Times New Roman", serif|gamma
+    - 16px Georgia, "Times New Roman", serif|rank
+    - 700 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|file.name
+    - 700 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|rank
+  box:
+    '#appendix > div:1':
+      border: [208.5, 64, 768, 3658.56]
+      rects: [[208.5, 64, 768, 3658.56]]
+    '#appendix > div:1 > section:1 > div:2':
+      border: [292.5, 2052.83, 584, 135.77]
+      rects: [[292.5, 2052.83, 584, 135.77]]
+    '#appendix > div:1 > section:1 > div:2 > table:1':
+      border: [292.5, 2052.83, 584, 135.77]
+      rects: [[292.5, 2052.83, 584, 135.77]]
+    '#appendix > div:1 > section:1 > div:2 > table:1 > tbody:1 > tr:1':
+      border: [293, 2084.31, 583, 34.59]
+      rects: [[293, 2084.31, 583, 34.59]]
+    '#appendix > div:1 > section:1 > div:2 > table:1 > tbody:1 > tr:2':
+      border: [293, 2118.91, 583, 34.59]
+      rects: [[293, 2118.91, 583, 34.59]]
+    '#appendix > div:1 > section:1 > div:2 > table:1 > tbody:1 > tr:3':
+      border: [293, 2153.5, 583, 34.59]
+      rects: [[293, 2153.5, 583, 34.59]]
+    '#appendix > div:1 > section:1 > div:2 > table:1 > thead:1 > tr:1 > th:2':
+      border: [386, 2053.33, 490, 30.98]
+      rects: [[386, 2053.33, 490, 30.98]]
+    '#appendix > div:1 > section:1 > div:2 > table:1 > thead:1 > tr:1 > th:2 > div:1':
+      border: [841.11, 2057.62, 22.39, 22.39]
+      rects: [[841.11, 2057.62, 22.39, 22.39]]
+    '#appendix > div:1 > section:1 > div:2 > table:1 > thead:1 > tr:1 > th:2 > span:2':
+      border: [865.91, 2053.83, 9.59, 29.98]
+      rects: [[865.91, 2053.83, 9.59, 29.98]]
+    '#appendix--figure-3':
+      border: [92, 2230.59, 985, 89]
+      rects: [[92, 2230.59, 985, 89]]
+    '#appendix--figure-4':
+      border: [92, 2339.59, 985, 130]
+      rects: [[92, 2339.59, 985, 130]]
+    '#appendix--figure-5':
+      border: [92, 2489.59, 985, 476]
+      rects: [[92, 2489.59, 985, 476]]
+    '#appendix--figure-5 > div:1 > div:2':
+      border: [200.5, 2502.59, 768, 450]
+      rects: [[200.5, 2502.59, 768, 450]]
+    '#appendix--figure-6':
+      border: [92, 2985.59, 985, 384.78]
+      rects: [[92, 2985.59, 985, 384.78]]
+    '#appendix--figure-7':
+      border: [92, 3390.38, 985, 216.19]
+      rects: [[92, 3390.38, 985, 216.19]]
+    '#appendix--figure-flow':
+      border: [92, 643.5, 985, 982.84]
+      rects: [[92, 643.5, 985, 982.84]]
+    '#appendix--figure-response':
+      border: [92, 147.5, 985, 476]
+      rects: [[92, 147.5, 985, 476]]
+    '#appendix--figure-response > div:1 > div:1':
+      border: [200.5, 160.5, 768, 450]
+      rects: [[200.5, 160.5, 768, 450]]
+    '#appendix--figure-response > div:1 > div:1 > div:1 > div:1 > svg:1 > g:2':
+      border: [900.66, 260.5, 120, 48]
+      rects: [[900.66, 260.5, 120, 48]]
+    html:1 > body:1 > div:1 > main:1 > div:1:
+      border: [0, 64, 1200, 936]
+      rects: [[0, 64, 1200, 936]]
+  sizes:
+    window:
+      innerWidth: 1200
+      innerHeight: 1000
+    '#appendix > div:1 > section:1 > div:2':
+      clientWidth: 584
+      clientHeight: 136
+      scrollWidth: 584
+      scrollHeight: 136
+      offsetWidth: 584
+      offsetHeight: 136
+      offsetLeft: 293
+      offsetTop: 1989
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    '#appendix > div:1 > section:1 > div:2 > table:1 > tbody:1 > tr:1 > td:1 > div:1 > div:1':
+      clientWidth: 33
+      clientHeight: 20
+      scrollWidth: 33
+      scrollHeight: 20
+      offsetWidth: 33
+      offsetHeight: 20
+      offsetLeft: 38
+      offsetTop: 7
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    '#appendix > div:1 > section:1 > div:2 > table:1 > tbody:1 > tr:1 > td:2 > div:1':
+      clientWidth: 473
+      clientHeight: 20
+      scrollWidth: 473
+      scrollHeight: 20
+      offsetWidth: 473
+      offsetHeight: 20
+      offsetLeft: 8
+      offsetTop: 5
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    '#appendix > div:1 > section:1 > div:2 > table:1 > tbody:1 > tr:2 > td:1 > div:1 > div:1':
+      clientWidth: 26
+      clientHeight: 20
+      scrollWidth: 26
+      scrollHeight: 20
+      offsetWidth: 26
+      offsetHeight: 20
+      offsetLeft: 38
+      offsetTop: 7
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    '#appendix > div:1 > section:1 > div:2 > table:1 > tbody:1 > tr:2 > td:2 > div:1':
+      clientWidth: 473
+      clientHeight: 20
+      scrollWidth: 473
+      scrollHeight: 20
+      offsetWidth: 473
+      offsetHeight: 20
+      offsetLeft: 8
+      offsetTop: 5
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    '#appendix > div:1 > section:1 > div:2 > table:1 > tbody:1 > tr:3 > td:1 > div:1 > div:1':
+      clientWidth: 45
+      clientHeight: 20
+      scrollWidth: 45
+      scrollHeight: 20
+      offsetWidth: 45
+      offsetHeight: 20
+      offsetLeft: 38
+      offsetTop: 7
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    '#appendix > div:1 > section:1 > div:2 > table:1 > tbody:1 > tr:3 > td:2 > div:1':
+      clientWidth: 473
+      clientHeight: 0
+      scrollWidth: 473
+      scrollHeight: 0
+      offsetWidth: 473
+      offsetHeight: 0
+      offsetLeft: 8
+      offsetTop: 5
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    '#appendix--figure-5 > div:1 > div:2':
+      clientWidth: 768
+      clientHeight: 450
+      scrollWidth: 768
+      scrollHeight: 450
+      offsetWidth: 768
+      offsetHeight: 450
+      offsetLeft: 109
+      offsetTop: 0
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    '#appendix--figure-6':
+      clientWidth: 985
+      clientHeight: 383
+      scrollWidth: 985
+      scrollHeight: 383
+      offsetWidth: 985
+      offsetHeight: 385
+      offsetLeft: 92
+      offsetTop: 2922
+      clientLeft: 0
+      clientTop: 1
+      scrollTop: 0
+      scrollLeft: 0
+    '#appendix--figure-response > div:1 > div:1':
+      clientWidth: 768
+      clientHeight: 450
+      scrollWidth: 768
+      scrollHeight: 450
+      offsetWidth: 768
+      offsetHeight: 450
+      offsetLeft: 109
+      offsetTop: 0
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+  resize:
+    '#appendix > div:1':
+      content: [584, 3546.56]
+      border: [768, 3658.56]
+    '#appendix--figure-3':
+      content: [985, 63]
+      border: [985, 89]
+    '#appendix--figure-4':
+      content: [985, 104]
+      border: [985, 130]
+    '#appendix--figure-5':
+      content: [985, 450]
+      border: [985, 476]
+    '#appendix--figure-5 > div:1 > div:2':
+      content: [768, 450]
+      border: [768, 450]
+    '#appendix--figure-6':
+      content: [985, 358.78]
+      border: [985, 384.78]
+    '#appendix--figure-7':
+      content: [985, 190.19]
+      border: [985, 216.19]
+    '#appendix--figure-flow':
+      content: [985, 956.84]
+      border: [985, 982.84]
+    '#appendix--figure-response':
+      content: [985, 450]
+      border: [985, 476]
+    '#appendix--figure-response > div:1 > div:1':
+      content: [768, 450]
+      border: [768, 450]
+  scroll-into-view: {}
+  text-width:
+    13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|1: 7.56
+    13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|2: 7.56
+    13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|alpha: 33.26
+    13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|beta: 26.46
+    13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|gamma: 45.33
+    16px Georgia, "Times New Roman", serif|1: 8
+    16px Georgia, "Times New Roman", serif|2: 8
+    16px Georgia, "Times New Roman", serif|alpha: 34.65
+    16px Georgia, "Times New Roman", serif|beta: 26.65
+    16px Georgia, "Times New Roman", serif|file.name: 59.97
+    16px Georgia, "Times New Roman", serif|gamma: 47.09
+    16px Georgia, "Times New Roman", serif|rank: 28.43
+    700 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|file.name: 58.93
+    700 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|rank: 28.71
+  image-size: {}
+  fonts:
+    status: loaded
+  cascade:
+    '#appendix > div:1 > section:1 > div:2 > table:1 > thead:1 > tr:1 > th:1|borderLeftWidth': 1px
+    '#appendix > div:1 > section:1 > div:2 > table:1 > thead:1 > tr:1 > th:2|borderRightWidth': 1px
+    '#appendix > div:1 > section:1 > div:2 > table:1 > thead:1 > tr:1 > th:2|font': 700 13.6px / 20.4px Arial, "Helvetica
+      Neue", sans-serif
+    '#appendix > div:1 > section:1 > div:2 > table:1 > thead:1 > tr:1 > th:2|paddingInlineEnd': 40px
+    '#appendix > div:1 > section:1 > div:2 > table:1|--table-cell-padding': '0.5'
+    '#appendix > div:1 > section:1 > div:2 > table:1|--table-toggle-gap': '0.35'
+    '#appendix > div:1 > section:1 > div:2 > table:1|--table-toggle-size': '1.5'
+    '#appendix > div:1 > section:1 > div:2 > table:1|--table-tree-indent': '1.2'
+    '#appendix > div:1 > section:1 > div:2 > table:1|borderCollapse': collapse
+    '#appendix > div:1 > section:1 > div:2 > table:1|font': 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif
+    '#appendix > div:1|paddingLeft': 84px
+    '#appendix > div:1|paddingRight': 100px
+    html:1 > body:1|font: 16px Georgia, "Times New Roman", serif
+    html:1|--color-border: light-dark(#bdbdbd,#5c5c5c)
+    html:1|fontSize: 16px
+  media:
+    '(max-width: 30rem)': false
+    '(max-width: 42rem)': false
+    '(max-width: 44rem)': false
+    '(prefers-reduced-motion: reduce)': false
+    print: false
+    screen: true
+  events:
+  - button:click
+  - input:click
+  - input:input
+  - input:change
+  - checked:true
+  - label:click
+  - input:click
+  - input:input
+  - input:change
+  - checked:false
+  - summary:click
+  - open:true
+  focus:
+    button: button:0
+    input: input:1
+    disabled: input:1
+    tabindex: span:3
+    plain: span:3
+    dialog: button:7
+    closed: span:3
+  popover:
+    shown: true
+    another:
+    - false
+    - true
+    - true
+    hidden: false
+    toggled:
+    - true
+    - true
+  frames:
+  - first
+  - second
+  - nested
+  storage:
+    local: kept
+    session: kept
+  print: beforeprint

@@ -92,3 +92,17 @@ def test_a_fake_viewer_frame_refuses_as_the_recorded_chromium_refused(door_artif
     refusals = recording["answers"][0]["viewer-frame"]
     assert refusals["window.localStorage"] == {"throws": "SecurityError"}
     assert fake_page.evaluate(door.probe_function(viewer), {}) == refusals
+
+
+def test_a_state_built_through_artifact_html_is_built_at_the_doors_instant(monkeypatch) -> None:
+    """A state's artifact digest changes only with the page (browser-door.md, Recording and replay): a
+    state whose function builds through test/artifacts.py's artifact_html is built at the instant
+    SOURCE_DATE_EPOCH names, as the CLI builds, not at the moment it runs."""
+    import artifacts
+    from obs_html import build_time
+
+    seen = {}
+    monkeypatch.setattr(artifacts, "render", lambda document, config, **options: seen.update(options) or "built")
+    monkeypatch.setenv(build_time.VARIABLE, door.BUILD_EPOCH)
+    assert artifacts.artifact_html({"state": "a page no other test renders"}) == "built"
+    assert seen["built"] == build_time.fixed({build_time.VARIABLE: door.BUILD_EPOCH})

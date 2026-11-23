@@ -15,6 +15,13 @@ def _artifact(*chapters) -> str:
     return artifact_html(document("Bars", *chapters))
 
 
+def dock_document() -> dict:
+    """Three chapters and every bar: the page of the splitter's geometry, the artifact of the browser
+    door's state bars-dock-desktop (test/browser/expectations.yaml)."""
+    return document("Bars", *(chapter(name, name.title(), heading(1, name.title()), paragraph(f"{name.title()} prose."))
+                              for name in ("alpha", "beta", "gamma")))
+
+
 def _one_chapter() -> str:
     return _artifact(chapter("one", "One", heading(1, "One")))
 
@@ -204,14 +211,12 @@ def test_dock_buttons_use_left_right_top_bottom_order() -> None:
 DOCK_LAID_OUT = "() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))"
 
 
-@pytest.mark.hot
+@pytest.mark.hot("bars-dock-desktop")
 @pytest.mark.browser
 @pytest.mark.parametrize("edge", ["left", "right", "top", "bottom"])
 def test_native_splitter_anchors_and_neighbor_only_geometry(tmp_path, reader_browser, edge):
     artifact = tmp_path / "dock.html"
-    artifact.write_text(_artifact(*(
-        chapter(name, name.title(), heading(1, name.title()), paragraph(f"{name.title()} prose."))
-        for name in ("alpha", "beta", "gamma"))), encoding="utf-8")
+    artifact.write_text(artifact_html(dock_document()), encoding="utf-8")
     page = reader_browser.new_page(viewport={"width": 1800, "height": 1200})
     horizontal = edge in ("top", "bottom")
     axis, size = ("x", "width") if horizontal else ("y", "height")

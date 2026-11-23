@@ -1,0 +1,314 @@
+# The browser door's recording of the state callout-tones-desktop (test/browser/expectations.yaml),
+# written by `uv run pytest -m hot --record` (test/browser/door.py); never edited by hand.
+state: callout-tones-desktop
+artifact: test/test_callouts_embeds_attachments.py::tones_document
+context:
+  viewport: [1200, 1000]
+  scale: 1
+  touch: false
+  scheme: light
+  motion: no-preference
+  media: screen
+  frame: top
+steps:
+- open: page
+- open: chapter
+  id: one
+artifactDigest: sha256:81de4074880667e6e648288d8a18a05a504aef3edae492eef7d29822002722a7
+chromium: 153.0.8010.12 (Playwright 1.64.0)
+answers:
+- step: 0
+  asked:
+    box:
+    - '#home > div:1'
+    - html:1 > body:1 > div:1 > div:1
+    - html:1 > body:1 > div:1 > div:2
+    - html:1 > body:1 > div:1 > div:3
+    - html:1 > body:1 > div:1 > div:4
+    - html:1 > body:1 > div:1 > main:1 > div:1
+    cascade:
+    - '#home > div:1 > div:1 > section:1 > div:1 > header:1 > div:1|display'
+    - '#home > div:1 > div:1 > section:1 > div:1 > header:1 > div:2 > h1:1|display'
+    - '#home > div:1 > div:1 > section:1 > div:1 > header:1 > div:2|display'
+    - '#home > div:1 > div:1 > section:1 > div:1 > header:1|display'
+    - '#home > div:1 > div:1 > section:1 > div:1|display'
+    - '#home > div:1 > div:1 > section:2 > div:1 > h1:1|display'
+    - '#home > div:1 > div:1 > section:2 > div:1|display'
+    - '#home > div:1 > div:1 > section:3 > div:1 > h1:1|display'
+    - '#home > div:1 > div:1 > section:3 > div:1|display'
+    - html:1|fontSize
+    media:
+    - '(max-width: 30rem)'
+    - '(max-width: 44rem)'
+    - '(prefers-reduced-motion: reduce)'
+    - print
+    resize:
+    - '#home > div:1'
+    - html:1 > body:1 > div:1 > div:1
+    - html:1 > body:1 > div:1 > div:2
+    - html:1 > body:1 > div:1 > div:3
+    - html:1 > body:1 > div:1 > div:4
+    sizes:
+    - '#home > div:1 > div:1 > section:1 > div:1'
+    - '#home > div:1 > div:1 > section:2 > div:1'
+    - '#home > div:1 > div:1 > section:3 > div:1'
+    - html:1 > body:1 > div:3 > section:1 > div:1
+  box:
+    '#home > div:1':
+      border: [0, 80, 1185, 1592.64]
+      rects: [[0, 80, 1185, 1592.64]]
+    html:1 > body:1 > div:1 > div:1:
+      border: [0, 0, 0, 0]
+      rects: []
+    html:1 > body:1 > div:1 > div:2:
+      border: [0, 0, 0, 0]
+      rects: []
+    html:1 > body:1 > div:1 > div:3:
+      border: [0, 0, 0, 0]
+      rects: []
+    html:1 > body:1 > div:1 > div:4:
+      border: [0, 0, 0, 0]
+      rects: []
+    html:1 > body:1 > div:1 > main:1 > div:1:
+      border: [0, 64, 1200, 936]
+      rects: [[0, 64, 1200, 936]]
+  sizes:
+    window:
+      innerWidth: 1200
+      innerHeight: 1000
+    '#home > div:1 > div:1 > section:1 > div:1':
+      clientWidth: 594
+      clientHeight: 70
+      scrollWidth: 594
+      scrollHeight: 70
+      offsetWidth: 594
+      offsetHeight: 70
+      offsetLeft: 100
+      offsetTop: 76
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    '#home > div:1 > div:1 > section:2 > div:1':
+      clientWidth: 594
+      clientHeight: 50
+      scrollWidth: 594
+      scrollHeight: 50
+      offsetWidth: 594
+      offsetHeight: 50
+      offsetLeft: 100
+      offsetTop: 76
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+    '#home > div:1 > div:1 > section:3 > div:1':
+      clientWidth: 594
+      clientHeight: 86
+      scrollWidth: 594
+      scrollHeight: 86
+      offsetWidth: 594
+      offsetHeight: 86
+      offsetLeft: 100
+      offsetTop: 76
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+  resize:
+    '#home > div:1':
+      content: [1185, 1592.64]
+      border: [1185, 1592.64]
+    html:1 > body:1 > div:1 > div:1:
+      content: [0, 0]
+      border: [0, 0]
+    html:1 > body:1 > div:1 > div:2:
+      content: [0, 0]
+      border: [0, 0]
+    html:1 > body:1 > div:1 > div:3:
+      content: [0, 0]
+      border: [0, 0]
+    html:1 > body:1 > div:1 > div:4:
+      content: [0, 0]
+      border: [0, 0]
+  scroll-into-view: {}
+  text-width: {}
+  image-size: {}
+  fonts:
+    status: loaded
+  cascade:
+    '#home > div:1 > div:1 > section:1 > div:1 > header:1 > div:1|display': block
+    '#home > div:1 > div:1 > section:1 > div:1 > header:1 > div:2 > h1:1|display': block
+    '#home > div:1 > div:1 > section:1 > div:1 > header:1 > div:2|display': block
+    '#home > div:1 > div:1 > section:1 > div:1 > header:1|display': block
+    '#home > div:1 > div:1 > section:1 > div:1|display': flow-root
+    '#home > div:1 > div:1 > section:2 > div:1 > h1:1|display': block
+    '#home > div:1 > div:1 > section:2 > div:1|display': flow-root
+    '#home > div:1 > div:1 > section:3 > div:1 > h1:1|display': block
+    '#home > div:1 > div:1 > section:3 > div:1|display': flow-root
+    html:1|fontSize: 16px
+  media:
+    '(max-width: 30rem)': false
+    '(max-width: 44rem)': false
+    '(prefers-reduced-motion: reduce)': false
+    print: false
+  events:
+  - button:click
+  - input:click
+  - input:input
+  - input:change
+  - checked:true
+  - label:click
+  - input:click
+  - input:input
+  - input:change
+  - checked:false
+  - summary:click
+  - open:true
+  focus:
+    button: button:0
+    input: input:1
+    disabled: input:1
+    tabindex: span:3
+    plain: span:3
+    dialog: button:7
+    closed: span:3
+  popover:
+    shown: true
+    another:
+    - false
+    - true
+    - true
+    hidden: false
+    toggled:
+    - true
+    - true
+  frames:
+  - first
+  - second
+  - nested
+  storage:
+    local: kept
+    session: kept
+- step: 1
+  asked:
+    box:
+    - html:1 > body:1 > div:1 > main:1 > div:1
+    cascade:
+    - '#one > div:1 > div:1 > section:1 > div:1 > aside:1 > header:1|color'
+    - '#one > div:1 > div:1 > section:1 > div:1 > aside:1 > header:1|display'
+    - '#one > div:1 > div:1 > section:1 > div:1 > aside:1|backgroundColor'
+    - '#one > div:1 > div:1 > section:1 > div:1 > aside:1|borderTopColor'
+    - '#one > div:1 > div:1 > section:1 > div:1 > aside:1|display'
+    - '#one > div:1 > div:1 > section:1 > div:1 > aside:2 > header:1|color'
+    - '#one > div:1 > div:1 > section:1 > div:1 > aside:2|backgroundColor'
+    - '#one > div:1 > div:1 > section:1 > div:1 > aside:2|borderTopColor'
+    - '#one > div:1 > div:1 > section:1 > div:1 > aside:3 > header:1|color'
+    - '#one > div:1 > div:1 > section:1 > div:1 > aside:3|backgroundColor'
+    - '#one > div:1 > div:1 > section:1 > div:1 > aside:3|borderTopColor'
+    - '#one > div:1 > div:1 > section:1 > div:1 > aside:4 > header:1|color'
+    - '#one > div:1 > div:1 > section:1 > div:1 > aside:4|backgroundColor'
+    - '#one > div:1 > div:1 > section:1 > div:1 > aside:4|borderTopColor'
+    - '#one > div:1 > div:1 > section:1 > div:1 > aside:5 > header:1|color'
+    - '#one > div:1 > div:1 > section:1 > div:1 > aside:5|backgroundColor'
+    - '#one > div:1 > div:1 > section:1 > div:1 > aside:5|borderTopColor'
+    - '#one > div:1 > div:1 > section:1 > div:1|display'
+    - html:1|fontSize
+    media:
+    - '(max-width: 30rem)'
+    - '(max-width: 44rem)'
+    - '(prefers-reduced-motion: reduce)'
+    - print
+    sizes:
+    - '#one > div:1 > div:1 > section:1 > div:1'
+  box:
+    html:1 > body:1 > div:1 > main:1 > div:1:
+      border: [0, 64, 1200, 936]
+      rects: [[0, 64, 1200, 936]]
+  sizes:
+    window:
+      innerWidth: 1200
+      innerHeight: 1000
+    '#one > div:1 > div:1 > section:1 > div:1':
+      clientWidth: 594
+      clientHeight: 577
+      scrollWidth: 607
+      scrollHeight: 577
+      offsetWidth: 594
+      offsetHeight: 577
+      offsetLeft: 100
+      offsetTop: 76
+      clientLeft: 0
+      clientTop: 0
+      scrollTop: 0
+      scrollLeft: 0
+  resize: {}
+  scroll-into-view: {}
+  text-width: {}
+  image-size: {}
+  fonts:
+    status: loaded
+  cascade:
+    '#one > div:1 > div:1 > section:1 > div:1 > aside:1 > header:1|color': rgb(0, 0, 0)
+    '#one > div:1 > div:1 > section:1 > div:1 > aside:1 > header:1|display': block
+    '#one > div:1 > div:1 > section:1 > div:1 > aside:1|backgroundColor': rgb(238, 238, 238)
+    '#one > div:1 > div:1 > section:1 > div:1 > aside:1|borderTopColor': rgb(0, 0, 0)
+    '#one > div:1 > div:1 > section:1 > div:1 > aside:1|display': block
+    '#one > div:1 > div:1 > section:1 > div:1 > aside:2 > header:1|color': rgb(38, 115, 38)
+    '#one > div:1 > div:1 > section:1 > div:1 > aside:2|backgroundColor': rgb(231, 243, 231)
+    '#one > div:1 > div:1 > section:1 > div:1 > aside:2|borderTopColor': rgb(38, 115, 38)
+    '#one > div:1 > div:1 > section:1 > div:1 > aside:3 > header:1|color': rgb(122, 74, 0)
+    '#one > div:1 > div:1 > section:1 > div:1 > aside:3|backgroundColor': rgb(255, 242, 221)
+    '#one > div:1 > div:1 > section:1 > div:1 > aside:3|borderTopColor': rgb(122, 74, 0)
+    '#one > div:1 > div:1 > section:1 > div:1 > aside:4 > header:1|color': rgb(166, 28, 28)
+    '#one > div:1 > div:1 > section:1 > div:1 > aside:4|backgroundColor': rgb(250, 229, 229)
+    '#one > div:1 > div:1 > section:1 > div:1 > aside:4|borderTopColor': rgb(166, 28, 28)
+    '#one > div:1 > div:1 > section:1 > div:1 > aside:5 > header:1|color': rgb(85, 85, 85)
+    '#one > div:1 > div:1 > section:1 > div:1 > aside:5|backgroundColor': rgb(245, 245, 245)
+    '#one > div:1 > div:1 > section:1 > div:1 > aside:5|borderTopColor': rgb(85, 85, 85)
+    '#one > div:1 > div:1 > section:1 > div:1|display': flow-root
+    html:1|fontSize: 16px
+  media:
+    '(max-width: 30rem)': false
+    '(max-width: 44rem)': false
+    '(prefers-reduced-motion: reduce)': false
+    print: false
+  events:
+  - button:click
+  - input:click
+  - input:input
+  - input:change
+  - checked:true
+  - label:click
+  - input:click
+  - input:input
+  - input:change
+  - checked:false
+  - summary:click
+  - open:true
+  focus:
+    button: button:0
+    input: input:1
+    disabled: input:1
+    tabindex: span:3
+    plain: span:3
+    dialog: button:7
+    closed: span:3
+  popover:
+    shown: true
+    another:
+    - false
+    - true
+    - true
+    hidden: false
+    toggled:
+    - true
+    - true
+  frames:
+  - first
+  - second
+  - nested
+  storage:
+    local: kept
+    session: kept
+  print: beforeprint

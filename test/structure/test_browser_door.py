@@ -10,15 +10,24 @@ this repository with a test that takes a browser fixture (structure/test_quality
 BROWSER_FIXTURES, the PDF path's ``pdf_browser``, or the fake browser's FAKE_BROWSER_FIXTURES),
 directly or through a fixture of its own module, or that carries the ``browser`` mark.
 
-A row's Package names the package that moves the file while it still drives a real browser, and
-reads ``moved by `<package>` `` once the package has landed and every browser test of the file
+A hot test names, as its ``hot`` mark's arguments, the recordings of the pages it visits: a state of
+test/browser/expectations.yaml with its committed recording, or a recording file of
+test/browser/recordings (``fixture-print``, the printed PDF), which ``uv run pytest -m hot --record``
+writes. Only the hot tests RECORDS_NOTHING names, with why, name none.
+
+A hot row's Package reads ``recorded by `<package>` `` once its package has landed: every test of
+its file but the hot ones takes the fake browser. A row's Package names the package that moves the
+file while it still drives a real browser, and reads ``moved by `<package>` `` once the package has landed and every browser test of the file
 takes the fake browser, but the named exceptions of a logic file, which carry the ``hot`` mark
 (``added by `<package>` `` for a file a package wrote on it): a file that takes no real browser
 any more, or only in its hot tests, has a moved row, and a moved row's file takes none outside them.
 """
 import ast
+import functools
 import re
 from pathlib import Path
+
+import yaml
 
 from structure.test_quality import BROWSER_FIXTURES, FAKE_BROWSER_FIXTURES, fixture_names, is_fixture
 
@@ -31,6 +40,22 @@ CLASSES = {"logic", "hot"}
 ROW = re.compile(r"^\| `(?P<file>[^`]+)` \| (?P<cls>[^|]*?) \| (?P<package>[^|]*?) \| (?P<reason>[^|]*?) \|$")
 # The Package of a row whose file the package moved to the fake browser, or added there.
 MOVED = re.compile(r"^(?:moved|added) by `(?P<package>[a-z0-9-]+)`$")
+# The Package of a hot row whose file the package made record: every test of it but its hot ones takes
+# the fake browser, and its hot tests name their recordings.
+RECORDED = re.compile(r"^recorded by `(?P<package>[a-z0-9-]+)`$")
+EXPECTATIONS = TESTS / "browser" / "expectations.yaml"
+RECORDINGS = TESTS / "browser" / "recordings"
+# The hot tests that name no recording, by file (every hot test of it) and why: what only a real
+# browser shows of them is no answer the fake replays (browser-door.md, The browser door's expectations).
+RECORDS_NOTHING = {
+    "test_door_recordings_browser.py": "it is the recorder: it records every top-level state the hot tests name",
+    "test_startup_browser.py": "real paint timing, which no fake has",
+    "test_page_pool_browser.py": "the door's own pool: a real browser's reuse, crash and hang",
+    "test_library_doors_browser.py": "its pages hold a library door alone and no artifact, and its subject is the "
+                                     "real library, to which the doors' fakes are held by the same suite",
+    "test_chapter_sweep_browser.py": "every chapter of every fixture Document opens in its own sweep child, which "
+                                     "must stay a process of its own to stop a page that locks",
+}
 
 
 def marked(node: ast.AST, mark: str) -> bool:
@@ -50,6 +75,82 @@ def hot(function: ast.FunctionDef) -> bool:
     return marked(ast.Module(function.decorator_list, []), "hot")
 
 
+def hot_recordings(function: ast.FunctionDef, module: ast.Module | None = None) -> list[str] | None:
+    """The recordings a test's ``hot`` mark names (its string arguments), or None where it has no hot
+    mark; a module's ``pytestmark`` hot mark counts for each of its tests."""
+    nodes = list(function.decorator_list)
+    if module is not None:
+        nodes += [node.value for node in module.body if isinstance(node, ast.Assign)
+                  and any(isinstance(target, ast.Name) and target.id == "pytestmark" for target in node.targets)]
+    found = None
+    for node in nodes:
+        for each in ast.walk(node):
+            target = each.func if isinstance(each, ast.Call) else each
+            if (isinstance(target, ast.Attribute) and target.attr == "hot" and isinstance(target.value, ast.Attribute)
+                    and target.value.attr == "mark"):
+                found = found or []
+                if isinstance(each, ast.Call):
+                    found += [arg.value for arg in each.args if isinstance(arg, ast.Constant)]
+    return found
+
+
+def recordings_wrong(path: Path, states: dict, recordings: set[str]) -> list[str]:
+    """Each hot test of the module that names no recording (outside RECORDS_NOTHING) or one that
+    does not exist: neither a state of expectations.yaml with its recording nor a recording file."""
+    module, functions = _functions(path)
+    wrong = []
+    for function in functions:
+        if not function.name.startswith("test_"):
+            continue
+        named = hot_recordings(function, module)
+        if named is None:
+            continue
+        if not named and path.name not in RECORDS_NOTHING:
+            wrong.append(f"{path.name}::{function.name}: its hot mark names no recording of the pages it visits")
+        for name in named:
+            if name in states and name not in recordings:
+                wrong.append(f"{path.name}::{function.name}: the state {name} has no committed recording")
+            elif name not in states and name not in recordings:
+                wrong.append(f"{path.name}::{function.name}: {name} is no state of expectations.yaml and no "
+                             "recording of test/browser/recordings")
+    return wrong
+
+
+def test_each_hot_test_names_the_recordings_of_the_pages_it_visits() -> None:
+    states = yaml.safe_load(EXPECTATIONS.read_text(encoding="utf-8"))["states"]
+    recordings = {path.stem for path in RECORDINGS.iterdir()}
+    wrong = [line for path in sorted(TESTS.rglob("test_*.py")) if "node_modules" not in path.parts
+             for line in recordings_wrong(path, states, recordings)]
+    assert not wrong, (f"{wrong}. Remedy: name in the hot mark each state the test visits "
+                       f"(test/browser/expectations.yaml), record it with `uv run pytest -m hot --record` and "
+                       f"commit its recording ({NOTE.relative_to(ROOT).as_posix()}, Recording and replay).")
+
+
+def test_the_recordings_check_names_a_hot_test_without_one(tmp_path: Path) -> None:
+    (tmp_path / "test_hot.py").write_text('''
+import pytest
+
+@pytest.mark.hot("recorded")
+def test_records(reader_browser):
+    pass
+
+@pytest.mark.hot
+def test_bare(reader_browser):
+    pass
+
+@pytest.mark.hot("recorded", "unrecorded", "nowhere")
+def test_some(reader_browser):
+    pass
+
+def test_plain(fake_page):
+    pass
+''', encoding="utf-8")
+    wrong = recordings_wrong(tmp_path / "test_hot.py", {"recorded": {}, "unrecorded": {}}, {"recorded"})
+    assert [line.split(": ", 1)[1] for line in wrong] == [
+        "its hot mark names no recording of the pages it visits", "the state unrecorded has no committed recording",
+        "nowhere is no state of expectations.yaml and no recording of test/browser/recordings"]
+
+
 def _takes(functions: list[ast.FunctionDef], fixtures: set[str], but_hot: bool = False) -> bool:
     """Whether a test of the module takes one of ``fixtures``, directly or through a fixture of the
     module that takes one, at any depth; with ``but_hot``, a test other than a hot one."""
@@ -64,6 +165,7 @@ def _takes(functions: list[ast.FunctionDef], fixtures: set[str], but_hot: bool =
                and not (but_hot and hot(function)) for function in functions)
 
 
+@functools.cache
 def _functions(path: Path) -> tuple[ast.Module, list[ast.FunctionDef]]:
     module = ast.parse(path.read_text(encoding="utf-8"))
     return module, [node for node in ast.walk(module) if isinstance(node, ast.FunctionDef)]
@@ -119,9 +221,9 @@ def test_every_browser_test_file_is_classified_once() -> None:
 
 
 def package_of(row: dict[str, str]) -> str:
-    """The package a row names, moved or not."""
-    moved = MOVED.match(row["package"])
-    return moved["package"] if moved else row["package"].strip("`")
+    """The package a row names, moved, recorded or not."""
+    landed = MOVED.match(row["package"]) or RECORDED.match(row["package"])
+    return landed["package"] if landed else row["package"].strip("`")
 
 
 def test_each_row_has_a_class_a_package_and_a_reason() -> None:
@@ -157,6 +259,11 @@ def moved_rows_wrong(rows: list[dict[str, str]], files: dict[str, Path]) -> list
                          "say moved by `<package>` or added by `<package>`")
         elif moved and row["cls"] != "logic":
             wrong.append(f"{row['file']}: a hot file is not moved to the fake browser")
+        elif RECORDED.match(row["package"]) and row["cls"] != "hot":
+            wrong.append(f"{row['file']}: only a hot file records; a logic file's Package says moved by `<package>`")
+        elif RECORDED.match(row["package"]) and takes_a_real_browser(path, but_hot=True):
+            wrong.append(f"{row['file']}: its Package says {row['package']}, but a test of it without the hot mark "
+                         "takes a real browser or carries the browser mark")
     return wrong
 
 
@@ -212,6 +319,34 @@ def test_measures(reader_browser):
     rows = [{"file": "test_with_hot.py", "cls": "logic", "package": "`layout-logic-to-fake-browser`"},
             {"file": "test_unmarked.py", "cls": "logic", "package": "moved by `layout-logic-to-fake-browser`"}]
     assert [line.split(":")[0] for line in moved_rows_wrong(rows, files)] == ["test_with_hot.py", "test_unmarked.py"]
+
+
+def test_a_recorded_row_is_a_hot_file_whose_other_tests_take_the_fake_browser(tmp_path: Path) -> None:
+    (tmp_path / "test_recording.py").write_text('''
+import pytest
+
+def test_reads(fake_page):
+    pass
+
+@pytest.mark.hot("a-state")
+@pytest.mark.browser
+def test_measures(reader_browser):
+    pass
+''', encoding="utf-8")
+    (tmp_path / "test_half.py").write_text('''
+import pytest
+
+@pytest.mark.browser
+def test_reads(reader_browser):
+    pass
+''', encoding="utf-8")
+    files = {path.name: path for path in tmp_path.glob("test_*.py")}
+    rows = [{"file": "test_recording.py", "cls": "hot", "package": "recorded by `hot-tests-record`"},
+            {"file": "test_half.py", "cls": "hot", "package": "`hot-tests-record`"}]
+    assert moved_rows_wrong(rows, files) == []
+    rows = [{"file": "test_recording.py", "cls": "logic", "package": "recorded by `hot-tests-record`"},
+            {"file": "test_half.py", "cls": "hot", "package": "recorded by `hot-tests-record`"}]
+    assert [line.split(":")[0] for line in moved_rows_wrong(rows, files)] == ["test_recording.py", "test_half.py"]
 
 
 def test_the_check_finds_a_browser_test_through_a_module_fixture_and_the_mark(tmp_path: Path) -> None:

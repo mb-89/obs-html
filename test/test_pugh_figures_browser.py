@@ -393,7 +393,7 @@ def test_a_print_reads_the_readers_view_and_never_writes_it(fake_page, door_arti
     reader.clean()
 
 
-@pytest.mark.hot
+@pytest.mark.hot("pugh-figures-desktop")
 @pytest.mark.browser
 def test_at_phone_width_the_matrix_is_rows_and_a_wide_table_scrolls_with_its_criteria_held(door_artifact, reader_browser) -> None:
     reader = BrowserReader(reader_browser, door_artifact(STATES["plain"]), width=390)

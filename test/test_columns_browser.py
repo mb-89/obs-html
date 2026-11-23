@@ -15,13 +15,15 @@ import pypdfium2 as pdfium
 import pytest
 
 from artifacts import artifact_html
+from browser import door
 from conftest import ROOT
 from obs_html import cli
 
-pytestmark = pytest.mark.browser
 FIXTURE = ROOT / "test" / "fixtures" / "documents" / "columns.json"
 COLUMNS = json.loads(FIXTURE.read_text(encoding="utf-8"))
 BLOCK = '[data-chapter-body] [data-content-columns="1:2"]'
+STATE = "columns-desktop"
+"""The browser door's state the logic tests open: the columns fixture's chapter at 1280 by 900."""
 COLUMN_BOXES = f"""async () => {{
     await obsArtifact.activateChapter("columns");
     await obsArtifact.whenChapterReady();
@@ -61,6 +63,8 @@ def _stacked(columns: list[dict]) -> bool:
     return abs(first["left"] - second["left"]) < 1 and first["bottom"] <= second["top"]
 
 
+@pytest.mark.hot("columns-desktop", "columns-narrow")
+@pytest.mark.browser
 def test_a_weighted_block_stands_at_its_ratio_and_stacks_in_a_narrow_reader(tmp_path, reader_browser) -> None:
     """At 1280 px the columns are side by side at 1:2; narrowing the reader alone, the chapter scroll,
     stacks them at the same viewport; at 390 px they are stacked, first above second, and nothing scrolls
@@ -83,6 +87,8 @@ def test_a_weighted_block_stands_at_its_ratio_and_stacks_in_a_narrow_reader(tmp_
     assert errors == []
 
 
+@pytest.mark.hot("columns-desktop")
+@pytest.mark.browser
 @pytest.mark.parametrize("layout", ["paged", "scrolling", "screens"])
 def test_the_block_stands_side_by_side_in_each_layout(tmp_path, reader_browser, layout: str) -> None:
     page, errors, _ = _open(tmp_path, reader_browser, _with_layout(layout), 1280)
@@ -120,27 +126,37 @@ ANCHORED = f"""async (node) => {{
     return {{
         column: block.closest('{BLOCK} > *') === document.querySelector('{BLOCK}').lastElementChild,
         targets: obsComments.data.annotations.map((annotation) => annotation.target),
-        painted: [...CSS.highlights.get("obs-comments")].map((painted) => block.contains(painted.startContainer)),
+        // The fake browser has no CSS highlights, which paint the comment's range (bars/comments.js,
+        // repaintHighlights): the block holds the text the range anchors to.
+        quoted: obsComments.data.annotations.map((annotation) => block.textContent.includes(annotation.target.quote)),
     }};
 }}"""
 
 
-def test_a_comment_on_a_block_in_the_right_column_anchors_to_it_after_a_reload(tmp_path, reader_browser) -> None:
-    page, errors, artifact = _open(tmp_path, reader_browser, COLUMNS, 1280)
+def _recorded(fake_page, door_artifact, url: str | None = None):
+    """The columns fixture on the fake browser at its recorded state (or the page at ``url``, a copy of
+    it, with the same recording), with its page errors."""
+    errors: list[str] = []
+    fake_page.on("pageerror", lambda error: errors.append(str(error)))
+    door.open_recorded(fake_page, STATE, door_artifact(STATE), through=0, url=url)
+    return fake_page, errors
+
+
+@pytest.mark.dom
+def test_a_comment_on_a_block_in_the_right_column_anchors_to_it_after_a_reload(tmp_path, fake_page,
+                                                                               door_artifact) -> None:
+    page, errors = _recorded(fake_page, door_artifact)
     made = page.evaluate(COMMENT_ON_THE_RIGHT)
     reviewed = tmp_path / "reviewed.html"
     reviewed.write_text(page.evaluate("obsComments.reviewedHtml()"), encoding="utf-8")
-    reopened = reader_browser.new_page(viewport={"width": 1280, "height": 900})
-    reopened.on("pageerror", lambda error: errors.append(str(error)))
-    reopened.goto(reviewed.as_uri())
-    reopened.wait_for_function("document.documentElement.dataset.artifactStatus === 'ready'")
+    reopened, _ = _recorded(fake_page, door_artifact, reviewed.as_uri())
     shown = reopened.evaluate(ANCHORED, made["node"])
 
     assert made["target"]["chapter"] == "columns" and made["target"]["node"] == made["node"]
     assert made["target"]["quote"] == "Question"
     assert shown["column"]
     assert [target["node"] for target in shown["targets"]] == [made["node"]]
-    assert shown["painted"] == [True]
+    assert shown["quoted"] == [True]
     assert errors == []
 
 
@@ -162,8 +178,9 @@ SEARCH_AND_FILTER = """async () => {
 }"""
 
 
-def test_search_finds_a_columns_text_and_the_filter_reads_its_marked_paragraph(tmp_path, reader_browser) -> None:
-    page, errors, _ = _open(tmp_path, reader_browser, COLUMNS, 1280)
+@pytest.mark.dom
+def test_search_finds_a_columns_text_and_the_filter_reads_its_marked_paragraph(fake_page, door_artifact) -> None:
+    page, errors = _recorded(fake_page, door_artifact)
     found = page.evaluate(SEARCH_AND_FILTER)
 
     assert found["results"] == ["more"]
@@ -190,6 +207,8 @@ def _box(document, text: str) -> tuple[int, tuple[float, float, float, float]]:
     raise AssertionError(f"{text!r} is on no page of the printed PDF")
 
 
+@pytest.mark.hot("columns-desktop")
+@pytest.mark.browser
 def test_a_printed_block_stays_side_by_side(printed) -> None:
     """On paper the card's title, left, and the right column's marked paragraph stand side by side: the
     paragraph starts right of the card and above the card's end."""
@@ -202,6 +221,8 @@ def test_a_printed_block_stays_side_by_side(printed) -> None:
     assert right[1] > below[1]  # The paragraph stands higher on the page than the card's last line.
 
 
+@pytest.mark.hot("columns-desktop")
+@pytest.mark.browser
 def test_in_review_mode_the_columns_stand_one_below_the_other(tmp_path, reader_browser) -> None:
     """The one review gutter left of the prose column holds every item's controls, so the columns stack
     there, as card groups do, and their review buttons never share a line."""

@@ -156,7 +156,7 @@ def test_the_rows_stand_in_their_order_with_one_year_divider_and_planned_days_ho
     assert errors == []
 
 
-@pytest.mark.hot
+@pytest.mark.hot("timeline-desktop")
 @pytest.mark.browser
 def test_the_today_row_is_in_view_when_the_chapter_opens_and_a_block_link_wins(reader_browser, timeline) -> None:
     page, errors = _open(reader_browser, timeline, PLAN, 1200, 700)
@@ -275,7 +275,7 @@ def test_an_empty_selection_shows_one_sentence_and_no_grid(fake_page, door_artif
     assert errors == []
 
 
-@pytest.mark.hot
+@pytest.mark.hot("timeline-desktop")
 @pytest.mark.browser
 @pytest.mark.parametrize("appearance", ["light", "dark"])
 def test_at_390_by_844_nothing_scrolls_sideways_with_every_row_open(phone_browser, timeline, appearance) -> None:
