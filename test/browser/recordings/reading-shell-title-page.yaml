@@ -12,8 +12,8 @@ context:
   frame: top
 steps:
 - open: page
-artifactDigest: sha256:aa88b1bc29c754ca679a6117e348194782e3a6fadeadd4e3f13aa8a5a27a383a
-chromium: 153.0.8010.12 (Playwright 1.64.0)
+artifactDigest: sha256:9835f6b418217407e0d0a22951188f751be2f10712a40f92f2a6d05d04acd6dc
+chromium: 156.0.8078.4 (Playwright 1.64.0)
 answers:
 - step: 0
   asked:
@@ -34,6 +34,9 @@ answers:
     - '#home > div:1 > div:1 > section:3 > div:1 > h1:1|display'
     - '#home > div:1 > div:1 > section:3 > div:1|display'
     - html:1|fontSize
+    image-size:
+    - html:1 > body:1 > div:2 > aside:2 > header:1 > span:1 > span:1 > img:1
+    - html:1 > body:1 > section:1 > div:2 > span:1 > span:1 > span:1 > img:1
     media:
     - '(max-width: 30rem)'
     - '(max-width: 44rem)'
@@ -130,7 +133,9 @@ answers:
       border: [0, 0]
   scroll-into-view: {}
   text-width: {}
-  image-size: {}
+  image-size:
+    html:1 > body:1 > div:2 > aside:2 > header:1 > span:1 > span:1 > img:1: [150, 150]
+    html:1 > body:1 > section:1 > div:2 > span:1 > span:1 > span:1 > img:1: [150, 150]
   fonts:
     status: loaded
   cascade:

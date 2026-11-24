@@ -14,8 +14,8 @@ steps:
 - open: page
 - open: chapter
   id: references
-artifactDigest: sha256:2264f96cf2733e287fb7bcebfc151e473ac74aeff11a68ddd0ba185e068726ea
-chromium: 153.0.8010.12 (Playwright 1.64.0)
+artifactDigest: sha256:d518c83735a634a149f1a323792682b0a3115161d451a3e9e142df3e139edd1e
+chromium: 156.0.8078.4 (Playwright 1.64.0)
 answers:
 - step: 0
   asked:
@@ -31,6 +31,9 @@ answers:
     cascade:
     - html:1 > body:1|font
     - html:1|fontSize
+    image-size:
+    - html:1 > body:1 > div:2 > aside:2 > header:1 > span:1 > span:1 > img:1
+    - html:1 > body:1 > section:1 > div:2 > span:1 > span:1 > span:1 > img:1
     media:
     - '(max-width: 30rem)'
     - '(max-width: 42rem)'
@@ -338,7 +341,9 @@ answers:
     16px Georgia, "Times New Roman", serif|rank: 28.43
     16px Georgia, "Times New Roman", serif|widgets-1: 63.1
     16px Georgia, "Times New Roman", serif|widgets-2: 63.1
-  image-size: {}
+  image-size:
+    html:1 > body:1 > div:2 > aside:2 > header:1 > span:1 > span:1 > img:1: [150, 150]
+    html:1 > body:1 > section:1 > div:2 > span:1 > span:1 > span:1 > img:1: [150, 150]
   fonts:
     status: loaded
   cascade:
@@ -414,6 +419,11 @@ answers:
     - '#references > div:1 > section:1 > div:1 > table:1|font'
     - html:1 > body:1|font
     - html:1|fontSize
+    image-size:
+    - '#references > div:1 > section:1 > aside:1 > span:1 > span:1 > img:1'
+    - '#references > div:1 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:3 > div:1 > button:1 > span:2 > img:1'
+    - html:1 > body:1 > div:2 > aside:2 > header:1 > span:1 > span:1 > img:1
+    - html:1 > body:1 > section:1 > div:2 > span:1 > span:1 > span:1 > img:1
     media:
     - '(max-width: 30rem)'
     - '(max-width: 42rem)'
@@ -590,7 +600,12 @@ answers:
     700 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|No.: 21.9
     700 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|description: 73.27
     700 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|document: 64.95
-  image-size: {}
+  image-size:
+    '#references > div:1 > section:1 > aside:1 > span:1 > span:1 > img:1': [150, 150]
+    '#references > div:1 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:3 > div:1 > button:1 > span:2 > img:1': [150,
+      150]
+    html:1 > body:1 > div:2 > aside:2 > header:1 > span:1 > span:1 > img:1: [150, 150]
+    html:1 > body:1 > section:1 > div:2 > span:1 > span:1 > span:1 > img:1: [150, 150]
   fonts:
     status: loaded
   cascade:

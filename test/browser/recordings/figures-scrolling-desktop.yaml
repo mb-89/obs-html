@@ -14,8 +14,8 @@ steps:
 - open: page
 - open: chapter
   id: gallery
-artifactDigest: sha256:a31d37ff385d96128a5e57f04e6519ce7df36542ba3daf9295f21cd2a3cdec25
-chromium: 153.0.8010.12 (Playwright 1.64.0)
+artifactDigest: sha256:ef6c51679a5b91535c8fc3bf406b02c008196f0ee253e93d2fd7e14f1906e35e
+chromium: 156.0.8078.4 (Playwright 1.64.0)
 answers:
 - step: 0
   asked:
@@ -28,6 +28,9 @@ answers:
     - html:1 > body:1 > div:1 > main:1 > div:1
     cascade:
     - html:1|fontSize
+    image-size:
+    - html:1 > body:1 > div:2 > aside:2 > header:1 > span:1 > span:1 > img:1
+    - html:1 > body:1 > section:1 > div:2 > span:1 > span:1 > span:1 > img:1
     media:
     - '(max-width: 30rem)'
     - '(max-width: 42rem)'
@@ -82,7 +85,9 @@ answers:
       border: [0, 0]
   scroll-into-view: {}
   text-width: {}
-  image-size: {}
+  image-size:
+    html:1 > body:1 > div:2 > aside:2 > header:1 > span:1 > span:1 > img:1: [150, 150]
+    html:1 > body:1 > section:1 > div:2 > span:1 > span:1 > span:1 > img:1: [150, 150]
   fonts:
     status: loaded
   cascade:
@@ -154,6 +159,22 @@ answers:
     - '#gallery > div:1|paddingRight'
     - html:1|--color-border
     - html:1|fontSize
+    image-size:
+    - '#gallery--block-equations-figure > button:1 > span:1 > img:1'
+    - '#gallery--block-image-figure > button:1 > span:1 > img:1'
+    - '#gallery--block-image-figure > img:1'
+    - '#gallery--block-mermaid-figure > button:1 > span:1 > img:1'
+    - '#gallery--block-mermaid-figure > img:1'
+    - '#gallery--block-plantuml-figure > button:1 > span:1 > img:1'
+    - '#gallery--block-plantuml-figure > img:1'
+    - '#gallery--block-plot-figure > button:1 > span:1 > img:1'
+    - '#gallery--block-pugh-figure > button:1 > span:1 > img:1'
+    - '#gallery--block-sankey-figure > button:1 > span:1 > img:1'
+    - '#gallery--block-svg-figure > button:1 > span:1 > img:1'
+    - '#gallery--block-svg-figure > img:1'
+    - '#gallery--block-timeline-figure > button:1 > span:1 > img:1'
+    - html:1 > body:1 > div:2 > aside:2 > header:1 > span:1 > span:1 > img:1
+    - html:1 > body:1 > section:1 > div:2 > span:1 > span:1 > span:1 > img:1
     media:
     - '(max-width: 30rem)'
     - '(max-width: 42rem)'
@@ -303,7 +324,22 @@ answers:
       border: [985, 243.58]
   scroll-into-view: {}
   text-width: {}
-  image-size: {}
+  image-size:
+    '#gallery--block-equations-figure > button:1 > span:1 > img:1': [150, 150]
+    '#gallery--block-image-figure > button:1 > span:1 > img:1': [150, 150]
+    '#gallery--block-image-figure > img:1': [300, 150]
+    '#gallery--block-mermaid-figure > button:1 > span:1 > img:1': [150, 150]
+    '#gallery--block-mermaid-figure > img:1': [274, 63]
+    '#gallery--block-plantuml-figure > button:1 > span:1 > img:1': [150, 150]
+    '#gallery--block-plantuml-figure > img:1': [125, 119]
+    '#gallery--block-plot-figure > button:1 > span:1 > img:1': [150, 150]
+    '#gallery--block-pugh-figure > button:1 > span:1 > img:1': [150, 150]
+    '#gallery--block-sankey-figure > button:1 > span:1 > img:1': [150, 150]
+    '#gallery--block-svg-figure > button:1 > span:1 > img:1': [150, 150]
+    '#gallery--block-svg-figure > img:1': [300, 150]
+    '#gallery--block-timeline-figure > button:1 > span:1 > img:1': [150, 150]
+    html:1 > body:1 > div:2 > aside:2 > header:1 > span:1 > span:1 > img:1: [150, 150]
+    html:1 > body:1 > section:1 > div:2 > span:1 > span:1 > span:1 > img:1: [150, 150]
   fonts:
     status: loaded
   cascade:

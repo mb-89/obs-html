@@ -16,8 +16,8 @@ steps:
   id: plan
 - open: chapter
   id: empty
-artifactDigest: sha256:dd58d1b8cb36c5c8a23ca91536a8d2edd6f8945c8ec51125c4b4109698f828a6
-chromium: 153.0.8010.12 (Playwright 1.64.0)
+artifactDigest: sha256:f1b0f244c8b19a3e9933b17e71bc854f5bb80f538f7da351c87242b513d7d5de
+chromium: 156.0.8078.4 (Playwright 1.64.0)
 answers:
 - step: 0
   asked:
@@ -39,6 +39,9 @@ answers:
     - '#home > div:1 > div:1 > section:3 > div:1 > h1:1|display'
     - '#home > div:1 > div:1 > section:3 > div:1|display'
     - html:1|fontSize
+    image-size:
+    - html:1 > body:1 > div:2 > aside:2 > header:1 > span:1 > span:1 > img:1
+    - html:1 > body:1 > section:1 > div:2 > span:1 > span:1 > span:1 > img:1
     media:
     - '(max-width: 30rem)'
     - '(max-width: 42rem)'
@@ -137,7 +140,9 @@ answers:
       border: [0, 0]
   scroll-into-view: {}
   text-width: {}
-  image-size: {}
+  image-size:
+    html:1 > body:1 > div:2 > aside:2 > header:1 > span:1 > span:1 > img:1: [150, 150]
+    html:1 > body:1 > section:1 > div:2 > span:1 > span:1 > span:1 > img:1: [150, 150]
   fonts:
     status: loaded
   cascade:
@@ -206,6 +211,10 @@ answers:
     - '#plan > div:1 > div:1 > section:1 > div:1|display'
     - '#plan--plan|display'
     - html:1|fontSize
+    image-size:
+    - '#plan--figure-1 > button:1 > span:1 > img:1'
+    - html:1 > body:1 > div:2 > aside:2 > header:1 > span:1 > span:1 > img:1
+    - html:1 > body:1 > section:1 > div:2 > span:1 > span:1 > span:1 > img:1
     media:
     - '(max-width: 30rem)'
     - '(max-width: 42rem)'
@@ -264,7 +273,10 @@ answers:
       border: [582.5, 1520.81]
   scroll-into-view: {}
   text-width: {}
-  image-size: {}
+  image-size:
+    '#plan--figure-1 > button:1 > span:1 > img:1': [150, 150]
+    html:1 > body:1 > div:2 > aside:2 > header:1 > span:1 > span:1 > img:1: [150, 150]
+    html:1 > body:1 > section:1 > div:2 > span:1 > span:1 > span:1 > img:1: [150, 150]
   fonts:
     status: loaded
   cascade:
@@ -325,6 +337,10 @@ answers:
     - '#empty > div:1 > div:1 > section:1 > div:1|display'
     - '#empty--empty|display'
     - html:1|fontSize
+    image-size:
+    - '#empty--figure-1 > button:1 > span:1 > img:1'
+    - html:1 > body:1 > div:2 > aside:2 > header:1 > span:1 > span:1 > img:1
+    - html:1 > body:1 > section:1 > div:2 > span:1 > span:1 > span:1 > img:1
     media:
     - '(max-width: 30rem)'
     - '(max-width: 42rem)'
@@ -366,7 +382,10 @@ answers:
       border: [582.5, 78.19]
   scroll-into-view: {}
   text-width: {}
-  image-size: {}
+  image-size:
+    '#empty--figure-1 > button:1 > span:1 > img:1': [150, 150]
+    html:1 > body:1 > div:2 > aside:2 > header:1 > span:1 > span:1 > img:1: [150, 150]
+    html:1 > body:1 > section:1 > div:2 > span:1 > span:1 > span:1 > img:1: [150, 150]
   fonts:
     status: loaded
   cascade:

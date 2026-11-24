@@ -14,8 +14,8 @@ steps:
 - open: page
 - open: chapter
   id: chapter
-artifactDigest: sha256:f8b14c7a85478b27d25b4f6b3c78a3e11b06c1907718419ce60910f2a6dca84e
-chromium: 153.0.8010.12 (Playwright 1.64.0)
+artifactDigest: sha256:115ec2d96ae6abd317a21863257c34cc7e9efb25cfff3681cf88cfeda99e93ef
+chromium: 156.0.8078.4 (Playwright 1.64.0)
 answers:
 - step: 0
   asked:
@@ -42,6 +42,9 @@ answers:
     - '#home > div:1 > div:1 > section:3 > div:1 > h1:1|display'
     - '#home > div:1 > div:1 > section:3 > div:1|display'
     - html:1|fontSize
+    image-size:
+    - html:1 > body:1 > div:2 > aside:2 > header:1 > span:1 > span:1 > img:1
+    - html:1 > body:1 > section:1 > div:2 > span:1 > span:1 > span:1 > img:1
     media:
     - '(max-width: 30rem)'
     - '(max-width: 42rem)'
@@ -140,7 +143,9 @@ answers:
       border: [0, 0]
   scroll-into-view: {}
   text-width: {}
-  image-size: {}
+  image-size:
+    html:1 > body:1 > div:2 > aside:2 > header:1 > span:1 > span:1 > img:1: [150, 150]
+    html:1 > body:1 > section:1 > div:2 > span:1 > span:1 > span:1 > img:1: [150, 150]
   fonts:
     status: loaded
   cascade:
@@ -212,6 +217,10 @@ answers:
     - '#chapter--figure-1|marginBlockEnd'
     - '#chapter--figure-1|marginBlockStart'
     - html:1|fontSize
+    image-size:
+    - '#chapter--figure-1 > button:1 > span:1 > img:1'
+    - html:1 > body:1 > div:2 > aside:2 > header:1 > span:1 > span:1 > img:1
+    - html:1 > body:1 > section:1 > div:2 > span:1 > span:1 > span:1 > img:1
     media:
     - '(max-width: 30rem)'
     - '(max-width: 42rem)'
@@ -256,7 +265,10 @@ answers:
       border: [582.5, 86]
   scroll-into-view: {}
   text-width: {}
-  image-size: {}
+  image-size:
+    '#chapter--figure-1 > button:1 > span:1 > img:1': [150, 150]
+    html:1 > body:1 > div:2 > aside:2 > header:1 > span:1 > span:1 > img:1: [150, 150]
+    html:1 > body:1 > section:1 > div:2 > span:1 > span:1 > span:1 > img:1: [150, 150]
   fonts:
     status: loaded
   cascade:

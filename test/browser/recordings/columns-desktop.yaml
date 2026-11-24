@@ -14,8 +14,8 @@ steps:
 - open: page
 - open: chapter
   id: columns
-artifactDigest: sha256:a0cd9134766efbc3fb8b18fbf3ff857b1a20cc056cd0af709494e9804d7c3899
-chromium: 153.0.8010.12 (Playwright 1.64.0)
+artifactDigest: sha256:a1dd689dc377aaa58c2c61001084679be5e375a1cef21f5ffb784d95caaaa61a
+chromium: 156.0.8078.4 (Playwright 1.64.0)
 answers:
 - step: 0
   asked:
@@ -102,6 +102,12 @@ answers:
     - html:1 > body:1 > div:3 > section:1 > div:1 > div:1 > div:2 > table:1 > thead:1 > tr:1 > th:2|paddingInlineStart
     - html:1 > body:1|font
     - html:1|fontSize
+    image-size:
+    - '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > aside:1 > span:1 > span:1 > img:1'
+    - '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:2 > div:1
+      > button:1 > span:2 > img:1'
+    - html:1 > body:1 > div:2 > aside:2 > header:1 > span:1 > span:1 > img:1
+    - html:1 > body:1 > section:1 > div:2 > span:1 > span:1 > span:1 > img:1
     media:
     - '(max-width: 30rem)'
     - '(max-width: 44rem)'
@@ -186,8 +192,8 @@ answers:
       border: [648.98, 1444.34, 274.25, 34.59]
       rects: [[648.98, 1444.34, 274.25, 34.59]]
     '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:2':
-      border: [736.98, 1344.17, 186.25, 30.98]
-      rects: [[736.98, 1344.17, 186.25, 30.98]]
+      border: [734.98, 1344.17, 188.25, 30.98]
+      rects: [[734.98, 1344.17, 188.25, 30.98]]
     '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:2 > div:1':
       border: [888.34, 1348.46, 22.39, 22.39]
       rects: [[888.34, 1348.46, 22.39, 22.39]]
@@ -267,11 +273,11 @@ answers:
       scrollTop: 0
       scrollLeft: 0
     '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1 > table:1 > tbody:1 > tr:1 > td:2 > div:1':
-      clientWidth: 169
+      clientWidth: 171
       clientHeight: 20
-      scrollWidth: 169
+      scrollWidth: 171
       scrollHeight: 20
-      offsetWidth: 169
+      offsetWidth: 171
       offsetHeight: 20
       offsetLeft: 8
       offsetTop: 5
@@ -294,11 +300,11 @@ answers:
       scrollTop: 0
       scrollLeft: 0
     '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1 > table:1 > tbody:1 > tr:2 > td:2 > div:1':
-      clientWidth: 169
+      clientWidth: 171
       clientHeight: 20
-      scrollWidth: 169
+      scrollWidth: 171
       scrollHeight: 20
-      offsetWidth: 169
+      offsetWidth: 171
       offsetHeight: 20
       offsetLeft: 8
       offsetTop: 5
@@ -321,11 +327,11 @@ answers:
       scrollTop: 0
       scrollLeft: 0
     '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1 > table:1 > tbody:1 > tr:3 > td:2 > div:1':
-      clientWidth: 169
+      clientWidth: 171
       clientHeight: 20
-      scrollWidth: 169
+      scrollWidth: 171
       scrollHeight: 20
-      offsetWidth: 169
+      offsetWidth: 171
       offsetHeight: 20
       offsetLeft: 8
       offsetTop: 5
@@ -388,7 +394,13 @@ answers:
     700 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|rank: 28.71
     700 14.6091px / 21.9137px Georgia, "Times New Roman", serif|file.name: 57.14
     700 14.6091px / 21.9137px Georgia, "Times New Roman", serif|rank: 30.01
-  image-size: {}
+  image-size:
+    '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > aside:1 > span:1 > span:1 > img:1': [150, 150]
+    ? '#home > div:1 > div:1 > section:2 > div:1 > div:1 > div:2 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:2 > div:1
+      > button:1 > span:2 > img:1'
+    : [150, 150]
+    html:1 > body:1 > div:2 > aside:2 > header:1 > span:1 > span:1 > img:1: [150, 150]
+    html:1 > body:1 > section:1 > div:2 > span:1 > span:1 > span:1 > img:1: [150, 150]
   fonts:
     status: loaded
   cascade:
@@ -504,6 +516,12 @@ answers:
     - '#columns--columns|display'
     - html:1 > body:1|font
     - html:1|fontSize
+    image-size:
+    - '#columns > div:1 > div:1 > section:1 > div:1 > div:1 > div:2 > div:2 > section:1 > aside:1 > span:1 > span:1 > img:1'
+    - '#columns > div:1 > div:1 > section:1 > div:1 > div:1 > div:2 > div:2 > section:1 > div:1 > table:1 > thead:1 > tr:1
+      > th:2 > div:1 > button:1 > span:2 > img:1'
+    - html:1 > body:1 > div:2 > aside:2 > header:1 > span:1 > span:1 > img:1
+    - html:1 > body:1 > section:1 > div:2 > span:1 > span:1 > span:1 > img:1
     media:
     - '(max-width: 30rem)'
     - '(max-width: 44rem)'
@@ -783,7 +801,14 @@ answers:
     16px Georgia, "Times New Roman", serif|rank: 28.43
     700 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|file.name: 58.93
     700 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|rank: 28.71
-  image-size: {}
+  image-size:
+    '#columns > div:1 > div:1 > section:1 > div:1 > div:1 > div:2 > div:2 > section:1 > aside:1 > span:1 > span:1 > img:1': [
+      150, 150]
+    ? '#columns > div:1 > div:1 > section:1 > div:1 > div:1 > div:2 > div:2 > section:1 > div:1 > table:1 > thead:1 > tr:1
+      > th:2 > div:1 > button:1 > span:2 > img:1'
+    : [150, 150]
+    html:1 > body:1 > div:2 > aside:2 > header:1 > span:1 > span:1 > img:1: [150, 150]
+    html:1 > body:1 > section:1 > div:2 > span:1 > span:1 > span:1 > img:1: [150, 150]
   fonts:
     status: loaded
   cascade:

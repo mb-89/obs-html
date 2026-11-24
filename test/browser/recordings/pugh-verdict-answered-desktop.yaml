@@ -14,8 +14,8 @@ steps:
 - open: page
 - open: chapter
   id: decisions
-artifactDigest: sha256:0929f61643d5ef705f6e70f65d6c2ff9ef7534025978dac39526a9fde8d3d646
-chromium: 153.0.8010.12 (Playwright 1.64.0)
+artifactDigest: sha256:fb6c0e9c6d3935523e1d7aaa7a174a23768a9d3e9f30b65486a3497de0b4e603
+chromium: 156.0.8078.4 (Playwright 1.64.0)
 answers:
 - step: 0
   asked:
@@ -33,6 +33,12 @@ answers:
     - '#decisions > div:1|paddingLeft'
     - '#decisions > div:1|paddingRight'
     - html:1|fontSize
+    image-size:
+    - '#decisions--block-gated > button:1 > span:1 > img:1'
+    - '#decisions--block-option > button:1 > span:1 > img:1'
+    - '#decisions--block-wide > button:1 > span:1 > img:1'
+    - html:1 > body:1 > div:2 > aside:2 > header:1 > span:1 > span:1 > img:1
+    - html:1 > body:1 > section:1 > div:2 > span:1 > span:1 > span:1 > img:1
     media:
     - '(max-width: 30rem)'
     - '(max-width: 42rem)'
@@ -152,7 +158,12 @@ answers:
       border: [0, 0]
   scroll-into-view: {}
   text-width: {}
-  image-size: {}
+  image-size:
+    '#decisions--block-gated > button:1 > span:1 > img:1': [150, 150]
+    '#decisions--block-option > button:1 > span:1 > img:1': [150, 150]
+    '#decisions--block-wide > button:1 > span:1 > img:1': [150, 150]
+    html:1 > body:1 > div:2 > aside:2 > header:1 > span:1 > span:1 > img:1: [150, 150]
+    html:1 > body:1 > section:1 > div:2 > span:1 > span:1 > span:1 > img:1: [150, 150]
   fonts:
     status: loaded
   cascade:
@@ -208,6 +219,12 @@ answers:
 - step: 1
   asked:
     cascade: []
+    image-size:
+    - '#decisions--block-gated > button:1 > span:1 > img:1'
+    - '#decisions--block-option > button:1 > span:1 > img:1'
+    - '#decisions--block-wide > button:1 > span:1 > img:1'
+    - html:1 > body:1 > div:2 > aside:2 > header:1 > span:1 > span:1 > img:1
+    - html:1 > body:1 > section:1 > div:2 > span:1 > span:1 > span:1 > img:1
     media:
     - '(max-width: 30rem)'
     - '(max-width: 42rem)'
@@ -224,7 +241,12 @@ answers:
   resize: {}
   scroll-into-view: {}
   text-width: {}
-  image-size: {}
+  image-size:
+    '#decisions--block-gated > button:1 > span:1 > img:1': [150, 150]
+    '#decisions--block-option > button:1 > span:1 > img:1': [150, 150]
+    '#decisions--block-wide > button:1 > span:1 > img:1': [150, 150]
+    html:1 > body:1 > div:2 > aside:2 > header:1 > span:1 > span:1 > img:1: [150, 150]
+    html:1 > body:1 > section:1 > div:2 > span:1 > span:1 > span:1 > img:1: [150, 150]
   fonts:
     status: loaded
   cascade: {}
