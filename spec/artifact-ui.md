@@ -2525,6 +2525,8 @@ change since it was opened or last saved.
   retain ordinary text flow.
 - Base fences use the reusable data-table runtime specified in [[generic-tables]].
 - Rendered prose headings below the chapter title have icon-only collapse controls.
+- A heading's collapse control follows its text, so in every layout the text of a heading starts
+  at the same left edge as the paragraphs, lists and tables under it.
 - Collapsing a heading hides its content through the next heading of the same or higher
   level while preserving nested section state.
 - Section controls default to expanded and do not affect the Markdown source.
