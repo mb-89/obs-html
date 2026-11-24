@@ -16,8 +16,8 @@ steps:
   id: figures
 - open: chapter
   id: prose
-artifactDigest: sha256:2264f96cf2733e287fb7bcebfc151e473ac74aeff11a68ddd0ba185e068726ea
-chromium: 153.0.8010.12 (Playwright 1.64.0)
+artifactDigest: sha256:d518c83735a634a149f1a323792682b0a3115161d451a3e9e142df3e139edd1e
+chromium: 156.0.8078.4 (Playwright 1.64.0)
 answers:
 - step: 0
   asked:
@@ -33,6 +33,9 @@ answers:
     cascade:
     - html:1 > body:1|font
     - html:1|fontSize
+    image-size:
+    - html:1 > body:1 > div:2 > aside:2 > header:1 > span:1 > span:1 > img:1
+    - html:1 > body:1 > section:1 > div:2 > span:1 > span:1 > span:1 > img:1
     media:
     - '(max-width: 30rem)'
     - '(max-width: 42rem)'
@@ -340,7 +343,9 @@ answers:
     16px Georgia, "Times New Roman", serif|rank: 28.43
     16px Georgia, "Times New Roman", serif|widgets-1: 63.1
     16px Georgia, "Times New Roman", serif|widgets-2: 63.1
-  image-size: {}
+  image-size:
+    html:1 > body:1 > div:2 > aside:2 > header:1 > span:1 > span:1 > img:1: [150, 150]
+    html:1 > body:1 > section:1 > div:2 > span:1 > span:1 > span:1 > img:1: [150, 150]
   fonts:
     status: loaded
   cascade:
@@ -405,6 +410,14 @@ answers:
     cascade:
     - html:1|--color-border
     - html:1|fontSize
+    image-size:
+    - '#figures--block-image-figure > button:1 > span:1 > img:1'
+    - '#figures--block-image-figure > img:1'
+    - '#figures--block-plot-figure > button:1 > span:1 > img:1'
+    - '#figures--block-sankey-figure > button:1 > span:1 > img:1'
+    - '#figures--block-timeline-figure > button:1 > span:1 > img:1'
+    - html:1 > body:1 > div:2 > aside:2 > header:1 > span:1 > span:1 > img:1
+    - html:1 > body:1 > section:1 > div:2 > span:1 > span:1 > span:1 > img:1
     media:
     - '(max-width: 30rem)'
     - '(max-width: 42rem)'
@@ -478,7 +491,14 @@ answers:
       border: [1152, 243.58]
   scroll-into-view: {}
   text-width: {}
-  image-size: {}
+  image-size:
+    '#figures--block-image-figure > button:1 > span:1 > img:1': [150, 150]
+    '#figures--block-image-figure > img:1': [300, 150]
+    '#figures--block-plot-figure > button:1 > span:1 > img:1': [150, 150]
+    '#figures--block-sankey-figure > button:1 > span:1 > img:1': [150, 150]
+    '#figures--block-timeline-figure > button:1 > span:1 > img:1': [150, 150]
+    html:1 > body:1 > div:2 > aside:2 > header:1 > span:1 > span:1 > img:1: [150, 150]
+    html:1 > body:1 > section:1 > div:2 > span:1 > span:1 > span:1 > img:1: [150, 150]
   fonts:
     status: loaded
   cascade:
@@ -540,6 +560,11 @@ answers:
     - '#prose > div:1 > div:8|paddingLeft'
     - '#prose > div:1 > div:8|paddingRight'
     - html:1|fontSize
+    image-size:
+    - '#mark-prose-risk-limit > span:1 > img:1'
+    - '#prose--block-decision-figure > button:1 > span:1 > img:1'
+    - html:1 > body:1 > div:2 > aside:2 > header:1 > span:1 > span:1 > img:1
+    - html:1 > body:1 > section:1 > div:2 > span:1 > span:1 > span:1 > img:1
     media:
     - '(max-width: 30rem)'
     - '(max-width: 42rem)'
@@ -589,7 +614,11 @@ answers:
       border: [1152, 183.36]
   scroll-into-view: {}
   text-width: {}
-  image-size: {}
+  image-size:
+    '#mark-prose-risk-limit > span:1 > img:1': [1, 1]
+    '#prose--block-decision-figure > button:1 > span:1 > img:1': [150, 150]
+    html:1 > body:1 > div:2 > aside:2 > header:1 > span:1 > span:1 > img:1: [150, 150]
+    html:1 > body:1 > section:1 > div:2 > span:1 > span:1 > span:1 > img:1: [150, 150]
   fonts:
     status: loaded
   cascade:

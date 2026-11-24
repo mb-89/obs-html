@@ -14,8 +14,8 @@ steps:
 - open: page
 - open: chapter
   id: decisions
-artifactDigest: sha256:3b17dccf4b20bdffb7056a2ec2aba4b3f7a1bb87dce77808dd247358f2206574
-chromium: 153.0.8010.12 (Playwright 1.64.0)
+artifactDigest: sha256:407c1fdc9adfd5ac5890872a759b74b040844ebe8ccbfdc7d6db2202921a9344
+chromium: 156.0.8078.4 (Playwright 1.64.0)
 answers:
 - step: 0
   asked:
@@ -37,6 +37,9 @@ answers:
     - '#home > div:1 > div:1 > section:3 > div:1 > h1:1|display'
     - '#home > div:1 > div:1 > section:3 > div:1|display'
     - html:1|fontSize
+    image-size:
+    - html:1 > body:1 > div:2 > aside:2 > header:1 > span:1 > span:1 > img:1
+    - html:1 > body:1 > section:1 > div:2 > span:1 > span:1 > span:1 > img:1
     media:
     - '(max-width: 30rem)'
     - '(max-width: 42rem)'
@@ -135,7 +138,9 @@ answers:
       border: [0, 0]
   scroll-into-view: {}
   text-width: {}
-  image-size: {}
+  image-size:
+    html:1 > body:1 > div:2 > aside:2 > header:1 > span:1 > span:1 > img:1: [150, 150]
+    html:1 > body:1 > section:1 > div:2 > span:1 > span:1 > span:1 > img:1: [150, 150]
   fonts:
     status: loaded
   cascade:
@@ -208,6 +213,12 @@ answers:
     - '#decisions > div:1 > div:1 > section:1 > div:1|paddingRight'
     - '#decisions--decisions|display'
     - html:1|fontSize
+    image-size:
+    - '#decisions--block-gated > button:1 > span:1 > img:1'
+    - '#decisions--block-option > button:1 > span:1 > img:1'
+    - '#decisions--block-wide > button:1 > span:1 > img:1'
+    - html:1 > body:1 > div:2 > aside:2 > header:1 > span:1 > span:1 > img:1
+    - html:1 > body:1 > section:1 > div:2 > span:1 > span:1 > span:1 > img:1
     media:
     - '(max-width: 30rem)'
     - '(max-width: 42rem)'
@@ -312,7 +323,12 @@ answers:
       border: [582.5, 856.45]
   scroll-into-view: {}
   text-width: {}
-  image-size: {}
+  image-size:
+    '#decisions--block-gated > button:1 > span:1 > img:1': [150, 150]
+    '#decisions--block-option > button:1 > span:1 > img:1': [150, 150]
+    '#decisions--block-wide > button:1 > span:1 > img:1': [150, 150]
+    html:1 > body:1 > div:2 > aside:2 > header:1 > span:1 > span:1 > img:1: [150, 150]
+    html:1 > body:1 > section:1 > div:2 > span:1 > span:1 > span:1 > img:1: [150, 150]
   fonts:
     status: loaded
   cascade:

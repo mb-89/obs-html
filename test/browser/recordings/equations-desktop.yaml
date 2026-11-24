@@ -14,8 +14,8 @@ steps:
 - open: page
 - open: chapter
   id: curves
-artifactDigest: sha256:cd525438cf49f28fc3b9be8a49b35a3da0188cdb07cec11c97c1ff6654451563
-chromium: 153.0.8010.12 (Playwright 1.64.0)
+artifactDigest: sha256:3f1811f3bae07c53deacf0c0b602bb432ba99864c7e2d54d5a6a889570affad0
+chromium: 156.0.8078.4 (Playwright 1.64.0)
 answers:
 - step: 0
   asked:
@@ -37,6 +37,9 @@ answers:
     - '#home > div:1 > div:1 > section:3 > div:1 > h1:1|display'
     - '#home > div:1 > div:1 > section:3 > div:1|display'
     - html:1|fontSize
+    image-size:
+    - html:1 > body:1 > div:2 > aside:2 > header:1 > span:1 > span:1 > img:1
+    - html:1 > body:1 > section:1 > div:2 > span:1 > span:1 > span:1 > img:1
     media:
     - '(max-width: 30rem)'
     - '(max-width: 42rem)'
@@ -135,7 +138,9 @@ answers:
       border: [0, 0]
   scroll-into-view: {}
   text-width: {}
-  image-size: {}
+  image-size:
+    html:1 > body:1 > div:2 > aside:2 > header:1 > span:1 > span:1 > img:1: [150, 150]
+    html:1 > body:1 > section:1 > div:2 > span:1 > span:1 > span:1 > img:1: [150, 150]
   fonts:
     status: loaded
   cascade:
@@ -208,6 +213,12 @@ answers:
     - '#curves > div:1 > div:1 > section:1 > div:1|display'
     - '#curves--curves|display'
     - html:1|fontSize
+    image-size:
+    - '#curves--block-quintic > button:1 > span:1 > img:1'
+    - '#curves--block-saturated > button:1 > span:1 > img:1'
+    - '#curves--block-torque > button:1 > span:1 > img:1'
+    - html:1 > body:1 > div:2 > aside:2 > header:1 > span:1 > span:1 > img:1
+    - html:1 > body:1 > section:1 > div:2 > span:1 > span:1 > span:1 > img:1
     media:
     - '(max-width: 30rem)'
     - '(max-width: 42rem)'
@@ -326,7 +337,12 @@ answers:
       border: [593.69, 450]
   scroll-into-view: {}
   text-width: {}
-  image-size: {}
+  image-size:
+    '#curves--block-quintic > button:1 > span:1 > img:1': [150, 150]
+    '#curves--block-saturated > button:1 > span:1 > img:1': [150, 150]
+    '#curves--block-torque > button:1 > span:1 > img:1': [150, 150]
+    html:1 > body:1 > div:2 > aside:2 > header:1 > span:1 > span:1 > img:1: [150, 150]
+    html:1 > body:1 > section:1 > div:2 > span:1 > span:1 > span:1 > img:1: [150, 150]
   fonts:
     status: loaded
   cascade:

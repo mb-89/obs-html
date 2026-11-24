@@ -14,8 +14,8 @@ steps:
 - open: page
 - open: chapter
   id: one
-artifactDigest: sha256:b29823198f82682d7ba51ae536a75b4749f1b84a262e451ecc6cdb523c465802
-chromium: 153.0.8010.12 (Playwright 1.64.0)
+artifactDigest: sha256:93aff5d94650ac631289df1a7172c7893354cf4a1e8bfe48a94e91053796be44
+chromium: 156.0.8078.4 (Playwright 1.64.0)
 answers:
 - step: 0
   asked:
@@ -29,6 +29,11 @@ answers:
     - html:1 > body:1 > div:1 > main:1 > div:1
     cascade:
     - html:1|fontSize
+    image-size:
+    - '#one--figure-1 > button:1 > span:1 > img:1'
+    - '#one--figure-1 > img:1'
+    - html:1 > body:1 > div:2 > aside:2 > header:1 > span:1 > span:1 > img:1
+    - html:1 > body:1 > section:1 > div:2 > span:1 > span:1 > span:1 > img:1
     media:
     - '(max-width: 30rem)'
     - '(max-width: 42rem)'
@@ -91,7 +96,11 @@ answers:
       border: [0, 0]
   scroll-into-view: {}
   text-width: {}
-  image-size: {}
+  image-size:
+    '#one--figure-1 > button:1 > span:1 > img:1': [150, 150]
+    '#one--figure-1 > img:1': [300, 60]
+    html:1 > body:1 > div:2 > aside:2 > header:1 > span:1 > span:1 > img:1: [150, 150]
+    html:1 > body:1 > section:1 > div:2 > span:1 > span:1 > span:1 > img:1: [150, 150]
   fonts:
     status: loaded
   cascade:
@@ -145,6 +154,11 @@ answers:
 - step: 1
   asked:
     cascade: []
+    image-size:
+    - '#one--figure-1 > button:1 > span:1 > img:1'
+    - '#one--figure-1 > img:1'
+    - html:1 > body:1 > div:2 > aside:2 > header:1 > span:1 > span:1 > img:1
+    - html:1 > body:1 > section:1 > div:2 > span:1 > span:1 > span:1 > img:1
     media:
     - '(max-width: 30rem)'
     - '(max-width: 42rem)'
@@ -161,7 +175,11 @@ answers:
   resize: {}
   scroll-into-view: {}
   text-width: {}
-  image-size: {}
+  image-size:
+    '#one--figure-1 > button:1 > span:1 > img:1': [150, 150]
+    '#one--figure-1 > img:1': [300, 60]
+    html:1 > body:1 > div:2 > aside:2 > header:1 > span:1 > span:1 > img:1: [150, 150]
+    html:1 > body:1 > section:1 > div:2 > span:1 > span:1 > span:1 > img:1: [150, 150]
   fonts:
     status: loaded
   cascade: {}

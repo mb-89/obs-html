@@ -2362,7 +2362,7 @@ math {
 .collapsible-heading>h4,
 .collapsible-heading>h5,
 .collapsible-heading>h6 {
-    flex: 1 1 auto;
+    flex: 0 1 auto;
     margin: 0;
 }
 

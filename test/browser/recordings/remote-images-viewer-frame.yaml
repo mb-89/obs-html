@@ -12,8 +12,8 @@ context:
   frame: viewer
 steps:
 - open: page
-artifactDigest: sha256:f49be88688b0e03d6e71a68167ddbba4cb4626598e36cc0c99cb1a27f7a8e037
-chromium: 153.0.8010.12 (Playwright 1.64.0)
+artifactDigest: sha256:6602a3421889c9102c0d23fb78b281b263816cd483a31be028152e34ec0db236
+chromium: 156.0.8078.4 (Playwright 1.64.0)
 answers:
 - step: 0
   asked:

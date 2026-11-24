@@ -14,8 +14,8 @@ steps:
 - open: page
 - open: chapter
   id: one
-artifactDigest: sha256:aca1e47834f1ed18e676c26b23918cb6b6f1bf11783b45f9c9f2e56f29099329
-chromium: 153.0.8010.12 (Playwright 1.64.0)
+artifactDigest: sha256:724823b42df4c6de8dd0d3ae305e951ff70a2973f9bdd9b94ca5b9efe650a06d
+chromium: 156.0.8078.4 (Playwright 1.64.0)
 answers:
 - step: 0
   asked:
@@ -139,6 +139,9 @@ answers:
     - html:1 > body:1 > div:3 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:4|paddingInlineStart
     - html:1 > body:1|font
     - html:1|fontSize
+    image-size:
+    - html:1 > body:1 > div:2 > aside:2 > header:1 > span:1 > span:1 > img:1
+    - html:1 > body:1 > section:1 > div:2 > span:1 > span:1 > span:1 > img:1
     media:
     - '(max-width: 30rem)'
     - '(max-width: 44rem)'
@@ -305,7 +308,9 @@ answers:
     700 14.6091px / 21.9137px "Trebuchet MS", sans-serif|file.name: 63.26
     700 14.6091px / 21.9137px "Trebuchet MS", sans-serif|owner: 42.98
     700 14.6091px / 21.9137px "Trebuchet MS", sans-serif|state: 34.07
-  image-size: {}
+  image-size:
+    html:1 > body:1 > div:2 > aside:2 > header:1 > span:1 > span:1 > img:1: [150, 150]
+    html:1 > body:1 > section:1 > div:2 > span:1 > span:1 > span:1 > img:1: [150, 150]
   fonts:
     status: loaded
   cascade:
@@ -392,6 +397,12 @@ answers:
     - '#one--one|display'
     - html:1 > body:1|font
     - html:1|fontSize
+    image-size:
+    - '#one > div:1 > div:1 > section:1 > div:1 > section:1 > aside:1 > span:1 > span:1 > img:1'
+    - '#one > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:4 > div:1 > button:1 >
+      span:2 > img:1'
+    - html:1 > body:1 > div:2 > aside:2 > header:1 > span:1 > span:1 > img:1
+    - html:1 > body:1 > section:1 > div:2 > span:1 > span:1 > span:1 > img:1
     media:
     - '(max-width: 30rem)'
     - '(max-width: 44rem)'
@@ -758,7 +769,13 @@ answers:
     700 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|file.name: 58.93
     700 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|owner: 40.03
     700 13.6px / 20.4px Arial, "Helvetica Neue", sans-serif|state: 31.73
-  image-size: {}
+  image-size:
+    '#one > div:1 > div:1 > section:1 > div:1 > section:1 > aside:1 > span:1 > span:1 > img:1': [150, 150]
+    ? '#one > div:1 > div:1 > section:1 > div:1 > section:1 > div:1 > table:1 > thead:1 > tr:1 > th:4 > div:1 > button:1 >
+      span:2 > img:1'
+    : [150, 150]
+    html:1 > body:1 > div:2 > aside:2 > header:1 > span:1 > span:1 > img:1: [150, 150]
+    html:1 > body:1 > section:1 > div:2 > span:1 > span:1 > span:1 > img:1: [150, 150]
   fonts:
     status: loaded
   cascade:

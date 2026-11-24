@@ -590,7 +590,8 @@
             globalThis.obsAssets.set(icon, "expanded");
             button.append(icon);
             heading.before(wrapper);
-            wrapper.append(button, heading);
+            // After the heading's text, so the text starts at the body's left edge (artifact-ui.md).
+            wrapper.append(heading, button);
         });
     };
 
