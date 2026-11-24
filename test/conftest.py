@@ -5,6 +5,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 import tomllib
 import types
@@ -112,15 +113,15 @@ def pytest_configure(config):
 
 def pytest_sessionstart(session):
     """A run installs this repository's Node test package where it is missing or stale, as the
-    core's suite installs its own (test/suite.py, install_node_packages), and the headless shell the
-    installed Playwright pins where it is missing (install_pinned_shell); the JUnit report, where the
+    core's suite installs its own (test/suite.py, install_node_packages), and the browsers the
+    installed Playwright pins where they are missing (install_pinned_browsers); the JUnit report, where the
     run writes one, names the worker count (test/suite.py)."""
     if not hasattr(session.config, "workerinput"):
         lock = Path(tempfile.gettempdir()) / "obs-html-node-setup.lock"
         try:
             with FileLock(lock):
                 suite.install_node_packages([NODE_PACKAGE])
-                install_pinned_shell(suite.playwright_browsers())
+                install_pinned_browsers(suite.playwright_browsers())
         except (suite.InstallError, BrowserEngineError) as error:
             pytest.exit(str(error), returncode=1)
     suite.record_workers(session.config)
@@ -352,49 +353,77 @@ class BrowserEngineError(RuntimeError):
     """A browser engine the tests need is not installed; the message names where it was looked for and the remedy."""
 
 
-def pinned_revision(package=None) -> str:
-    """The chromium-headless-shell revision the installed Playwright names in its browsers.json: the
-    engine CI installs and the tests pass on. A host whose browsers folder already holds another
-    revision, as a Claude Code cloud container holds a newer one, gives a newer Chromium whose
-    sandboxed frames report a focus without user activation as a console error."""
+# The browsers the tests run on, each at the revision the installed Playwright pins in its
+# browsers.json, as CI installs them (pinned_browser): Playwright's name -> the folder, platform
+# folder and executable its install writes. A host's browsers folder can hold other revisions: a
+# Claude Code cloud container holds a newer Chromium (revision 1243, Chrome 158, against 1.64's 1248,
+# Chrome 156), and google-chrome on its PATH runs that one. That Chromium's sandboxed frames report
+# the reader's startup focus as a console error, focus-without-user-activation, which failed 50
+# browser tests there (obs-html#69).
+PINNED_BROWSERS = {
+    "chromium-headless-shell": suite.HEADLESS_SHELL,
+    "chromium": ("chromium-*", "chrome-*", {
+        "win32": "chrome.exe",
+        "darwin": "Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing",
+    }.get(sys.platform, "chrome")),
+}
+PLAYWRIGHT_INSTALL = [sys.executable, "-m", "playwright", "install"]
+
+
+def pinned_revision(name: str, package: Path | None = None) -> str:
+    """The revision of Playwright's browser ``name`` the installed Playwright names in its browsers.json."""
     import playwright
 
     package = package or Path(playwright.__file__).parent / "driver" / "package"
     browsers = json.loads((package / "browsers.json").read_text(encoding="utf-8"))["browsers"]
-    return next(entry["revision"] for entry in browsers if entry["name"] == "chromium-headless-shell")
+    return next(entry["revision"] for entry in browsers if entry["name"] == name)
 
 
-def headless_shell(browsers: Path, revision: str | None = None) -> str:
-    """The bulk browser tier's engine (obs quality.md, Testing boundaries): test/suite.py's
-    HEADLESS_SHELL at the revision the installed Playwright pins (pinned_revision), in ``browsers``,
-    or a failure that names it; never another revision installed beside it."""
-    revision = revision or pinned_revision()
-    folder, platform, executable = suite.HEADLESS_SHELL
+def pinned_browser(browsers: Path, name: str, revision: str | None = None) -> str:
+    """The executable of Playwright's browser ``name`` (PINNED_BROWSERS) at the revision the installed
+    Playwright pins, in ``browsers``, or a failure that names it; never another revision beside it."""
+    revision = revision or pinned_revision(name)
+    folder, platform, executable = PINNED_BROWSERS[name]
     found = sorted((browsers / folder.replace("*", revision)).glob(f"{platform}/{executable}"))
     if not found:
         raise BrowserEngineError(
-            f"test/conftest.py: the browser tests' engine, test/suite.py's HEADLESS_SHELL (Playwright's "
-            f"chromium-headless-shell) at revision {revision}, which the installed Playwright pins, is not "
-            f"installed in {browsers} ({'/'.join(suite.HEADLESS_SHELL)}). Remedy: run "
-            f"`{' '.join(suite.BROWSER_INSTALL)}`, which a test run does where it is missing, or set "
+            f"test/conftest.py: the browser tests' engine {name} at revision {revision}, which the installed "
+            f"Playwright pins, is not installed in {browsers} ({folder}/{platform}/{executable}). Remedy: run "
+            f"`{' '.join(PLAYWRIGHT_INSTALL)} {name}`, which a test run does where it is missing, or set "
             "PLAYWRIGHT_BROWSERS_PATH to the folder that holds it.")
     return str(found[-1])
 
 
-def install_pinned_shell(browsers: Path, run=subprocess.run) -> bool:
-    """Install the pinned headless shell (headless_shell) with Playwright where ``browsers`` lacks it,
-    beside any other revision there; whether it installed."""
-    try:
-        headless_shell(browsers)
-        return False
-    except BrowserEngineError:
-        pass
-    result = run(suite.BROWSER_INSTALL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-    if result.returncode != 0:
-        raise suite.InstallError(f"test/conftest.py: `{' '.join(suite.BROWSER_INSTALL)}` failed (exit code "
-                                 f"{result.returncode}).\n{result.stdout}")
-    headless_shell(browsers)
-    return True
+def headless_shell(browsers: Path, revision: str | None = None) -> str:
+    """The bulk browser tier's engine (obs quality.md, Testing boundaries): test/suite.py's
+    HEADLESS_SHELL at the pinned revision (pinned_browser)."""
+    return pinned_browser(browsers, "chromium-headless-shell", revision)
+
+
+def full_chromium(browsers: Path, revision: str | None = None) -> str:
+    """The full Chromium of the named set (test/structure/test_quality.py, FULL_CHROMIUM_TESTS) at the
+    pinned revision (pinned_browser); the PDF path launches it in a test process (_patch_pdf_browser)."""
+    return pinned_browser(browsers, "chromium", revision)
+
+
+def install_pinned_browsers(browsers: Path, run=subprocess.run) -> list[str]:
+    """Install each pinned browser (PINNED_BROWSERS) that ``browsers`` lacks, with one Playwright
+    install, beside any other revision there; the names it installed."""
+    missing = []
+    for name in PINNED_BROWSERS:
+        try:
+            pinned_browser(browsers, name)
+        except BrowserEngineError:
+            missing.append(name)
+    if missing:
+        command = [*PLAYWRIGHT_INSTALL, *missing]
+        result = run(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        if result.returncode != 0:
+            raise suite.InstallError(f"test/conftest.py: `{' '.join(command)}` failed (exit code "
+                                     f"{result.returncode}).\n{result.stdout}")
+        for name in missing:
+            pinned_browser(browsers, name)
+    return missing
 
 
 # The pools' engines, as a crash or a failed launch names them.
@@ -727,9 +756,19 @@ def _shell() -> str:
 
 
 def _full_chromium() -> str:
-    from obs_html.pdf import _executable
+    return full_chromium(suite.playwright_browsers())
 
-    return _executable()
+
+# The PDF path's browser in a test process: the pinned full Chromium (full_chromium), not the one it
+# finds on the host (obs_html/pdf.py, _executable), so the full-Chromium pool and the PDF path run
+# the Chromium CI runs on every host.
+def _patch_pdf_browser() -> None:
+    from obs_html import pdf
+
+    pdf._executable = _full_chromium
+
+
+_patch_pdf_browser()
 
 
 # A phone as Playwright emulates one: touch, a mobile viewport and a phone's device scale. The
@@ -744,8 +783,8 @@ PHONE_CONTEXT = {"is_mobile": True, "has_touch": True, "device_scale_factor": 3}
 POOL_KINDS = {
     # One headless shell (HEADLESS_SHELL); tests lease its pages through ``reader_browser``.
     "page_pool": (HEADLESS_SHELL_ENGINE, _shell, (), None),
-    # One full Chromium, found as the PDF path finds it, for the named set of checks whose behaviour
-    # can differ in the headless shell (test/structure/test_quality.py, FULL_CHROMIUM_TESTS).
+    # One full Chromium, the pinned one the PDF path launches in a test process (_patch_pdf_browser),
+    # for the named set of checks whose behaviour can differ in the headless shell (test/structure/test_quality.py, FULL_CHROMIUM_TESTS).
     "full_page_pool": (FULL_CHROMIUM_ENGINE, _full_chromium, (), None),
     # A second headless shell with overlay scrollbars, as on touch devices and macOS: scrollbars
     # take no room, so the reader's clearance for the chapter arrows is at its narrowest.
