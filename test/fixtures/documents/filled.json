@@ -1,0 +1,371 @@
+{
+  "schemaVersion": 1,
+  "manifest": {
+    "title": "Pump controller requirements",
+    "path": "manifest.md",
+    "metadata": {
+      "title": "Pump controller requirements",
+      "derived_from": {
+        "template": "requirements",
+        "version": "2"
+      }
+    },
+    "abstract": [
+      {
+        "type": "markdown-frontmatter",
+        "attrs": {
+          "metadata": {
+            "title": "Pump controller requirements",
+            "derived_from": {
+              "template": "requirements",
+              "version": "2"
+            }
+          }
+        },
+        "children": [
+          {
+            "type": "field",
+            "attrs": {
+              "name": "title"
+            },
+            "children": [
+              {
+                "type": "text",
+                "attrs": {},
+                "children": [],
+                "text": "Pump controller requirements"
+              }
+            ]
+          },
+          {
+            "type": "field",
+            "attrs": {
+              "name": "derived_from.template"
+            },
+            "children": [
+              {
+                "type": "text",
+                "attrs": {},
+                "children": [],
+                "text": "requirements"
+              }
+            ]
+          },
+          {
+            "type": "field",
+            "attrs": {
+              "name": "derived_from.version"
+            },
+            "children": [
+              {
+                "type": "text",
+                "attrs": {},
+                "children": [],
+                "text": "2"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "templates",
+        "attrs": {
+          "part": "derived-from",
+          "template": "requirements",
+          "version": "2"
+        },
+        "children": []
+      },
+      {
+        "type": "manifest",
+        "attrs": {},
+        "children": []
+      }
+    ]
+  },
+  "chapters": [
+    {
+      "id": "purpose",
+      "title": "Purpose",
+      "content": [
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "purpose"
+          },
+          "children": []
+        },
+        {
+          "type": "markdown",
+          "attrs": {},
+          "children": []
+        },
+        {
+          "type": "paragraph",
+          "attrs": {},
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "The pump controller keeps the tank level between its limits for the plant operators."
+            }
+          ],
+          "id": "paragraph-c6e2ee53"
+        }
+      ],
+      "children": [],
+      "metadata": {}
+    },
+    {
+      "id": "scope",
+      "title": "Scope",
+      "content": [
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "scope"
+          },
+          "children": []
+        },
+        {
+          "type": "markdown",
+          "attrs": {},
+          "children": []
+        },
+        {
+          "type": "list",
+          "attrs": {
+            "ordered": false,
+            "tight": true
+          },
+          "children": [
+            {
+              "type": "list-item",
+              "attrs": {},
+              "children": [
+                {
+                  "type": "paragraph",
+                  "attrs": {},
+                  "children": [
+                    {
+                      "type": "text",
+                      "attrs": {},
+                      "children": [],
+                      "text": "In scope: the level loop and its alarms."
+                    }
+                  ],
+                  "id": "paragraph-8cb60b0d"
+                }
+              ],
+              "id": "list-item-8cb60b0d"
+            },
+            {
+              "type": "list-item",
+              "attrs": {},
+              "children": [
+                {
+                  "type": "paragraph",
+                  "attrs": {},
+                  "children": [
+                    {
+                      "type": "text",
+                      "attrs": {},
+                      "children": [],
+                      "text": "Out of scope: the pump drives, which the drive supplier owns."
+                    }
+                  ],
+                  "id": "paragraph-c86d992d"
+                }
+              ],
+              "id": "list-item-c86d992d"
+            }
+          ],
+          "id": "list-9c692363"
+        }
+      ],
+      "children": [],
+      "metadata": {}
+    },
+    {
+      "id": "risks",
+      "title": "Risks",
+      "content": [
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "risks"
+          },
+          "children": []
+        },
+        {
+          "type": "markdown",
+          "attrs": {},
+          "children": []
+        },
+        {
+          "type": "paragraph",
+          "attrs": {},
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "The level sensor may drift; the instrument team owns its calibration."
+            }
+          ],
+          "id": "paragraph-ba47523c"
+        }
+      ],
+      "children": [],
+      "metadata": {}
+    }
+  ],
+  "links": [],
+  "assets": [],
+  "records": [
+    {
+      "id": "manifest",
+      "type": "note",
+      "path": "manifest.md",
+      "fields": {
+        "title": "Pump controller requirements",
+        "derived_from": {
+          "template": "requirements",
+          "version": "2"
+        }
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "title"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Pump controller requirements"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "derived_from.template"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "requirements"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "derived_from.version"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "2"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "purpose",
+      "type": "note",
+      "path": "purpose.md",
+      "fields": {},
+      "fieldNodes": []
+    },
+    {
+      "id": "risks",
+      "type": "note",
+      "path": "risks.md",
+      "fields": {},
+      "fieldNodes": []
+    },
+    {
+      "id": "scope",
+      "type": "note",
+      "path": "scope.md",
+      "fields": {},
+      "fieldNodes": []
+    },
+    {
+      "id": "chapter-purpose",
+      "type": "chapter",
+      "note": "purpose",
+      "fields": {
+        "chapter": "Purpose",
+        "title": "Purpose",
+        "depth": "0",
+        "slug": "purpose",
+        "sourcePath": "purpose.md"
+      }
+    },
+    {
+      "id": "chapter-scope",
+      "type": "chapter",
+      "note": "scope",
+      "fields": {
+        "chapter": "Scope",
+        "title": "Scope",
+        "depth": "0",
+        "slug": "scope",
+        "sourcePath": "scope.md"
+      }
+    },
+    {
+      "id": "chapter-risks",
+      "type": "chapter",
+      "note": "risks",
+      "fields": {
+        "chapter": "Risks",
+        "title": "Risks",
+        "depth": "0",
+        "slug": "risks",
+        "sourcePath": "risks.md"
+      }
+    },
+    {
+      "id": "document-metadata-title",
+      "type": "documentMetadata",
+      "fields": {
+        "key": "title",
+        "value": "Pump controller requirements"
+      }
+    },
+    {
+      "id": "document-metadata-derived-from",
+      "type": "documentMetadata",
+      "fields": {
+        "key": "derived_from",
+        "value": {
+          "template": "requirements",
+          "version": "2"
+        }
+      }
+    }
+  ],
+  "semanticResources": [],
+  "diagnostics": [],
+  "capabilities": [
+    "chapter-inclusion",
+    "manifest",
+    "markdown",
+    "markdown-frontmatter",
+    "templates"
+  ],
+  "cssSnippets": [],
+  "components": []
+}

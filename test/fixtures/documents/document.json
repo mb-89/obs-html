@@ -340,7 +340,11 @@
               "tags": [
                 "a",
                 "b"
-              ]
+              ],
+              "derived_from": {
+                "template": "requirements",
+                "version": "2"
+              }
             }
           },
           "children": [
@@ -385,8 +389,45 @@
                   "text": "b"
                 }
               ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "derived_from.template"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "requirements"
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "derived_from.version"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "2"
+                }
+              ]
             }
           ]
+        },
+        {
+          "type": "templates",
+          "attrs": {
+            "part": "derived-from",
+            "template": "requirements",
+            "version": "2"
+          },
+          "children": []
         },
         {
           "type": "chapter-inclusion",
@@ -694,7 +735,11 @@
         "tags": [
           "a",
           "b"
-        ]
+        ],
+        "derived_from": {
+          "template": "requirements",
+          "version": "2"
+        }
       }
     },
     {
@@ -2809,7 +2854,11 @@
         "tags": [
           "a",
           "b"
-        ]
+        ],
+        "derived_from": {
+          "template": "requirements",
+          "version": "2"
+        }
       },
       "fieldNodes": [
         {
@@ -2851,6 +2900,34 @@
               "attrs": {},
               "children": [],
               "text": "b"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "derived_from.template"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "requirements"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "derived_from.version"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "2"
             }
           ]
         }
@@ -3420,6 +3497,7 @@
     "queries",
     "references",
     "registers",
+    "templates",
     "timeline-figures",
     "wikilinks"
   ],

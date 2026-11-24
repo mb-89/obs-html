@@ -1,0 +1,968 @@
+{
+  "schemaVersion": 1,
+  "manifest": {
+    "title": "Requirements",
+    "path": "manifest.md",
+    "metadata": {
+      "title": "Requirements",
+      "obs": {
+        "template": {
+          "name": "requirements",
+          "version": "2",
+          "source": "an exported requirements template"
+        }
+      }
+    },
+    "abstract": [
+      {
+        "type": "markdown-frontmatter",
+        "attrs": {
+          "metadata": {
+            "title": "Requirements",
+            "obs": {
+              "template": {
+                "name": "requirements",
+                "version": "2",
+                "source": "an exported requirements template"
+              }
+            }
+          }
+        },
+        "children": [
+          {
+            "type": "field",
+            "attrs": {
+              "name": "title"
+            },
+            "children": [
+              {
+                "type": "text",
+                "attrs": {},
+                "children": [],
+                "text": "Requirements"
+              }
+            ]
+          },
+          {
+            "type": "field",
+            "attrs": {
+              "name": "obs.template.name"
+            },
+            "children": [
+              {
+                "type": "text",
+                "attrs": {},
+                "children": [],
+                "text": "requirements"
+              }
+            ]
+          },
+          {
+            "type": "field",
+            "attrs": {
+              "name": "obs.template.version"
+            },
+            "children": [
+              {
+                "type": "text",
+                "attrs": {},
+                "children": [],
+                "text": "2"
+              }
+            ]
+          },
+          {
+            "type": "field",
+            "attrs": {
+              "name": "obs.template.source"
+            },
+            "children": [
+              {
+                "type": "text",
+                "attrs": {},
+                "children": [],
+                "text": "an exported requirements template"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "profiles",
+        "attrs": {
+          "profile": {
+            "template": {
+              "name": "requirements",
+              "version": "2",
+              "source": "an exported requirements template"
+            }
+          }
+        },
+        "children": []
+      },
+      {
+        "type": "templates",
+        "attrs": {
+          "part": "template",
+          "name": "requirements",
+          "version": "2",
+          "source": "an exported requirements template"
+        },
+        "children": []
+      },
+      {
+        "type": "manifest",
+        "attrs": {},
+        "children": []
+      },
+      {
+        "type": "markdown",
+        "attrs": {},
+        "children": []
+      },
+      {
+        "type": "paragraph",
+        "attrs": {},
+        "children": [
+          {
+            "type": "text",
+            "attrs": {},
+            "children": [],
+            "text": "Fill one document per product from this template."
+          }
+        ],
+        "id": "paragraph-6d1ca270"
+      }
+    ]
+  },
+  "chapters": [
+    {
+      "id": "purpose",
+      "title": "Purpose",
+      "content": [
+        {
+          "type": "markdown-frontmatter",
+          "attrs": {
+            "metadata": {
+              "obs": {
+                "guidance": {
+                  "contents": "The problem the product solves, and for whom.",
+                  "motivation": "Every later section is judged against it.",
+                  "form": "One paragraph of at most five sentences.",
+                  "sources": "The product brief.",
+                  "gate": "mandatory"
+                }
+              }
+            }
+          },
+          "children": [
+            {
+              "type": "field",
+              "attrs": {
+                "name": "obs.guidance.contents"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "The problem the product solves, and for whom."
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "obs.guidance.motivation"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "Every later section is judged against it."
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "obs.guidance.form"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "One paragraph of at most five sentences."
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "obs.guidance.sources"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "The product brief."
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "obs.guidance.gate"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "mandatory"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "profiles",
+          "attrs": {
+            "profile": {
+              "guidance": {
+                "contents": "The problem the product solves, and for whom.",
+                "motivation": "Every later section is judged against it.",
+                "form": "One paragraph of at most five sentences.",
+                "sources": "The product brief.",
+                "gate": "mandatory"
+              }
+            }
+          },
+          "children": []
+        },
+        {
+          "type": "templates",
+          "attrs": {
+            "part": "guidance",
+            "gate": "mandatory"
+          },
+          "children": [
+            {
+              "type": "field",
+              "attrs": {
+                "name": "contents"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "The problem the product solves, and for whom."
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "motivation"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "Every later section is judged against it."
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "form"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "One paragraph of at most five sentences."
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "sources"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "The product brief."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "purpose"
+          },
+          "children": []
+        },
+        {
+          "type": "markdown",
+          "attrs": {},
+          "children": []
+        },
+        {
+          "type": "templates",
+          "attrs": {
+            "part": "slot"
+          },
+          "children": []
+        }
+      ],
+      "children": [],
+      "metadata": {
+        "obs": {
+          "guidance": {
+            "contents": "The problem the product solves, and for whom.",
+            "motivation": "Every later section is judged against it.",
+            "form": "One paragraph of at most five sentences.",
+            "sources": "The product brief.",
+            "gate": "mandatory"
+          }
+        }
+      }
+    },
+    {
+      "id": "scope",
+      "title": "Scope",
+      "content": [
+        {
+          "type": "markdown-frontmatter",
+          "attrs": {
+            "metadata": {
+              "obs": {
+                "guidance": {
+                  "contents": "What the product does and what it leaves to others.",
+                  "form": "Two lists, in scope and out of scope.",
+                  "gate": "mandatory"
+                }
+              }
+            }
+          },
+          "children": [
+            {
+              "type": "field",
+              "attrs": {
+                "name": "obs.guidance.contents"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "What the product does and what it leaves to others."
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "obs.guidance.form"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "Two lists, in scope and out of scope."
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "obs.guidance.gate"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "mandatory"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "profiles",
+          "attrs": {
+            "profile": {
+              "guidance": {
+                "contents": "What the product does and what it leaves to others.",
+                "form": "Two lists, in scope and out of scope.",
+                "gate": "mandatory"
+              }
+            }
+          },
+          "children": []
+        },
+        {
+          "type": "templates",
+          "attrs": {
+            "part": "guidance",
+            "gate": "mandatory"
+          },
+          "children": [
+            {
+              "type": "field",
+              "attrs": {
+                "name": "contents"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "What the product does and what it leaves to others."
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "form"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "Two lists, in scope and out of scope."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "scope"
+          },
+          "children": []
+        },
+        {
+          "type": "markdown",
+          "attrs": {},
+          "children": []
+        },
+        {
+          "type": "templates",
+          "attrs": {
+            "part": "slot"
+          },
+          "children": []
+        }
+      ],
+      "children": [],
+      "metadata": {
+        "obs": {
+          "guidance": {
+            "contents": "What the product does and what it leaves to others.",
+            "form": "Two lists, in scope and out of scope.",
+            "gate": "mandatory"
+          }
+        }
+      }
+    },
+    {
+      "id": "risks",
+      "title": "Risks",
+      "content": [
+        {
+          "type": "markdown-frontmatter",
+          "attrs": {
+            "metadata": {
+              "obs": {
+                "guidance": {
+                  "contents": "The risks that could stop the product, each with its owner.",
+                  "motivation": "A risk without an owner is not handled.",
+                  "gate": "judgment"
+                }
+              }
+            }
+          },
+          "children": [
+            {
+              "type": "field",
+              "attrs": {
+                "name": "obs.guidance.contents"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "The risks that could stop the product, each with its owner."
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "obs.guidance.motivation"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "A risk without an owner is not handled."
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "obs.guidance.gate"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "judgment"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "profiles",
+          "attrs": {
+            "profile": {
+              "guidance": {
+                "contents": "The risks that could stop the product, each with its owner.",
+                "motivation": "A risk without an owner is not handled.",
+                "gate": "judgment"
+              }
+            }
+          },
+          "children": []
+        },
+        {
+          "type": "templates",
+          "attrs": {
+            "part": "guidance",
+            "gate": "judgment"
+          },
+          "children": [
+            {
+              "type": "field",
+              "attrs": {
+                "name": "contents"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "The risks that could stop the product, each with its owner."
+                }
+              ]
+            },
+            {
+              "type": "field",
+              "attrs": {
+                "name": "motivation"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "attrs": {},
+                  "children": [],
+                  "text": "A risk without an owner is not handled."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "chapter-inclusion",
+          "attrs": {
+            "id": "risks"
+          },
+          "children": []
+        },
+        {
+          "type": "markdown",
+          "attrs": {},
+          "children": []
+        },
+        {
+          "type": "templates",
+          "attrs": {
+            "part": "slot"
+          },
+          "children": []
+        }
+      ],
+      "children": [],
+      "metadata": {
+        "obs": {
+          "guidance": {
+            "contents": "The risks that could stop the product, each with its owner.",
+            "motivation": "A risk without an owner is not handled.",
+            "gate": "judgment"
+          }
+        }
+      }
+    }
+  ],
+  "links": [],
+  "assets": [],
+  "records": [
+    {
+      "id": "manifest",
+      "type": "note",
+      "path": "manifest.md",
+      "fields": {
+        "title": "Requirements",
+        "obs": {
+          "template": {
+            "name": "requirements",
+            "version": "2",
+            "source": "an exported requirements template"
+          }
+        }
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "title"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Requirements"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "obs.template.name"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "requirements"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "obs.template.version"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "2"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "obs.template.source"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "an exported requirements template"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "purpose",
+      "type": "note",
+      "path": "purpose.md",
+      "fields": {
+        "obs": {
+          "guidance": {
+            "contents": "The problem the product solves, and for whom.",
+            "motivation": "Every later section is judged against it.",
+            "form": "One paragraph of at most five sentences.",
+            "sources": "The product brief.",
+            "gate": "mandatory"
+          }
+        }
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "obs.guidance.contents"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "The problem the product solves, and for whom."
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "obs.guidance.motivation"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Every later section is judged against it."
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "obs.guidance.form"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "One paragraph of at most five sentences."
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "obs.guidance.sources"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "The product brief."
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "obs.guidance.gate"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "mandatory"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "risks",
+      "type": "note",
+      "path": "risks.md",
+      "fields": {
+        "obs": {
+          "guidance": {
+            "contents": "The risks that could stop the product, each with its owner.",
+            "motivation": "A risk without an owner is not handled.",
+            "gate": "judgment"
+          }
+        }
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "obs.guidance.contents"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "The risks that could stop the product, each with its owner."
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "obs.guidance.motivation"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "A risk without an owner is not handled."
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "obs.guidance.gate"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "judgment"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "scope",
+      "type": "note",
+      "path": "scope.md",
+      "fields": {
+        "obs": {
+          "guidance": {
+            "contents": "What the product does and what it leaves to others.",
+            "form": "Two lists, in scope and out of scope.",
+            "gate": "mandatory"
+          }
+        }
+      },
+      "fieldNodes": [
+        {
+          "type": "field",
+          "attrs": {
+            "name": "obs.guidance.contents"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "What the product does and what it leaves to others."
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "obs.guidance.form"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "Two lists, in scope and out of scope."
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "obs.guidance.gate"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "mandatory"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "chapter-purpose",
+      "type": "chapter",
+      "note": "purpose",
+      "fields": {
+        "chapter": "Purpose",
+        "title": "Purpose",
+        "depth": "0",
+        "slug": "purpose",
+        "sourcePath": "purpose.md"
+      }
+    },
+    {
+      "id": "chapter-scope",
+      "type": "chapter",
+      "note": "scope",
+      "fields": {
+        "chapter": "Scope",
+        "title": "Scope",
+        "depth": "0",
+        "slug": "scope",
+        "sourcePath": "scope.md"
+      }
+    },
+    {
+      "id": "chapter-risks",
+      "type": "chapter",
+      "note": "risks",
+      "fields": {
+        "chapter": "Risks",
+        "title": "Risks",
+        "depth": "0",
+        "slug": "risks",
+        "sourcePath": "risks.md"
+      }
+    },
+    {
+      "id": "document-metadata-title",
+      "type": "documentMetadata",
+      "fields": {
+        "key": "title",
+        "value": "Requirements"
+      }
+    }
+  ],
+  "semanticResources": [],
+  "diagnostics": [],
+  "capabilities": [
+    "chapter-inclusion",
+    "manifest",
+    "markdown",
+    "markdown-frontmatter",
+    "profiles",
+    "templates"
+  ],
+  "cssSnippets": [],
+  "components": []
+}

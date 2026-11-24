@@ -193,9 +193,13 @@ def test_wikilinks_resolve_to_chapter_routes(document) -> None:
 
 def test_chapter_frontmatter_feeds_the_note_not_its_body(document) -> None:
     intro = _notes(document)["intro"]
-    assert intro["frontmatter"] == {"owner": "Ada", "tags": ["a", "b"]}
-    assert intro["frontmatterHtml"] == {"owner": "Ada", "tags": "a, b"}
+    derived = {"template": "requirements", "version": "2"}
+    assert intro["frontmatter"] == {"owner": "Ada", "tags": ["a", "b"], "derived_from": derived}
+    assert intro["frontmatterHtml"] == {"owner": "Ada", "tags": "a, b", "derived_from.template": "requirements",
+                                        "derived_from.version": "2"}
     assert "owner" not in intro["html"]
+    # The template it is filled from shows as facts in the body (obs capabilities/templates).
+    assert '<dl class="template-facts" data-template-part="derived-from">' in intro["html"]
 
 
 def test_the_page_has_no_chevron_and_no_table_above_the_chapter(document) -> None:
