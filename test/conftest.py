@@ -112,14 +112,16 @@ def pytest_configure(config):
 
 def pytest_sessionstart(session):
     """A run installs this repository's Node test package where it is missing or stale, as the
-    core's suite installs its own (test/suite.py, install_node_packages); the JUnit report, where the
+    core's suite installs its own (test/suite.py, install_node_packages), and the headless shell the
+    installed Playwright pins where it is missing (install_pinned_shell); the JUnit report, where the
     run writes one, names the worker count (test/suite.py)."""
     if not hasattr(session.config, "workerinput"):
         lock = Path(tempfile.gettempdir()) / "obs-html-node-setup.lock"
         try:
             with FileLock(lock):
                 suite.install_node_packages([NODE_PACKAGE])
-        except suite.InstallError as error:
+                install_pinned_shell(suite.playwright_browsers())
+        except (suite.InstallError, BrowserEngineError) as error:
             pytest.exit(str(error), returncode=1)
     suite.record_workers(session.config)
 
@@ -350,17 +352,49 @@ class BrowserEngineError(RuntimeError):
     """A browser engine the tests need is not installed; the message names where it was looked for and the remedy."""
 
 
-def headless_shell(browsers: Path) -> str:
+def pinned_revision(package=None) -> str:
+    """The chromium-headless-shell revision the installed Playwright names in its browsers.json: the
+    engine CI installs and the tests pass on. A host whose browsers folder already holds another
+    revision, as a Claude Code cloud container holds a newer one, gives a newer Chromium whose
+    sandboxed frames report a focus without user activation as a console error."""
+    import playwright
+
+    package = package or Path(playwright.__file__).parent / "driver" / "package"
+    browsers = json.loads((package / "browsers.json").read_text(encoding="utf-8"))["browsers"]
+    return next(entry["revision"] for entry in browsers if entry["name"] == "chromium-headless-shell")
+
+
+def headless_shell(browsers: Path, revision: str | None = None) -> str:
     """The bulk browser tier's engine (obs quality.md, Testing boundaries): test/suite.py's
-    HEADLESS_SHELL, the newest revision installed in ``browsers``."""
-    shell = suite.headless_shell(browsers)
-    if shell is None:
+    HEADLESS_SHELL at the revision the installed Playwright pins (pinned_revision), in ``browsers``,
+    or a failure that names it; never another revision installed beside it."""
+    revision = revision or pinned_revision()
+    folder, platform, executable = suite.HEADLESS_SHELL
+    found = sorted((browsers / folder.replace("*", revision)).glob(f"{platform}/{executable}"))
+    if not found:
         raise BrowserEngineError(
             f"test/conftest.py: the browser tests' engine, test/suite.py's HEADLESS_SHELL (Playwright's "
-            f"chromium-headless-shell), is not installed in {browsers} ({'/'.join(suite.HEADLESS_SHELL)}). "
-            f"Remedy: run `{suite.SETUP_COMMAND}` from the repository root, or set PLAYWRIGHT_BROWSERS_PATH "
-            "to the folder that holds it.")
-    return shell
+            f"chromium-headless-shell) at revision {revision}, which the installed Playwright pins, is not "
+            f"installed in {browsers} ({'/'.join(suite.HEADLESS_SHELL)}). Remedy: run "
+            f"`{' '.join(suite.BROWSER_INSTALL)}`, which a test run does where it is missing, or set "
+            "PLAYWRIGHT_BROWSERS_PATH to the folder that holds it.")
+    return str(found[-1])
+
+
+def install_pinned_shell(browsers: Path, run=subprocess.run) -> bool:
+    """Install the pinned headless shell (headless_shell) with Playwright where ``browsers`` lacks it,
+    beside any other revision there; whether it installed."""
+    try:
+        headless_shell(browsers)
+        return False
+    except BrowserEngineError:
+        pass
+    result = run(suite.BROWSER_INSTALL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    if result.returncode != 0:
+        raise suite.InstallError(f"test/conftest.py: `{' '.join(suite.BROWSER_INSTALL)}` failed (exit code "
+                                 f"{result.returncode}).\n{result.stdout}")
+    headless_shell(browsers)
+    return True
 
 
 # The pools' engines, as a crash or a failed launch names them.
