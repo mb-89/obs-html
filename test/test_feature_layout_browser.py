@@ -100,3 +100,43 @@ def test_the_home_chooser_closes_on_a_click_on_the_menu_or_a_docked_bar(door_art
     assert chooser.count() == 0, "a click inside a docked bar closes the chooser"
     page.evaluate("() => { obsArtifact.closeBar('toc'); obsPages.setPaged(false); }")
     assert errors == []
+
+
+# The left edge of each heading's text below the chapter title and of the body text beside it:
+# paragraphs, lists and tables that are a chapter's or a heading section's own blocks.
+EDGES = """() => {
+    const body = document.querySelector('#prose .chapter-body');
+    const own = ':is(.chapter-body, .heading-section-body) >';
+    const left = (element) => Math.round(element.getBoundingClientRect().left * 10) / 10;
+    const headings = [...body.querySelectorAll('h2, h3, h4, h5, h6')].map((heading) => {
+        const range = document.createRange();
+        range.selectNodeContents(heading);
+        return [heading.tagName + ' ' + heading.textContent.trim(), Math.round(range.getBoundingClientRect().left * 10) / 10];
+    });
+    const blocks = [...body.querySelectorAll(`${own} p, ${own} ul, ${own} ol, ${own} table`)]
+        .map((block) => [block.tagName + ' ' + block.textContent.trim().slice(0, 20), left(block)]);
+    return {headings, blocks};
+}"""
+
+
+@pytest.mark.hot("features-desktop")
+@pytest.mark.browser
+@pytest.mark.parametrize("layout", ["screens", "scrolling"])
+@pytest.mark.parametrize("width", [390, 1100])
+def test_a_headings_text_starts_at_the_left_edge_of_the_body_under_it(opened, layout: str, width: int) -> None:
+    """A heading's text and the paragraphs, lists and tables under it share one left edge, in the
+    screens and the scrolling layout (artifact-ui.md, Content sections), so no text reads as if it
+    belonged to no heading. The layout is the root's screens-mode class (pages.js, reader-startup.js),
+    the only switch the stylesheets read; the feature fixture opens in screens."""
+    page, frame = opened
+    page.evaluate("width => document.getElementById('artifact').style.width = width", f"{width}px")
+    frame.evaluate("""screens => {
+        document.documentElement.classList.toggle('screens-mode', screens);
+        obsArtifact.activateChapter('prose');
+    }""", layout == "screens")
+    edges = frame.evaluate(EDGES)
+    assert {name.split()[0] for name, _ in edges["headings"]} >= {"H2"}, edges
+    assert {name.split()[0] for name, _ in edges["blocks"]} >= {"P", "OL", "UL"}, edges
+    body = {left for _, left in edges["blocks"]}
+    assert len(body) == 1, edges
+    assert [(name, left) for name, left in edges["headings"] if abs(left - next(iter(body))) > 0.5] == [], edges
