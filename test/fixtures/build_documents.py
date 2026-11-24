@@ -412,7 +412,8 @@ CARDS = '{"version": 1, "cards": [{"title": "Items", "body": "Ranked: [[rankedIt
 def document(root: Path) -> None:
     """The adapter's main fixture (conftest.py's FIXTURE): a paged manifest with a cover, a chapter
     with a nested chapter, a Base and command fences, an appendix with figures (a Mermaid and a
-    PlantUML diagram among them, an equation figure, a decision figure and a timeline figure), a callout, a two-column block, cards and a register, a count quantity and a glossary note with a property editor. Its one
+    PlantUML diagram among them, an equation figure, a decision figure and a timeline figure), a callout, a two-column block, cards and a register, a count quantity and a glossary note with a property editor; its intro names the template it is
+    filled from (obs capabilities/templates). Its one
     diagnostic, the link to the missing note, is the one the CLI test reads on stderr."""
     (root / "images").mkdir()
     (root / "images" / "logo.png").write_bytes(base64.b64decode(
@@ -426,7 +427,7 @@ def document(root: Path) -> None:
         "obs: {document: true}\n---\n"
         "- [[intro]]\n  - [[guide/usage]]\n- [[appendix]]\n\nA short <abstract>.\n", encoding="utf-8")
     (root / "intro.md").write_text(
-        "---\nowner: Ada\ntags: [a, b]\n---\n# Intro\n\n"
+        "---\nowner: Ada\ntags: [a, b]\nderived_from: {template: requirements, version: '2'}\n---\n# Intro\n\n"
         "See [[guide/usage#Details|the details]], [the site](https://example.org/?a=1&b=2) and "
         "![a logo](images/logo.png). [[missing|gone]] `x < y` #mark/risk/limit\n\n"
         "![[guide/usage]]\n\n1. one\n2. two\n\n"
@@ -787,13 +788,14 @@ def features(root: Path) -> None:
     for passing-rows, and whose fourth opens a row with only its rank, for detail-fields; a second table,
     of two issue notes, that declares a live source, for live-source; a pipe table, for pipe-tables;
     a figure reference across chapters; a register and a property editor; a card group with metrics
-    and a quantity link (FEATURE_CARDS). As in obs's spec, the
+    and a quantity link (FEATURE_CARDS); and the template the manifest is filled from, for templates. As in obs's spec, the
     chapters the reading script walks are nested three deep, with headings. Each chapter's
     interactive content is followed by text, as in a real document, but the card group, which ends
     the document, as a summary may. test_features.py fails where
     a registered feature is missing. Not a moved interim vault."""
     (root / "manifest.md").write_text(
-        "---\ntitle: Feature fixture\nobsHtml: {layout: screens, figures: {numbering: chapter}}\n---\n"
+        "---\ntitle: Feature fixture\nobsHtml: {layout: screens, figures: {numbering: chapter}}\n"
+        "derived_from: {template: requirements, version: '2'}\n---\n"
         "- [[overview]]\n- [[figures]]\n  - [[equations]]\n    - [[tables]]\n"
         "- [[prose]]\n- [[references]]\n", encoding="utf-8")
     (root / "overview.md").write_text(
@@ -895,12 +897,60 @@ def columns(root: Path) -> None:
         (root / f"item-{index}.md").write_text(f"---\nkind: item\nrank: {index}\n---\n", encoding="utf-8")
 
 
+TEMPLATE_NOTE = "spec/capabilities/templates.md"
+"""The core's note whose worked example the template and filled vaults are, file by file
+(test_templates.py checks they still are)."""
+TEMPLATE = {
+    "manifest.md": (
+        "---\ntitle: Requirements\nobs:\n  template: {name: requirements, version: \"2\", source: an exported "
+        "requirements template}\n---\n\n- [[purpose|Purpose]]\n- [[scope|Scope]]\n- [[risks|Risks]]\n\n"
+        "Fill one document per product from this template.\n"),
+    "purpose.md": (
+        "---\nobs:\n  guidance:\n    contents: The problem the product solves, and for whom.\n"
+        "    motivation: Every later section is judged against it.\n"
+        "    form: One paragraph of at most five sentences.\n    sources: The product brief.\n"
+        "    gate: mandatory\n---\n\n{{slot}}\n"),
+    "scope.md": (
+        "---\nobs:\n  guidance:\n    contents: What the product does and what it leaves to others.\n"
+        "    form: Two lists, in scope and out of scope.\n    gate: mandatory\n---\n\n{{slot}}\n"),
+    "risks.md": (
+        "---\nobs:\n  guidance:\n    contents: The risks that could stop the product, each with its owner.\n"
+        "    motivation: A risk without an owner is not handled.\n    gate: judgment\n---\n\n{{slot}}\n"),
+}
+"""The worked example's folder ``template/``: a template of three nodes, ``requirements`` at version 2."""
+FILLED = {
+    "manifest.md": (
+        "---\ntitle: Pump controller requirements\nderived_from: {template: requirements, version: \"2\"}\n"
+        "---\n\n- [[purpose|Purpose]]\n- [[scope|Scope]]\n- [[risks|Risks]]\n"),
+    "purpose.md": "The pump controller keeps the tank level between its limits for the plant operators.\n",
+    "scope.md": ("- In scope: the level loop and its alarms.\n"
+                 "- Out of scope: the pump drives, which the drive supplier owns.\n"),
+    "risks.md": "The level sensor may drift; the instrument team owns its calibration.\n",
+}
+"""The worked example's folder ``document/``: one document filled from that template."""
+
+
+def template(root: Path) -> None:
+    """test_templates.py's template vault: the folder ``template/`` of the worked example of obs
+    capabilities/templates, as it stands. Not a moved interim vault."""
+    for name, text in TEMPLATE.items():
+        (root / name).write_text(text, encoding="utf-8")
+
+
+def filled(root: Path) -> None:
+    """test_templates.py's filled vault: the folder ``document/`` of the same worked example. Not a
+    moved interim vault."""
+    for name, text in FILLED.items():
+        (root / name).write_text(text, encoding="utf-8")
+
+
 VAULTS = {"figures": figures, "equations": equations, "pugh": pugh, "decision-verdict": decision_verdict, "document": document, "complete": complete, "artifact-change": artifact_change, "projections": projections,
           "table-help": table_help, "structural": structural, "callouts": callouts,
           "registers": registers, "cards": cards,
           "property-editor-projection": property_editor_projection, "self-link": self_link,
           "figure-references": figure_references, "source-archive": source_archive,
-          "features": features, "columns": columns, "bottom-lines": bottom_lines}
+          "features": features, "columns": columns, "bottom-lines": bottom_lines,
+          "template": template, "filled": filled}
 RUNS_COMMANDS = {"document"}
 """The vaults whose cmd fences the build runs (obs-document --execute-commands): ``echo`` only."""
 EMBEDS_SOURCE = {"source-archive", "features"}

@@ -162,6 +162,7 @@ CASES = {
     "cards": ([fixture("cards")], [plain(), with_figure("pugh", PUGH)]),
     "property-editor": ([fixture("property-editor-projection")], [plain(), with_guided_card()]),
     "columns": ([fixture("columns")], [plain(), fixture("cards")]),
+    "templates": ([fixture("template"), fixture("filled")], [plain(), fixture("columns")]),
     "shown-copies": ([fixture("features")], [plain(), fixture("columns")]),
     "bottom-lines": ([fixture("features"), fixture("bottom-lines")], [plain(), fixture("columns"), fixture("callouts")]),
     "source-file": ([plain()], [(plain(), SOURCE_FILES_OFF)]),

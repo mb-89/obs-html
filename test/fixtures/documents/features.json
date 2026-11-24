@@ -10,6 +10,10 @@
         "figures": {
           "numbering": "chapter"
         }
+      },
+      "derived_from": {
+        "template": "requirements",
+        "version": "2"
       }
     },
     "abstract": [
@@ -23,6 +27,10 @@
               "figures": {
                 "numbering": "chapter"
               }
+            },
+            "derived_from": {
+              "template": "requirements",
+              "version": "2"
             }
           }
         },
@@ -68,8 +76,45 @@
                 "text": "chapter"
               }
             ]
+          },
+          {
+            "type": "field",
+            "attrs": {
+              "name": "derived_from.template"
+            },
+            "children": [
+              {
+                "type": "text",
+                "attrs": {},
+                "children": [],
+                "text": "requirements"
+              }
+            ]
+          },
+          {
+            "type": "field",
+            "attrs": {
+              "name": "derived_from.version"
+            },
+            "children": [
+              {
+                "type": "text",
+                "attrs": {},
+                "children": [],
+                "text": "2"
+              }
+            ]
           }
         ]
+      },
+      {
+        "type": "templates",
+        "attrs": {
+          "part": "derived-from",
+          "template": "requirements",
+          "version": "2"
+        },
+        "children": []
       },
       {
         "type": "manifest",
@@ -5723,6 +5768,10 @@
           "figures": {
             "numbering": "chapter"
           }
+        },
+        "derived_from": {
+          "template": "requirements",
+          "version": "2"
         }
       },
       "fieldNodes": [
@@ -5765,6 +5814,34 @@
               "attrs": {},
               "children": [],
               "text": "chapter"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "derived_from.template"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "requirements"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "attrs": {
+            "name": "derived_from.version"
+          },
+          "children": [
+            {
+              "type": "text",
+              "attrs": {},
+              "children": [],
+              "text": "2"
             }
           ]
         }
@@ -6047,6 +6124,17 @@
         "key": "title",
         "value": "Feature fixture"
       }
+    },
+    {
+      "id": "document-metadata-derived-from",
+      "type": "documentMetadata",
+      "fields": {
+        "key": "derived_from",
+        "value": {
+          "template": "requirements",
+          "version": "2"
+        }
+      }
     }
   ],
   "semanticResources": [],
@@ -6074,6 +6162,7 @@
     "queries",
     "references",
     "registers",
+    "templates",
     "timeline-figures",
     "wikilinks"
   ],
@@ -6227,7 +6316,7 @@
       },
       {
         "path": "manifest.md",
-        "data": "LS0tCnRpdGxlOiBGZWF0dXJlIGZpeHR1cmUKb2JzSHRtbDoge2xheW91dDogc2NyZWVucywgZmlndXJlczoge251bWJlcmluZzogY2hhcHRlcn19Ci0tLQotIFtbb3ZlcnZpZXddXQotIFtbZmlndXJlc11dCiAgLSBbW2VxdWF0aW9uc11dCiAgICAtIFtbdGFibGVzXV0KLSBbW3Byb3NlXV0KLSBbW3JlZmVyZW5jZXNdXQo="
+        "data": "LS0tCnRpdGxlOiBGZWF0dXJlIGZpeHR1cmUKb2JzSHRtbDoge2xheW91dDogc2NyZWVucywgZmlndXJlczoge251bWJlcmluZzogY2hhcHRlcn19CmRlcml2ZWRfZnJvbToge3RlbXBsYXRlOiByZXF1aXJlbWVudHMsIHZlcnNpb246ICcyJ30KLS0tCi0gW1tvdmVydmlld11dCi0gW1tmaWd1cmVzXV0KICAtIFtbZXF1YXRpb25zXV0KICAgIC0gW1t0YWJsZXNdXQotIFtbcHJvc2VdXQotIFtbcmVmZXJlbmNlc11dCg=="
       },
       {
         "path": "overview.md",

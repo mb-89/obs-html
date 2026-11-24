@@ -387,6 +387,9 @@ FEATURES: tuple[Feature, ...] = (
                      _bottom_lines, ()),)),
     Feature("columns", "a two-column block (obs capabilities/columns): its side-by-side and stacking rules",
             _marked("data-content-columns"), host=False, base_styles=("columns.css",)),
+    Feature("templates", "a template's guidance, slot or template mark, or a filled document's derived-from "
+            "(obs capabilities/templates): their rules, apart from chapter text", _marked("data-template-part"),
+            host=False, base_styles=("templates.css",)),
     Feature("source-file", "a note with a Source file row (artifact.sourceFileLinks): its front matter card's "
             "last row in the Comments bar, the note's vault path, a link where the core passed --vault-link "
             "(cli.md, Source file links); the card's own rules lay it out", _source_file, ("source-file.js",),

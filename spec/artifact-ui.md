@@ -309,6 +309,26 @@ first, and whose first paragraph, its lead, goes up one level.
 - **Only where used.** What the box adds to the page's style and script ships only on a page that
   has one ([[architecture#Rendering and runtime]]); a vault without a bottom line renders as before.
 
+### Templates
+
+A template is a document skeleton filled many times (obs capabilities/templates); its guidance
+tells an author what to write and is never text they wrote.
+
+- **Guidance apart.** A template node's guidance renders where the core places it, after the
+  node's frontmatter: an `aside` of class `template-guidance` labelled "Guidance", its title
+  naming the gate (`mandatory` or `judgment`), then one labelled row per text in the core's order,
+  Contents, Motivation, Form and Sources, each as the core's inline nodes. It is drawn in the
+  interface font and muted ink on a dashed edge, so it never reads as chapter text.
+- **The slot.** The node's slot renders after the guidance as an empty area with a dashed accent
+  edge, labelled "To be filled in" by its style alone: the page holds no text for it.
+- **Which template.** A template manifest's name, version and source, and a filled document's
+  template and version, render as a list of facts at the top of their page, on Home right under
+  the cover, beside the document's metadata; the same fields stay in the note's front matter card.
+- **A stale Document.** A part other than `template`, `derived-from`, `guidance` and `slot`, or a
+  guidance child that is no field of those four names, is refused as a stale Document.
+- **Only where used.** Their rules (`templates.css`) ship only on a page that has a template part
+  ([[architecture#Rendering and runtime]]).
+
 ## Interactive engineering figures
 
 - A shared figure presentation owns images, screenshots, plots, and diagrams, not only

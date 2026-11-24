@@ -26,7 +26,7 @@ obs-html-inspect = "obs_html.pdf_inspect:main"
 # The core release this adapter is built and tested against: it reads the core's schemas, its Document
 # contract, as the obs package's data, and imports no core module. The tests read the core's checkout
 # at the same tag beside this repository, ../obs (README "Core").
-obs = { git = "https://github.com/mb-89/obs", tag = "v10.2.0" }
+obs = { git = "https://github.com/mb-89/obs", tag = "v10.4.0" }
 
 [dependency-groups]
 dev = [

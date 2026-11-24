@@ -233,7 +233,7 @@ wheels = [
 [[package]]
 name = "obs"
 version = "0.2.3"
-source = { git = "https://github.com/mb-89/obs?tag=v10.2.0#d8ed1a51703fb7ea0f87ce04d0c7ad1e09ca7867" }
+source = { git = "https://github.com/mb-89/obs?tag=v10.4.0#d6358a1c09548f77f9b67bfdb5bb16a4b484e81c" }
 dependencies = [
     { name = "jsonschema" },
     { name = "markdown-it-py" },
@@ -275,7 +275,7 @@ requires-dist = [
     { name = "jsonschema", specifier = ">=4.26.0" },
     { name = "latex2mathml", specifier = ">=3.81.1" },
     { name = "markdown-it-py", specifier = ">=3.0" },
-    { name = "obs", git = "https://github.com/mb-89/obs?tag=v10.2.0" },
+    { name = "obs", git = "https://github.com/mb-89/obs?tag=v10.4.0" },
     { name = "pillow", specifier = ">=13.0.0" },
     { name = "playwright", specifier = ">=1.64.0" },
     { name = "pypdf", specifier = ">=6.21.2" },

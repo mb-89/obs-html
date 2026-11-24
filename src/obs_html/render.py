@@ -1002,6 +1002,48 @@ def _property_editor(node: dict[str, object], context: Context) -> str:
             f'aria-label="{escape(spec["label"], quote=True)}" rows="2"></textarea></label>\n')
 
 
+GUIDANCE_FIELDS = {"contents": "Contents", "motivation": "Motivation", "form": "Form", "sources": "Sources"}
+"""A guidance's texts by their key, in the core's order, with the label its row shows
+(obs capabilities/templates, Document node)."""
+
+
+def _template_part(node: dict[str, object], context: Context) -> str:
+    """A ``templates`` node, by ``attrs.part`` (obs capabilities/templates): a template node's
+    guidance as a guidance block, apart from chapter text, its gate and one labelled row per text;
+    its slot as an empty fill area; and a template manifest's template, or a filled document's
+    derived-from, as a row of facts at the top of the home page, beside the cover's metadata
+    (artifact-ui.md, Templates). templates.css styles them."""
+    attrs = node["attrs"]
+    part = attrs.get("part")
+    if part == "guidance":
+        rows = []
+        for index, child in enumerate(node["children"]):
+            name = child["attrs"].get("name")
+            if child["type"] != "field" or name not in GUIDANCE_FIELDS:
+                raise _stale(context, ["children", index], "is no guidance field; the core gives one field "
+                             f"node per text, named one of {', '.join(GUIDANCE_FIELDS)}")
+            with _at(context, "children", index), _inlined(context):
+                rows.append(f'<dt>{GUIDANCE_FIELDS[name]}</dt><dd data-guidance-field="{name}">'
+                            f'{_nodes(child["children"], context)}</dd>')
+        gate = escape(str(attrs.get("gate", "")))
+        return (f'<aside class="template-guidance" data-template-part="guidance" data-template-gate="{gate}" '
+                'aria-label="Guidance">\n'
+                f'<header class="template-guidance-title">Guidance <span class="template-gate">{gate}</span>'
+                f'</header>\n<dl class="template-guidance-fields">{"".join(rows)}</dl>\n</aside>\n')
+    if part == "slot":
+        return '<div class="template-slot" data-template-part="slot" role="note" aria-label="To be filled in"></div>\n'
+    if part == "template":
+        facts = [("Template", attrs["name"]), ("Version", attrs["version"])]
+        facts += [("Source", attrs["source"])] if "source" in attrs else []
+    elif part == "derived-from":
+        facts = [("Derived from template", attrs["template"]), ("Version", attrs["version"])]
+    else:
+        raise _stale(context, ["attrs", "part"], f"is {part!r}, not one of the template parts template, "
+                     "derived-from, guidance or slot")
+    rows = "".join(f"<dt>{label}</dt><dd>{escape(str(value))}</dd>" for label, value in facts)
+    return f'<dl class="template-facts" data-template-part="{part}">{rows}</dl>\n'
+
+
 CAPABILITIES: dict[str, Renderer] = {
     "artifact-presentation": _nothing,
     "attachments": _attachment,
@@ -1031,6 +1073,7 @@ CAPABILITIES: dict[str, Renderer] = {
     "queries": _nothing,
     "references": _references,
     "registers": _register,
+    "templates": _template_part,
     "timeline-figures": _nothing,  # A figure kind: figures.py draws its body.
     "wikilinks": _wikilink,
 }
