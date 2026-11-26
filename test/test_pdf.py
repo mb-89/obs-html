@@ -14,7 +14,7 @@ from pypdf import PdfReader
 
 from browser import door
 from conftest import FIXTURE, ROOT
-from documents import chapter, document, node
+from documents import chapter, document, heading, node
 from obs_html.artifact_data import decode_artifact_data
 from obs_html.config import load_config
 from obs_html.render import render
@@ -70,6 +70,8 @@ def test_rendered_check_keeps_open_point_after_a_paragraph_heading(pdf_browser, 
     points = next(chapter for chapter in source["chapters"] if chapter["id"] == "points")
     register = next(item for item in types["content"] if item["type"] == "registers")
     types["content"].remove(register)
+    paragraph_index = next(index for index, item in enumerate(types["content"]) if item["type"] == "paragraph")
+    types["content"].insert(paragraph_index, heading(2, "Context"))
     points["content"].append(register)
     register["attrs"]["base"]["views"][2]["filters"] = 'type == "open_point"'
     register["attrs"]["rows"][2] = ["tag-types-open-point-types-open"]

@@ -340,7 +340,8 @@ def _bottom_lines(change=None) -> dict[str, str]:
     document = json.loads(BOTTOM_LINES.read_text(encoding="utf-8"))
     if change is not None:
         change(document, _chapters_of(document))
-    return {note["slug"]: note["html"] for note in decode_artifact_data(render(document, CONFIG))["notes"]}
+    return {note["slug"]: note.get("chapterHtml", note["html"])
+            for note in decode_artifact_data(render(document, CONFIG))["notes"]}
 
 
 def _chapters_of(document: dict) -> dict[str, dict]:
@@ -371,13 +372,12 @@ def test_a_bottom_line_renders_under_the_chapter_title_wherever_authored() -> No
     notes = _bottom_lines()
 
     product, plan = notes["product"], notes["plan"]
-    assert re.match(r'<p class="paragraph-heading"[^>]*><strong class="heading-name" id="product--product"'
-                    r'[^>]*>Product</strong><br>Intro prose\.</p>\n' + re.escape(BOX) + ' data-node-id="callouts-',
+    assert re.match(r'<h1 id="product--product"[^>]*><span class="heading-name">Product</span></h1>\n'
+                    + re.escape(BOX) + ' data-node-id="callouts-',
                     product)
-    assert product.index("Intro prose.") < product.index(_box(product))
+    assert product.index("Intro prose.") > product.index(_box(product))
     assert product.index("More product prose.") > product.index(_box(product))
-    product_stream = product.split('<section class="manifest-subchapter"', 1)[0]
-    assert product_stream.count('data-callout="bluf"') == 1  # Nested chapters retain their own boxes.
+    assert product.count('data-callout="bluf"') == 1  # Nothing at the authored place.
     assert re.match(re.escape(BOX) + ' data-node-id="callouts-', plan)
     assert plan.index(_box(plan)) < plan.index("Steps</span></h3>")
     assert '<header class="content-card-title">Why it matters</header>' in _box(notes["vision"])

@@ -3,7 +3,7 @@ import pytest
 
 from artifacts import artifact_html
 from browser.viewer import open_viewer
-from documents import chapter, document, heading, paragraph
+from documents import chapter, document, heading, node, paragraph, text
 
 
 LONG_PARAGRAPHS = tuple(paragraph("A long chapter paragraph with enough text to occupy several lines. " * 8)
@@ -91,6 +91,38 @@ def test_short_long_short_subchapters_stay_separate_from_the_long_one(tmp_path, 
     assert before and after
     assert max(before) < min(long)
     assert max(long) < min(after)
+    assert errors == []
+
+
+@pytest.mark.browser
+def test_leaf_chapter_titles_stay_headings_above_tables_and_body_headings(tmp_path, reader_browser) -> None:
+    table = {**node("table"), "children": [
+        {**node("table-row"), "children": [{**node("table-cell"), "children": [text("Value")]}]},
+    ]}
+    source = document("Leaves", chapter("parent", "Parent", children=(
+        chapter("prose", "Prose", heading(1, "Prose"), paragraph("Introduction."), table),
+        chapter("table", "Table", table),
+        chapter("context", "Chapter", heading(1, "Chapter"), heading(2, "Context"), paragraph("Details.")),
+        chapter("text", "Text", heading(1, "Text"), paragraph("Plain text.")),
+    )), metadata={"obsHtml": {"numberedHeadings": True}})
+    frame, errors = _open(tmp_path, reader_browser, source)
+    evidence = frame.evaluate("""async () => {
+        await obsArtifact.activateChapter("prose");
+        await obsArtifact.whenChapterReady();
+        return ["prose", "table", "context", "text"].map((id) => {
+            const section = document.querySelector(`[data-chapter-body] #${id}`);
+            const title = section.querySelector("h2");
+            const body = section.querySelector(".paragraph-heading");
+            return {title: title?.textContent.trim(), body: body?.textContent.trim() || null,
+                table: Boolean(section.querySelector("table"))};
+        });
+    }""")
+    assert evidence == [
+        {"title": "1.1 Prose", "body": None, "table": True},
+        {"title": "1.2 Table", "body": None, "table": True},
+        {"title": "1.3 Chapter", "body": "ContextDetails.", "table": False},
+        {"title": "1.4 Text", "body": None, "table": False},
+    ]
     assert errors == []
 
 

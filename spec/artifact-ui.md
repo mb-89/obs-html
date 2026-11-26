@@ -1045,8 +1045,11 @@ row order; this section owns how this adapter draws it.
   the chapter's position in the nested manifest (for example `1`, `1.1`, `1.1.1`). The same
   number appears in the chapter heading, Contents and the sidebar.
 
-- A chapter's deepest authored heading level is a paragraph heading when it is followed by a
-  paragraph: the title is bold, followed by a line break and the paragraph text, with no
+- A manifest chapter title always remains a heading, even without subchapters or before a table;
+  its number appears when numbering is enabled, and a missing authored first-level title is
+  supplied from the manifest. The deepest
+  heading level inside the note body is a paragraph heading when followed by a paragraph:
+  the title is bold, followed by a line break and the paragraph text, with no
   indentation. Paragraph marks retain their records, anchors, rail and configured border.
   The Settings bar's Show heading names control hides or shows heading titles
   throughout the artifact without changing chapter numbers or structure.

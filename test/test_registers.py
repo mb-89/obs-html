@@ -85,8 +85,8 @@ def test_a_register_renders_between_the_paragraphs_of_the_text_around_it() -> No
     and an embed alone leaves no empty paragraph."""
     alone = render(REGISTERS, CONFIG)
     notes = {note["slug"]: note["html"] for note in decode_artifact_data(alone)["notes"]}
-    assert ('<p class="paragraph-heading"><strong class="heading-name" id="points--points">Points</strong>'
-            '<br>All views.</p>\n<div class="data-table-placeholder" ') \
+    assert ('<h1 id="points--points"><span class="heading-name">Points</span></h1>\n'
+            '<p>All views.</p>\n<div class="data-table-placeholder" ') \
         in without_node_ids(notes["points"])
     register = _register(REGISTERS, "points")
     document = build("Doc", chapter(
@@ -95,7 +95,8 @@ def test_a_register_renders_between_the_paragraphs_of_the_text_around_it() -> No
     ), records=tuple(REGISTERS["records"]))
     html = next(note["html"] for note in decode_artifact_data(render(document, CONFIG))["notes"]
                 if note["slug"] == "one")
-    assert html.startswith('<p>Before </p>\n<div class="data-table-placeholder" data-base-table="one-base-1"></div>\n'
+    assert html.startswith('<h1 class="manifest-heading"><span class="heading-name">One</span></h1>\n'
+                           '<p>Before </p>\n<div class="data-table-placeholder" data-base-table="one-base-1"></div>\n'
                            "<p> after</p>\n"), html
 
 

@@ -204,10 +204,12 @@ def test_numbered_heading_is_kept_when_the_first_authored_heading_is_deeper() ->
 
     notes = _notes(source)
 
-    assert re.search(r'<h2 id="first--overview"><span class="chapter-number">1</span> '
-                     r'<span class="heading-name">Overview</span></h2>', notes["first"]["html"])
-    assert re.search(r'<h3 id="nested--details"><span class="chapter-number">1\.1</span> '
-                     r'<span class="heading-name">Details</span></h3>', notes["nested"]["html"])
+    assert '<h1 class="manifest-heading"><span class="chapter-number">1</span> ' \
+           '<span class="heading-name">First</span></h1>' in notes["first"]["html"]
+    assert '<h2 class="manifest-heading"><span class="chapter-number">1.1</span> ' \
+           '<span class="heading-name">Nested</span></h2>' in notes["nested"]["html"]
+    assert '<span class="heading-name">Overview</span></h2>' in notes["first"]["html"]
+    assert '<span class="heading-name">Details</span></h3>' in notes["nested"]["html"]
 
 
 def test_documents_from_a_template_number_their_headings_by_default() -> None:
@@ -268,6 +270,33 @@ def test_lowest_level_heading_joins_its_paragraph_as_a_bold_paragraph_heading(do
     assert '<h2' not in html
 
 
+def test_manifest_headings_are_real_headings_even_for_leaf_chapters() -> None:
+    table = {**node("table"), "children": [
+        {**node("table-row"), "children": [{**node("table-cell"), "children": [text("Value")]}]},
+    ]}
+    source = build("Leaves", chapter("parent", "Parent", children=(
+        chapter("with-prose", "With prose", heading(1, "With prose"), paragraph("Introduction."), table),
+        chapter("with-table", "With table", table),
+        chapter("with-context", "With context", heading(1, "With context"),
+                heading(2, "Context"), paragraph("Details.")),
+        chapter("body-heading", "Body heading", heading(2, "Context"), paragraph("Details.")),
+        chapter("text-only", "Text only", heading(1, "Text only"), paragraph("Plain text.")),
+    )), metadata={"obsHtml": {"numberedHeadings": True}})
+    notes = _notes(source)
+    for slug, number, title in (("with-prose", "1.1", "With prose"), ("with-table", "1.2", "With table"),
+                                ("with-context", "1.3", "With context"), ("body-heading", "1.4", "Body heading"),
+                                ("text-only", "1.5", "Text only")):
+        assert re.search(rf'<h2\b[^>]*><span class="chapter-number">{number}</span> '
+                         rf'<span class="heading-name">{title}</span></h2>', notes[slug]["html"])
+    assert "<table>" in notes["with-table"]["html"]
+    assert '<p>Plain text.</p>' in notes["text-only"]["html"]
+    assert 'paragraph-heading' not in notes["text-only"]["html"]
+    assert '<p class="paragraph-heading"><strong class="heading-name" id="with-context--context">Context</strong>' \
+           '<br>Details.</p>' in notes["with-context"]["html"]
+    assert '<p class="paragraph-heading"><strong class="heading-name" id="body-heading--context">Context</strong>' \
+           '<br>Details.</p>' in notes["body-heading"]["html"]
+
+
 def test_the_general_heading_name_toggle_is_available_in_every_artifact(document) -> None:
     html = _render(document)
 
@@ -280,7 +309,7 @@ def test_headings_carry_anchors_and_untitled_chapters_stay_as_authored(document)
     notes = _notes(document)
     assert ('<p class="paragraph-heading"><strong class="heading-name" id="guide-usage--details">'
             'Details</strong><br>Body.</p>') in without_node_ids(notes["guide-usage"]["html"])
-    assert without_node_ids(notes["appendix"]["html"]).startswith("<p>")  # As the interim: the reader names it.
+    assert without_node_ids(notes["appendix"]["html"]).startswith('<h1 class="manifest-heading">')
 
 
 def test_structural_nodes_render_escaped(document) -> None:
@@ -377,7 +406,8 @@ def test_numbered_paragraph_heading_keeps_the_bordered_mark_card(tmp_path) -> No
     note = next(note for note in decode_artifact_data(render(source, load_config(settings)))["notes"]
                 if note["slug"] == "guide")
     assert '<section class="content-card"><header class="content-card-title">Open Point</header>' in note["html"]
-    assert '<span class="semantic-mark-content"><span class="chapter-number">1</span> ' in note["html"]
+    assert '<h1 class="manifest-heading"><span class="chapter-number">1</span> ' in note["html"]
+    assert '<span class="semantic-mark-content"><strong class="heading-name"' in note["html"]
     assert 'class="semantic-mark-rail"' in note["html"]
     assert note["marks"][0]["anchor"] == "mark-guide-open-point-x"
 

@@ -103,6 +103,8 @@ class Context:
     """The manifest depth that offsets a chapter's authored headings when chapters share a page."""
     paragraph_heading_level: int = 0
     """The lowest rendered heading level in the current chapter."""
+    chapter_heading: dict[str, object] | None = None
+    """The authored first-level chapter title, which remains a heading."""
     numbered_headings: bool = False
     """Whether the manifest's chapter hierarchy has numbered headings."""
     where: list[object] = field(default_factory=list)
@@ -1364,7 +1366,8 @@ def _chapter_notes(chapters: list[dict[str, object]], context: Context, depth: i
         body = _note_body(chapter["content"], chapter["id"], [*where, index, "content"], context,
                           chapter.get("bottomLine"), context.percolated.get(chapter["id"], []),
                           record + "\n" if record else "")
-        body = _chapter_heading(body, chapter_number, chapter["title"], depth)
+        body = _chapter_heading(body, chapter_number, chapter["title"], depth,
+                                _chapter_title_node(chapter["content"]) is not None)
         context.answered_figures = {}
         notes.append(_note(depth, chapter["title"], chapter["id"], "", context.frontmatter, body, context,
                            chapter_number, chapter_page))
@@ -1375,22 +1378,21 @@ def _chapter_notes(chapters: list[dict[str, object]], context: Context, depth: i
     return notes
 
 
-def _chapter_heading(html: str, number: str, title: str, depth: int) -> str:
+def _chapter_heading(html: str, number: str, title: str, depth: int, has_title: bool) -> str:
     """Number a chapter's first heading, or provide its title when the note has no heading."""
     level = min(depth + 1, 6)
     pattern = re.compile(rf"(<h{level}\b[^>]*>)(.*?)(</h{level}>)", re.S)
-    match = pattern.search(html) or re.search(r"(<h[1-6]\b[^>]*>)(.*?)(</h[1-6]>)", html, re.S)
+    match = pattern.search(html) if has_title else None
     prefix = f'<span class="chapter-number">{escape(number)}</span> ' if number else ""
     if match:
         return html[:match.start(2)] + prefix + match.group(2) + html[match.end(2):]
-    paragraph_heading = re.search(
-        r'(<p class="paragraph-heading(?: [^"]*)?"[^>]*>(?:<span class="semantic-mark-content">)?)', html)
-    if paragraph_heading:
-        return html[:paragraph_heading.end()] + prefix + html[paragraph_heading.end():]
-    if re.search(r"<h[1-6]\b", html):
-        return html
     label = f'<span class="heading-name">{escape(title)}</span>'
     return f'<h{level} class="manifest-heading">{prefix}{label}</h{level}>\n{html}'
+
+
+def _chapter_title_node(nodes: list[dict[str, object]]) -> dict[str, object] | None:
+    first = next((node for node in nodes if node["type"] == "section"), None)
+    return first if first is not None and int(first["attrs"].get("level", 1)) == 1 else None
 
 
 def _page_chapter_html(chapter: dict[str, object], notes: dict[str, dict[str, object]]) -> str:
@@ -1428,6 +1430,7 @@ def _note_body(nodes: list[dict[str, object]], chapter: str, where: list[object]
     context.where = where[:-1]
     leads = _leads(children, context)
     context.chapter, context.marks = chapter, []
+    context.chapter_heading = _chapter_title_node(nodes) if chapter else None
     context.paragraph_heading_level = _lowest_heading_level(nodes, context.heading_level_offset)
     html, box = [], ""
     index = 0
@@ -1455,7 +1458,7 @@ def _note_body(nodes: list[dict[str, object]], chapter: str, where: list[object]
     body = "".join(html)
     heading = re.match(
         r'\s*(?:<h1\b.*?</h1>|(?:<section class="content-card">.*?</header>\n)?'
-        r'<p class="paragraph-heading(?: [^"]*)?".*?</p>\n?(?:</section>\n)?)', body, re.S
+        r'<p class="paragraph-heading(?: [^"]*)?".*?</p>\n?(?:</section>\n)?)\n?', body, re.S
     ) if after_heading else None
     cut = heading.end() if heading else 0
     return body[:cut] + box + under + body[cut:]
@@ -1839,7 +1842,8 @@ def _nodes(nodes: list[dict[str, object]], context: Context, key: str = "childre
 
 def _is_paragraph_heading(section: dict[str, object], paragraph: dict[str, object] | None,
                           context: Context) -> bool:
-    return bool(section["type"] == "section" and paragraph and paragraph["type"] == "paragraph" and
+    return bool(section is not context.chapter_heading and section["type"] == "section" and
+                paragraph and paragraph["type"] == "paragraph" and
                 min(max(int(section["attrs"].get("level", 1)) + context.heading_level_offset, 1), 6)
                 == context.paragraph_heading_level)
 
