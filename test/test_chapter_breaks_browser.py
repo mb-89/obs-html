@@ -51,6 +51,42 @@ def test_two_short_top_level_chapters_remain_separate_pages(tmp_path, reader_bro
 
 
 @pytest.mark.browser
+def test_arrows_walk_from_home_to_top_level_chapters_and_back(tmp_path, reader_browser) -> None:
+    source = document("Navigation", chapter("first", "First", children=(
+        _short("nested", "Nested"),
+    )), _short("second", "Second"))
+    frame, errors = _open(tmp_path, reader_browser, source)
+    evidence = frame.evaluate("""async () => {
+        await obsArtifact.activateChapter("home");
+        await obsArtifact.whenChapterReady();
+        const active = () => document.querySelector("[data-active-chapter]").dataset.chapter;
+        const next = document.querySelector('[data-step="1"]');
+        const previous = document.querySelector('[data-step="-1"]');
+        const result = {home: active(), homeNextEnabled: !next.disabled};
+        next.click();
+        await obsArtifact.whenChapterReady();
+        result.afterNext = active();
+        result.firstPreviousEnabled = !previous.disabled;
+        next.click();
+        await obsArtifact.whenChapterReady();
+        result.afterSecondNext = active();
+        previous.click();
+        await obsArtifact.whenChapterReady();
+        result.afterPrevious = active();
+        previous.click();
+        await obsArtifact.whenChapterReady();
+        result.backHome = active();
+        return result;
+    }""")
+    assert evidence == {
+        "home": "home", "homeNextEnabled": True, "afterNext": "first",
+        "firstPreviousEnabled": True, "afterSecondNext": "second",
+        "afterPrevious": "first", "backHome": "home",
+    }
+    assert errors == []
+
+
+@pytest.mark.browser
 def test_short_appendix_parts_share_a_page(tmp_path, reader_browser) -> None:
     appendix = chapter(
         "appendix", "Appendix", heading(1, "Appendix"), paragraph("Appendix contents."),

@@ -1166,7 +1166,9 @@ row order; this section owns how this adapter draws it.
 
   Search, grouping, sorting, and pagination do not activate it.
 - Previous and next controls sit at the left and right viewport edges. They are smaller
-  than mdBook's controls and highly transparent at rest.
+  than mdBook's controls and highly transparent at rest. In continuous and paged views,
+  Next from Home opens the first top-level chapter and Previous from that chapter returns
+  to Home; nested chapters do not add arrow stops.
 - Each chapter control has a larger invisible pointer area. Its arrow becomes less
   transparent when the pointer approaches, and is clearly visible on hover or focus.
 

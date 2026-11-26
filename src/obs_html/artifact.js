@@ -31,7 +31,7 @@
     const notes = artifactData.notes;
     const notesBySlug = new Map(notes.map((note) => [note.slug, note]));
     const outline = artifactData.toc.map((slug) => notesBySlug.get(slug));
-    const chapters = artifactData.pages.map((slug) => notesBySlug.get(slug));
+    const chapters = ["home", ...artifactData.pages].map((slug) => notesBySlug.get(slug));
     const tocSlugs = new Set(artifactData.toc);
     const queryProfile = artifactData.query || {scope: "chapters"};
     const contentTemplate = document.createElement("template");

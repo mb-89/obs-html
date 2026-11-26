@@ -47,6 +47,7 @@ A browser test takes its page and its artifact from the shared fixtures, runs on
 - Right: preserve both source nodes' block anchors when combining a heading and paragraph; wrong: test only that the old separate tags disappeared.
 - Right: render a paragraph heading's paragraph through the shared paragraph renderer; wrong: render only its inline text and lose marks and register records.
 - Right: keep a manifest chapter title as a heading before converting the note body's deepest heading; wrong: turn a chapter's only title into a paragraph heading.
+- Right: test arrows after explicitly opening Home and include it in the reader's walk; wrong: assume the top-level chapter page list contains Home.
 - Right: check authored prose against the local public-safety terms before committing; wrong: assume a common word cannot match a private term.
 - Right: scope a top-level chapter assertion before its nested-section wrappers; wrong: count descendant markup as if it belonged to the parent.
 
