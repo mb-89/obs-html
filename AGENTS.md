@@ -45,6 +45,7 @@ A browser test takes its page and its artifact from the shared fixtures, runs on
 - Right: serve a temporary artifact from loopback when the integrated browser rejects `file://` outside a trusted folder, then stop the server; wrong: leave a helper server running.
 - Right: use escaped output or UTF-8 file output for rendered Unicode in Windows PowerShell; wrong: assume the current console encoding accepts it.
 - Right: preserve both source nodes' block anchors when combining a heading and paragraph; wrong: test only that the old separate tags disappeared.
+- Right: render a paragraph heading's paragraph through the shared paragraph renderer; wrong: render only its inline text and lose marks and register records.
 - Right: scope a top-level chapter assertion before its nested-section wrappers; wrong: count descendant markup as if it belonged to the parent.
 
 ## Reader features

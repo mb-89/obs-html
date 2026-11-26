@@ -1383,7 +1383,8 @@ def _chapter_heading(html: str, number: str, title: str, depth: int) -> str:
     prefix = f'<span class="chapter-number">{escape(number)}</span> ' if number else ""
     if match:
         return html[:match.start(2)] + prefix + match.group(2) + html[match.end(2):]
-    paragraph_heading = re.search(r'(<p class="paragraph-heading"[^>]*>)', html)
+    paragraph_heading = re.search(
+        r'(<p class="paragraph-heading(?: [^"]*)?"[^>]*>(?:<span class="semantic-mark-content">)?)', html)
     if paragraph_heading:
         return html[:paragraph_heading.end()] + prefix + html[paragraph_heading.end():]
     if re.search(r"<h[1-6]\b", html):
@@ -1453,7 +1454,8 @@ def _note_body(nodes: list[dict[str, object]], chapter: str, where: list[object]
     context.chapter, context.where = "", []
     body = "".join(html)
     heading = re.match(
-        r"\s*(?:<h1\b.*?</h1>|<p class=\"paragraph-heading\".*?</p>)\n?", body, re.S
+        r'\s*(?:<h1\b.*?</h1>|(?:<section class="content-card">.*?</header>\n)?'
+        r'<p class="paragraph-heading(?: [^"]*)?".*?</p>\n?(?:</section>\n)?)', body, re.S
     ) if after_heading else None
     cut = heading.end() if heading else 0
     return body[:cut] + box + under + body[cut:]
@@ -1860,14 +1862,12 @@ def _paragraph_heading_html(section: dict[str, object], paragraph: dict[str, obj
         paragraph_id = escape(str(paragraph.get("id", "")), quote=True)
         paragraph_attr = (f' data-node-id="{paragraph_id}"'
                           if paragraph_id and not context.showing else "")
-        text = _phrasing(paragraph["children"], context)
         paragraph_block = f'{context.chapter or HOME}--block-{paragraph.get("id", "")}'
         paragraph_anchor = (f'<span id="{escape(paragraph_block, quote=True)}"></span>'
                             if paragraph.get("id") and not context.showing and
                             (context.chapter or HOME, paragraph["id"]) in context.block_targets else "")
-    return (f'<p class="paragraph-heading"{paragraph_attr}>'
-            f'<strong class="heading-name"{anchor_attr}{node_id_attr}>{title}{block_anchor}</strong>'
-            f'<br>{text}{paragraph_anchor}</p>\n')
+        heading = f'<strong class="heading-name"{anchor_attr}{node_id_attr}>{title}{block_anchor}</strong><br>'
+        return _paragraph(paragraph, context, heading, paragraph_anchor, paragraph_attr)
 
 
 def _node(node: dict[str, object], context: Context) -> str:
@@ -2077,13 +2077,15 @@ def _tight_item(item: dict[str, object], context: Context) -> str:
     return "".join(parts)
 
 
-def _paragraph(node: dict[str, object], context: Context) -> str:
+def _paragraph(node: dict[str, object], context: Context, heading: str = "", suffix: str = "",
+               paragraph_attr: str = "") -> str:
     """A paragraph; the core places no block node inside one (obs capabilities/markdown)."""
-    inner = _phrasing(node["children"], context)
+    inner = heading + _phrasing(node["children"], context) + suffix
+    heading_class = "paragraph-heading " if heading else ""
     positions = [index for index, child in enumerate(node["children"]) if child["type"] == "marks"]
     marks = [node["children"][index]["attrs"] for index in positions]
     if not marks:
-        return f"<p>{inner}</p>\n"
+        return f'<p class="paragraph-heading"{paragraph_attr}>{inner}</p>\n' if heading else f"<p>{inner}</p>\n"
     slug = context.chapter or HOME
     anchor = f"mark-{slug}-{_mark_slug(marks[0])}"
     text = " ".join(_plain(node).split())
@@ -2098,8 +2100,9 @@ def _paragraph(node: dict[str, object], context: Context) -> str:
         f'aria-label="{escape(_mark_description(mark), quote=True)}">{_mark_icon(kind, index, context)}</a>'
         for kind, mark, index in zip(kinds, marks, positions)
     )
-    marked = (f'<p class="semantic-mark {classes}" data-mark-kind="{escape(" ".join(kinds), quote=True)}" '
-              f'data-mark-label="{escape(" ".join(mark["id"] for mark in marks), quote=True)}" id="{anchor}">'
+    marked = (f'<p class="{heading_class}semantic-mark {classes}" data-mark-kind="{escape(" ".join(kinds), quote=True)}" '
+              f'data-mark-label="{escape(" ".join(mark["id"] for mark in marks), quote=True)}" '
+              f'id="{anchor}"{paragraph_attr}>'
               f'<span class="semantic-mark-content">{inner.strip()}</span>'
               f'<span class="semantic-mark-rail" aria-label="Paragraph marks">{rail}</span></p>\n')
     bordered = [kind for kind in dict.fromkeys(kinds) if kind in context.bordered_tags]

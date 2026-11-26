@@ -1047,7 +1047,8 @@ row order; this section owns how this adapter draws it.
 
 - A chapter's deepest authored heading level is a paragraph heading when it is followed by a
   paragraph: the title is bold, followed by a line break and the paragraph text, with no
-  indentation. The Settings bar's Show heading names control hides or shows heading titles
+  indentation. Paragraph marks retain their records, anchors, rail and configured border.
+  The Settings bar's Show heading names control hides or shows heading titles
   throughout the artifact without changing chapter numbers or structure.
 
 - Only top-level manifest chapters are left/right navigation pages. Their nested chapters

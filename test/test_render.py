@@ -347,6 +347,41 @@ def test_marks_render_a_semantic_paragraph_with_a_named_icon_rail(document) -> N
     assert "#mark/" not in intro["html"]
 
 
+def test_paragraph_heading_preserves_its_paragraph_marks_and_rail() -> None:
+    source = build("Marks", chapter(
+        "guide", "Guide", heading(2, "Context"),
+        paragraph("Some text. ", node("marks", category="open_point", id="x"),
+                  node("marks", category="risk", id="y")),
+    ))
+    note = _notes(source)["guide"]
+    assert [(mark["kind"], mark["label"], mark["anchor"]) for mark in note["marks"]] == [
+        ("open_point", "x", "mark-guide-open-point-x"), ("risk", "y", "mark-guide-open-point-x"),
+    ]
+    assert 'id="mark-guide-open-point-x"' in note["html"]
+    assert 'class="semantic-mark-rail"' in note["html"]
+    assert 'data-icon="mark.open_point"' in note["html"]
+    assert 'data-icon="mark.risk"' in note["html"]
+    assert '<strong class="heading-name"' in note["html"]
+    assert "<br>Some text." in note["html"]
+
+
+def test_numbered_paragraph_heading_keeps_the_bordered_mark_card(tmp_path) -> None:
+    import json
+
+    source = build("Marks", chapter(
+        "guide", "Guide", heading(2, "Context"),
+        paragraph("Some text. ", node("marks", category="open_point", id="x")),
+    ), metadata={"obsHtml": {"numberedHeadings": True}})
+    settings = tmp_path / "settings.json"
+    settings.write_text(json.dumps({"artifact": {"borderedTags": ["open_point"]}}), encoding="utf-8")
+    note = next(note for note in decode_artifact_data(render(source, load_config(settings)))["notes"]
+                if note["slug"] == "guide")
+    assert '<section class="content-card"><header class="content-card-title">Open Point</header>' in note["html"]
+    assert '<span class="semantic-mark-content"><span class="chapter-number">1</span> ' in note["html"]
+    assert 'class="semantic-mark-rail"' in note["html"]
+    assert note["marks"][0]["anchor"] == "mark-guide-open-point-x"
+
+
 @pytest.mark.parametrize(("bordered", "titles"), [
     ([], []),
     (["risk"], ["Risk", "Risk"]),

@@ -15,6 +15,9 @@ from pypdf import PdfReader
 from browser import door
 from conftest import FIXTURE, ROOT
 from documents import chapter, document, node
+from obs_html.artifact_data import decode_artifact_data
+from obs_html.config import load_config
+from obs_html.render import render
 from obs_html import cli, pdf
 
 
@@ -57,6 +60,36 @@ def test_export_pdf_and_rendered_check_read_existing_html(pdf_browser, fixture_a
     assert PdfReader(tmp_path / "artifact.pdf").pages
     cli.main(["--check-rendered", str(html)])
     assert "status ready, 0 console errors," in capsys.readouterr().out
+
+
+@pytest.mark.hot("fixture-print")
+@pytest.mark.browser
+def test_rendered_check_keeps_open_point_after_a_paragraph_heading(pdf_browser, tmp_path, capsys) -> None:
+    source = json.loads((ROOT / "test" / "fixtures" / "documents" / "registers.json").read_text(encoding="utf-8"))
+    types = next(chapter for chapter in source["chapters"] if chapter["id"] == "types")
+    points = next(chapter for chapter in source["chapters"] if chapter["id"] == "points")
+    register = next(item for item in types["content"] if item["type"] == "registers")
+    types["content"].remove(register)
+    points["content"].append(register)
+    register["attrs"]["base"]["views"][2]["filters"] = 'type == "open_point"'
+    register["attrs"]["rows"][2] = ["tag-types-open-point-types-open"]
+    register["attrs"]["view"] = 2
+    register["attrs"]["heading"] = "Tags"
+
+    html = render(source, load_config())
+    note = next(note for note in decode_artifact_data(html)["notes"] if note["slug"] == "types")
+    assert [(mark["kind"], mark["label"]) for mark in note["marks"]] == [("open_point", "types_open")]
+    assert 'id="mark-types-open-point-types-open"' in note["html"]
+    assert 'class="semantic-mark-rail"' in note["html"]
+    artifact = tmp_path / "marked-register.html"
+    artifact.write_text(html, encoding="utf-8")
+    cli.main(["--check-rendered", str(artifact)])
+    assert "status ready, 0 console errors," in capsys.readouterr().out
+    with pdf._browser_page("--check-rendered", artifact) as page:
+        page.goto(artifact.as_uri())
+        page.wait_for_function("document.documentElement.dataset.artifactStatus === 'ready'")
+        page.evaluate('async () => { await obsArtifact.activateChapter("points"); await obsArtifact.whenChapterReady(); }')
+        assert page.locator('[data-row-key="types:open_point:types_open"]').count() >= 1
 
 
 @pytest.mark.hot("fixture-print")
