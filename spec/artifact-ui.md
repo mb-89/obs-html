@@ -1040,6 +1040,29 @@ row order; this section owns how this adapter draws it.
 
 ## Reading shell
 
+- Numbered headings are enabled by `obsHtml.numberedHeadings`; documents filled from a
+  template enable them by default, and an explicit `false` disables them. The number follows
+  the chapter's position in the nested manifest (for example `1`, `1.1`, `1.1.1`). The same
+  number appears in the chapter heading, Contents and the sidebar.
+
+- A chapter's deepest authored heading level is a paragraph heading when it is followed by a
+  paragraph: the title is bold, followed by a line break and the paragraph text, with no
+  indentation. The Settings bar's Show heading names control hides or shows heading titles
+  throughout the artifact without changing chapter numbers or structure.
+
+- Only top-level manifest chapters are left/right navigation pages. Their nested chapters
+  render on the same page in manifest order; the nested Contents and sidebar links open the
+  corresponding section on that page.
+
+- Printed page flow never combines top-level chapters. Within one parent, adjacent short
+  subchapters flow together in manifest order; a long subchapter has a break before and after it,
+  so short neighbors never attach to it. Appendix parts use the same rule. A subchapter's length
+  is its rendered subtree laid out alone at the current global filter, in the artifact's selected
+  paper size (A4 by default), margins and style: it is short if it fits one configured sheet, and
+  long if pagination needs more than one sheet or an indivisible block makes a sheet over-height.
+  The content is not measured by text or heading count; natural page breaks still divide combined
+  short subchapters.
+
 - An artifact with appendices has one Appendix chapter. Its direct children are the handwritten appendices
   first, followed by generated open points, glossary and references. There is no intermediate
   generated-appendices chapter or additional glossary navigation level. Its open-point rows
@@ -1558,6 +1581,17 @@ Implementation decisions (4 Nov 2026, worker, reversible):
 
   PDF uses fixed measured sheets and splits lists and tables, repeating table headers and
   preserving row columns.
+
+  Every top-level chapter remains its own navigation page; moving to another top-level chapter
+  uses the left and right arrows. Within a chapter, sibling subchapters are independently laid
+  out with the configured paper dimensions and margins at the current global filter. A
+  subchapter is short when that layout fits on one fixed sheet; one that needs multiple sheets or
+  a flexible over-height sheet is long. Adjacent short subchapters stay together in manifest
+  order, retaining every heading and body; the paginator may add sheets if their combined content
+  needs them. A long subchapter starts on its own sheet and the next subchapter starts after its
+  last sheet, so short subchapters are never attached to either end of it. The same rule groups
+  short parts inside the Appendix, while the Appendix itself remains a top-level page. Contents
+  page numbers point to the sheet where each subchapter begins.
 
   Print tables, including tables nested inside cards or columns, fit their actual containing
   paper area. Interactive pixel widths and minimum widths must not push cells outside a

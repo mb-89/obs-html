@@ -9,6 +9,13 @@
 
     apply(JSON.parse(document.querySelector("[data-artifact-data]").textContent).reading.theme);
     input.addEventListener("change", () => apply(input.value));
+    const headingNames = document.querySelector("[data-heading-names-toggle]");
+    const applyHeadingNames = (shown) => {
+        headingNames.checked = shown;
+        root.classList.toggle("heading-names-hidden", !shown);
+    };
+    applyHeadingNames(true);
+    headingNames.addEventListener("change", () => applyHeadingNames(headingNames.checked));
     document.querySelector("[data-pages-toggle]").addEventListener("change", (event) => {
         globalThis.obsPages.setPaged(event.target.checked);
     });

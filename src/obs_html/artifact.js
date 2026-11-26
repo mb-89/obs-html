@@ -30,7 +30,8 @@
     let embeddedAssets = artifactData.embeddedAssets || {};
     const notes = artifactData.notes;
     const notesBySlug = new Map(notes.map((note) => [note.slug, note]));
-    const chapters = artifactData.toc.map((slug) => notesBySlug.get(slug));
+    const outline = artifactData.toc.map((slug) => notesBySlug.get(slug));
+    const chapters = artifactData.pages.map((slug) => notesBySlug.get(slug));
     const tocSlugs = new Set(artifactData.toc);
     const queryProfile = artifactData.query || {scope: "chapters"};
     const contentTemplate = document.createElement("template");
@@ -429,12 +430,17 @@
 
     const headingToc = (chapter) => {
         const source = document.createElement("template");
-        source.innerHTML = recordsBySlug.get(chapter.slug).html;
+        source.innerHTML = recordsBySlug.get(chapter.slug).chapterHtml || recordsBySlug.get(chapter.slug).html;
         const headings = [];
         const stack = [{level: 1, children: headings}];
+        const headingLevels = Array.from(
+            {length: Math.max(0, 7 - (chapter.depth + 2))},
+            (_value, index) => `h${chapter.depth + 2 + index}[id]`,
+        );
+        headingLevels.push("[data-pugh-extra][id]");
         // A second-level section a decision figure shows as a tab (render.py, decision tabs) keeps
         // its heading's anchor and its place in the contents, under the figure's Details.
-        source.content.querySelectorAll("h2[id], h3[id], h4[id], h5[id], h6[id], [data-pugh-extra][id]").forEach((heading) => {
+        source.content.querySelectorAll(headingLevels.join(", ")).forEach((heading) => {
             const tab = heading.dataset.pughExtra;
             const level = tab === undefined ? Number(heading.tagName.slice(1)) : 3;
             while (stack.length > 1 && stack.at(-1).level >= level) stack.pop();
@@ -450,7 +456,7 @@
         return headings;
     };
 
-    const tocItem = (title, href, children, chapterIndex) => {
+    const tocItem = (title, href, children, chapterIndex, chapterSlug, chapterNumber = "") => {
         const item = document.createElement("li");
         const entry = document.createElement("div");
         entry.className = "toc-entry";
@@ -477,10 +483,19 @@
         const link = document.createElement("a");
         link.href = href;
         if (chapterIndex !== undefined) {
-            link.dataset.tocLink = chapters[chapterIndex].slug;
+            link.dataset.tocLink = chapterSlug;
             link.dataset.chapterIndex = String(chapterIndex);
         }
-        link.textContent = title;
+        if (chapterNumber) {
+            const number = document.createElement("span");
+            number.className = "chapter-number";
+            number.textContent = chapterNumber;
+            link.append(number, document.createTextNode(" "));
+        }
+        const name = document.createElement("span");
+        name.className = "heading-name";
+        name.textContent = title;
+        link.append(name);
         entry.append(link);
         item.append(entry);
         if (children.length) {
@@ -501,8 +516,8 @@
     const createTocLevel = (startIndex, depth) => {
         const list = document.createElement("ol");
         let index = startIndex;
-        while (index < chapters.length) {
-            const chapter = chapters[index];
+        while (index < outline.length) {
+            const chapter = outline[index];
             if (chapter.generated === "home") {
                 index += 1;
                 continue;
@@ -510,8 +525,8 @@
             if (chapter.depth < depth) break;
             if (chapter.depth > depth) throw new Error("Artifact data skips a TOC nesting level.");
 
-            const hasChildren = index + 1 < chapters.length && chapters[index + 1].depth > depth;
-            const chapterIndex = index;
+            const hasChildren = index + 1 < outline.length && outline[index + 1].depth > depth;
+            const chapterIndex = chapters.findIndex((page) => page.slug === chapter.pageSlug);
             const children = headingTocItems(headingToc(chapter));
             index += 1;
 
@@ -520,14 +535,15 @@
                 children.push(...nested.list.children);
                 index = nested.index;
             }
-            list.append(tocItem(chapter.title, `#${chapter.slug}`, children, chapterIndex));
+            list.append(tocItem(chapter.title, `#${chapter.slug}`, children, chapterIndex,
+                chapter.slug, chapter.chapterNumber));
         }
         return { list, index };
     };
 
     const buildToc = () => {
         const tree = createTocLevel(0, 0);
-        if (tree.index !== chapters.length) throw new Error("Artifact data could not build a TOC.");
+        if (tree.index !== outline.length) throw new Error("Artifact data could not build a TOC.");
         tocTree.replaceChildren(tree.list);
         tocLinks = [...tocTree.querySelectorAll("[data-toc-link]")];
     };
@@ -1421,15 +1437,16 @@
         // A projected metric's drill-down selects through its projection (cards.js, drillDown).
         const tableProjection = new URLSearchParams(parameters).get("projection") || "";
         if (tableFilter !== null) globalThis.obsQuery.compile(tableFilter);
-        const record = recordsBySlug.get(noteSlug);
-        if (!record) return;
+        const noteRecord = recordsBySlug.get(noteSlug);
+        if (!noteRecord) return;
+        const record = recordsBySlug.get(noteRecord.pageSlug);
         const firstScreen = record.generated === "home" && screensWalk() ? walkIndices()[0] : undefined;
         if (firstScreen !== undefined) return activateChapter(chapters[firstScreen].slug, historyMode);
         if (!isDocument(record)) {
             activateChapter("home", historyMode);
             return;
         }
-        const requestedIndex = chapters.findIndex((chapter) => chapter.slug === noteSlug);
+        const requestedIndex = chapters.findIndex((chapter) => chapter.slug === record.slug);
         if (requestedIndex >= 0 && !visibleIndices.includes(requestedIndex)) {
             activateChapter("home", historyMode);
             return;
@@ -1447,7 +1464,7 @@
         document.dispatchEvent(new CustomEvent("obs-chapter-changing", {
             detail: {slug: record.slug},
         }));
-        const nextIndex = chapters.findIndex((chapter) => chapter.slug === noteSlug);
+        const nextIndex = chapters.findIndex((chapter) => chapter.slug === record.slug);
 
         activeIndex = nextIndex;
         scrollIntent = 0;
@@ -1531,7 +1548,7 @@
             ));
         }
         // A note's field shows on its front matter card in the Comments bar (artifact-ui.md, Comments bar).
-        if (sourceField !== null) globalThis.obsComments?.revealFrontmatter(record.slug, sourceField);
+        if (sourceField !== null) globalThis.obsComments?.revealFrontmatter(noteRecord.slug, sourceField);
 
         const hash = `#${slug}`;
         // A sandboxed or srcdoc frame (Claude's preview) cannot change its URL; navigation
@@ -2868,7 +2885,7 @@
         },
         exportChapters: () => visibleIndices.map((index) => chapterRecords[index])
             .filter((record) => !record.generated),
-        navigationChapters: () => visibleIndices.map((index) => chapterRecords[index])
-            .filter(record => record.generated !== "home"),
+        navigationChapters: () => outline.filter((record) => record.generated !== "home" &&
+            visibleIndices.includes(chapters.findIndex((page) => page.slug === record.pageSlug))),
     };
 })();

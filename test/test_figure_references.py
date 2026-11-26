@@ -192,6 +192,7 @@ def test_a_block_link_to_another_block_links_its_anchor_with_its_label() -> None
 
     assert ('See <a class="internal-link" href="#one/block-pinned">^pinned</a> and '
             '<a class="internal-link" href="#one/block-details">^details</a>.') in html
-    assert '<p data-node-id="pinned" id="one--block-pinned">A pinned paragraph.</p>' in html
-    assert re.search(r'<h2 [^>]*data-node-id="details"><span id="one--block-details"></span>Details</h2>', html), html
+    assert ('<p class="paragraph-heading" data-node-id="pinned"><strong class="heading-name" '
+            'id="one--details" data-node-id="details">Details<span id="one--block-details"></span>'
+            '</strong><br>A pinned paragraph.<span id="one--block-pinned"></span></p>') in html
     assert "one--block-paragraph-00000000" not in html

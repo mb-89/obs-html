@@ -19,8 +19,15 @@ is owned by [[input-model]] and constrained by the configuration schema. Canonic
 aliases follow the shared Bases reference/value adapters, not copied target metadata.
 
 Chapter/paragraph totals derive from canonical chapter content; reader and print clones
-are disposable views. One retained navigation sequence includes Home and supplies arrows,
-breadcrumbs, sidebar and artifact contents; record scope leaves authored sections intact.
+are disposable views. The manifest's complete ordered outline supplies Contents and sidebar
+links, while only its top-level chapters supply left/right navigation pages. A top-level page
+contains its nested chapters in order; opening a nested link reveals its section on that page.
+Printed page flow never combines top-level chapters. For nested chapters, the runtime measures a
+rendered subtree alone at the current global filter against the selected paper size, margins and
+style: more than one sheet or an over-height indivisible block makes it long, with a break on each
+side; adjacent one-sheet siblings flow together. Appendix parts follow the same rule, and natural
+page breaks remain.
+Record scope leaves authored sections intact.
 
 ## Build stage timings
 
@@ -61,9 +68,13 @@ The [parity table](../test/parity/features.md) owns every difference from the in
 
 ## Rendering and runtime
 
-The renderer emits the nested table of contents and ordered chapter data once;
-client-side navigation shows exactly one chapter and manages previous/next controls, URL
-fragments, browser history, scroll reset, and docked-bar state.
+The renderer emits the nested table of contents and ordered chapter data once, including
+chapter numbers when the presentation profile enables them. It places each nested chapter's
+rendered content on its top-level page. Client-side navigation shows exactly one top-level page
+and manages previous/next controls, URL fragments, browser history, scroll reset, and docked-bar
+state. The Contents and sidebar retain the full nested outline. Paged and printed views measure
+nested chapter subtrees individually using the selected paper area; short siblings flow together,
+while long chapters retain a break on each side. Top-level chapters always remain separate.
 
 One embedded central stylesheet owns the component rules described in [[artifact-ui]]: `base.css`,
 followed by the shares of it that the artifact's features ship.

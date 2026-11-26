@@ -171,9 +171,115 @@ def test_chapters_become_notes_in_reading_order_with_depth(document) -> None:
     assert depths == {"home": 0, "intro": 0, "guide-usage": 1, "appendix": 0}
 
 
+def test_numbered_headings_follow_the_manifest_tree_when_enabled() -> None:
+    source = build(
+        "Numbered",
+        chapter("first", "First", children=(
+            chapter("first-a", "First child", children=(
+                chapter("first-a-i", "Nested child"),
+            )),
+        )),
+        chapter("second", "Second", children=(
+            chapter("second-a", "Second child"),
+        )),
+        metadata={"obsHtml": {"numberedHeadings": True}},
+    )
+
+    model = _model(source)
+
+    assert [(note["slug"], note["chapterNumber"]) for note in model["notes"] if note["slug"] != "home"] == [
+        ("first", "1"), ("first-a", "1.1"), ("first-a-i", "1.1.1"),
+        ("second", "2"), ("second-a", "2.1"),
+    ]
+
+
+def test_numbered_heading_is_kept_when_the_first_authored_heading_is_deeper() -> None:
+    source = build(
+        "Numbered",
+        chapter("first", "First", heading(2, "Overview"), children=(
+            chapter("nested", "Nested", heading(2, "Details")),
+        )),
+        metadata={"obsHtml": {"numberedHeadings": True}},
+    )
+
+    notes = _notes(source)
+
+    assert re.search(r'<h2 id="first--overview"><span class="chapter-number">1</span> '
+                     r'<span class="heading-name">Overview</span></h2>', notes["first"]["html"])
+    assert re.search(r'<h3 id="nested--details"><span class="chapter-number">1\.1</span> '
+                     r'<span class="heading-name">Details</span></h3>', notes["nested"]["html"])
+
+
+def test_documents_from_a_template_number_their_headings_by_default() -> None:
+    source = build("Template based", chapter("purpose", "Purpose"),
+                   metadata={"obs": {"template": {"name": "requirements", "version": "1"}}})
+
+    model = _model(source)
+
+    assert model["notes"][1]["chapterNumber"] == "1"
+    assert model["reading"]["numberedHeadings"] is True
+
+
+def test_numbered_headings_can_be_disabled_for_a_template_document() -> None:
+    source = build(
+        "Template based",
+        chapter("purpose", "Purpose"),
+        metadata={"obs": {"template": {"name": "requirements", "version": "1"}},
+                  "obsHtml": {"numberedHeadings": False}},
+    )
+
+    model = _model(source)
+
+    assert model["reading"]["numberedHeadings"] is False
+    assert model["notes"][1]["chapterNumber"] == ""
+
+
+def test_nested_chapters_stay_on_their_top_level_page_and_keep_the_outline() -> None:
+    source = build(
+        "Nested",
+        chapter("first", "First", children=(
+            chapter("first-child", "First child", paragraph("Nested prose.")),
+        )),
+        chapter("second", "Second"),
+        metadata={"obsHtml": {"numberedHeadings": True}},
+    )
+
+    model = _model(source)
+    notes = {note["slug"]: note for note in model["notes"]}
+
+    assert model["pages"] == ["first", "second"]
+    assert model["toc"] == ["home", "first", "first-child", "second"]
+    assert notes["first-child"]["pageSlug"] == "first"
+    assert '<section class="manifest-subchapter" id="first-child">' in notes["first"]["html"]
+    assert notes["first-child"]["chapterNumber"] == "1.1"
+
+
+def test_lowest_level_heading_joins_its_paragraph_as_a_bold_paragraph_heading(document) -> None:
+    source = build(
+        "Paragraph headings",
+        chapter("guide", "Guide", heading(1, "Guide"), heading(2, "Details"),
+                paragraph("Paragraph text.")),
+    )
+
+    html = _notes(source)["guide"]["html"]
+
+    assert ('<p class="paragraph-heading"><strong class="heading-name" id="guide--details">Details</strong>'
+            '<br>Paragraph text.</p>') in html
+    assert '<h2' not in html
+
+
+def test_the_general_heading_name_toggle_is_available_in_every_artifact(document) -> None:
+    html = _render(document)
+
+    assert 'data-heading-names-toggle' in html
+    assert 'Show heading names' in html
+    assert '.heading-names-hidden .heading-name' in html
+
+
 def test_headings_carry_anchors_and_untitled_chapters_stay_as_authored(document) -> None:
     notes = _notes(document)
-    assert '<h3 id="guide-usage--details">Details</h3>' in without_node_ids(notes["guide-usage"]["html"])
+    assert ('<p class="paragraph-heading"><strong class="heading-name" id="guide-usage--details">'
+            'Details</strong><br>Body.</p>') in without_node_ids(notes["guide-usage"]["html"])
     assert without_node_ids(notes["appendix"]["html"]).startswith("<p>")  # As the interim: the reader names it.
 
 
@@ -567,7 +673,7 @@ def test_a_toc_false_chapter_links_home() -> None:
 def test_home_headings_carry_anchors_that_name_the_front_page_groups() -> None:
     source = build("Doc", chapter("one", "One"), abstract=(heading(2, "Metadata"),))
     home = _notes(source)["home"]["html"]
-    assert '<h2 id="home--metadata">Metadata</h2>' in home
+    assert '<h2 id="home--metadata"><span class="heading-name">Metadata</span></h2>' in home
 
 
 def _deck(*asks: bool, layout: str | None = None) -> dict:

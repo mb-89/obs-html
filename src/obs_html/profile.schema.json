@@ -8,6 +8,7 @@
     "appearance": {"enum": ["system", "light", "dark"]},
     "layout": {"enum": ["paged", "scrolling", "screens"]},
     "heading": {"enum": ["cover", "compact"]},
+    "numberedHeadings": {"type": "boolean"},
     "cssSnippets": {"type": "array", "items": {"type": "string", "minLength": 1}},
     "query": {
       "type": "object",

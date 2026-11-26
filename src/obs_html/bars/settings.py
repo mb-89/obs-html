@@ -11,6 +11,8 @@ def render() -> str:
         '<option value="dark">Dark</option>'
         '</select>'
         '</span></label>'
+        '<label class="settings-heading-names" data-hover-help="Show or hide section titles while keeping their structure and numbers.">'
+        '<input type="checkbox" data-heading-names-toggle checked> Show heading names</label>'
         '<div class="settings-page-export">'
         '<label class="settings-pages" data-hover-help="View the content on the same sheets used for PDF export.">'
         '<input type="checkbox" data-pages-toggle> Show as pages</label>'

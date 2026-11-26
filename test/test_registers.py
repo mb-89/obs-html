@@ -85,7 +85,8 @@ def test_a_register_renders_between_the_paragraphs_of_the_text_around_it() -> No
     and an embed alone leaves no empty paragraph."""
     alone = render(REGISTERS, CONFIG)
     notes = {note["slug"]: note["html"] for note in decode_artifact_data(alone)["notes"]}
-    assert '<h1 id="points--points">Points</h1>\n<p>All views.</p>\n<div class="data-table-placeholder" ' \
+    assert ('<p class="paragraph-heading"><strong class="heading-name" id="points--points">Points</strong>'
+            '<br>All views.</p>\n<div class="data-table-placeholder" ') \
         in without_node_ids(notes["points"])
     register = _register(REGISTERS, "points")
     document = build("Doc", chapter(

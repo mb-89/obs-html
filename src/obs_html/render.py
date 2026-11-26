@@ -58,6 +58,7 @@ STRUCTURAL = frozenset(json.loads(files("obs").joinpath("document.schema.json").
 PROFILE_DEFAULTS = {
     "appearance": "system",
     "heading": "cover",
+    "numberedHeadings": False,
     "pages": [{"page": "cover"}, {"page": "abstract", "title": "Abstract"},
               {"page": "contents", "title": "Contents"}],
     "figures": {"numbering": "none", "label": "Figure", "labelPlural": "Figures"},
@@ -98,6 +99,12 @@ class Context:
     phrasing: bool = False
     """Whether the node being rendered sits where HTML allows only phrasing content (inside a
     paragraph or a heading), so it may write no block element."""
+    heading_level_offset: int = 0
+    """The manifest depth that offsets a chapter's authored headings when chapters share a page."""
+    paragraph_heading_level: int = 0
+    """The lowest rendered heading level in the current chapter."""
+    numbered_headings: bool = False
+    """Whether the manifest's chapter hierarchy has numbered headings."""
     where: list[object] = field(default_factory=list)
     """The path of the node being rendered in the Document, as an error names it."""
     figure_position: int = 0
@@ -1197,6 +1204,9 @@ def _profile(manifest: dict[str, object], chapters: list[dict[str, object]]) -> 
     if error is not None:
         raise error
     resolved = {key: declared.get(key, value) for key, value in PROFILE_DEFAULTS.items()}
+    if "numberedHeadings" not in declared:
+        obs = manifest["metadata"].get("obs", {})
+        resolved["numberedHeadings"] = isinstance(obs, dict) and isinstance(obs.get("template"), dict)
     resolved["figures"] = PROFILE_DEFAULTS["figures"] | resolved["figures"]
     resolved["print"] = declared.get("print") or {}
     resolved["layout"] = _layout(declared, chapters)
@@ -1212,6 +1222,7 @@ def _model(document: dict[str, object], config: Config, context: Context, built:
     manifest = document["manifest"]
     profile = _profile(manifest, document["chapters"])
     context.figures = profile["figures"]
+    context.numbered_headings = profile["numberedHeadings"]
     context.conjunctions = tuple(config.artifact["figureReferences"]["conjunctions"])
     _number_figures(document["chapters"], context)
     context.block_targets = set(_block_targets(document))
@@ -1230,6 +1241,13 @@ def _model(document: dict[str, object], config: Config, context: Context, built:
     home_html = _cover(title, metadata, metadata_html, profile["heading"] == "compact", style) + abstract
     notes = [_note(0, identity, HOME, HOME, {}, home_html, context)]
     notes.extend(_chapter_notes(document["chapters"], context, 0, ["chapters"]))
+    notes_by_slug = {note["slug"]: note for note in notes}
+    for chapter in document["chapters"]:
+        if chapter.get("toc", True):
+            page = notes_by_slug[chapter["id"]]
+            page["chapterHtml"] = page["html"]
+            page["html"] = _page_chapter_html(chapter, notes_by_slug)
+            _merge_page_note_data(chapter, notes_by_slug, page)
     _attach_records(document["records"], notes, context)
     if settings.get("sourceFileLinks", True):  # Each page's Source file row (source_files.py).
         rows = source_files.note_fields(document, vault_link, HOME)
@@ -1252,7 +1270,8 @@ def _model(document: dict[str, object], config: Config, context: Context, built:
         "paper": paper({**config.print_default, **profile["print"]}, config, lambda key: (
             (manifest["path"], f"obsHtml.print.{key}") if key in profile["print"]
             else (config.source("artifact", "print", "default", key), f"artifact.print.default.{key}"))),
-        "reading": {"theme": profile["appearance"], "layout": profile["layout"], **settings["reading"],
+        "reading": {"theme": profile["appearance"], "layout": profile["layout"],
+                    "numberedHeadings": profile["numberedHeadings"], **settings["reading"],
                     **({"styles": style_choice.names, "style": style_choice.start} if style_choice else {})},
         "figures": settings["figures"],
         "printReadyTimeoutMilliseconds": settings["printReadyTimeoutMilliseconds"],
@@ -1269,6 +1288,7 @@ def _model(document: dict[str, object], config: Config, context: Context, built:
         "query": profile["query"],
         "filterPresets": settings["filterPresets"],
         "toc": [HOME, *_listed(document["chapters"])],
+        "pages": [chapter["id"] for chapter in document["chapters"] if chapter.get("toc", True)],
         # Each block record, a register's block row (obs input-model#Block records; artifact.js, blockTableRows)
         # and a metadata card of the Comments bar, with the values from farther out its own keys override.
         "blocks": [{"key": f"block:{record['id']}", "note": record["note"], "block": record["block"],
@@ -1330,21 +1350,70 @@ def _listed(chapters: list[dict[str, object]]) -> list[str]:
 
 
 def _chapter_notes(chapters: list[dict[str, object]], context: Context, depth: int,
-                   where: list[object]) -> list[dict]:
+                   where: list[object], number_prefix: str = "", page_slug: str = "") -> list[dict]:
     notes = []
     for index, chapter in enumerate(chapters):
+        chapter_number = f"{number_prefix}.{index + 1}" if number_prefix else str(index + 1)
+        if not context.numbered_headings:
+            chapter_number = ""
+        chapter_page = page_slug or chapter["id"]
         context.frontmatter = dict(chapter.get("metadata") or {})
         context.answered_figures = ((chapter.get("bless") or {}).get("answer") or {}).get("figures", {})
         record = record_html(chapter)  # The answer, read-only, under the chapter's heading (bless_record.py).
+        context.heading_level_offset = depth
         body = _note_body(chapter["content"], chapter["id"], [*where, index, "content"], context,
                           chapter.get("bottomLine"), context.percolated.get(chapter["id"], []),
                           record + "\n" if record else "")
+        body = _chapter_heading(body, chapter_number, chapter["title"], depth)
         context.answered_figures = {}
-        notes.append(_note(depth, chapter["title"], chapter["id"], "", context.frontmatter, body, context))
+        notes.append(_note(depth, chapter["title"], chapter["id"], "", context.frontmatter, body, context,
+                           chapter_number, chapter_page))
         if "bless" in chapter:  # Its bless request, answered or not (obs input-model, Bless requests; bless.js).
             notes[-1]["bless"] = chapter["bless"]
-        notes.extend(_chapter_notes(chapter["children"], context, depth + 1, [*where, index, "children"]))
+        notes.extend(_chapter_notes(chapter["children"], context, depth + 1, [*where, index, "children"],
+                                    chapter_number, chapter_page))
     return notes
+
+
+def _chapter_heading(html: str, number: str, title: str, depth: int) -> str:
+    """Number a chapter's first heading, or provide its title when the note has no heading."""
+    level = min(depth + 1, 6)
+    pattern = re.compile(rf"(<h{level}\b[^>]*>)(.*?)(</h{level}>)", re.S)
+    match = pattern.search(html) or re.search(r"(<h[1-6]\b[^>]*>)(.*?)(</h[1-6]>)", html, re.S)
+    prefix = f'<span class="chapter-number">{escape(number)}</span> ' if number else ""
+    if match:
+        return html[:match.start(2)] + prefix + match.group(2) + html[match.end(2):]
+    paragraph_heading = re.search(r'(<p class="paragraph-heading"[^>]*>)', html)
+    if paragraph_heading:
+        return html[:paragraph_heading.end()] + prefix + html[paragraph_heading.end():]
+    if re.search(r"<h[1-6]\b", html):
+        return html
+    label = f'<span class="heading-name">{escape(title)}</span>'
+    return f'<h{level} class="manifest-heading">{prefix}{label}</h{level}>\n{html}'
+
+
+def _page_chapter_html(chapter: dict[str, object], notes: dict[str, dict[str, object]]) -> str:
+    """A top-level page holds its manifest descendants in order, at their own anchors."""
+    note = notes[chapter["id"]]
+    pieces = [str(note["html"])]
+    for child in chapter["children"]:
+        content = _page_chapter_html(child, notes)
+        pieces.append(f'<section class="manifest-subchapter" id="{escape(child["id"], quote=True)}" '
+                      f'data-manifest-chapter="{escape(child["id"], quote=True)}" '
+                      f'data-manifest-parent="{escape(chapter["id"], quote=True)}">'
+                      f'{content}</section>\n')
+    return "".join(pieces)
+
+
+def _merge_page_note_data(chapter: dict[str, object], notes: dict[str, dict[str, object]],
+                          page: dict[str, object]) -> None:
+    """A page's data records include its nested chapters, which render on that page."""
+    for child in chapter["children"]:
+        note = notes[child["id"]]
+        for key in ("tables", "marks"):
+            page[key].extend(note[key])
+        page["editableProperties"].update(note["editableProperties"])
+        _merge_page_note_data(child, notes, page)
 
 
 def _note_body(nodes: list[dict[str, object]], chapter: str, where: list[object], context: Context,
@@ -1358,8 +1427,17 @@ def _note_body(nodes: list[dict[str, object]], chapter: str, where: list[object]
     context.where = where[:-1]
     leads = _leads(children, context)
     context.chapter, context.marks = chapter, []
+    context.paragraph_heading_level = _lowest_heading_level(nodes, context.heading_level_offset)
     html, box = [], ""
-    for index, node in enumerate(nodes):
+    index = 0
+    sibling_key = where[-1]
+    while index < len(nodes):
+        node = nodes[index]
+        if _is_paragraph_heading(node, nodes[index + 1] if index + 1 < len(nodes) else None, context):
+            html.append(_paragraph_heading_html(node, nodes[index + 1], sibling_key, index, context))
+            html.append("")
+            index += 2
+            continue
         with _at(context, where[-1], index):
             if bottom_line is not None and node.get("id") == bottom_line["callout"]:
                 context.leads = leads  # It renders once, under the title, not where it is written.
@@ -1367,13 +1445,16 @@ def _note_body(nodes: list[dict[str, object]], chapter: str, where: list[object]
                 html.append("")
             else:
                 html.append(_node(node, context))
+        index += 1
     if bottom_line is None and leads:
         box = (f'<aside class="content-card content-emphasis" data-callout="bluf" aria-label="{BOTTOM_LINE}">\n'
                f'<header class="content-card-title">{BOTTOM_LINE}</header>\n{leads}</aside>\n')
     _decision_tabs(nodes, html, context)
     context.chapter, context.where = "", []
     body = "".join(html)
-    heading = re.match(r"\s*<h1\b.*?</h1>\n?", body, re.S) if after_heading else None
+    heading = re.match(
+        r"\s*(?:<h1\b.*?</h1>|<p class=\"paragraph-heading\".*?</p>)\n?", body, re.S
+    ) if after_heading else None
     cut = heading.end() if heading else 0
     return body[:cut] + box + under + body[cut:]
 
@@ -1500,9 +1581,10 @@ def _decision_tabs(nodes: list[dict[str, object]], html: list[str], context: Con
 
 
 def _note(depth: int, title: str, slug: str, generated: str, frontmatter: dict[str, object],
-          html: str, context: Context) -> dict[str, object]:
+          html: str, context: Context, chapter_number: str = "", page_slug: str = "") -> dict[str, object]:
     return {
         "depth": depth, "title": title, "slug": slug, "sourcePath": f"{slug}.md",
+        "chapterNumber": chapter_number, "pageSlug": page_slug or slug,
         "generated": generated, "cssClasses": _css_classes(frontmatter, slug, context),
         "frontmatter": frontmatter, "editableProperties": context.editable,
         "frontmatterHtml": _frontmatter_html(frontmatter, slug, context),
@@ -1739,10 +1821,53 @@ def _cover(title: str, metadata: dict[str, object], html: dict[str, str], compac
 def _nodes(nodes: list[dict[str, object]], context: Context, key: str = "children") -> str:
     """The nodes of the current node's ``key`` list."""
     html = []
-    for index, node in enumerate(nodes):
+    index = 0
+    while index < len(nodes):
+        node = nodes[index]
+        paragraph = nodes[index + 1] if index + 1 < len(nodes) else None
+        if _is_paragraph_heading(node, paragraph, context):
+            html.append(_paragraph_heading_html(node, paragraph, key, index, context))
+            index += 2
+            continue
         with _at(context, key, index):
             html.append(_node(node, context))
+        index += 1
     return "".join(html)
+
+
+def _is_paragraph_heading(section: dict[str, object], paragraph: dict[str, object] | None,
+                          context: Context) -> bool:
+    return bool(section["type"] == "section" and paragraph and paragraph["type"] == "paragraph" and
+                min(max(int(section["attrs"].get("level", 1)) + context.heading_level_offset, 1), 6)
+                == context.paragraph_heading_level)
+
+
+def _paragraph_heading_html(section: dict[str, object], paragraph: dict[str, object], key: str,
+                            index: int, context: Context) -> str:
+    with _at(context, key, index):
+        title = _phrasing(section["children"], context)
+        anchor = context.headings.get(
+            f"{context.chapter or HOME}#{_identifier(_plain(section))}", "")
+        section_id = escape(str(section.get("id", "")), quote=True)
+        anchor_attr = f' id="{escape(anchor, quote=True)}"' if anchor and not context.showing else ""
+        node_id_attr = (f' data-node-id="{section_id}"'
+                        if section_id and not context.showing else "")
+        block_slug = f'{context.chapter or HOME}--block-{section.get("id", "")}'
+        block_anchor = (f'<span id="{escape(block_slug, quote=True)}"></span>'
+                        if section.get("id") and not context.showing and
+                        (context.chapter or HOME, section["id"]) in context.block_targets else "")
+    with _at(context, key, index + 1):
+        paragraph_id = escape(str(paragraph.get("id", "")), quote=True)
+        paragraph_attr = (f' data-node-id="{paragraph_id}"'
+                          if paragraph_id and not context.showing else "")
+        text = _phrasing(paragraph["children"], context)
+        paragraph_block = f'{context.chapter or HOME}--block-{paragraph.get("id", "")}'
+        paragraph_anchor = (f'<span id="{escape(paragraph_block, quote=True)}"></span>'
+                            if paragraph.get("id") and not context.showing and
+                            (context.chapter or HOME, paragraph["id"]) in context.block_targets else "")
+    return (f'<p class="paragraph-heading"{paragraph_attr}>'
+            f'<strong class="heading-name"{anchor_attr}{node_id_attr}>{title}{block_anchor}</strong>'
+            f'<br>{text}{paragraph_anchor}</p>\n')
 
 
 def _node(node: dict[str, object], context: Context) -> str:
@@ -1828,10 +1953,25 @@ def _child(context: Context, index: int, rendered: Callable[[], str]) -> str:
 
 
 def _section(node: dict[str, object], context: Context) -> str:
-    level = min(max(int(node["attrs"].get("level", 1)), 1), 6)
+    level = min(max(int(node["attrs"].get("level", 1)) + context.heading_level_offset, 1), 6)
     anchor = context.headings.get(f"{context.chapter or HOME}#{_identifier(_plain(node))}", "")
     identifier = f' id="{anchor}"' if anchor else ""
-    return f"<h{level}{identifier}>{_phrasing(node['children'], context)}</h{level}>\n"
+    return (f'<h{level}{identifier}><span class="heading-name">'
+            f'{_phrasing(node["children"], context)}</span></h{level}>\n')
+
+
+def _lowest_heading_level(nodes: list[dict[str, object]], offset: int) -> int:
+    """The deepest rendered section level in this chapter's content, or none."""
+    levels = []
+
+    def walk(items: list[dict[str, object]]) -> None:
+        for item in items:
+            if item["type"] == "section":
+                levels.append(min(max(int(item["attrs"].get("level", 1)) + offset, 1), 6))
+            walk(item.get("children", []))
+
+    walk(nodes)
+    return max(levels, default=0)
 
 
 def _wrap(opening: str, closing: str) -> Renderer:

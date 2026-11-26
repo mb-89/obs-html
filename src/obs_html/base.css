@@ -783,10 +783,20 @@ math {
     object-fit: contain;
 }
 
-.settings-pages {
+.settings-pages,
+.settings-heading-names {
     align-items: center;
     display: flex;
     gap: 0.5rem;
+}
+
+.heading-names-hidden .heading-name {
+    display: none !important;
+}
+
+.chapter-number {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
 }
 
 .settings-page-export,

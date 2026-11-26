@@ -115,7 +115,16 @@
                     item.style.setProperty("--chapter-depth", record.depth);
                     const link = document.createElement("a");
                     link.href = `#${record.slug}`;
-                    link.textContent = record.title;
+                    if (record.chapterNumber) {
+                        const number = document.createElement("span");
+                        number.className = "chapter-number";
+                        number.textContent = record.chapterNumber;
+                        link.append(number, document.createTextNode(" "));
+                    }
+                    const name = document.createElement("span");
+                    name.className = "heading-name";
+                    name.textContent = record.title;
+                    link.append(name);
                     const number = document.createElement("span");
                     number.className = "contents-page-number";
                     number.dataset.contentsChapter = record.slug;
@@ -130,10 +139,54 @@
         const front = data.document.pages.flatMap((declaration) => builders[declaration.page](declaration));
         // A compact heading is never a sheet of its own; it opens the first front page.
         if (cover?.matches(".document-heading--compact")) front[0]?.source.prepend(cover);
-        return [
-            ...front,
-            ...(includeChapters ? chapters.map((record) => ({slug: record.slug, source: sourceFor(record.slug)})) : []),
-        ];
+        if (!includeChapters) return front;
+        return [...front, ...chapters.map((record) => ({
+            slug: record.slug,
+            source: sourceFor(record.slug),
+        }))];
+    };
+
+    const prepareNestedChapterBreaks = (source) => {
+        const chapters = [...source.querySelectorAll("[data-manifest-chapter]")];
+        const bySlug = new Map(chapters.map((chapter) => [chapter.dataset.manifestChapter, chapter]));
+        const groups = new Map();
+        chapters.forEach((chapter) => {
+            delete chapter.dataset.pageBreakBefore;
+            delete chapter.dataset.pageBreakAfter;
+            const parent = chapter.dataset.manifestParent;
+            if (!groups.has(parent)) groups.set(parent, []);
+            groups.get(parent).push(chapter);
+        });
+        const depth = (parent) => {
+            let result = 0;
+            let current = parent;
+            while (bySlug.has(current)) {
+                result += 1;
+                current = bySlug.get(current).dataset.manifestParent;
+            }
+            return result;
+        };
+        const ordered = [...groups].sort(([left], [right]) => depth(right) - depth(left));
+        ordered.forEach(([, siblings]) => {
+            siblings.forEach((chapter) => {
+                const sample = chapter.cloneNode(true);
+                printed.classList.add("measuring-pages");
+                let long;
+                try {
+                    layout(printed, [{slug: chapter.dataset.manifestChapter, source: sample}],
+                        false, false, false, null, false);
+                    long = printed.children.length > 1 ||
+                        Boolean(printed.querySelector(".paper-sheet-flexible"));
+                } finally {
+                    printed.replaceChildren();
+                    printed.classList.remove("measuring-pages");
+                }
+                if (long) {
+                    chapter.dataset.pageBreakBefore = "";
+                    chapter.dataset.pageBreakAfter = "";
+                }
+            });
+        });
     };
 
     // Split overflowing containers recursively, retaining semantic wrappers on each sheet.
@@ -598,6 +651,9 @@
                 place(node);
                 return;
             }
+            if (node.nodeType === 1 && node.hasAttribute("data-page-break-before") && pageHasContent) {
+                newPage();
+            }
             if (!wideDepth && pendingPortrait) {
                 orient("portrait");
                 pendingPortrait = false;
@@ -630,6 +686,11 @@
                 if (needsBreak) newPage();
             }
             place(node);
+            if (node.nodeType === 1 && node.hasAttribute("data-page-break-after") && pageHasContent &&
+                    nodes.slice(index + 1).some((next) => next.nodeType === 1 ||
+                        (next.nodeType === 3 && next.textContent.trim()))) {
+                newPage();
+            }
         });
         placeChildren([...source.childNodes]);
         if (logicalPages) reserveUntil(logicalPages - 1);
@@ -673,7 +734,9 @@
             }
         });
     };
-    const layout = (destination, entries, forPrint, live = false, logical = false, allocations = null) => {
+    const layout = (destination, entries, forPrint, live = false, logical = false, allocations = null,
+        measureNested = true) => {
+        if (measureNested) entries.forEach(({source}) => prepareNestedChapterBreaks(source));
         destination.replaceChildren();
         destination.classList.toggle("logical-pages", logical);
         const sectionTitles = new Map(entries.filter((entry) => entry.title !== undefined)
@@ -691,6 +754,11 @@
         const starts = new Map();
         [...destination.children].forEach((sheet, index) => {
             if (!starts.has(sheet.dataset.pageChapter)) starts.set(sheet.dataset.pageChapter, index + 1);
+            sheet.querySelectorAll("[data-manifest-chapter]").forEach((chapter) => {
+                if (!starts.has(chapter.dataset.manifestChapter)) {
+                    starts.set(chapter.dataset.manifestChapter, index + 1);
+                }
+            });
         });
         destination.querySelectorAll("[data-contents-chapter]").forEach((number) => {
             number.textContent = String((live ? measuredStarts : starts).get(number.dataset.contentsChapter) || "");
@@ -833,17 +901,18 @@
             const counts = new Map();
             const allocations = new Map();
             try {
-                const entries = groups(artifact.exportChapters(), null, false);
-                const chapters = artifact.exportChapters();
-                for (const entry of [...entries, ...chapters.map(record => ({slug: record.slug}))]) {
+                const entries = groups(artifact.exportChapters());
+                let pageOffset = 0;
+                const starts = new Map();
+                for (const entry of entries) {
                     await globalThis.obsStartup.yield();
                     if (printing || epoch !== measurementEpoch) return;
                     printed.classList.add("measuring-pages");
                     try {
-                        layout(printed, [{slug: entry.slug, source: entry.source || sourceFor(entry.slug),
-                            title: entry.title}],
-                            false, false, true, allocations);
+                        const localStarts = layout(printed, [entry], false, false, true, allocations);
                         counts.set(entry.slug, printed.children.length);
+                        localStarts.forEach((page, slug) => starts.set(slug, pageOffset + page));
+                        pageOffset += printed.children.length;
                     } finally {
                         printed.replaceChildren();
                         printed.classList.remove("measuring-pages");
@@ -852,12 +921,8 @@
                 if (epoch !== measurementEpoch) return;
                 measuredCounts = counts;
                 measuredTableAllocations = allocations;
-                let total = 0;
-                measuredCounts.forEach((count, slug) => {
-                    measuredStarts.set(slug, total + 1);
-                    total += count;
-                });
-                measuredTotal = total;
+                measuredStarts = starts;
+                measuredTotal = pageOffset;
                 renderScreen("measurement");
             } finally {
                 measurementScheduled = false;

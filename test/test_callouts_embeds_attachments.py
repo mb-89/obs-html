@@ -271,7 +271,8 @@ def test_a_section_embed_shows_its_heading_up_to_the_next_of_its_level() -> None
 
     assert copy == (
         '<div class="embed" data-embed-chapter="vision" data-embed-block="section-pitch">\n'
-        '<h2>Pitch</h2>\n<p>For owners.</p>\n<h3>Detail</h3>\n<p>Detail of the pitch.</p>\n'
+        '<h2><span class="heading-name">Pitch</span></h2>\n<p>For owners.</p>\n'
+        '<h3><span class="heading-name">Detail</span></h3>\n<p>Detail of the pitch.</p>\n'
         '<p class="embed-source"><a class="internal-link embed" href="#vision/pitch">Vision</a></p>\n</div>\n')
 
 
@@ -289,7 +290,7 @@ def test_a_shown_copy_carries_no_id_and_no_anchor() -> None:
     notes = _embedding(_embed("Pitch", "section-pitch"), linked, vision=vision)
     [copy] = _copies(notes["one"]["html"])
 
-    assert "Marked." in copy and "<h2>Pitch</h2>" in copy
+    assert "Marked." in copy and '<h2><span class="heading-name">Pitch</span></h2>' in copy
     assert not re.search(r'\s(?:id|data-node-id)="', copy)
     assert notes["one"]["marks"] == []  # The mark has its one entry where it lives.
     assert [mark["anchor"] for mark in notes["vision"]["marks"]] == ["mark-vision-risk-watch"]
@@ -370,12 +371,15 @@ def test_a_bottom_line_renders_under_the_chapter_title_wherever_authored() -> No
     notes = _bottom_lines()
 
     product, plan = notes["product"], notes["plan"]
-    assert re.match(r'<h1 id="product--product"[^>]*>Product</h1>\n' + re.escape(BOX) + ' data-node-id="callouts-',
+    assert re.match(r'<p class="paragraph-heading"[^>]*><strong class="heading-name" id="product--product"'
+                    r'[^>]*>Product</strong><br>Intro prose\.</p>\n' + re.escape(BOX) + ' data-node-id="callouts-',
                     product)
-    assert product.index("Intro prose.") > product.index(_box(product))
-    assert product.count('data-callout="bluf"') == 1  # Nothing at the authored place.
-    assert re.match(r"<h1[^>]*>Plan</h1>\n" + re.escape(BOX), plan)
-    assert plan.index(_box(plan)) < plan.index(">Steps</h2>")
+    assert product.index("Intro prose.") < product.index(_box(product))
+    assert product.index("More product prose.") > product.index(_box(product))
+    product_stream = product.split('<section class="manifest-subchapter"', 1)[0]
+    assert product_stream.count('data-callout="bluf"') == 1  # Nested chapters retain their own boxes.
+    assert re.match(re.escape(BOX) + ' data-node-id="callouts-', plan)
+    assert plan.index(_box(plan)) < plan.index("Steps</span></h3>")
     assert '<header class="content-card-title">Why it matters</header>' in _box(notes["vision"])
 
 
@@ -389,7 +393,7 @@ def test_a_bottom_line_is_first_without_a_leading_heading_and_a_bless_record_fol
 
     assert notes["step"].startswith(BOX)
     plan = notes["plan"]
-    assert plan.index(_box(plan)) < plan.index("data-bless-record") < plan.index(">Steps</h2>")
+    assert plan.index(_box(plan)) < plan.index("data-bless-record") < plan.index("Steps</span></h3>")
 
 
 def test_a_bottom_line_lists_its_children_s_leads_with_links() -> None:
