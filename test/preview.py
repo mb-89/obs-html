@@ -55,6 +55,7 @@ def http_origin(folder: Path):
     finally:
         server.shutdown()
         thread.join()
+        server.server_close()
 
 
 class QuietHandler(http.server.SimpleHTTPRequestHandler):

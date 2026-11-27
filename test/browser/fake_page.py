@@ -244,6 +244,8 @@ class FakeBrowser:
         if process is not None and process.poll() is None:
             process.stdin.close()
             process.wait()
+        if process is not None:
+            process.stdout.close()
         if self._stderr is not None:
             self._stderr.close()
             self._stderr = None
