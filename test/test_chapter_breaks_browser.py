@@ -214,7 +214,7 @@ def test_nested_chapter_navigation_keeps_numbers_when_heading_names_are_hidden(t
         "pages": ["first", "second"],
         "contents": [["first", "1", "4"], ["first-child", "1.1", "4"], ["second", "2", "5"]],
         "sidebarNumbers": ["1", "1.1", "2"],
-        "nestedOutlineLinks": ["#first-child"],
+        "nestedOutlineLinks": ["#first-child", "#first-child/details"],
         "headingNameHidden": True,
         "numberVisible": True,
     }
