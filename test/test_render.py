@@ -266,7 +266,8 @@ def test_lowest_level_heading_joins_its_paragraph_as_a_bold_paragraph_heading(do
 
     html = _notes(source)["guide"]["html"]
 
-    assert ('<p class="paragraph-heading"><strong class="heading-name" id="guide--details">Details</strong>'
+    assert ('<p class="paragraph-heading"><strong class="heading-name" data-heading-level="2" '
+            'id="guide--details">Details</strong>'
             '<br>Paragraph text.</p>') in html
     assert '<h2' not in html
 

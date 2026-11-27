@@ -65,7 +65,7 @@ def open_state(fake_page, door_artifact, state: str, errors: list[str]):
 
 
 def assert_contents_and_walk(fake_page, door_artifact, state: str, chapters: list[str]) -> None:
-    """The contents list exactly ``chapters``, and previous/next walk them both ways from Home."""
+    """Contents keeps the outline; arrows walk its top-level pages from Home."""
     errors: list[str] = []
     frame = open_state(fake_page, door_artifact, state, errors)
     contents = frame.evaluate("""() => [...document.querySelectorAll("[data-toc-tree] [data-toc-link]")]
@@ -77,14 +77,14 @@ def assert_contents_and_walk(fake_page, door_artifact, state: str, chapters: lis
         frame.evaluate("globalThis.obsArtifact.whenChapterReady()")
         walk.append(frame.locator("[data-active-chapter]").get_attribute("data-chapter"))
     assert contents == chapters
-    assert walk == contents
+    assert walk == ["one", "two"]
     backwards = []
     previous = frame.locator('[data-step="-1"]')
     while previous.is_enabled():
         previous.click()
         frame.evaluate("globalThis.obsArtifact.whenChapterReady()")
         backwards.append(frame.locator("[data-active-chapter]").get_attribute("data-chapter"))
-    assert backwards == [*reversed(contents[:-1]), "home"]
+    assert backwards == ["one", "home"]
     expect(frame.locator("[data-active-chapter]")).to_have_attribute("data-chapter", "home")
     assert errors == []
 
@@ -110,7 +110,8 @@ def test_every_top_control_is_one_square_size_in_one_row(tmp_path: Path, reader_
     _page, frame = open_viewer(tmp_path, reader_browser, errors, band_artifact(), "light",
                                width=WIDTHS[width])
     frame.evaluate("location.hash = '#one-a'")
-    expect(frame.locator("[data-active-chapter]")).to_have_attribute("data-chapter", "one-a")
+    expect(frame.locator("[data-active-chapter]")).to_have_attribute("data-chapter", "one")
+    expect(frame.locator('[data-manifest-chapter="one-a"]')).to_be_visible()
     frame.evaluate("""() => ["error", "warning", "information"].forEach((severity) =>
         globalThis.obsNotices.post({id: severity, severity, title: severity}))""")
     band = frame.evaluate(TOP_BAND)
@@ -221,7 +222,7 @@ def commented_manifest_artifact() -> str:
 @pytest.mark.dom
 def test_a_manifest_with_commented_lines_walks_its_visible_chapters_end_to_end(door_artifact, fake_page) -> None:
     """The same walk through obs-document and obs-html: the core hides the `%%` manifest lines,
-    so the contents and previous/next walk one, one-a, one-b and two."""
+    so contents lists one, one-a, one-b and two while arrows walk one and two."""
     assert_contents_and_walk(fake_page, door_artifact, "reading-shell-commented-manifest",
                              ["one", "one-a", "one-b", "two"])
 
@@ -282,6 +283,7 @@ CHAPTER_HEADINGS = """async (slug) => {
         contents: [...document.querySelectorAll(`[data-toc-tree] a[href^="#${slug}/"]`)]
             .map((link) => link.getAttribute("href")),
         collapsible: [...body.querySelectorAll("[data-heading-toggle]")].map((button) => button.dataset.label),
+        paragraphHeadings: [...body.querySelectorAll("strong.heading-name[id]")].map((heading) => heading.textContent),
         copies: [...body.querySelectorAll("div.embed")].map((copy) => copy.textContent.replace(/\\s+/g, " ").trim()),
     };
 }"""
@@ -322,4 +324,5 @@ def test_a_shown_section_adds_no_heading_to_its_embedding_chapter(door_artifact,
     without, shown = seen
     assert without["copies"] == [] and shown["copies"] == ["Pitch For owners. Detail Detail of the pitch. Vision"]
     assert shown["contents"] == without["contents"] == ["#m1/own", "#m1/next"]
-    assert shown["collapsible"] == without["collapsible"] == ["Own", "Next"]
+    assert shown["collapsible"] == without["collapsible"] == []
+    assert shown["paragraphHeadings"] == without["paragraphHeadings"] == ["Own", "Next"]

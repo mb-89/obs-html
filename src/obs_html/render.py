@@ -1871,7 +1871,9 @@ def _paragraph_heading_html(section: dict[str, object], paragraph: dict[str, obj
         paragraph_anchor = (f'<span id="{escape(paragraph_block, quote=True)}"></span>'
                             if paragraph.get("id") and not context.showing and
                             (context.chapter or HOME, paragraph["id"]) in context.block_targets else "")
-        heading = f'<strong class="heading-name"{anchor_attr}{node_id_attr}>{title}{block_anchor}</strong><br>'
+        level = min(max(int(section["attrs"].get("level", 1)) + context.heading_level_offset, 1), 6)
+        heading = (f'<strong class="heading-name" data-heading-level="{level}"'
+                   f'{anchor_attr}{node_id_attr}>{title}{block_anchor}</strong><br>')
         return _paragraph(paragraph, context, heading, paragraph_anchor, paragraph_attr)
 
 
