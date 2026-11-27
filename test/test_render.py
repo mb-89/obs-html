@@ -252,7 +252,8 @@ def test_nested_chapters_stay_on_their_top_level_page_and_keep_the_outline() -> 
     assert model["pages"] == ["first", "second"]
     assert model["toc"] == ["home", "first", "first-child", "second"]
     assert notes["first-child"]["pageSlug"] == "first"
-    assert '<section class="manifest-subchapter" id="first-child">' in notes["first"]["html"]
+    assert ('<section class="manifest-subchapter" id="first-child" '
+            'data-manifest-chapter="first-child" data-manifest-parent="first">') in notes["first"]["html"]
     assert notes["first-child"]["chapterNumber"] == "1.1"
 
 
@@ -697,7 +698,8 @@ def test_an_embed_links_to_its_chapter_or_renders_unresolved() -> None:
                            node("embeds", target="index", chapter=None)))["index"]["html"]
     assert '<a class="internal-link embed" href="#design-input-architecture">Architecture</a>' in html
     assert '<span class="unresolved embed" title="index">index</span>' in html
-    assert html == ('<p><a class="internal-link embed" href="#design-input-architecture">Architecture</a> '
+    assert html == ('<h1 class="manifest-heading"><span class="heading-name">Index</span></h1>\n'
+                    '<p><a class="internal-link embed" href="#design-input-architecture">Architecture</a> '
                     '<span class="unresolved embed" title="index">index</span></p>\n')
 
 

@@ -1366,8 +1366,9 @@ def _chapter_notes(chapters: list[dict[str, object]], context: Context, depth: i
         body = _note_body(chapter["content"], chapter["id"], [*where, index, "content"], context,
                           chapter.get("bottomLine"), context.percolated.get(chapter["id"], []),
                           record + "\n" if record else "")
-        body = _chapter_heading(body, chapter_number, chapter["title"], depth,
-                                _chapter_title_node(chapter["content"]) is not None)
+        if chapter.get("toc", True):
+            body = _chapter_heading(body, chapter_number, chapter["title"], depth,
+                                    _chapter_title_node(chapter["content"]) is not None)
         context.answered_figures = {}
         notes.append(_note(depth, chapter["title"], chapter["id"], "", context.frontmatter, body, context,
                            chapter_number, chapter_page))

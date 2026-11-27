@@ -33,7 +33,10 @@ def _html(*content: dict, assets: list[dict] | None = None, records: tuple[dict,
     document = build("Doc", chapter("one", "One", *content), chapter("two", "Two"), records=records)
     document["assets"] = assets or []
     notes = decode_artifact_data(render(document, CONFIG))["notes"]
-    return next(note for note in notes if note["slug"] == "one")["html"]
+    html = next(note for note in notes if note["slug"] == "one")["html"]
+    title = '<h1 class="manifest-heading"><span class="heading-name">One</span></h1>\n'
+    assert html.startswith(title)
+    return html[len(title):]
 
 
 def _callout(kind: str, title: str | list[dict] = "", *body: str | dict) -> dict:
