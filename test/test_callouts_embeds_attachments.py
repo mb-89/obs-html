@@ -381,7 +381,8 @@ def test_a_bottom_line_renders_under_the_chapter_title_wherever_authored() -> No
     assert product.index("Intro prose.") > product.index(_box(product))
     assert product.index("More product prose.") > product.index(_box(product))
     assert product.count('data-callout="bluf"') == 1  # Nothing at the authored place.
-    assert re.match(re.escape(BOX) + ' data-node-id="callouts-', plan)
+    assert re.match(r'<h2 id="plan--plan"[^>]*><span class="heading-name">Plan</span></h2>\n'
+                    + re.escape(BOX) + ' data-node-id="callouts-', plan)
     assert plan.index(_box(plan)) < plan.index("Steps</span></h3>")
     assert '<header class="content-card-title">Why it matters</header>' in _box(notes["vision"])
 
@@ -394,7 +395,8 @@ def test_a_bottom_line_is_first_without_a_leading_heading_and_a_bless_record_fol
 
     notes = _bottom_lines(change)
 
-    assert notes["step"].startswith(BOX)
+    assert notes["step"].startswith(
+        '<h3 class="manifest-heading"><span class="heading-name">Step</span></h3>\n' + BOX)
     plan = notes["plan"]
     assert plan.index(_box(plan)) < plan.index("data-bless-record") < plan.index("Steps</span></h3>")
 
@@ -497,12 +499,17 @@ BOTTOM_LINE_PLACES = """async ({slug, paged}) => {
     await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     // The emphasis box bleeds into the margin as every card does (artifact-ui.md, Takeaways and orientation):
     // its text stays in the text column, and the box on the screen.
-    const place = (root) => [...root.querySelectorAll('aside[data-callout="bluf"]')].map((box) => {
+    const place = (root) => [...root.querySelectorAll('aside[data-callout="bluf"]')]
+        .filter((box) => (box.closest("[data-manifest-chapter]")?.dataset.manifestChapter
+            ?? document.querySelector("[data-active-chapter]").dataset.chapter) === slug)
+        .map((box) => {
         const column = box.parentElement.getBoundingClientRect(), outer = box.getBoundingClientRect();
         const style = getComputedStyle(box);
         const inner = outer.width - ["Left", "Right"].reduce((sum, side) => sum + parseFloat(style[`padding${side}`])
             + parseFloat(style[`border${side}Width`]), 0);
-        return {before: box.previousElementSibling?.textContent.trim() ?? null,
+        return {before: (box.previousElementSibling ?? box.parentElement.previousElementSibling)
+                    ?.querySelector("h1, h2, h3, h4, h5, h6")?.textContent.trim()
+                    ?? box.previousElementSibling?.textContent.trim() ?? null,
                 inColumn: inner <= column.width + 0.5 && outer.left >= 0 && outer.right <= innerWidth,
                 shown: box.checkVisibility()};
     });
@@ -536,7 +543,7 @@ def test_a_bottom_line_leads_its_page_in_every_layout(tmp_path, reader_browser) 
     page.evaluate("globalThis.obsPages.exportPDF()")
     page.wait_for_function("document.querySelectorAll('.print-book aside[data-callout=\"bluf\"]').length === 5")
     printed = page.evaluate("""() => [...document.querySelectorAll('.print-book aside[data-callout="bluf"]')]
-        .map((box) => box.previousElementSibling.textContent.trim())""")
+        .map((box) => box.previousElementSibling?.textContent.trim() ?? null)""")
     phone, phone_errors = _bottom_line_page(tmp_path, reader_browser, 390)
     narrow = phone.evaluate(BOTTOM_LINE_PLACES, {"slug": "product", "paged": False})
 

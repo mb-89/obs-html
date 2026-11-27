@@ -1457,8 +1457,9 @@ def _note_body(nodes: list[dict[str, object]], chapter: str, where: list[object]
     _decision_tabs(nodes, html, context)
     context.chapter, context.where = "", []
     body = "".join(html)
+    level = min(context.heading_level_offset + 1, 6)
     heading = re.match(
-        r'\s*(?:<h1\b.*?</h1>|(?:<section class="content-card">.*?</header>\n)?'
+        rf'\s*(?:<h{level}\b.*?</h{level}>|(?:<section class="content-card">.*?</header>\n)?'
         r'<p class="paragraph-heading(?: [^"]*)?".*?</p>\n?(?:</section>\n)?)\n?', body, re.S
     ) if after_heading else None
     cut = heading.end() if heading else 0
